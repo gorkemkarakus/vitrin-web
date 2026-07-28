@@ -1,0 +1,7 @@
+<?xml version='1.0' encoding='utf-8'?>
+<resources>
+    <string name="app_name">Vitrin</string>
+    <string name="title_activity_main">Vitrin</string>
+    <string name="package_name">com.vitrin.panel</string>
+    <string name="custom_url_scheme">com.vitrin.panel</string>
+</resources>
