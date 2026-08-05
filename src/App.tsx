@@ -1,5 +1,8 @@
+import { useEffect, useRef, useState } from 'react'
 import { BrowserRouter, Navigate, Route, Routes } from 'react-router-dom'
+import { SplashScreen } from '@capacitor/splash-screen'
 import { AuthProvider, useAuth } from './contexts/AuthContext'
+import AppSplash from './components/AppSplash'
 import LoginPage from './pages/LoginPage'
 import DashboardLayout from './layouts/DashboardLayout'
 import MessagesPage from './pages/MessagesPage'
@@ -29,48 +32,72 @@ function ProtectedRoute({ children, adminOnly = false }: { children: React.React
   return <>{children}</>
 }
 
+const MIN_SPLASH_MS = 2600
+const SPLASH_FADE_MS = 380
+
 function AppRoutes() {
   const { session, profile, loading } = useAuth()
+  const [splashVisible, setSplashVisible] = useState(true)
+  const [splashFadingOut, setSplashFadingOut] = useState(false)
+  const mountedAt = useRef(Date.now())
 
-  if (loading) return null
+  // Auth kontrolu genelde cok hizli bitiyor (~100ms) — splash animasyonun
+  // gorunur olmasi icin gercek ekran altta hazir olsa bile en az
+  // MIN_SPLASH_MS boyunca ustte tutup ondan sonra yumusakca soldur.
+  useEffect(() => {
+    if (loading) return
+    const elapsed = Date.now() - mountedAt.current
+    const remaining = Math.max(0, MIN_SPLASH_MS - elapsed)
+    const fadeTimer = setTimeout(() => setSplashFadingOut(true), remaining)
+    const removeTimer = setTimeout(() => setSplashVisible(false), remaining + SPLASH_FADE_MS)
+    return () => {
+      clearTimeout(fadeTimer)
+      clearTimeout(removeTimer)
+    }
+  }, [loading])
 
   return (
-    <Routes>
-      <Route
-        path="/"
-        element={session && profile ? <Navigate to="/randevular" replace /> : <LoginPage />}
-      />
-      <Route element={<ProtectedRoute><DashboardLayout /></ProtectedRoute>}>
-        <Route path="randevular" element={<AppointmentsPage />} />
-        <Route path="mesajlar"   element={<MessagesPage />} />
-        <Route path="ayarlar"    element={<SettingsPage />} />
-        <Route
-          path="dashboard"
-          element={<ProtectedRoute adminOnly><DashboardPage /></ProtectedRoute>}
-        />
-        <Route
-          path="muhasebe"
-          element={<ProtectedRoute adminOnly><AccountingPage /></ProtectedRoute>}
-        />
-        <Route
-          path="ekip"
-          element={<ProtectedRoute adminOnly><TeamPage /></ProtectedRoute>}
-        />
-        <Route
-          path="hizmetler"
-          element={<ProtectedRoute adminOnly><ServicesPage /></ProtectedRoute>}
-        />
-        <Route
-          path="hizmetler/:id/aciklama"
-          element={<ProtectedRoute adminOnly><ServiceDescriptionPage /></ProtectedRoute>}
-        />
-        <Route
-          path="kullanicilar"
-          element={<ProtectedRoute adminOnly><UserManagementPage /></ProtectedRoute>}
-        />
-      </Route>
-      <Route path="*" element={<Navigate to="/" replace />} />
-    </Routes>
+    <>
+      {!loading && (
+        <Routes>
+          <Route
+            path="/"
+            element={session && profile ? <Navigate to="/dashboard" replace /> : <LoginPage />}
+          />
+          <Route element={<ProtectedRoute><DashboardLayout /></ProtectedRoute>}>
+            <Route path="randevular" element={<AppointmentsPage />} />
+            <Route path="mesajlar"   element={<MessagesPage />} />
+            <Route path="ayarlar"    element={<SettingsPage />} />
+            <Route
+              path="dashboard"
+              element={<ProtectedRoute adminOnly><DashboardPage /></ProtectedRoute>}
+            />
+            <Route
+              path="muhasebe"
+              element={<ProtectedRoute adminOnly><AccountingPage /></ProtectedRoute>}
+            />
+            <Route
+              path="ekip"
+              element={<ProtectedRoute adminOnly><TeamPage /></ProtectedRoute>}
+            />
+            <Route
+              path="hizmetler"
+              element={<ProtectedRoute adminOnly><ServicesPage /></ProtectedRoute>}
+            />
+            <Route
+              path="hizmetler/:id/aciklama"
+              element={<ProtectedRoute adminOnly><ServiceDescriptionPage /></ProtectedRoute>}
+            />
+            <Route
+              path="kullanicilar"
+              element={<ProtectedRoute adminOnly><UserManagementPage /></ProtectedRoute>}
+            />
+          </Route>
+          <Route path="*" element={<Navigate to="/" replace />} />
+        </Routes>
+      )}
+      {splashVisible && <AppSplash fadingOut={splashFadingOut} />}
+    </>
   )
 }
 
@@ -83,6 +110,15 @@ function AuthenticatedApp() {
 }
 
 function App() {
+  // Native (Android) splash sadece WebView ilk kareyi cizene kadar orada
+  // durur — biz kendi animasyonlu splash'imizi (AppSplash) React tarafinda
+  // gosteriyoruz, o yuzden native olani hemen birakip ona devrediyoruz.
+  // launchAutoHide:false oldugu icin bu cagri gelmezse native splash hic
+  // kapanmaz.
+  useEffect(() => {
+    SplashScreen.hide().catch(() => {})
+  }, [])
+
   return (
     <BrowserRouter>
       <Routes>

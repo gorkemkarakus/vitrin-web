@@ -4,6 +4,8 @@ import { supabase } from '../lib/supabase'
 import { useAuth } from '../contexts/AuthContext'
 import { TIME_OPTIONS } from '../lib/timeOptions'
 import Avatar from '../components/Avatar'
+import StatusDropdown, { type StatusDropdownOption } from '../components/StatusDropdown'
+import Select from '../components/Select'
 import type { LayoutOutletContext } from '../layouts/DashboardLayout'
 import styles from './AppointmentsPage.module.css'
 
@@ -81,6 +83,13 @@ const STATUS_CLASS: Record<Appointment['status'], string> = {
   iptal: styles.statusIptal,
 }
 
+const STATUS_DROPDOWN_OPTIONS: StatusDropdownOption[] = [
+  { value: 'bekliyor', label: 'Bekliyor', color: 'var(--warn-text)', bg: 'var(--warn-bg)' },
+  { value: 'onaylandi', label: 'Onaylandı', color: 'var(--info-text)', bg: 'var(--info-bg)' },
+  { value: 'tamamlandi', label: 'Tamamlandı', color: 'var(--ok-text)', bg: 'var(--ok-bg)' },
+  { value: 'iptal', label: 'İptal', color: 'var(--danger-text)', bg: 'var(--danger-bg)' },
+]
+
 const SLOT_MINUTES = 30
 const WEEKDAY_SHORT = ['Paz', 'Pzt', 'Sal', 'Çar', 'Per', 'Cum', 'Cmt']
 
@@ -151,11 +160,20 @@ export default function AppointmentsPage() {
   }, [])
 
   useEffect(() => {
+    let changed = false
     if (searchParams.get('yeni') === '1') {
       setShowForm(true)
       searchParams.delete('yeni')
-      setSearchParams(searchParams, { replace: true })
+      changed = true
     }
+    const tarih = searchParams.get('tarih')
+    if (tarih) {
+      setViewDate(tarih)
+      setViewMode('gunluk')
+      searchParams.delete('tarih')
+      changed = true
+    }
+    if (changed) setSearchParams(searchParams, { replace: true })
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [])
 
@@ -173,8 +191,11 @@ export default function AppointmentsPage() {
   const [error, setError] = useState<string | null>(null)
   const [success, setSuccess] = useState<string | null>(null)
 
-  async function loadData() {
-    setLoading(true)
+  // "silent=true" bir mutasyondan sonra cagrilir — veriyi arka planda
+  // tazeler ama "loading" bayragini geri true yapmaz, boylece sayfa her
+  // islemden sonra bos "Yükleniyor…" yazisina donup yeniden cizilmiyor.
+  async function loadData(silent = false) {
+    if (!silent) setLoading(true)
     const [
       { data: appts },
       { data: custs },
@@ -364,7 +385,7 @@ export default function AppointmentsPage() {
       setEmployeeId('')
       setApptTime('')
       setSourceNote('')
-      await loadData()
+      await loadData(true)
       setShowForm(false)
       setQuickUnclear([])
     } finally {
@@ -434,7 +455,7 @@ export default function AppointmentsPage() {
 
   async function updateStatus(appt: Appointment, status: Appointment['status']) {
     await supabase.from('appointments').update({ status }).eq('id', appt.id)
-    await loadData()
+    await loadData(true)
   }
 
   function shiftDate(days: number) {
@@ -533,8 +554,17 @@ export default function AppointmentsPage() {
   function renderRow(a: Appointment) {
     const d = new Date(a.scheduled_at)
     const isPast = new Date(d.getTime() + (a.duration_minutes ?? SLOT_MINUTES) * 60000) < now
+    // "bekliyor" durumunda kalıp saati geçmiş randevular unutulmuş olabilir —
+    // bunları soluklaştırmak (diğer geçmiş randevularda yaptığımız gibi) tam
+    // tersi etki yaratır, gözden daha da kaçarlar. Bu yüzden ayrı, dikkat
+    // çeken bir durum olarak işaretliyoruz; zaten sonuçlanmış (onaylandı/
+    // tamamlandı/iptal) geçmiş randevular soluklaşmaya devam eder.
+    const isOverdue = isPast && a.status === 'bekliyor'
+    const rowClass = [styles.apptRow, isOverdue ? styles.apptRowOverdue : isPast ? styles.apptRowPast : '']
+      .filter(Boolean)
+      .join(' ')
     return (
-      <div className={`${styles.apptRow} ${isPast ? styles.apptRowPast : ''}`} key={a.id}>
+      <div className={rowClass} key={a.id}>
         <div className={styles.apptTime}>
           {d.toLocaleTimeString('tr-TR', { hour: '2-digit', minute: '2-digit' })}
         </div>
@@ -553,22 +583,18 @@ export default function AppointmentsPage() {
         <div className={styles.apptEmployee}>{employeeName(a.employee_id)}</div>
         <div className={styles.apptStatus}>
           {canEdit(a) ? (
-            <select
-              className={styles.statusSelect}
+            <StatusDropdown
               value={a.status}
-              onChange={(e) => updateStatus(a, e.target.value as Appointment['status'])}
-            >
-              {STATUS_OPTIONS.map((o) => (
-                <option key={o.value} value={o.value}>
-                  {o.label}
-                </option>
-              ))}
-            </select>
+              options={STATUS_DROPDOWN_OPTIONS}
+              urgent={isOverdue}
+              onChange={(v) => updateStatus(a, v as Appointment['status'])}
+            />
           ) : (
             <span className={`${styles.statusBadge} ${STATUS_CLASS[a.status]}`}>
               {STATUS_OPTIONS.find((o) => o.value === a.status)?.label ?? a.status}
             </span>
           )}
+          {isOverdue && <span className={styles.overdueHint}>Süresi geçti, güncelle</span>}
         </div>
       </div>
     )
@@ -702,14 +728,12 @@ export default function AppointmentsPage() {
               {!useNewCustomer ? (
                 <div className="field">
                   <label htmlFor="customer">Müşteri</label>
-                  <select id="customer" value={customerId} onChange={(e) => setCustomerId(e.target.value)}>
-                    <option value="">Seçin…</option>
-                    {customers.map((c) => (
-                      <option key={c.id} value={c.id}>
-                        {c.full_name}
-                      </option>
-                    ))}
-                  </select>
+                  <Select
+                    id="customer"
+                    value={customerId}
+                    onChange={setCustomerId}
+                    options={customers.map((c) => ({ value: c.id, label: c.full_name, sub: c.phone ?? undefined }))}
+                  />
                   <button type="button" className={styles.newCustomerToggle} onClick={() => setUseNewCustomer(true)}>
                     + Yeni müşteri ekle
                   </button>
@@ -737,33 +761,28 @@ export default function AppointmentsPage() {
 
               <div className="field">
                 <label htmlFor="service">Hizmet</label>
-                <select
+                <Select
                   id="service"
                   value={serviceId}
-                  onChange={(e) => {
-                    setServiceId(e.target.value)
+                  onChange={(v) => {
+                    setServiceId(v)
                     setEmployeeId('')
                   }}
-                >
-                  <option value="">Seçin…</option>
-                  {services.map((s) => (
-                    <option key={s.id} value={s.id}>
-                      {s.name} ({s.duration_minutes} dk)
-                    </option>
-                  ))}
-                </select>
+                  options={services.map((s) => ({ value: s.id, label: s.name, sub: `${s.duration_minutes} dk` }))}
+                />
               </div>
 
               <div className="field">
                 <label htmlFor="employee">Çalışan</label>
-                <select id="employee" value={employeeId} onChange={(e) => setEmployeeId(e.target.value)}>
-                  <option value="">Farketmez</option>
-                  {eligibleEmployees.map((p) => (
-                    <option key={p.id} value={p.id}>
-                      {p.full_name}
-                    </option>
-                  ))}
-                </select>
+                <Select
+                  id="employee"
+                  value={employeeId}
+                  onChange={setEmployeeId}
+                  options={[
+                    { value: '', label: 'Farketmez' },
+                    ...eligibleEmployees.map((p) => ({ value: p.id, label: p.full_name ?? '—' })),
+                  ]}
+                />
               </div>
 
               <div className="field">
@@ -773,25 +792,17 @@ export default function AppointmentsPage() {
 
               <div className="field">
                 <label htmlFor="apptTime">Saat</label>
-                <select id="apptTime" value={apptTime} onChange={(e) => setApptTime(e.target.value)}>
-                  <option value="">Seçin…</option>
-                  {TIME_OPTIONS.map((t) => (
-                    <option key={t} value={t}>
-                      {t}
-                    </option>
-                  ))}
-                </select>
+                <Select
+                  id="apptTime"
+                  value={apptTime}
+                  onChange={setApptTime}
+                  options={TIME_OPTIONS.map((t) => ({ value: t, label: t }))}
+                />
               </div>
 
               <div className="field">
                 <label htmlFor="source">Kaynak</label>
-                <select id="source" value={source} onChange={(e) => setSource(e.target.value)}>
-                  {SOURCE_OPTIONS.map((o) => (
-                    <option key={o.value} value={o.value}>
-                      {o.label}
-                    </option>
-                  ))}
-                </select>
+                <Select id="source" value={source} onChange={setSource} options={SOURCE_OPTIONS} />
               </div>
 
               <div className="field">

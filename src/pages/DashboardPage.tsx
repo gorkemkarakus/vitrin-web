@@ -1,12 +1,14 @@
 import { useEffect, useState } from 'react'
-import { useOutletContext } from 'react-router-dom'
+import { useOutletContext, useNavigate } from 'react-router-dom'
 import { supabase } from '../lib/supabase'
 import { useAuth } from '../contexts/AuthContext'
 import DonutChart from '../components/DonutChart'
 import Avatar, { colorForName } from '../components/Avatar'
-import { CalendarIcon, ClockIcon, CheckCircleIcon, XCircleIcon } from '../components/icons'
+import { CalendarIcon, ClockIcon, CheckCircleIcon, XCircleIcon, AlertTriangleIcon } from '../components/icons'
 import type { LayoutOutletContext } from '../layouts/DashboardLayout'
 import styles from './DashboardPage.module.css'
+
+const SLOT_MINUTES = 30
 
 interface Appointment {
   id: string
@@ -15,6 +17,8 @@ interface Appointment {
   created_by_user_id: string | null
   status: 'bekliyor' | 'onaylandi' | 'tamamlandi' | 'iptal'
   source: string
+  scheduled_at: string
+  duration_minutes: number | null
 }
 
 interface Service {
@@ -38,6 +42,7 @@ const SOURCE_ORDER: { value: string; label: string; color: string }[] = [
 const currency = new Intl.NumberFormat('tr-TR', { style: 'currency', currency: 'TRY' })
 
 export default function DashboardPage() {
+  const navigate = useNavigate()
   const { profile } = useAuth()
   const { searchQuery, setSearchPlaceholder } = useOutletContext<LayoutOutletContext>()
   const [appointments, setAppointments] = useState<Appointment[]>([])
@@ -55,7 +60,9 @@ export default function DashboardPage() {
   useEffect(() => {
     async function load() {
       const [{ data: appts }, { data: svcs }, { data: profs }] = await Promise.all([
-        supabase.from('appointments').select('id, service_id, employee_id, created_by_user_id, status, source'),
+        supabase
+          .from('appointments')
+          .select('id, service_id, employee_id, created_by_user_id, status, source, scheduled_at, duration_minutes'),
         supabase.from('services').select('id, price'),
         supabase.from('profiles').select('id, full_name'),
       ])
@@ -98,6 +105,15 @@ export default function DashboardPage() {
     tamamlandi: appointments.filter((a) => a.status === 'tamamlandi').length,
     iptal: appointments.filter((a) => a.status === 'iptal').length,
   }
+  // "bekliyor" durumunda kalıp saati geçmiş, hiç sonuçlandırılmamış randevular
+  // — tek tek Randevular sayfasında fark edilmesi kolayca unutulabiliyordu,
+  // burada toplu bir sayı olarak öne çıkarıyoruz.
+  const now = Date.now()
+  const overdueCount = appointments.filter(
+    (a) =>
+      a.status === 'bekliyor' &&
+      new Date(a.scheduled_at).getTime() + (a.duration_minutes ?? SLOT_MINUTES) * 60000 < now,
+  ).length
 
   // İptal edilenler performans/ciro hesaplarına dahil edilmiyor.
   const counted = appointments.filter((a) => a.status !== 'iptal')
@@ -145,18 +161,6 @@ export default function DashboardPage() {
 
   return (
     <div className={styles.wrap}>
-      {bookingUrl && (
-        <div className={`card ${styles.linkCard}`}>
-          <div className={styles.linkCardText}>
-            <span className={styles.linkCardLabel}>Randevu linkiniz</span>
-            <span className={styles.linkCardUrl}>{bookingUrl}</span>
-          </div>
-          <button type="button" className="btn-secondary" style={{ width: 'auto' }} onClick={copyBookingLink}>
-            {linkCopied ? 'Kopyalandı ✓' : 'Kopyala'}
-          </button>
-        </div>
-      )}
-
       <div className={styles.statRow}>
         <div className={`card ${styles.statTile}`}>
           <span className={`${styles.statIcon} ${styles.statIconNeutral}`}>
@@ -172,6 +176,17 @@ export default function DashboardPage() {
           <span className={styles.statValue}>{statusCounts.bekliyor}</span>
           <span className={styles.statLabel}>Bekliyor</span>
         </div>
+        <button
+          type="button"
+          className={`card ${styles.statTile} ${styles.statTileClickable} ${overdueCount > 0 ? styles.statTileAlert : ''}`}
+          onClick={() => navigate('/randevular')}
+        >
+          <span className={`${styles.statIcon} ${styles.statIconDanger}`}>
+            <AlertTriangleIcon width={18} height={18} />
+          </span>
+          <span className={styles.statValue}>{overdueCount}</span>
+          <span className={styles.statLabel}>Süresi geçti, güncelleme bekliyor</span>
+        </button>
         <div className={`card ${styles.statTile}`}>
           <span className={`${styles.statIcon} ${styles.statIconOk}`}>
             <CheckCircleIcon width={18} height={18} />
@@ -320,6 +335,18 @@ export default function DashboardPage() {
           </table>
         )}
       </div>
+
+      {bookingUrl && (
+        <div className={`card ${styles.linkCard}`}>
+          <div className={styles.linkCardText}>
+            <span className={styles.linkCardLabel}>Randevu linkiniz</span>
+            <span className={styles.linkCardUrl}>{bookingUrl}</span>
+          </div>
+          <button type="button" className="btn-secondary" style={{ width: 'auto' }} onClick={copyBookingLink}>
+            {linkCopied ? 'Kopyalandı ✓' : 'Kopyala'}
+          </button>
+        </div>
+      )}
     </div>
   )
 }

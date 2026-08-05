@@ -60,7 +60,7 @@ const currency = new Intl.NumberFormat('tr-TR', { style: 'currency', currency: '
 
 export default function TeamPage() {
   const navigate = useNavigate()
-  const { searchQuery, setSearchPlaceholder } = useOutletContext<LayoutOutletContext>()
+  const { searchQuery, setSearchPlaceholder, registerSearchResultsAnchor } = useOutletContext<LayoutOutletContext>()
   const [categories, setCategories] = useState<Category[]>([])
   const [services, setServices] = useState<Service[]>([])
   const [employees, setEmployees] = useState<Employee[]>([])
@@ -111,8 +111,13 @@ export default function TeamPage() {
     setDraft(profileId, { ...draft, days: new Set(preset) })
   }
 
-  async function loadData() {
-    setLoading(true)
+  // "silent=true" kucuk bir islemden (checkbox, saat ekleme/kaldirma) sonra
+  // cagrilir — veriyi arka planda tazeler ama "loading" bayragini geri true
+  // yapmaz, boylece tum sayfa her tikta bos "Yükleniyor…" yazisina donup
+  // yeniden cizilmiyor (kullanicidan gelen "sayfa yenileniyor gibi" geri
+  // bildirimi). Sadece ilk acilista gercek bir yukleme goruntusu gosterilir.
+  async function loadData(silent = false) {
+    if (!silent) setLoading(true)
     const [{ data: cats }, { data: svcs }, { data: profs }, { data: empCats }, { data: scheds }, { data: blocks }] =
       await Promise.all([
         supabase.from('service_categories').select('id, name').order('name'),
@@ -147,7 +152,7 @@ export default function TeamPage() {
       .from('services')
       .update({ category_id: categoryId || null })
       .eq('id', serviceId)
-    await loadData()
+    await loadData(true)
   }
 
   async function toggleEmployeeCategory(profileId: string, categoryId: string, checked: boolean) {
@@ -160,7 +165,7 @@ export default function TeamPage() {
         .eq('profile_id', profileId)
         .eq('category_id', categoryId)
     }
-    await loadData()
+    await loadData(true)
   }
 
   async function addSchedules(profileId: string) {
@@ -187,12 +192,12 @@ export default function TeamPage() {
       }),
     )
     setDraft(profileId, { days: new Set(), start: '', end: '' })
-    await loadData()
+    await loadData(true)
   }
 
   async function removeSchedule(id: string) {
     await supabase.from('employee_schedules').delete().eq('id', id)
-    await loadData()
+    await loadData(true)
   }
 
   async function addBlock(profileId: string) {
@@ -209,12 +214,12 @@ export default function TeamPage() {
       label: draft.label.trim() || null,
     })
     setBlockDraftFor(profileId, { mode: 'day', day: 1, date: '', start: '', end: '', label: '' })
-    await loadData()
+    await loadData(true)
   }
 
   async function removeBlock(id: string) {
     await supabase.from('employee_time_blocks').delete().eq('id', id)
-    await loadData()
+    await loadData(true)
   }
 
   if (loading) return <p style={{ color: 'var(--text-dim)' }}>Yükleniyor…</p>
@@ -275,7 +280,7 @@ export default function TeamPage() {
         </table>
       </div>
 
-      <div className="card">
+      <div className="card" ref={registerSearchResultsAnchor}>
         <div className={styles.cardHeadRow}>
           <h2>Ekip Üyeleri</h2>
           <button type="button" className="btn-secondary" style={{ width: 'auto' }} onClick={() => navigate('/kullanicilar')}>

@@ -38,8 +38,11 @@ export default function ServicesPage() {
   const [price, setPrice] = useState('')
   const [submitting, setSubmitting] = useState(false)
 
-  async function loadData() {
-    setLoading(true)
+  // "silent=true" bir mutasyondan sonra cagrilir — veriyi arka planda
+  // tazeler ama "loading" bayragini geri true yapmaz, boylece sayfa her
+  // islemden sonra bos "Yükleniyor…" yazisina donup yeniden cizilmiyor.
+  async function loadData(silent = false) {
+    if (!silent) setLoading(true)
     const [{ data }, { data: appts }] = await Promise.all([
       supabase
         .from('services')
@@ -80,13 +83,13 @@ export default function ServicesPage() {
     setName('')
     setDuration('60')
     setPrice('')
-    await loadData()
+    await loadData(true)
     setSubmitting(false)
   }
 
   async function updateService(service: Service, patch: Partial<Service>) {
     await supabase.from('services').update(patch).eq('id', service.id)
-    await loadData()
+    await loadData(true)
   }
 
   async function deleteService(service: Service) {
@@ -95,7 +98,7 @@ export default function ServicesPage() {
     )
     if (!ok) return
     await supabase.from('services').delete().eq('id', service.id)
-    await loadData()
+    await loadData(true)
   }
 
   if (loading) return <p style={{ color: 'var(--text-dim)' }}>Yükleniyor…</p>
@@ -110,16 +113,16 @@ export default function ServicesPage() {
 
   return (
     <div className={styles.wrap}>
-      <div className={`card ${styles.summaryRow}`}>
-        <div className={styles.summaryTile}>
+      <div className={styles.summaryRow}>
+        <div className={`card ${styles.summaryTile}`}>
           <span className={styles.summaryValue}>{activeCount}</span>
           <span className={styles.summaryLabel}>Aktif hizmet</span>
         </div>
-        <div className={styles.summaryTile}>
+        <div className={`card ${styles.summaryTile}`}>
           <span className={styles.summaryValue}>{currency.format(monthRevenue)}</span>
           <span className={styles.summaryLabel}>Bu ayki ciro</span>
         </div>
-        <div className={styles.summaryTile}>
+        <div className={`card ${styles.summaryTile}`}>
           <span className={styles.summaryValue}>{monthAppointments.length}</span>
           <span className={styles.summaryLabel}>Bu ayki randevu</span>
         </div>

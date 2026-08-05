@@ -1,24 +1,6 @@
 import { createClient } from 'https://esm.sh/@supabase/supabase-js@2'
-
-const corsHeaders = {
-  'Access-Control-Allow-Origin': '*',
-  'Access-Control-Allow-Headers': 'authorization, x-api-key, content-type',
-}
-
-function json(body: unknown, status: number) {
-  return new Response(JSON.stringify(body), {
-    status,
-    headers: { ...corsHeaders, 'Content-Type': 'application/json' },
-  })
-}
-
-async function sha256Hex(text: string): Promise<string> {
-  const data = new TextEncoder().encode(text)
-  const hashBuffer = await crypto.subtle.digest('SHA-256', data)
-  return Array.from(new Uint8Array(hashBuffer))
-    .map((b) => b.toString(16).padStart(2, '0'))
-    .join('')
-}
+import { corsHeaders, json } from '../_shared/http.ts'
+import { resolveBusiness } from '../_shared/resolveBusiness.ts'
 
 // Musteri adi/telefonu gibi bilgiler sohbetin BASINDA verilip randevu cok
 // sonra istenirse, dar bir limit bu bilgiyi baglam penceresinden dusurup
@@ -31,28 +13,19 @@ Deno.serve(async (req) => {
   if (req.method === 'OPTIONS') return new Response('ok', { headers: corsHeaders })
   if (req.method !== 'POST') return json({ error: 'Method not allowed' }, 405)
 
-  const apiKey = req.headers.get('x-api-key')
-  if (!apiKey) return json({ error: 'x-api-key başlığı eksik' }, 401)
-
   const supabaseUrl = Deno.env.get('SUPABASE_URL')!
   const serviceKey = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!
   const admin = createClient(supabaseUrl, serviceKey)
 
-  const keyHash = await sha256Hex(apiKey)
-  const { data: business, error: bizErr } = await admin
-    .from('businesses')
-    .select('id, name')
-    .eq('api_key_hash', keyHash)
-    .maybeSingle()
-
-  if (bizErr || !business) return json({ error: 'Geçersiz API anahtarı' }, 401)
-
-  let body: { customer_phone?: string }
+  let body: { customer_phone?: string; phone_number_id?: string }
   try {
     body = await req.json()
   } catch {
     return json({ error: 'Geçersiz istek gövdesi' }, 400)
   }
+
+  const business = await resolveBusiness(admin, req, body.phone_number_id)
+  if (!business) return json({ error: 'Geçersiz API anahtarı' }, 401)
 
   const { customer_phone } = body
   if (!customer_phone) return json({ error: 'customer_phone zorunlu' }, 400)
@@ -67,7 +40,7 @@ Deno.serve(async (req) => {
       admin.from('service_categories').select('id, name').eq('business_id', business.id),
       admin
         .from('customers')
-        .select('id, full_name, contact_phone')
+        .select('id, full_name, contact_phone, bot_paused_until')
         .eq('business_id', business.id)
         .eq('phone', customer_phone)
         .maybeSingle(),
@@ -333,6 +306,11 @@ Deno.serve(async (req) => {
 
   const persistedName = customer?.full_name && customer.full_name !== 'Müşteri' ? customer.full_name : null
   const persistedPhone = customer?.contact_phone ?? null
+  // Personel WhatsApp Coexistence uzerinden telefon uygulamasindan elle
+  // devraldiginda bot ayni numaraya cevap yetistirmeye calisip ust uste
+  // binen/celisen mesaj uretmesin diye n8n bu alani kontrol edip suresi
+  // dolmamissa bot akisini (OpenAI/randevu/loglama) atlar.
+  const botPaused = !!customer?.bot_paused_until && new Date(customer.bot_paused_until).getTime() > Date.now()
 
   return json(
     {
@@ -340,6 +318,7 @@ Deno.serve(async (req) => {
       customer_name: customer?.full_name ?? null,
       detected_full_name: detectedName ?? persistedName,
       detected_contact_phone: detectedPhone ?? persistedPhone,
+      bot_paused: botPaused,
       services: (services ?? []).map((s) => ({
         id: s.id,
         name: s.name,

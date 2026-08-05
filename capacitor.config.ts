@@ -4,6 +4,17 @@ const config: CapacitorConfig = {
   appId: 'com.vitrin.panel',
   appName: 'Vitrin',
   webDir: 'dist',
+  plugins: {
+    SplashScreen: {
+      launchAutoHide: false,
+      backgroundColor: '#f4f1ea',
+      androidSplashResourceName: 'splash',
+      androidScaleType: 'CENTER_CROP',
+      showSpinner: false,
+      splashFullScreen: true,
+      splashImmersive: true,
+    },
+  },
   // Canlı-yeniden-yükleme (live-reload) geliştirme modunu geri açmak için
   // aşağıdaki server bloğunun yorumunu kaldırıp kendi bilgisayarının yerel
   // ağ IP'sini yaz. Production/beta build'lerde bu blok KAPALI kalmalı —

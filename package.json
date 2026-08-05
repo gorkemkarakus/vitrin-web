@@ -1,5 +1,5 @@
 {
-  "name": "isletme-oto-web",
+  "name": "isletme-oto-mobil",
   "private": true,
   "version": "0.0.0",
   "type": "module",
@@ -11,9 +11,11 @@
   },
   "dependencies": {
     "@capacitor/android": "^8.4.1",
+    "@capacitor/app": "^8.1.1",
     "@capacitor/cli": "^8.4.1",
     "@capacitor/core": "^8.4.1",
     "@capacitor/ios": "^8.4.1",
+    "@capacitor/splash-screen": "^8.0.2",
     "@supabase/supabase-js": "^2.110.0",
     "react": "^19.2.7",
     "react-dom": "^19.2.7",

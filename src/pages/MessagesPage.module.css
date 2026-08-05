@@ -1,3 +1,197 @@
+.wrap {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+  height: calc(100vh - 140px);
+}
+
+.convList {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  padding: 8px;
+  overflow-y: auto;
+  height: 100%;
+}
+
+.convRow {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  background: none;
+  border: none;
+  border-radius: var(--radius-sm);
+  padding: 10px;
+  cursor: pointer;
+  text-align: left;
+  font-family: var(--font-body);
+  transition: background 0.1s;
+}
+
+.convRow:hover {
+  background: var(--panel-2);
+}
+
+.convRowActive {
+  background: var(--panel-2);
+}
+
+.convText {
+  display: flex;
+  flex-direction: column;
+  min-width: 0;
+  flex: 1;
+  gap: 2px;
+}
+
+.convName {
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--text);
+}
+
+.convPreview {
+  font-size: 12px;
+  color: var(--text-dim);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.pausedDot {
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  background: var(--danger-text);
+  flex-shrink: 0;
+}
+
+.threadCard {
+  display: flex;
+  flex-direction: column;
+  height: 100%;
+  overflow: hidden;
+}
+
+.backBtn {
+  display: inline-flex;
+  align-self: flex-start;
+  background: none;
+  border: none;
+  color: var(--teal);
+  font-family: var(--font-body);
+  font-size: 13px;
+  cursor: pointer;
+  padding: 0 0 10px;
+}
+
+.threadHead {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 10px;
+  padding-bottom: 14px;
+  border-bottom: 1px solid var(--line);
+  margin-bottom: 14px;
+}
+
+.pauseWrap {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  flex-wrap: wrap;
+}
+
+.pausedBadge {
+  font-size: 12px;
+  font-weight: 600;
+  color: var(--danger-text);
+  background: var(--danger-bg);
+  padding: 5px 10px;
+  border-radius: 999px;
+}
+
+.pauseMenuWrap {
+  position: relative;
+}
+
+.pauseMenu {
+  position: absolute;
+  top: calc(100% + 6px);
+  left: 0;
+  min-width: 190px;
+  background: var(--panel);
+  border: 1px solid var(--line);
+  border-radius: var(--radius-sm);
+  box-shadow: 0 8px 24px rgba(43, 43, 38, 0.14);
+  padding: 5px;
+  display: flex;
+  flex-direction: column;
+  gap: 1px;
+  z-index: 20;
+}
+
+.pauseMenuItem {
+  background: none;
+  border: none;
+  border-radius: 6px;
+  padding: 8px 10px;
+  font-family: var(--font-body);
+  font-size: 13px;
+  color: var(--text);
+  text-align: left;
+  cursor: pointer;
+}
+
+.pauseMenuItem:hover {
+  background: var(--panel-2);
+}
+
+.threadBody {
+  flex: 1;
+  overflow-y: auto;
+  display: flex;
+  flex-direction: column;
+  padding-right: 4px;
+}
+
+/* Dar ekranda (telefon) liste/sohbet tek sutunda, secime gore biri
+   gizlenir — Geri dugmesi ile aralarinda gecis yapilir. */
+.wrap[data-selected='false'] .threadCard {
+  display: none;
+}
+
+.wrap[data-selected='true'] .convList {
+  display: none;
+}
+
+.backBtn {
+  display: inline-flex;
+}
+
+@media (min-width: 860px) {
+  .wrap {
+    display: grid;
+    grid-template-columns: 320px 1fr;
+    align-items: start;
+  }
+
+  .wrap[data-selected] .convList,
+  .wrap[data-selected] .threadCard {
+    display: flex;
+  }
+
+  .backBtn {
+    display: none;
+  }
+
+  .threadHead {
+    flex-direction: row;
+    align-items: center;
+    justify-content: space-between;
+  }
+}
+
 .empty {
   display: flex;
   flex-direction: column;

@@ -4,7 +4,20 @@ import { supabase } from '../lib/supabase'
 import { useAuth } from '../contexts/AuthContext'
 import type { LayoutOutletContext } from '../layouts/DashboardLayout'
 import Avatar from '../components/Avatar'
+import Select from '../components/Select'
 import styles from './UserManagementPage.module.css'
+
+const GENDER_OPTIONS_NEW = [
+  { value: '', label: 'Belirtilmesin' },
+  { value: 'kadin', label: 'Kadın' },
+  { value: 'erkek', label: 'Erkek' },
+]
+
+const GENDER_OPTIONS_ROW = [
+  { value: '', label: 'Belirtilmemiş' },
+  { value: 'kadin', label: 'Kadın' },
+  { value: 'erkek', label: 'Erkek' },
+]
 
 interface TeamProfile {
   id: string
@@ -29,8 +42,11 @@ export default function UserManagementPage() {
   const [error, setError] = useState<string | null>(null)
   const [success, setSuccess] = useState<string | null>(null)
 
-  async function loadData() {
-    setLoading(true)
+  // "silent=true" bir mutasyondan sonra cagrilir — veriyi arka planda
+  // tazeler ama "loading" bayragini geri true yapmaz, boylece sayfa her
+  // islemden sonra bos "Yükleniyor…" yazisina donup yeniden cizilmiyor.
+  async function loadData(silent = false) {
+    if (!silent) setLoading(true)
     const [{ data: profiles }, { data: business }] = await Promise.all([
       supabase
         .from('profiles')
@@ -84,7 +100,7 @@ export default function UserManagementPage() {
       setEmail('')
       setPassword('')
       setGender('')
-      await loadData()
+      await loadData(true)
     } catch {
       setError('Sunucuya ulaşılamadı, tekrar deneyin.')
     } finally {
@@ -94,12 +110,12 @@ export default function UserManagementPage() {
 
   async function toggleActive(member: TeamProfile) {
     await supabase.from('profiles').update({ is_active: !member.is_active }).eq('id', member.id)
-    await loadData()
+    await loadData(true)
   }
 
   async function updateGender(member: TeamProfile, newGender: '' | 'kadin' | 'erkek') {
     await supabase.from('profiles').update({ gender: newGender || null }).eq('id', member.id)
-    await loadData()
+    await loadData(true)
   }
 
   const seatsFull = maxUsers !== null && activeUserCount >= maxUsers
@@ -175,16 +191,13 @@ export default function UserManagementPage() {
           </div>
           <div className="field">
             <label htmlFor="newGender">Cinsiyet (opsiyonel)</label>
-            <select
+            <Select
               id="newGender"
               value={gender}
-              onChange={(e) => setGender(e.target.value as '' | 'kadin' | 'erkek')}
+              onChange={(v) => setGender(v as '' | 'kadin' | 'erkek')}
+              options={GENDER_OPTIONS_NEW}
               disabled={seatsFull}
-            >
-              <option value="">Belirtilmesin</option>
-              <option value="kadin">Kadın</option>
-              <option value="erkek">Erkek</option>
-            </select>
+            />
             <p style={{ fontSize: 13, color: 'var(--text-dim)', marginTop: 4 }}>
               Müşteri sohbet botunda "kadın/erkek çalışan olsun" dediğinde doğru cevap verebilmek için kullanılır.
             </p>
@@ -230,15 +243,12 @@ export default function UserManagementPage() {
                     </span>
                   </td>
                   <td data-label="Cinsiyet">
-                    <select
+                    <Select
                       value={m.gender ?? ''}
-                      onChange={(e) => updateGender(m, e.target.value as '' | 'kadin' | 'erkek')}
-                      aria-label={`${m.full_name ?? 'Çalışan'} cinsiyeti`}
-                    >
-                      <option value="">Belirtilmemiş</option>
-                      <option value="kadin">Kadın</option>
-                      <option value="erkek">Erkek</option>
-                    </select>
+                      onChange={(v) => updateGender(m, v as '' | 'kadin' | 'erkek')}
+                      options={GENDER_OPTIONS_ROW}
+                      ariaLabel={`${m.full_name ?? 'Çalışan'} cinsiyeti`}
+                    />
                   </td>
                   <td data-label="Durum">
                     <span className={styles.statusDot}>
