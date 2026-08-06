@@ -355,3 +355,12 @@ export function SparkleIcon(props: IconProps) {
     </svg>
   )
 }
+
+export function PencilIcon(props: IconProps) {
+  return (
+    <svg {...base} {...props}>
+      <path d="M16.5 3.5a2.1 2.1 0 0 1 3 3L7 19 3 20l1-4Z" />
+      <path d="M14.5 5.5l3 3" />
+    </svg>
+  )
+}

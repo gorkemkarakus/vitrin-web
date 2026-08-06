@@ -380,6 +380,33 @@
   gap: 4px;
 }
 
+.apptStatusRow {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.editApptBtn {
+  flex-shrink: 0;
+  width: 22px;
+  height: 22px;
+  border-radius: 50%;
+  border: 1px solid var(--line);
+  background: var(--panel);
+  color: var(--text-dim);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  transition: background 0.15s, color 0.15s, border-color 0.15s;
+}
+
+.editApptBtn:hover {
+  background: var(--panel-2);
+  color: var(--signal);
+  border-color: var(--signal);
+}
+
 .statusBadge {
   font-size: 12px;
   font-weight: 600;

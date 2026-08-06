@@ -1,16 +1,11 @@
-import { useEffect, useMemo, useRef, useState } from 'react'
-import { useOutletContext, useNavigate } from 'react-router-dom'
+import { useEffect, useMemo, useState } from 'react'
+import { useNavigate } from 'react-router-dom'
 import { supabase } from '../lib/supabase'
 import { useAuth } from '../contexts/AuthContext'
-import DonutChart from '../components/DonutChart'
 import Avatar from '../components/Avatar'
 import QuickAddCustomerModal from '../components/QuickAddCustomerModal'
 import {
   CalendarIcon,
-  ClockIcon,
-  CheckCircleIcon,
-  XCircleIcon,
-  AlertTriangleIcon,
   WalletIcon,
   ReceiptIcon,
   CashIcon,
@@ -18,10 +13,7 @@ import {
   UserPlusIcon,
   ChevronRightIcon,
 } from '../components/icons'
-import type { LayoutOutletContext } from '../layouts/DashboardLayout'
 import styles from './DashboardPage.module.css'
-
-const SLOT_MINUTES = 30
 
 interface Appointment {
   id: string
@@ -107,7 +99,6 @@ function atMidnight(d: Date) {
 export default function DashboardPage() {
   const navigate = useNavigate()
   const { profile } = useAuth()
-  const { registerSearchResultsAnchor } = useOutletContext<LayoutOutletContext>()
   const [appointments, setAppointments] = useState<Appointment[]>([])
   const [services, setServices] = useState<Service[]>([])
   const [profiles, setProfiles] = useState<Profile[]>([])
@@ -122,8 +113,6 @@ export default function DashboardPage() {
   const [customStart, setCustomStart] = useState(() => toLocalDateString(new Date()))
   const [customEnd, setCustomEnd] = useState(() => toLocalDateString(new Date()))
   const [showQuickAddCustomer, setShowQuickAddCustomer] = useState(false)
-
-  const analyticsRef = useRef<HTMLDivElement>(null)
 
   useEffect(() => {
     async function load() {
@@ -263,32 +252,6 @@ export default function DashboardPage() {
     .filter((a) => toLocalDateString(new Date(a.scheduled_at)) === todayStr)
     .sort((a, b) => a.scheduled_at.localeCompare(b.scheduled_at))
 
-  // ---- Mevcut (korunan) analiz bolumu — tum zamanlar, filtreden bagimsiz ----
-  const total = appointments.length
-  const statusCounts = {
-    bekliyor: appointments.filter((a) => a.status === 'bekliyor').length,
-    onaylandi: appointments.filter((a) => a.status === 'onaylandi').length,
-    tamamlandi: appointments.filter((a) => a.status === 'tamamlandi').length,
-    iptal: appointments.filter((a) => a.status === 'iptal').length,
-  }
-  const now = Date.now()
-  const overdueCount = appointments.filter(
-    (a) =>
-      a.status === 'bekliyor' &&
-      new Date(a.scheduled_at).getTime() + (a.duration_minutes ?? SLOT_MINUTES) * 60000 < now,
-  ).length
-
-  const counted = appointments.filter((a) => a.status !== 'iptal')
-
-  const creatorStatsMap = new Map<string, number>()
-  for (const a of counted) {
-    const key = a.created_by_user_id ?? 'bot'
-    creatorStatsMap.set(key, (creatorStatsMap.get(key) ?? 0) + 1)
-  }
-  const botCount = creatorStatsMap.get('bot') ?? 0
-  const staffCount = counted.length - botCount
-  const botPct = counted.length > 0 ? Math.round((botCount / counted.length) * 100) : 0
-
   const DATE_FILTERS: { value: DateFilter; label: string }[] = [
     { value: 'bugun', label: 'Bugün' },
     { value: 'hafta', label: 'Bu Hafta' },
@@ -415,16 +378,6 @@ export default function DashboardPage() {
             </span>
             Ödeme Ekle
           </button>
-          <button
-            type="button"
-            className={styles.quickBtn}
-            onClick={() => analyticsRef.current?.scrollIntoView({ behavior: 'smooth', block: 'start' })}
-          >
-            <span className={styles.quickIcon}>
-              <AlertTriangleIcon width={19} height={19} />
-            </span>
-            Raporlar
-          </button>
         </div>
       </div>
 
@@ -542,98 +495,17 @@ export default function DashboardPage() {
         )}
       </div>
 
-      {/* ---- Detayli analiz (mevcut, korunan icerik) ---- */}
-      <div ref={(el) => { analyticsRef.current = el; registerSearchResultsAnchor(el) }} className={styles.analyticsSection}>
-        <h2 className={styles.analyticsTitle}>Detaylı Analiz</h2>
-
-        <div className={styles.statRow}>
-          <div className={`card ${styles.statTile}`}>
-            <span className={`${styles.statIcon} ${styles.statIconNeutral}`}>
-              <CalendarIcon width={18} height={18} />
-            </span>
-            <span className={styles.statValue}>{total}</span>
-            <span className={styles.statLabel}>Toplam randevu</span>
+      {bookingUrl && (
+        <div className={`card ${styles.linkCard}`}>
+          <div className={styles.linkCardText}>
+            <span className={styles.linkCardLabel}>Randevu linkiniz</span>
+            <span className={styles.linkCardUrl}>{bookingUrl}</span>
           </div>
-          <div className={`card ${styles.statTile}`}>
-            <span className={`${styles.statIcon} ${styles.statIconWarn}`}>
-              <ClockIcon width={18} height={18} />
-            </span>
-            <span className={styles.statValue}>{statusCounts.bekliyor}</span>
-            <span className={styles.statLabel}>Bekliyor</span>
-          </div>
-          <button
-            type="button"
-            className={`card ${styles.statTile} ${styles.statTileClickable} ${overdueCount > 0 ? styles.statTileAlert : ''}`}
-            onClick={() => navigate('/randevular')}
-          >
-            <span className={`${styles.statIcon} ${styles.statIconDanger}`}>
-              <AlertTriangleIcon width={18} height={18} />
-            </span>
-            <span className={styles.statValue}>{overdueCount}</span>
-            <span className={styles.statLabel}>Süresi geçti, güncelleme bekliyor</span>
+          <button type="button" className="btn-secondary" style={{ width: 'auto' }} onClick={copyBookingLink}>
+            {linkCopied ? 'Kopyalandı ✓' : 'Kopyala'}
           </button>
-          <div className={`card ${styles.statTile}`}>
-            <span className={`${styles.statIcon} ${styles.statIconOk}`}>
-              <CheckCircleIcon width={18} height={18} />
-            </span>
-            <span className={styles.statValue}>{statusCounts.tamamlandi}</span>
-            <span className={styles.statLabel}>Tamamlandı</span>
-          </div>
-          <div className={`card ${styles.statTile}`}>
-            <span className={`${styles.statIcon} ${styles.statIconDanger}`}>
-              <XCircleIcon width={18} height={18} />
-            </span>
-            <span className={styles.statValue}>{statusCounts.iptal}</span>
-            <span className={styles.statLabel}>İptal</span>
-          </div>
         </div>
-
-        <div className="card">
-          <h2 style={{ marginBottom: 4 }}>Randevuyu kim oluşturdu</h2>
-          <p style={{ color: 'var(--text-dim)', fontSize: 13, marginBottom: 16 }}>
-            Müşteriyi/randevuyu kim sisteme kaydetti — çalışan iş yükünden farklı, bot üzerinden
-            gelenler burada "Bot" olarak görünür.
-          </p>
-          {counted.length === 0 ? (
-            <p className={styles.empty}>Henüz veri yok.</p>
-          ) : (
-            <div className={styles.donutRow}>
-              <DonutChart
-                segments={[
-                  { value: botCount, color: '#004aad' },
-                  { value: staffCount, color: 'var(--line)' },
-                ]}
-                centerLabel={`%${botPct}`}
-                centerSubLabel="Bot"
-              />
-              <div className={styles.donutLegend}>
-                <div className={styles.legendRow}>
-                  <span className={`${styles.legendDot} ${styles.legendDotSignal}`} />
-                  <span>Bot / Online</span>
-                  <strong>{botCount}</strong>
-                </div>
-                <div className={styles.legendRow}>
-                  <span className={`${styles.legendDot} ${styles.legendDotLine}`} />
-                  <span>Personel (manuel giriş)</span>
-                  <strong>{staffCount}</strong>
-                </div>
-              </div>
-            </div>
-          )}
-        </div>
-
-        {bookingUrl && (
-          <div className={`card ${styles.linkCard}`}>
-            <div className={styles.linkCardText}>
-              <span className={styles.linkCardLabel}>Randevu linkiniz</span>
-              <span className={styles.linkCardUrl}>{bookingUrl}</span>
-            </div>
-            <button type="button" className="btn-secondary" style={{ width: 'auto' }} onClick={copyBookingLink}>
-              {linkCopied ? 'Kopyalandı ✓' : 'Kopyala'}
-            </button>
-          </div>
-        )}
-      </div>
+      )}
 
       {showQuickAddCustomer && <QuickAddCustomerModal onClose={() => setShowQuickAddCustomer(false)} />}
     </div>

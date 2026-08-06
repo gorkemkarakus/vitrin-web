@@ -13,6 +13,7 @@ import {
   ClockIcon,
   XCircleIcon,
   PhoneIcon,
+  PencilIcon,
 } from '../components/icons'
 import type { LayoutOutletContext } from '../layouts/DashboardLayout'
 import styles from './AppointmentsPage.module.css'
@@ -265,6 +266,19 @@ export default function AppointmentsPage() {
   const [completeBusy, setCompleteBusy] = useState(false)
   const [completeError, setCompleteError] = useState<string | null>(null)
 
+  // Randevu duzenleme mini-formu — hizmet, calisan, tarih/saat, not ve
+  // musteri telefonunu degistirmeye izin verir. Paket/musteri degisikligi
+  // KAPSAM DISI tutuldu (ayri, daha riskli akislar; istenmedi).
+  const [editingAppt, setEditingAppt] = useState<Appointment | null>(null)
+  const [editServiceId, setEditServiceId] = useState('')
+  const [editEmployeeId, setEditEmployeeId] = useState('')
+  const [editDate, setEditDate] = useState('')
+  const [editTime, setEditTime] = useState('')
+  const [editNote, setEditNote] = useState('')
+  const [editPhone, setEditPhone] = useState('')
+  const [editBusy, setEditBusy] = useState(false)
+  const [editError, setEditError] = useState<string | null>(null)
+
   // "silent=true" bir mutasyondan sonra cagrilir — veriyi arka planda
   // tazeler ama "loading" bayragini geri true yapmaz, boylece sayfa her
   // islemden sonra bos "Yükleniyor…" yazisina donup yeniden cizilmiyor.
@@ -327,6 +341,80 @@ export default function AppointmentsPage() {
     return profile?.role === 'admin' || appt.created_by_user_id === profile?.id
   }
 
+  function openEdit(a: Appointment) {
+    setEditingAppt(a)
+    setEditServiceId(a.service_id ?? '')
+    setEditEmployeeId(a.employee_id ?? '')
+    const d = new Date(a.scheduled_at)
+    setEditDate(toLocalDateString(d))
+    setEditTime(`${String(d.getHours()).padStart(2, '0')}:${String(d.getMinutes()).padStart(2, '0')}`)
+    setEditNote(a.source_note ?? '')
+    setEditPhone(customerPhone(a.customer_id) ?? '')
+    setEditError(null)
+  }
+
+  async function submitEdit() {
+    if (!editingAppt) return
+    setEditError(null)
+    if (!editServiceId || !editDate || !editTime) {
+      setEditError('Hizmet ve tarih/saat zorunlu.')
+      return
+    }
+
+    const svc = services.find((s) => s.id === editServiceId)
+    const start = new Date(`${editDate}T${editTime}`)
+    const duration = svc?.duration_minutes ?? SLOT_MINUTES
+
+    if (editEmployeeId && !isEmployeeAvailable(editEmployeeId, start, duration, editingAppt.id)) {
+      setEditError('Seçilen çalışan bu saatte müsait değil (mesai dışı, izinli veya dolu).')
+      return
+    }
+
+    setEditBusy(true)
+    try {
+      const { error: apptErr } = await supabase
+        .from('appointments')
+        .update({
+          service_id: editServiceId,
+          employee_id: editEmployeeId || null,
+          scheduled_at: start.toISOString(),
+          duration_minutes: duration,
+          source_note: editNote.trim() || null,
+        })
+        .eq('id', editingAppt.id)
+      if (apptErr) {
+        const isOverlap = /exclusion|conflicting key|deadlock/i.test(apptErr.message)
+        setEditError(
+          isOverlap
+            ? 'Seçilen saat az önce başka bir randevuyla dolmuş. Farklı bir saat seçin.'
+            : 'Randevu güncellenemedi: ' + apptErr.message,
+        )
+        return
+      }
+
+      const trimmedPhone = editPhone.trim()
+      if (editingAppt.customer_id && trimmedPhone !== (customerPhone(editingAppt.customer_id) ?? '')) {
+        const { error: custErr } = await supabase
+          .from('customers')
+          .update({ contact_phone: trimmedPhone || null })
+          .eq('id', editingAppt.customer_id)
+        if (custErr) {
+          // Randevu zaten guncellendi — telefon hatasi ayri banner'da gosterilip
+          // modal kapatilir, "hicbir sey olmamis gibi" hissettirmez.
+          setError('Randevu güncellendi ama telefon numarası kaydedilemedi: ' + custErr.message)
+          setEditingAppt(null)
+          await loadData(true)
+          return
+        }
+      }
+
+      setEditingAppt(null)
+      await loadData(true)
+    } finally {
+      setEditBusy(false)
+    }
+  }
+
   // Randevu bir paketin parcasiysa "3/8" gibi ilerleme bilgisini dondurur —
   // seans numarasi ayri bir sutunda tutulmuyor, paketteki randevular tarihe
   // gore siralanip bu randevunun kacinci sirada oldugu buradan hesaplaniyor.
@@ -359,7 +447,7 @@ export default function AppointmentsPage() {
     return profiles.filter((p) => ids.has(p.id))
   }, [selectedService, employeeCategories, profiles])
 
-  function isEmployeeAvailable(employeeId: string, start: Date, durationMinutes: number) {
+  function isEmployeeAvailable(employeeId: string, start: Date, durationMinutes: number, excludeApptId?: string) {
     const dayOfWeek = start.getDay()
     const startMinutes = start.getHours() * 60 + start.getMinutes()
     const endMinutes = startMinutes + durationMinutes
@@ -385,7 +473,7 @@ export default function AppointmentsPage() {
 
     const end = new Date(start.getTime() + durationMinutes * 60000)
     const hasConflict = appointments.some((a) => {
-      if (a.employee_id !== employeeId || a.status === 'iptal') return false
+      if (a.employee_id !== employeeId || a.status === 'iptal' || a.id === excludeApptId) return false
       const aStart = new Date(a.scheduled_at)
       const aEnd = new Date(aStart.getTime() + (a.duration_minutes ?? SLOT_MINUTES) * 60000)
       return aStart < end && aEnd > start
@@ -871,18 +959,30 @@ export default function AppointmentsPage() {
         </div>
         <div className={styles.apptEmployee}>{employeeName(a.employee_id)}</div>
         <div className={styles.apptStatus}>
-          {canEdit(a) ? (
-            <StatusDropdown
-              value={a.status}
-              options={STATUS_DROPDOWN_OPTIONS}
-              urgent={isOverdue}
-              onChange={(v) => handleStatusChange(a, v as Appointment['status'])}
-            />
-          ) : (
-            <span className={`${styles.statusBadge} ${STATUS_CLASS[a.status]}`}>
-              {STATUS_OPTIONS.find((o) => o.value === a.status)?.label ?? a.status}
-            </span>
-          )}
+          <div className={styles.apptStatusRow}>
+            {canEdit(a) && (
+              <button
+                type="button"
+                className={styles.editApptBtn}
+                onClick={() => openEdit(a)}
+                aria-label="Randevuyu düzenle"
+              >
+                <PencilIcon width={13} height={13} />
+              </button>
+            )}
+            {canEdit(a) ? (
+              <StatusDropdown
+                value={a.status}
+                options={STATUS_DROPDOWN_OPTIONS}
+                urgent={isOverdue}
+                onChange={(v) => handleStatusChange(a, v as Appointment['status'])}
+              />
+            ) : (
+              <span className={`${styles.statusBadge} ${STATUS_CLASS[a.status]}`}>
+                {STATUS_OPTIONS.find((o) => o.value === a.status)?.label ?? a.status}
+              </span>
+            )}
+          </div>
           {isOverdue && <span className={styles.overdueHint}>Süresi geçti, güncelle</span>}
         </div>
       </div>
@@ -925,19 +1025,31 @@ export default function AppointmentsPage() {
         </div>
         <div className={styles.timelineCardFoot}>
           <span className={styles.timelineCardEmployee}>👤 {employeeName(a.employee_id)}</span>
-          {canEdit(a) ? (
-            <StatusDropdown
-              compact
-              value={a.status}
-              options={STATUS_DROPDOWN_OPTIONS}
-              urgent={isOverdue}
-              onChange={(v) => handleStatusChange(a, v as Appointment['status'])}
-            />
-          ) : (
-            <span className={`${styles.statusBadge} ${STATUS_CLASS[a.status]}`}>
-              {STATUS_OPTIONS.find((o) => o.value === a.status)?.label ?? a.status}
-            </span>
-          )}
+          <div className={styles.apptStatusRow}>
+            {canEdit(a) && (
+              <button
+                type="button"
+                className={styles.editApptBtn}
+                onClick={() => openEdit(a)}
+                aria-label="Randevuyu düzenle"
+              >
+                <PencilIcon width={12} height={12} />
+              </button>
+            )}
+            {canEdit(a) ? (
+              <StatusDropdown
+                compact
+                value={a.status}
+                options={STATUS_DROPDOWN_OPTIONS}
+                urgent={isOverdue}
+                onChange={(v) => handleStatusChange(a, v as Appointment['status'])}
+              />
+            ) : (
+              <span className={`${styles.statusBadge} ${STATUS_CLASS[a.status]}`}>
+                {STATUS_OPTIONS.find((o) => o.value === a.status)?.label ?? a.status}
+              </span>
+            )}
+          </div>
         </div>
       </div>
     )
@@ -1333,6 +1445,102 @@ export default function AppointmentsPage() {
               <div className={styles.formActions}>
                 <button type="button" className="btn-primary" disabled={completeBusy} onClick={submitCompletion}>
                   {completeBusy ? 'Kaydediliyor…' : 'Tamamla'}
+                </button>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {editingAppt && (
+        <div className={styles.modalBackdrop} onClick={() => setEditingAppt(null)}>
+          <div className={`card ${styles.modalCard}`} onClick={(e) => e.stopPropagation()}>
+            <div className={styles.modalHeader}>
+              <h2>Randevuyu Düzenle</h2>
+              <button type="button" className={styles.bannerClose} onClick={() => setEditingAppt(null)}>
+                ✕
+              </button>
+            </div>
+
+            {editError && (
+              <div className={`${styles.banner} ${styles.bannerError}`} style={{ marginBottom: 16 }}>
+                <span>{editError}</span>
+                <button type="button" className={styles.bannerClose} onClick={() => setEditError(null)}>
+                  ✕
+                </button>
+              </div>
+            )}
+
+            <p style={{ color: 'var(--text-dim)', fontSize: 13, marginBottom: 16 }}>
+              {customerName(editingAppt.customer_id)}
+            </p>
+
+            <div className={styles.form}>
+              <div className="field">
+                <label htmlFor="editService">Hizmet</label>
+                <Select
+                  id="editService"
+                  value={editServiceId}
+                  onChange={setEditServiceId}
+                  options={services.map((s) => ({ value: s.id, label: s.name, sub: `${s.duration_minutes} dk` }))}
+                />
+              </div>
+
+              <div className="field">
+                <label htmlFor="editEmployee">Çalışan</label>
+                <Select
+                  id="editEmployee"
+                  value={editEmployeeId}
+                  onChange={setEditEmployeeId}
+                  options={[
+                    { value: '', label: 'Farketmez' },
+                    ...profiles.map((p) => ({ value: p.id, label: p.full_name ?? '—' })),
+                  ]}
+                />
+              </div>
+
+              <div className="field">
+                <label htmlFor="editDate">Tarih</label>
+                <input id="editDate" type="date" value={editDate} onChange={(e) => setEditDate(e.target.value)} />
+              </div>
+
+              <div className="field">
+                <label htmlFor="editTime">Saat</label>
+                <Select
+                  id="editTime"
+                  value={editTime}
+                  onChange={setEditTime}
+                  options={TIME_OPTIONS.map((t) => ({ value: t, label: t }))}
+                />
+              </div>
+
+              {editingAppt.customer_id && (
+                <div className="field">
+                  <label htmlFor="editPhone">Müşteri Telefonu</label>
+                  <input
+                    id="editPhone"
+                    type="tel"
+                    inputMode="numeric"
+                    value={editPhone}
+                    onChange={(e) => setEditPhone(e.target.value.replace(/\D/g, ''))}
+                    placeholder="05xx xxx xx xx"
+                  />
+                </div>
+              )}
+
+              <div className="field" style={{ gridColumn: '1 / -1' }}>
+                <label htmlFor="editNote">Not (opsiyonel)</label>
+                <input
+                  id="editNote"
+                  placeholder="ör. kampanya adı"
+                  value={editNote}
+                  onChange={(e) => setEditNote(e.target.value)}
+                />
+              </div>
+
+              <div className={styles.formActions}>
+                <button type="button" className="btn-primary" disabled={editBusy} onClick={submitEdit}>
+                  {editBusy ? 'Kaydediliyor…' : 'Kaydet'}
                 </button>
               </div>
             </div>
