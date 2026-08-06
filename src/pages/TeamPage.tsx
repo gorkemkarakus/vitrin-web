@@ -1,6 +1,7 @@
 import { useEffect, useMemo, useRef, useState } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { supabase } from '../lib/supabase'
+import { useAuth } from '../contexts/AuthContext'
 import { TIME_OPTIONS } from '../lib/timeOptions'
 import Avatar, { colorForName } from '../components/Avatar'
 import {
@@ -48,6 +49,7 @@ interface TimeBlock {
   profile_id: string
   day_of_week: number | null
   block_date: string | null
+  end_date: string | null
   starts_at: string
   ends_at: string
   label: string | null
@@ -103,7 +105,7 @@ function toLocalDateString(d: Date) {
 }
 
 function roleLabel(role: Employee['role']) {
-  return role === 'admin' ? 'Salon Sahibi' : 'Çalışan'
+  return role === 'admin' ? 'Yönetici' : 'Çalışan'
 }
 
 // whatsapp_phone ham rakam dizisi olarak saklaniyor (ör. "905413402738")
@@ -118,6 +120,7 @@ function formatPhone(raw: string) {
 
 export default function TeamPage() {
   const navigate = useNavigate()
+  const { profile } = useAuth()
   const [categories, setCategories] = useState<Category[]>([])
   const [employees, setEmployees] = useState<Employee[]>([])
   const [employeeCategories, setEmployeeCategories] = useState<EmployeeCategory[]>([])
@@ -140,18 +143,22 @@ export default function TeamPage() {
   >({})
 
   const [blockDraft, setBlockDraft] = useState<
-    Record<string, { mode: 'day' | 'date'; day: number; date: string; start: string; end: string; label: string }>
+    Record<
+      string,
+      { mode: 'day' | 'date'; day: number; date: string; endDate: string; start: string; end: string; label: string }
+    >
   >({})
 
   function getBlockDraft(profileId: string) {
     return (
-      blockDraft[profileId] ?? { mode: 'day' as const, day: 1, date: '', start: '', end: '', label: '' }
+      blockDraft[profileId] ??
+      { mode: 'day' as const, day: 1, date: '', endDate: '', start: '', end: '', label: '' }
     )
   }
 
   function setBlockDraftFor(
     profileId: string,
-    next: { mode: 'day' | 'date'; day: number; date: string; start: string; end: string; label: string },
+    next: { mode: 'day' | 'date'; day: number; date: string; endDate: string; start: string; end: string; label: string },
   ) {
     setBlockDraft((prev) => ({ ...prev, [profileId]: next }))
   }
@@ -212,7 +219,7 @@ export default function TeamPage() {
       supabase.from('employee_schedules').select('id, profile_id, day_of_week, starts_at, ends_at'),
       supabase
         .from('employee_time_blocks')
-        .select('id, profile_id, day_of_week, block_date, starts_at, ends_at, label'),
+        .select('id, profile_id, day_of_week, block_date, end_date, starts_at, ends_at, label'),
       supabase.from('appointments').select('id, employee_id, service_id, status, scheduled_at'),
       supabase.from('payments').select('id, amount, appointment_id').eq('paid_at', todayLocalDateString()),
     ])
@@ -229,6 +236,15 @@ export default function TeamPage() {
   useEffect(() => {
     loadData()
   }, [])
+
+  // Aktif/Pasif durumu (profiles.is_active) calisma saati/bloke eklemekten
+  // TAMAMEN bagimsiz bir anahtar — sadece buradan degistirilir. Daha once bu
+  // sayfada hic erisilemiyordu (sadece Kullanicilar sayfasinda vardi),
+  // "pasif calisana saat ekliyorum ama aktife gecmiyor" seklinde bildirildi.
+  async function toggleEmployeeActive(profileId: string, active: boolean) {
+    await supabase.from('profiles').update({ is_active: active }).eq('id', profileId)
+    await loadData(true)
+  }
 
   async function toggleEmployeeCategory(profileId: string, categoryId: string, checked: boolean) {
     if (checked) {
@@ -280,15 +296,19 @@ export default function TeamPage() {
     if (!draft.start || !draft.end) return
     if (draft.mode === 'date' && !draft.date) return
 
+    // Bitis tarihi girilmezse baslangicla ayni kabul edilir (tek gunluk
+    // blok) — girilirse [baslangic, bitis] araligini (yillik izin gibi)
+    // kapsayan bir blok olur.
     await supabase.from('employee_time_blocks').insert({
       profile_id: profileId,
       day_of_week: draft.mode === 'day' ? draft.day : null,
       block_date: draft.mode === 'date' ? draft.date : null,
+      end_date: draft.mode === 'date' ? draft.endDate || draft.date : null,
       starts_at: draft.start,
       ends_at: draft.end,
       label: draft.label.trim() || null,
     })
-    setBlockDraftFor(profileId, { mode: 'day', day: 1, date: '', start: '', end: '', label: '' })
+    setBlockDraftFor(profileId, { mode: 'day', day: 1, date: '', endDate: '', start: '', end: '', label: '' })
     await loadData(true)
   }
 
@@ -327,7 +347,9 @@ export default function TeamPage() {
 
   function statusFor(emp: Employee): 'aktif' | 'izinli' | 'pasif' {
     if (!emp.is_active) return 'pasif'
-    const onLeaveToday = timeBlocks.some((b) => b.profile_id === emp.id && b.block_date === today)
+    const onLeaveToday = timeBlocks.some(
+      (b) => b.profile_id === emp.id && b.block_date !== null && b.block_date <= today && today <= (b.end_date ?? b.block_date),
+    )
     return onLeaveToday ? 'izinli' : 'aktif'
   }
 
@@ -473,6 +495,21 @@ export default function TeamPage() {
 
                   {expanded && (
                     <div className={styles.expandPanel}>
+                      {emp.id !== profile?.id && emp.role !== 'admin' && (
+                        <div className={styles.activeToggleRow}>
+                          <span>
+                            Durum: <strong>{emp.is_active ? 'Aktif' : 'Pasif'}</strong>
+                          </span>
+                          <button
+                            type="button"
+                            className="btn-secondary"
+                            onClick={() => toggleEmployeeActive(emp.id, !emp.is_active)}
+                          >
+                            {emp.is_active ? 'Pasife Al' : 'Aktifleştir'}
+                          </button>
+                        </div>
+                      )}
+
                       <div className={styles.categoryCheckboxes}>
                         {categories.map((c) => {
                           const active = empCategoryIds.has(c.id)
@@ -605,10 +642,12 @@ export default function TeamPage() {
                                   <strong>
                                     {b.day_of_week !== null
                                       ? DAY_SHORT[b.day_of_week]
-                                      : new Date(b.block_date + 'T00:00:00').toLocaleDateString('tr-TR', {
-                                          day: 'numeric',
-                                          month: 'short',
-                                        })}
+                                      : b.end_date && b.end_date !== b.block_date
+                                        ? `${new Date(b.block_date + 'T00:00:00').toLocaleDateString('tr-TR', { day: 'numeric', month: 'short' })} – ${new Date(b.end_date + 'T00:00:00').toLocaleDateString('tr-TR', { day: 'numeric', month: 'short' })}`
+                                        : new Date(b.block_date + 'T00:00:00').toLocaleDateString('tr-TR', {
+                                            day: 'numeric',
+                                            month: 'short',
+                                          })}
                                   </strong>{' '}
                                   {b.starts_at.slice(0, 5)} – {b.ends_at.slice(0, 5)}
                                   {b.label ? ` (${b.label})` : ''}
@@ -635,7 +674,7 @@ export default function TeamPage() {
                               className={bDraft.mode === 'date' ? styles.dayChipActive : styles.dayChip}
                               onClick={() => setBlockDraftFor(emp.id, { ...bDraft, mode: 'date' })}
                             >
-                              Tek tarih
+                              Tarih Aralığı
                             </button>
                           </div>
 
@@ -654,13 +693,25 @@ export default function TeamPage() {
                               </select>
                             </div>
                           ) : (
-                            <div className={styles.timeField}>
-                              <label>Tarih</label>
-                              <input
-                                type="date"
-                                value={bDraft.date}
-                                onChange={(e) => setBlockDraftFor(emp.id, { ...bDraft, date: e.target.value })}
-                              />
+                            <div className={styles.timeRow}>
+                              <div className={styles.timeField}>
+                                <label>Başlangıç Tarihi</label>
+                                <input
+                                  type="date"
+                                  value={bDraft.date}
+                                  onChange={(e) => setBlockDraftFor(emp.id, { ...bDraft, date: e.target.value })}
+                                />
+                              </div>
+                              <span className={styles.timeSep}>–</span>
+                              <div className={styles.timeField}>
+                                <label>Bitiş Tarihi (opsiyonel — yıllık izin gibi çok günlük bloklar için)</label>
+                                <input
+                                  type="date"
+                                  min={bDraft.date || undefined}
+                                  value={bDraft.endDate}
+                                  onChange={(e) => setBlockDraftFor(emp.id, { ...bDraft, endDate: e.target.value })}
+                                />
+                              </div>
                             </div>
                           )}
 
@@ -694,6 +745,19 @@ export default function TeamPage() {
                                 ))}
                               </select>
                             </div>
+                            <button
+                              type="button"
+                              className="btn-secondary"
+                              onClick={() =>
+                                setBlockDraftFor(emp.id, {
+                                  ...bDraft,
+                                  start: TIME_OPTIONS[0],
+                                  end: TIME_OPTIONS[TIME_OPTIONS.length - 1],
+                                })
+                              }
+                            >
+                              Tüm Gün
+                            </button>
                           </div>
 
                           <input

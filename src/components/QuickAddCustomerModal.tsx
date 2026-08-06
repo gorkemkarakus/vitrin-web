@@ -1,6 +1,7 @@
 import { useState, type FormEvent } from 'react'
 import { supabase } from '../lib/supabase'
 import { useAuth } from '../contexts/AuthContext'
+import { formatPersonName } from '../lib/formatName'
 import { CloseIcon } from './icons'
 import styles from './QuickAddCustomerModal.module.css'
 
@@ -25,7 +26,7 @@ export default function QuickAddCustomerModal({ onClose, onCreated }: QuickAddCu
       .from('customers')
       .insert({
         business_id: profile.business_id,
-        full_name: name.trim(),
+        full_name: formatPersonName(name),
         phone: phone.trim() || null,
       })
       .select('id, full_name')

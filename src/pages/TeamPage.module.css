@@ -334,6 +334,28 @@
   font-weight: 600;
 }
 
+.activeToggleRow {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+  padding: 10px 12px;
+  margin-bottom: 14px;
+  background: var(--panel-2);
+  border-radius: var(--radius-sm);
+  font-size: 13px;
+  color: var(--text-dim);
+}
+
+.activeToggleRow strong {
+  color: var(--text);
+}
+
+.activeToggleRow button {
+  width: auto;
+  padding: 7px 14px;
+}
+
 .categoryCheckboxes {
   display: flex;
   flex-wrap: wrap;

@@ -3,6 +3,7 @@ import { useOutletContext, useSearchParams } from 'react-router-dom'
 import { supabase } from '../lib/supabase'
 import { useAuth } from '../contexts/AuthContext'
 import { TIME_OPTIONS } from '../lib/timeOptions'
+import { formatPersonName } from '../lib/formatName'
 import Avatar from '../components/Avatar'
 import StatusDropdown, { type StatusDropdownOption } from '../components/StatusDropdown'
 import Select from '../components/Select'
@@ -55,6 +56,7 @@ interface TimeBlock {
   profile_id: string
   day_of_week: number | null
   block_date: string | null
+  end_date: string | null
   starts_at: string
   ends_at: string
 }
@@ -327,7 +329,7 @@ export default function AppointmentsPage() {
       supabase.from('profiles').select('id, full_name'),
       supabase.from('employee_categories').select('profile_id, category_id'),
       supabase.from('employee_schedules').select('profile_id, day_of_week, starts_at, ends_at'),
-      supabase.from('employee_time_blocks').select('profile_id, day_of_week, block_date, starts_at, ends_at'),
+      supabase.from('employee_time_blocks').select('profile_id, day_of_week, block_date, end_date, starts_at, ends_at'),
     ])
     setAppointments(appts ?? [])
     setCustomers(custs ?? [])
@@ -486,7 +488,8 @@ export default function AppointmentsPage() {
     const isBlocked = timeBlocks.some(
       (b) =>
         b.profile_id === employeeId &&
-        (b.day_of_week === dayOfWeek || b.block_date === dateStr) &&
+        (b.day_of_week === dayOfWeek ||
+          (b.block_date !== null && b.block_date <= dateStr && dateStr <= (b.end_date ?? b.block_date))) &&
         timeStringToMinutes(b.starts_at.slice(0, 5)) < endMinutes &&
         timeStringToMinutes(b.ends_at.slice(0, 5)) > startMinutes,
     )
@@ -557,7 +560,7 @@ export default function AppointmentsPage() {
           .from('customers')
           .insert({
             business_id: profile?.business_id,
-            full_name: newCustomerName.trim(),
+            full_name: formatPersonName(newCustomerName),
             phone: newCustomerPhone.trim() || null,
           })
           .select('id')

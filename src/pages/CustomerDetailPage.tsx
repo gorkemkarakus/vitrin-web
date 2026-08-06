@@ -50,6 +50,12 @@ interface Payment {
 }
 
 const METHOD_LABEL: Record<Payment['method'], string> = { nakit: 'Nakit', kart: 'Kart', diger: 'Diğer' }
+const SESSION_STATUS_LABEL: Record<Appointment['status'], string> = {
+  bekliyor: 'Bekliyor',
+  onaylandi: 'Onaylandı',
+  tamamlandi: 'Tamamlandı',
+  iptal: 'İptal',
+}
 const PAYMENT_METHOD_OPTIONS = [
   { value: 'nakit', label: 'Nakit' },
   { value: 'kart', label: 'Kart' },
@@ -145,7 +151,17 @@ export default function CustomerDetailPage() {
         const remainingSessionsEstimate = Math.max(0, pkg.total_sessions - sessions.length) * (svc?.price ?? 0)
         const expected = knownSessionsTotal + remainingSessionsEstimate
         const paid = payments.filter((p) => p.package_id === pkg.id).reduce((s, p) => s + p.amount, 0)
-        return { pkg, svc, sessionCount: sessions.length, completed, expected, paid, remaining: expected - paid }
+        const sortedSessions = sessions.slice().sort((a, b) => a.scheduled_at.localeCompare(b.scheduled_at))
+        return {
+          pkg,
+          svc,
+          sessions: sortedSessions,
+          sessionCount: sessions.length,
+          completed,
+          expected,
+          paid,
+          remaining: expected - paid,
+        }
       }),
     [packages, appointments, payments, serviceById],
   )
@@ -300,18 +316,39 @@ export default function CustomerDetailPage() {
           <div className={styles.list}>
             {packageStats.map((p) => (
               <div key={p.pkg.id} className={styles.packageRow}>
-                <div className={styles.packageRowMain}>
-                  <span className={styles.packageRowName}>{p.svc?.name ?? 'Hizmet'}</span>
-                  <span className={styles.packageRowProgress}>
-                    {p.completed}/{p.pkg.total_sessions} seans tamamlandı
-                  </span>
+                <div className={styles.packageRowTop}>
+                  <div className={styles.packageRowMain}>
+                    <span className={styles.packageRowName}>{p.svc?.name ?? 'Hizmet'}</span>
+                    <span className={styles.packageRowProgress}>
+                      {p.completed}/{p.pkg.total_sessions} seans tamamlandı
+                    </span>
+                  </div>
+                  <div className={styles.packageRowStats}>
+                    <span className={styles.packageRowExpected}>{currency.format(p.expected)}</span>
+                    <span className={remainingLabel(Math.max(0, p.remaining)).positive ? styles.packageRowRemainingOk : styles.packageRowRemainingDanger}>
+                      {remainingLabel(Math.max(0, p.remaining)).text}
+                    </span>
+                  </div>
                 </div>
-                <div className={styles.packageRowStats}>
-                  <span className={styles.packageRowExpected}>{currency.format(p.expected)}</span>
-                  <span className={remainingLabel(Math.max(0, p.remaining)).positive ? styles.packageRowRemainingOk : styles.packageRowRemainingDanger}>
-                    {remainingLabel(Math.max(0, p.remaining)).text}
-                  </span>
-                </div>
+                {p.sessions.length > 0 && (
+                  <div className={styles.sessionList}>
+                    {p.sessions.map((s, i) => (
+                      <div key={s.id} className={styles.sessionRow}>
+                        <span className={styles.sessionRowLabel}>{i + 1}. Seans</span>
+                        <span className={styles.sessionRowDate}>
+                          {new Date(s.scheduled_at).toLocaleDateString('tr-TR', {
+                            day: 'numeric',
+                            month: 'long',
+                            year: 'numeric',
+                          })}
+                        </span>
+                        <span className={`${styles.sessionRowStatus} ${styles[`sessionRowStatus_${s.status}`]}`}>
+                          {SESSION_STATUS_LABEL[s.status]}
+                        </span>
+                      </div>
+                    ))}
+                  </div>
+                )}
               </div>
             ))}
           </div>

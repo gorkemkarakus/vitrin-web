@@ -323,7 +323,7 @@ export default function DashboardLayout() {
               <div className={styles.profileDropdown} role="menu">
                 <div className={styles.profileDropdownHead}>
                   <span className={styles.profileDropdownName}>{profile?.full_name ?? 'İşletmeniz'}</span>
-                  <span className={styles.profileDropdownRole}>{isAdmin ? 'Salon Sahibi' : 'Çalışan'}</span>
+                  <span className={styles.profileDropdownRole}>{isAdmin ? 'Yönetici' : 'Çalışan'}</span>
                 </div>
                 <button
                   type="button"
