@@ -458,6 +458,13 @@
   box-shadow: 0 8px 18px rgba(108, 54, 241, 0.38);
   flex-shrink: 0;
   transition: opacity 0.15s;
+  /* Negatif margin ile barin ustune tastigi icin, sayfalardaki sabit
+     "hizli islem" seritleri (CustomersPage/TeamPage .quickRow, z-index: 40)
+     gorsel olarak onun ONUNE geciyordu — normal akista, z-index'siz bir
+     eleman olarak pozisyonlu (fixed) bir seridin HER ZAMAN arkasinda kalir.
+     position:relative + daha yuksek bir z-index ile bu sabitleniyor. */
+  position: relative;
+  z-index: 45;
 }
 
 .fab:hover {
