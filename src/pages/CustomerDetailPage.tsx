@@ -260,7 +260,7 @@ export default function CustomerDetailPage() {
         </div>
       </div>
 
-      <div className={`${styles.balanceRow} ${customer.credit_balance > 0 ? styles.balanceRowThree : ''}`}>
+      <div className={styles.balanceRow}>
         <div className={`card ${styles.balanceCard}`}>
           <span className={styles.balanceLabel}>Toplam Ödenen</span>
           <span className={styles.balanceValueOk}>{currency.format(totalPaid)}</span>
@@ -275,13 +275,19 @@ export default function CustomerDetailPage() {
                 : 'Borç yok'}
           </span>
         </div>
-        {customer.credit_balance > 0 && (
-          <div className={`card ${styles.balanceCard}`}>
-            <span className={styles.balanceLabel}>Müşteri Bakiyesi</span>
-            <span className={styles.balanceValueOk}>{currency.format(customer.credit_balance)}</span>
-          </div>
-        )}
       </div>
+
+      {customer.credit_balance > 0 && (
+        <div className={styles.creditBanner}>
+          <span className={styles.creditBannerLeft}>
+            <span className={styles.creditBannerIcon}>
+              <WalletIcon width={15} height={15} />
+            </span>
+            Müşteri Bakiyesi
+          </span>
+          <span className={styles.creditBannerValue}>{currency.format(customer.credit_balance)}</span>
+        </div>
+      )}
 
       <button type="button" className={styles.payBtn} onClick={() => setPayModalOpen(true)}>
         <WalletIcon width={16} height={16} />

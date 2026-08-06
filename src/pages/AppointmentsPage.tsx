@@ -1537,24 +1537,28 @@ export default function AppointmentsPage() {
                 return (
                   <>
                     {balanceAvailable > 0 && (
-                      <div className="field" style={{ gridColumn: '1 / -1' }}>
-                        <label htmlFor="completeBalanceAmount">
-                          Müşteri Bakiyesi: {currency.format(balanceAvailable)} — Bakiyeden Al (TL)
-                        </label>
-                        <input
-                          id="completeBalanceAmount"
-                          type="number"
-                          min={0}
-                          max={Math.min(balanceAvailable, price)}
-                          step="0.01"
-                          value={completeBalanceAmount}
-                          onChange={(e) => {
-                            const requested = Math.min(Number(e.target.value) || 0, balanceAvailable, price)
-                            setCompleteBalanceAmount(e.target.value)
-                            setCompletePaymentAmount(String(Math.max(0, price - requested)))
-                          }}
-                        />
-                      </div>
+                      <>
+                        <div className={styles.creditBanner} style={{ gridColumn: '1 / -1' }}>
+                          <span className={styles.creditBannerLeft}>Müşteri Bakiyesi</span>
+                          <span className={styles.creditBannerValue}>{currency.format(balanceAvailable)}</span>
+                        </div>
+                        <div className="field" style={{ gridColumn: '1 / -1' }}>
+                          <label htmlFor="completeBalanceAmount">Bakiyeden Al (TL)</label>
+                          <input
+                            id="completeBalanceAmount"
+                            type="number"
+                            min={0}
+                            max={Math.min(balanceAvailable, price)}
+                            step="0.01"
+                            value={completeBalanceAmount}
+                            onChange={(e) => {
+                              const requested = Math.min(Number(e.target.value) || 0, balanceAvailable, price)
+                              setCompleteBalanceAmount(e.target.value)
+                              setCompletePaymentAmount(String(Math.max(0, price - requested)))
+                            }}
+                          />
+                        </div>
+                      </>
                     )}
 
                     {remainingDue > 0 && (

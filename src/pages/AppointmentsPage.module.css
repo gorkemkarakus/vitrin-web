@@ -253,6 +253,30 @@
   transform: rotate(45deg) translate(-1px, -1px);
 }
 
+.creditBanner {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  background: var(--ok-bg);
+  border-radius: var(--radius-lg);
+  padding: 12px 15px;
+}
+
+.creditBannerLeft {
+  font-size: 13.5px;
+  font-weight: 600;
+  color: var(--ok-text);
+}
+
+.creditBannerValue {
+  font-family: var(--font-heading);
+  font-size: 19px;
+  font-weight: 700;
+  color: var(--ok-text);
+  font-variant-numeric: tabular-nums;
+}
+
 .dateColumn {
   display: flex;
   flex-direction: column;

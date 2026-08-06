@@ -57,8 +57,43 @@
   gap: 10px;
 }
 
-.balanceRowThree {
-  grid-template-columns: 1fr 1fr 1fr;
+.creditBanner {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  background: var(--ok-bg);
+  border-radius: var(--radius-lg);
+  padding: 13px 16px;
+}
+
+.creditBannerLeft {
+  display: flex;
+  align-items: center;
+  gap: 9px;
+  font-size: 13.5px;
+  font-weight: 600;
+  color: var(--ok-text);
+}
+
+.creditBannerIcon {
+  width: 28px;
+  height: 28px;
+  border-radius: 50%;
+  background: var(--panel);
+  color: var(--ok-text);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+}
+
+.creditBannerValue {
+  font-family: var(--font-heading);
+  font-size: 20px;
+  font-weight: 700;
+  color: var(--ok-text);
+  font-variant-numeric: tabular-nums;
 }
 
 .balanceCard {
