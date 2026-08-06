@@ -45,8 +45,8 @@
 }
 
 .filterBtnActive {
-  background: var(--signal);
-  border-color: var(--signal);
+  background: #004aad;
+  border-color: #004aad;
   color: #fff;
 }
 
@@ -78,7 +78,7 @@
 }
 
 .summaryTileSignal {
-  background: #f5f2fe;
+  background: #eaf1fb;
 }
 
 .summaryTileOk {
@@ -108,8 +108,8 @@
 }
 
 .summaryIconSignal {
-  background: #e4defc;
-  color: var(--signal);
+  background: #dbe7f8;
+  color: #004aad;
 }
 
 .summaryIconOk {
@@ -167,7 +167,7 @@
   gap: 2px;
   background: none;
   border: none;
-  color: var(--signal);
+  color: #004aad;
   font-size: 12.5px;
   font-weight: 600;
   font-family: var(--font-body);
@@ -197,7 +197,7 @@
 .apptTime {
   font-size: 13px;
   font-weight: 700;
-  color: var(--signal);
+  color: #004aad;
   width: 42px;
   flex-shrink: 0;
   font-variant-numeric: tabular-nums;
@@ -294,8 +294,8 @@
   width: 34px;
   height: 34px;
   border-radius: 10px;
-  background: var(--accent-pink-bg);
-  color: var(--accent-pink);
+  background: var(--warn-bg);
+  color: var(--warn-text);
   display: flex;
   align-items: center;
   justify-content: center;
@@ -431,23 +431,23 @@
 }
 
 .quickIconSignal {
-  background: var(--signal);
+  background: #004aad;
   color: #fff;
 }
 
 .quickIconPink {
-  background: var(--accent-pink);
-  color: #fff;
+  background: var(--panel-2);
+  color: var(--text-dim);
 }
 
 .quickIconOk {
-  background: var(--ok-text);
-  color: #fff;
+  background: var(--panel-2);
+  color: var(--text-dim);
 }
 
 .quickIconInfo {
-  background: var(--info-text);
-  color: #fff;
+  background: var(--panel-2);
+  color: var(--text-dim);
 }
 
 .quickBadge {
@@ -612,7 +612,7 @@
 }
 
 .legendDotSignal {
-  background: var(--signal);
+  background: #004aad;
 }
 
 .legendDotLine {

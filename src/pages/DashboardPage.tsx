@@ -600,7 +600,7 @@ export default function DashboardPage() {
             <div className={styles.donutRow}>
               <DonutChart
                 segments={[
-                  { value: botCount, color: 'var(--signal)' },
+                  { value: botCount, color: '#004aad' },
                   { value: staffCount, color: 'var(--line)' },
                 ]}
                 centerLabel={`%${botPct}`}
