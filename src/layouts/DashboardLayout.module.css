@@ -244,7 +244,7 @@
   height: 17px;
   padding: 0 3px;
   border-radius: 999px;
-  background: var(--accent-pink);
+  background: var(--danger-text);
   color: white;
   font-size: 10px;
   font-weight: 700;
@@ -553,8 +553,8 @@
 }
 
 .sheetItemIconPink {
-  background: var(--accent-pink);
-  color: #fff;
+  background: var(--panel-2);
+  color: var(--text-dim);
 }
 
 .sheetItemIconOk {

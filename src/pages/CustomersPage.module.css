@@ -246,7 +246,7 @@
 
 .badgeSadik {
   color: var(--signal);
-  background: #f5f2fe;
+  background: #eaf1fb;
 }
 
 .badgeYeni {
@@ -412,7 +412,7 @@
 }
 
 .statCardSignal {
-  background: #f5f2fe;
+  background: #eaf1fb;
 }
 
 .statCardOk {
@@ -438,7 +438,7 @@
 }
 
 .statIconSignal {
-  background: #e4defc;
+  background: #dbe7f8;
   color: var(--signal);
 }
 
