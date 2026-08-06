@@ -2,8 +2,10 @@
   display: flex;
   flex-direction: column;
   gap: 16px;
-  /* Alttaki sabit hizli-islem satiri icerigin ustune binmesin. */
-  padding-bottom: 88px;
+  /* Alttaki sabit hizli-islem satiri (kendi yuksekligi + ustunde durdugu
+     64px'lik alt navigasyon barı) icerigin ustune binmesin — 88px yetersiz
+     kalip son satiri kismen orttuyordu (bildirildi). */
+  padding-bottom: 160px;
 }
 
 /* ---------- Arama + filtrele satiri ---------- */

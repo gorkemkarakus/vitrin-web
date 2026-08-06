@@ -2,8 +2,11 @@
   display: flex;
   flex-direction: column;
   gap: 16px;
-  /* Alttaki sabit hizli-islem satiri icerigin ustune binmesin. */
-  padding-bottom: 88px;
+  /* Alttaki sabit hizli-islem satiri (kendi yuksekligi + ustunde durdugu
+     64px'lik alt navigasyon barı) icerigin ustune binmesin — 88px yetersiz
+     kalip son satiri kismen orttuyordu (CustomersPage'de bildirildi, ayni
+     desen burada da var). */
+  padding-bottom: 160px;
 }
 
 /* ---------- Arama + filtrele satiri ---------- */
@@ -107,89 +110,6 @@
 .filterMenuItem svg {
   color: var(--signal);
   flex-shrink: 0;
-}
-
-/* ---------- Ust istatistik kartlari ---------- */
-
-.statsGrid {
-  display: grid;
-  grid-template-columns: repeat(4, 1fr);
-  gap: 6px;
-}
-
-.statCard {
-  display: flex;
-  flex-direction: column;
-  align-items: flex-start;
-  gap: 7px;
-  min-width: 0;
-  border-radius: var(--radius-sm);
-  padding: 10px 8px;
-}
-
-.statCardSignal {
-  background: #eaf1fb;
-}
-
-.statCardOk {
-  background: #eafaf3;
-}
-
-.statCardWarn {
-  background: #fdf3e7;
-}
-
-.statCardInfo {
-  background: #eaf2fd;
-}
-
-.statIcon {
-  width: 26px;
-  height: 26px;
-  border-radius: 50%;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  flex-shrink: 0;
-}
-
-.statIconSignal {
-  background: #dbe7f8;
-  color: var(--signal);
-}
-
-.statIconOk {
-  background: #d1f2e3;
-  color: var(--ok-text);
-}
-
-.statIconWarn {
-  background: #fae6c8;
-  color: var(--warn-text);
-}
-
-.statIconInfo {
-  background: #d3e6fb;
-  color: var(--info-text);
-}
-
-.statValue {
-  font-family: var(--font-heading);
-  font-size: 15px;
-  font-weight: 700;
-  color: var(--text);
-  font-variant-numeric: tabular-nums;
-  overflow: hidden;
-  text-overflow: ellipsis;
-  white-space: nowrap;
-  max-width: 100%;
-}
-
-.statLabel {
-  font-size: 9.5px;
-  font-weight: 600;
-  color: var(--text-dim);
-  line-height: 1.25;
 }
 
 /* ---------- Segment sekmeleri ---------- */

@@ -8,11 +8,7 @@ import {
   SearchIcon,
   FilterIcon,
   CheckCircleIcon,
-  UsersIcon,
   UserPlusIcon,
-  UserCheckIcon,
-  TrendingUpIcon,
-  CalendarIcon,
   ClockIcon,
   PieChartIcon,
   MailIcon,
@@ -335,14 +331,6 @@ export default function TeamPage() {
     return onLeaveToday ? 'izinli' : 'aktif'
   }
 
-  const businessTodayCount = useMemo(
-    () =>
-      appointments.filter((a) => a.status !== 'iptal' && toLocalDateString(new Date(a.scheduled_at)) === today)
-        .length,
-    [appointments, today],
-  )
-  const businessTodayEarnings = useMemo(() => payments.reduce((sum, p) => sum + p.amount, 0), [payments])
-
   const counts = useMemo(() => {
     const c = { tumu: employees.length, aktif: 0, izinli: 0, pasif: 0 }
     for (const emp of employees) c[statusFor(emp)]++
@@ -409,37 +397,6 @@ export default function TeamPage() {
               ))}
             </div>
           )}
-        </div>
-      </div>
-
-      <div className={styles.statsGrid}>
-        <div className={`${styles.statCard} ${styles.statCardSignal}`}>
-          <span className={`${styles.statIcon} ${styles.statIconSignal}`}>
-            <UsersIcon width={14} height={14} />
-          </span>
-          <span className={styles.statValue}>{employees.length}</span>
-          <span className={styles.statLabel}>Toplam Ekip</span>
-        </div>
-        <div className={`${styles.statCard} ${styles.statCardOk}`}>
-          <span className={`${styles.statIcon} ${styles.statIconOk}`}>
-            <UserCheckIcon width={14} height={14} />
-          </span>
-          <span className={styles.statValue}>{counts.aktif}</span>
-          <span className={styles.statLabel}>Aktif Üye</span>
-        </div>
-        <div className={`${styles.statCard} ${styles.statCardWarn}`}>
-          <span className={`${styles.statIcon} ${styles.statIconWarn}`}>
-            <CalendarIcon width={14} height={14} />
-          </span>
-          <span className={styles.statValue}>{businessTodayCount}</span>
-          <span className={styles.statLabel}>Bugünkü Randevu</span>
-        </div>
-        <div className={`${styles.statCard} ${styles.statCardInfo}`}>
-          <span className={`${styles.statIcon} ${styles.statIconInfo}`}>
-            <TrendingUpIcon width={14} height={14} />
-          </span>
-          <span className={styles.statValue}>{currency.format(businessTodayEarnings)}</span>
-          <span className={styles.statLabel}>Bugünkü Kazanç</span>
         </div>
       </div>
 
