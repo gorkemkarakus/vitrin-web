@@ -62,11 +62,22 @@ function firstOfMonth(d: Date) {
   return new Date(d.getFullYear(), d.getMonth(), 1)
 }
 
-type Preset = 'bu_ay' | 'gecen_ay' | 'son_7' | 'son_30' | 'ozel'
+type Preset = 'bugun' | 'bu_hafta' | 'bu_ay' | 'gecen_ay' | 'ozel'
 
 function presetRange(preset: Preset): { start: string; end: string } {
   const today = new Date()
   switch (preset) {
+    case 'bugun':
+      return { start: toLocalDateString(today), end: toLocalDateString(today) }
+    case 'bu_hafta': {
+      // Pazartesiden bugune kadar — tam takvim haftasi degil, "bu hafta simdiye
+      // kadar kac gun gectiyse" (ör. sali ise Pazartesi+Sali).
+      const day = today.getDay()
+      const diffToMonday = day === 0 ? -6 : 1 - day
+      const monday = new Date(today)
+      monday.setDate(today.getDate() + diffToMonday)
+      return { start: toLocalDateString(monday), end: toLocalDateString(today) }
+    }
     case 'bu_ay':
       return { start: toLocalDateString(firstOfMonth(today)), end: toLocalDateString(today) }
     case 'gecen_ay': {
@@ -74,26 +85,16 @@ function presetRange(preset: Preset): { start: string; end: string } {
       const lastMonthStart = firstOfMonth(lastMonthEnd)
       return { start: toLocalDateString(lastMonthStart), end: toLocalDateString(lastMonthEnd) }
     }
-    case 'son_7': {
-      const start = new Date(today)
-      start.setDate(start.getDate() - 6)
-      return { start: toLocalDateString(start), end: toLocalDateString(today) }
-    }
-    case 'son_30': {
-      const start = new Date(today)
-      start.setDate(start.getDate() - 29)
-      return { start: toLocalDateString(start), end: toLocalDateString(today) }
-    }
     default:
       return { start: toLocalDateString(firstOfMonth(today)), end: toLocalDateString(today) }
   }
 }
 
 const PRESETS: { value: Preset; label: string }[] = [
+  { value: 'bugun', label: 'Bugün' },
+  { value: 'bu_hafta', label: 'Bu Hafta' },
   { value: 'bu_ay', label: 'Bu Ay' },
   { value: 'gecen_ay', label: 'Geçen Ay' },
-  { value: 'son_7', label: 'Son 7 Gün' },
-  { value: 'son_30', label: 'Son 30 Gün' },
 ]
 
 export default function AccountingPage() {

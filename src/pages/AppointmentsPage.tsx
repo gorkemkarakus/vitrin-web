@@ -279,6 +279,10 @@ export default function AppointmentsPage() {
   const [editBusy, setEditBusy] = useState(false)
   const [editError, setEditError] = useState<string | null>(null)
 
+  // Satira/karta tiklaninca acilan detay gorunumu — kompakt satirda yer
+  // olmadigi icin not/kaynak gibi alanlar hic gorunmuyordu (bildirildi).
+  const [viewingAppt, setViewingAppt] = useState<Appointment | null>(null)
+
   // "silent=true" bir mutasyondan sonra cagrilir — veriyi arka planda
   // tazeler ama "loading" bayragini geri true yapmaz, boylece sayfa her
   // islemden sonra bos "Yükleniyor…" yazisina donup yeniden cizilmiyor.
@@ -339,6 +343,10 @@ export default function AppointmentsPage() {
 
   function canEdit(appt: Appointment) {
     return profile?.role === 'admin' || appt.created_by_user_id === profile?.id
+  }
+
+  function openDetail(a: Appointment) {
+    setViewingAppt(a)
   }
 
   function openEdit(a: Appointment) {
@@ -936,7 +944,16 @@ export default function AppointmentsPage() {
       .filter(Boolean)
       .join(' ')
     return (
-      <div className={rowClass} key={a.id}>
+      <div
+        className={rowClass}
+        key={a.id}
+        role="button"
+        tabIndex={0}
+        onClick={() => openDetail(a)}
+        onKeyDown={(e) => {
+          if (e.key === 'Enter') openDetail(a)
+        }}
+      >
         <div className={styles.apptTime}>
           {d.toLocaleTimeString('tr-TR', { hour: '2-digit', minute: '2-digit' })}
         </div>
@@ -959,7 +976,7 @@ export default function AppointmentsPage() {
         </div>
         <div className={styles.apptEmployee}>{employeeName(a.employee_id)}</div>
         <div className={styles.apptStatus}>
-          <div className={styles.apptStatusRow}>
+          <div className={styles.apptStatusRow} onClick={(e) => e.stopPropagation()}>
             {canEdit(a) && (
               <button
                 type="button"
@@ -1002,6 +1019,12 @@ export default function AppointmentsPage() {
     return (
       <div
         className={`${styles.timelineCard} ${TIMELINE_COLORS[colorIdx % TIMELINE_COLORS.length]} ${isOverdue ? styles.timelineCardOverdue : ''}`}
+        role="button"
+        tabIndex={0}
+        onClick={() => openDetail(a)}
+        onKeyDown={(e) => {
+          if (e.key === 'Enter') openDetail(a)
+        }}
       >
         <div className={styles.timelineCardHead}>
           <div className={styles.timelineCardCustomerCol}>
@@ -1025,7 +1048,7 @@ export default function AppointmentsPage() {
         </div>
         <div className={styles.timelineCardFoot}>
           <span className={styles.timelineCardEmployee}>👤 {employeeName(a.employee_id)}</span>
-          <div className={styles.apptStatusRow}>
+          <div className={styles.apptStatusRow} onClick={(e) => e.stopPropagation()}>
             {canEdit(a) && (
               <button
                 type="button"
@@ -1447,6 +1470,90 @@ export default function AppointmentsPage() {
                   {completeBusy ? 'Kaydediliyor…' : 'Tamamla'}
                 </button>
               </div>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {viewingAppt && (
+        <div className={styles.modalBackdrop} onClick={() => setViewingAppt(null)}>
+          <div className={`card ${styles.modalCard}`} onClick={(e) => e.stopPropagation()}>
+            <div className={styles.modalHeader}>
+              <h2>Randevu Detayı</h2>
+              <button type="button" className={styles.bannerClose} onClick={() => setViewingAppt(null)}>
+                ✕
+              </button>
+            </div>
+
+            <div className={styles.detailList}>
+              <div className={styles.detailRow}>
+                <span className={styles.detailLabel}>Müşteri</span>
+                <span className={styles.detailValue}>
+                  {customerName(viewingAppt.customer_id)}
+                  {customerPhone(viewingAppt.customer_id) && ` · ${customerPhone(viewingAppt.customer_id)}`}
+                </span>
+              </div>
+              <div className={styles.detailRow}>
+                <span className={styles.detailLabel}>Hizmet</span>
+                <span className={styles.detailValue}>
+                  {serviceName(viewingAppt.service_id)}
+                  {packageProgress(viewingAppt) &&
+                    ` · ${packageProgress(viewingAppt)!.current}/${packageProgress(viewingAppt)!.total} seans`}
+                </span>
+              </div>
+              <div className={styles.detailRow}>
+                <span className={styles.detailLabel}>Çalışan</span>
+                <span className={styles.detailValue}>{employeeName(viewingAppt.employee_id)}</span>
+              </div>
+              <div className={styles.detailRow}>
+                <span className={styles.detailLabel}>Tarih / Saat</span>
+                <span className={styles.detailValue}>
+                  {new Date(viewingAppt.scheduled_at).toLocaleString('tr-TR', {
+                    day: '2-digit',
+                    month: 'long',
+                    year: 'numeric',
+                    hour: '2-digit',
+                    minute: '2-digit',
+                  })}
+                  {` · ${viewingAppt.duration_minutes ?? SLOT_MINUTES} dk`}
+                </span>
+              </div>
+              <div className={styles.detailRow}>
+                <span className={styles.detailLabel}>Durum</span>
+                <span className={`${styles.statusBadge} ${STATUS_CLASS[viewingAppt.status]}`}>
+                  {STATUS_OPTIONS.find((o) => o.value === viewingAppt.status)?.label ?? viewingAppt.status}
+                </span>
+              </div>
+              <div className={styles.detailRow}>
+                <span className={styles.detailLabel}>Kaynak</span>
+                <span className={styles.detailValue}>
+                  {SOURCE_OPTIONS.find((o) => o.value === viewingAppt.source)?.label ?? viewingAppt.source}
+                </span>
+              </div>
+              <div className={styles.detailRow}>
+                <span className={styles.detailLabel}>Not</span>
+                <span className={styles.detailValue}>{viewingAppt.source_note || 'Not eklenmemiş.'}</span>
+              </div>
+            </div>
+
+            <div className={styles.formActions}>
+              {canEdit(viewingAppt) && (
+                <button
+                  type="button"
+                  className="btn-secondary"
+                  style={{ width: 'auto' }}
+                  onClick={() => {
+                    const a = viewingAppt
+                    setViewingAppt(null)
+                    openEdit(a)
+                  }}
+                >
+                  Düzenle
+                </button>
+              )}
+              <button type="button" className="btn-primary" style={{ width: 'auto' }} onClick={() => setViewingAppt(null)}>
+                Kapat
+              </button>
             </div>
           </div>
         </div>
