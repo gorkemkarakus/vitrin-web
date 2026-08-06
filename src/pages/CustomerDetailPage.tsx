@@ -165,17 +165,17 @@ export default function CustomerDetailPage() {
   )
 
   const totalPaid = useMemo(() => payments.reduce((s, p) => s + p.amount, 0), [payments])
-  // Paket bazinda KASTEN KIRPILMADI — bir seansta fazladan odenen tutar
-  // ayni paketin sonraki seanslarindaki borcu netlestirebilmeli. Paketsiz
-  // randevularda ise fazla odeme artik musteri.credit_balance'a gidiyor
-  // (bkz. AppointmentsPage submitCompletion) — o yuzden burada KIRPILIYOR
-  // (Math.max(0, ...)), aksi halde ayni fazlalik hem bu satirda hem
-  // credit_balance'ta iki kere sayilmis olurdu. credit_balance ise net
-  // toplami dogrudan asagi cekiyor — yeterince yuksekse "Kalan Bakiye"
-  // negatife duser, "+X alacaklı" olarak gosterilir.
+  // Paket VE paketsiz randevularda fazla odeme artik musteri.credit_balance'a
+  // gidiyor (bkz. AppointmentsPage submitCompletion — randevu tamamlanirken
+  // ilgili kapsamin -paketliyse TUM paketin- guncel durumuna gore fazlalik
+  // otomatik bakiyeye aktarilir). Burada KIRPILIYOR (Math.max(0, ...)),
+  // aksi halde ayni fazlalik hem bu satirda hem credit_balance'ta iki kere
+  // sayilmis olurdu. credit_balance net toplami dogrudan asagi cekiyor —
+  // yeterince yuksekse "Kalan Bakiye" negatife duser, "+X alacaklı" olarak
+  // gosterilir.
   const totalRemaining = useMemo(
     () =>
-      packageStats.reduce((s, p) => s + p.remaining, 0) +
+      packageStats.reduce((s, p) => s + Math.max(0, p.remaining), 0) +
       standaloneAppts.reduce((s, a) => s + Math.max(0, a.remaining), 0) -
       (customer?.credit_balance ?? 0),
     [packageStats, standaloneAppts, customer],
@@ -302,8 +302,8 @@ export default function CustomerDetailPage() {
                 </div>
                 <div className={styles.packageRowStats}>
                   <span className={styles.packageRowExpected}>{currency.format(p.expected)}</span>
-                  <span className={remainingLabel(p.remaining).positive ? styles.packageRowRemainingOk : styles.packageRowRemainingDanger}>
-                    {remainingLabel(p.remaining).text}
+                  <span className={remainingLabel(Math.max(0, p.remaining)).positive ? styles.packageRowRemainingOk : styles.packageRowRemainingDanger}>
+                    {remainingLabel(Math.max(0, p.remaining)).text}
                   </span>
                 </div>
               </div>

@@ -733,19 +733,20 @@ export default function AppointmentsPage() {
       }
 
       // Ucret: bakiyeden dusulen + nakit/kart ile alinan kismin toplami.
-      // Paketli randevularda fazla odeme (giris > kalan) eskisi gibi
-      // paketin KENDI kalan bakiyesini dusurur (bakiyeye AKTARILMAZ —
-      // aksi halde ayni tutar iki kere sayilirdi); paketsiz randevularda
-      // ise ucreti asan yeni fazla odeme dogrudan musteri bakiyesine gider.
+      // Odemeler HER ZAMAN girildigi gibi (kirpilmadan) kaydedilir; fazlalik
+      // olup olmadigi bu islemden SONRA, ilgili KAPSAMIN (paketliyse TUM
+      // paketin, degilse sadece bu randevunun) GUNCEL veritabani durumuna
+      // bakilarak hesaplanir — boylece "seans 1'de az, seans 2'de fazla
+      // odendi" gibi durumlar da doğru netlesir. Fazlalik HER DURUMDA
+      // (paketli/paketsiz fark etmeksizin) musteri bakiyesine gider; bir
+      // sonraki seansta/randevuda "Bakiyeden Al" ile goruluyor ve
+      // kullanilabiliyor (bildirilen sorun: paket-ici fazlalik hicbir yerde
+      // gorunmeden/kullanilamadan kayboluyordu).
       const price = Number(completePriceOverride) || 0
       const customer = customers.find((c) => c.id === completingAppt.customer_id)
       const balanceAvailable = customer?.credit_balance ?? 0
       const balanceRequested = Math.min(Number(completeBalanceAmount) || 0, balanceAvailable, price)
-      const remainingDue = Math.max(0, price - balanceRequested)
       const entered = completeRecordPayment ? Number(completePaymentAmount) || 0 : 0
-      const cashForThisAppt = effectivePackageId ? entered : Math.min(entered, remainingDue)
-      const overflowToBalance = effectivePackageId ? 0 : Math.max(0, entered - remainingDue)
-      const creditBalanceDelta = overflowToBalance - balanceRequested
 
       if (balanceRequested > 0) {
         const { error: balPayErr } = await supabase.from('payments').insert({
@@ -765,13 +766,13 @@ export default function AppointmentsPage() {
         }
       }
 
-      if (cashForThisAppt > 0) {
+      if (entered > 0) {
         const { error: payErr } = await supabase.from('payments').insert({
           business_id: profile?.business_id,
           customer_id: completingAppt.customer_id,
           appointment_id: completingAppt.id,
           package_id: effectivePackageId,
-          amount: cashForThisAppt,
+          amount: entered,
           method: completePaymentMethod,
           created_by_user_id: profile?.id,
         })
@@ -785,6 +786,33 @@ export default function AppointmentsPage() {
           return
         }
       }
+
+      // Bu islemin ait oldugu kapsamin (paket varsa TUM paket, yoksa sadece
+      // bu randevu) GUNCEL beklenen/odenen tutarini taze bir sorguyla
+      // hesaplayip, fazlaligi (varsa) musteri bakiyesine aktar.
+      let scopeExpected = price
+      let scopePaid = balanceRequested + entered
+      if (effectivePackageId) {
+        const pkg = servicePackages.find((p) => p.id === effectivePackageId)
+        const pkgServicePrice = pkg?.service_id ? (services.find((s) => s.id === pkg.service_id)?.price ?? 0) : 0
+        const [{ data: sessions }, { data: pkgPayments }] = await Promise.all([
+          supabase.from('appointments').select('price_override').eq('package_id', effectivePackageId),
+          supabase.from('payments').select('amount').eq('package_id', effectivePackageId),
+        ])
+        const knownSessionsTotal = (sessions ?? []).reduce((sum, s) => sum + (s.price_override ?? pkgServicePrice), 0)
+        const remainingSessionsEstimate =
+          Math.max(0, (pkg?.total_sessions ?? 0) - (sessions ?? []).length) * pkgServicePrice
+        scopeExpected = knownSessionsTotal + remainingSessionsEstimate
+        scopePaid = (pkgPayments ?? []).reduce((sum, p) => sum + p.amount, 0)
+      } else if (completingAppt.customer_id) {
+        const { data: apptPayments } = await supabase
+          .from('payments')
+          .select('amount')
+          .eq('appointment_id', completingAppt.id)
+        scopePaid = (apptPayments ?? []).reduce((sum, p) => sum + p.amount, 0)
+      }
+      const sweepToBalance = Math.max(0, scopePaid - scopeExpected)
+      const creditBalanceDelta = sweepToBalance - balanceRequested
 
       if (creditBalanceDelta !== 0 && completingAppt.customer_id) {
         const { error: creditErr } = await supabase
@@ -1498,9 +1526,12 @@ export default function AppointmentsPage() {
                 const balanceAvailable = customer?.credit_balance ?? 0
                 const balanceRequested = Math.min(Number(completeBalanceAmount) || 0, balanceAvailable, price)
                 const remainingDue = Math.max(0, price - balanceRequested)
-                const isPackaged = completingAppt.package_id !== null || (completeFollowup && !!completeFollowupDate && !!completeFollowupTime)
                 const entered = completeRecordPayment ? Number(completePaymentAmount) || 0 : 0
-                const overflowToBalance = isPackaged ? 0 : Math.max(0, entered - remainingDue)
+                // Not: paketli randevularda gercek sonuc, paketin TUM seanslarinin
+                // guncel toplamina gore Tamamla'ya basildiginda hesaplanir — bu
+                // ozet sadece BU seans bazinda bir on izleme (cogu zaman ayni sonucu
+                // verir, paketin diger seanslarinda zaten borc/alacak yoksa).
+                const overflowToBalance = Math.max(0, entered - remainingDue)
                 const stillOwed = Math.max(0, remainingDue - entered)
 
                 return (
