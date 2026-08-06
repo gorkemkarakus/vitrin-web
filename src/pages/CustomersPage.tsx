@@ -25,6 +25,7 @@ interface Customer {
   contact_phone: string | null
   email: string | null
   created_at: string
+  credit_balance: number
 }
 
 interface Appointment {
@@ -148,7 +149,10 @@ export default function CustomersPage() {
     async function loadData() {
       setLoading(true)
       const [{ data: custs }, { data: appts }, { data: pkgs }, { data: pays }, { data: svcs }] = await Promise.all([
-        supabase.from('customers').select('id, full_name, phone, contact_phone, email, created_at').order('full_name'),
+        supabase
+          .from('customers')
+          .select('id, full_name, phone, contact_phone, email, created_at, credit_balance')
+          .order('full_name'),
         supabase
           .from('appointments')
           .select('id, customer_id, service_id, status, scheduled_at, package_id, price_override'),
@@ -239,8 +243,18 @@ export default function CustomersPage() {
       const remaining = Math.max(0, expected - paid)
       if (remaining > 0) map.set(a.customer_id, (map.get(a.customer_id) ?? 0) + remaining)
     }
+    // Musteri bakiyesi (credit_balance) varsa borcu netlestirir — bakiye
+    // borcu tamamen karsiliyorsa "Borçlu" sekmesinden tamamen dusmeli.
+    for (const c of customers) {
+      if (c.credit_balance <= 0) continue
+      const current = map.get(c.id)
+      if (current === undefined) continue
+      const net = Math.max(0, current - c.credit_balance)
+      if (net > 0) map.set(c.id, net)
+      else map.delete(c.id)
+    }
     return map
-  }, [packages, payments, appointments, servicePriceById])
+  }, [packages, payments, appointments, servicePriceById, customers])
 
   // Yeni (bu ay eklendi) > Sadik (3+ tamamlanan randevu) > Pasif (90+ gundur
   // randevusu yok) onceligiyle TEK bir segmente atanir; hicbirine uymayan
@@ -552,6 +566,7 @@ export default function CustomersPage() {
                   contact_phone: null,
                   email: null,
                   created_at: new Date().toISOString(),
+                  credit_balance: 0,
                 },
               ].sort(
                 (a, b) => a.full_name.localeCompare(b.full_name, 'tr'),

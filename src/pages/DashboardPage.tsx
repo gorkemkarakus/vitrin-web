@@ -43,6 +43,7 @@ interface Profile {
 interface Customer {
   id: string
   full_name: string | null
+  credit_balance: number
 }
 
 interface Expense {
@@ -126,7 +127,7 @@ export default function DashboardPage() {
             ),
           supabase.from('services').select('id, name, price'),
           supabase.from('profiles').select('id, full_name'),
-          supabase.from('customers').select('id, full_name'),
+          supabase.from('customers').select('id, full_name, credit_balance'),
           supabase.from('business_expenses').select('id, description, amount, expense_date'),
           supabase.from('service_packages').select('id, customer_id, service_id, total_sessions'),
           supabase.from('payments').select('id, customer_id, amount, appointment_id, package_id, paid_at'),
@@ -225,6 +226,16 @@ export default function DashboardPage() {
     const paid = payments.filter((p) => p.appointment_id === a.id).reduce((sum, p) => sum + p.amount, 0)
     const remaining = Math.max(0, expected - paid)
     if (remaining > 0) debtByCustomerInRange.set(a.customer_id, (debtByCustomerInRange.get(a.customer_id) ?? 0) + remaining)
+  }
+  // Musteri bakiyesi varsa borcu netlestirir — bakiye borcu tamamen
+  // karsiliyorsa "Bekleyen Tahsilatlar"dan tamamen dusmeli.
+  for (const c of customers) {
+    if (c.credit_balance <= 0) continue
+    const current = debtByCustomerInRange.get(c.id)
+    if (current === undefined) continue
+    const net = Math.max(0, current - c.credit_balance)
+    if (net > 0) debtByCustomerInRange.set(c.id, net)
+    else debtByCustomerInRange.delete(c.id)
   }
   const totalDebtInRange = Array.from(debtByCustomerInRange.values()).reduce((sum, v) => sum + v, 0)
   const topDebtors = Array.from(debtByCustomerInRange.entries())

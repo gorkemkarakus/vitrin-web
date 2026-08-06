@@ -57,6 +57,10 @@
   gap: 10px;
 }
 
+.balanceRowThree {
+  grid-template-columns: 1fr 1fr 1fr;
+}
+
 .balanceCard {
   display: flex;
   flex-direction: column;

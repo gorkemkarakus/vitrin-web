@@ -14,6 +14,7 @@ interface Customer {
   contact_phone: string | null
   email: string | null
   created_at: string
+  credit_balance: number
 }
 
 interface Service {
@@ -97,7 +98,7 @@ export default function CustomerDetailPage() {
     const [{ data: cust }, { data: appts }, { data: pkgs }, { data: pays }, { data: svcs }] = await Promise.all([
       supabase
         .from('customers')
-        .select('id, full_name, phone, contact_phone, email, created_at')
+        .select('id, full_name, phone, contact_phone, email, created_at, credit_balance')
         .eq('id', id)
         .maybeSingle(),
       supabase
@@ -164,14 +165,20 @@ export default function CustomerDetailPage() {
   )
 
   const totalPaid = useMemo(() => payments.reduce((s, p) => s + p.amount, 0), [payments])
-  // Kasten KIRPILMADI (Math.max(0, ...) yok) — bir paket/randevuda fazladan
-  // odenen tutar baska bir borcu netlestirebilmeli. Sonuc negatifse musteri
-  // gercekte alacaklidir (fazla odeme) — "Borç yok" diye gizlemek yerine
-  // "+X" olarak acikca gosteriliyor (bildirilen sorun).
+  // Paket bazinda KASTEN KIRPILMADI — bir seansta fazladan odenen tutar
+  // ayni paketin sonraki seanslarindaki borcu netlestirebilmeli. Paketsiz
+  // randevularda ise fazla odeme artik musteri.credit_balance'a gidiyor
+  // (bkz. AppointmentsPage submitCompletion) — o yuzden burada KIRPILIYOR
+  // (Math.max(0, ...)), aksi halde ayni fazlalik hem bu satirda hem
+  // credit_balance'ta iki kere sayilmis olurdu. credit_balance ise net
+  // toplami dogrudan asagi cekiyor — yeterince yuksekse "Kalan Bakiye"
+  // negatife duser, "+X alacaklı" olarak gosterilir.
   const totalRemaining = useMemo(
     () =>
-      packageStats.reduce((s, p) => s + p.remaining, 0) + standaloneAppts.reduce((s, a) => s + a.remaining, 0),
-    [packageStats, standaloneAppts],
+      packageStats.reduce((s, p) => s + p.remaining, 0) +
+      standaloneAppts.reduce((s, a) => s + Math.max(0, a.remaining), 0) -
+      (customer?.credit_balance ?? 0),
+    [packageStats, standaloneAppts, customer],
   )
 
   const paymentTargetOptions = useMemo(() => {
@@ -253,7 +260,7 @@ export default function CustomerDetailPage() {
         </div>
       </div>
 
-      <div className={styles.balanceRow}>
+      <div className={`${styles.balanceRow} ${customer.credit_balance > 0 ? styles.balanceRowThree : ''}`}>
         <div className={`card ${styles.balanceCard}`}>
           <span className={styles.balanceLabel}>Toplam Ödenen</span>
           <span className={styles.balanceValueOk}>{currency.format(totalPaid)}</span>
@@ -268,6 +275,12 @@ export default function CustomerDetailPage() {
                 : 'Borç yok'}
           </span>
         </div>
+        {customer.credit_balance > 0 && (
+          <div className={`card ${styles.balanceCard}`}>
+            <span className={styles.balanceLabel}>Müşteri Bakiyesi</span>
+            <span className={styles.balanceValueOk}>{currency.format(customer.credit_balance)}</span>
+          </div>
+        )}
       </div>
 
       <button type="button" className={styles.payBtn} onClick={() => setPayModalOpen(true)}>

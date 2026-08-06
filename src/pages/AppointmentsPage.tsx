@@ -23,6 +23,7 @@ interface Customer {
   full_name: string
   phone: string | null
   contact_phone: string | null
+  credit_balance: number
 }
 
 interface Service {
@@ -267,6 +268,9 @@ export default function AppointmentsPage() {
   // otomatik ona esitlenir (cogu zaman tam tahsil edilir varsayimiyla), ama
   // sonrasinda bagimsiz duzenlenebilir kalir (kismi odeme icin).
   const [completePriceOverride, setCompletePriceOverride] = useState('')
+  // Musterinin mevcut bakiyesinden bu randevu icin dusulmek istenen tutar —
+  // bakiye tum ucreti karsiliyorsa nakit/kart alanlarina hic gerek kalmaz.
+  const [completeBalanceAmount, setCompleteBalanceAmount] = useState('')
   const [completePaymentAmount, setCompletePaymentAmount] = useState('')
   const [completePaymentMethod, setCompletePaymentMethod] = useState('nakit')
   const [completeFollowup, setCompleteFollowup] = useState(false)
@@ -313,7 +317,7 @@ export default function AppointmentsPage() {
           'id, customer_id, service_id, employee_id, created_by_user_id, scheduled_at, duration_minutes, status, source, source_note, package_id, price_override',
         )
         .order('scheduled_at', { ascending: true }),
-      supabase.from('customers').select('id, full_name, phone, contact_phone').order('full_name'),
+      supabase.from('customers').select('id, full_name, phone, contact_phone, credit_balance').order('full_name'),
       supabase.from('service_packages').select('id, customer_id, service_id, total_sessions'),
       supabase
         .from('services')
@@ -645,10 +649,13 @@ export default function AppointmentsPage() {
     if (status === 'tamamlandi') {
       const svc = services.find((s) => s.id === appt.service_id)
       const price = appt.price_override ?? svc?.price ?? 0
+      const customer = customers.find((c) => c.id === appt.customer_id)
+      const suggestedFromBalance = customer ? Math.min(customer.credit_balance, price) : 0
       setCompletingAppt(appt)
       setCompleteRecordPayment(true)
       setCompletePriceOverride(String(price))
-      setCompletePaymentAmount(String(price))
+      setCompleteBalanceAmount(suggestedFromBalance > 0 ? String(suggestedFromBalance) : '')
+      setCompletePaymentAmount(String(Math.max(0, price - suggestedFromBalance)))
       setCompletePaymentMethod('nakit')
       setCompleteFollowup(false)
       setCompleteFollowupDate('')
@@ -725,27 +732,70 @@ export default function AppointmentsPage() {
         await supabase.from('appointments').update({ package_id: effectivePackageId }).eq('id', completingAppt.id)
       }
 
-      if (completeRecordPayment) {
-        const amount = Number(completePaymentAmount) || 0
-        if (amount > 0) {
-          const { error: payErr } = await supabase.from('payments').insert({
-            business_id: profile?.business_id,
-            customer_id: completingAppt.customer_id,
-            appointment_id: completingAppt.id,
-            package_id: effectivePackageId,
-            amount,
-            method: completePaymentMethod,
-            created_by_user_id: profile?.id,
-          })
-          if (payErr) {
-            // Randevu zaten tamamlandi olarak isaretlendi (geri alinamaz) —
-            // modal kapatilip hata ana sayfadaki banner'da gosterilir, boylece
-            // "hicbir sey olmamis gibi" hissettirmez.
-            setError('Randevu tamamlandı ama ödeme kaydedilemedi: ' + payErr.message)
-            setCompletingAppt(null)
-            await loadData(true)
-            return
-          }
+      // Ucret: bakiyeden dusulen + nakit/kart ile alinan kismin toplami.
+      // Paketli randevularda fazla odeme (giris > kalan) eskisi gibi
+      // paketin KENDI kalan bakiyesini dusurur (bakiyeye AKTARILMAZ —
+      // aksi halde ayni tutar iki kere sayilirdi); paketsiz randevularda
+      // ise ucreti asan yeni fazla odeme dogrudan musteri bakiyesine gider.
+      const price = Number(completePriceOverride) || 0
+      const customer = customers.find((c) => c.id === completingAppt.customer_id)
+      const balanceAvailable = customer?.credit_balance ?? 0
+      const balanceRequested = Math.min(Number(completeBalanceAmount) || 0, balanceAvailable, price)
+      const remainingDue = Math.max(0, price - balanceRequested)
+      const entered = completeRecordPayment ? Number(completePaymentAmount) || 0 : 0
+      const cashForThisAppt = effectivePackageId ? entered : Math.min(entered, remainingDue)
+      const overflowToBalance = effectivePackageId ? 0 : Math.max(0, entered - remainingDue)
+      const creditBalanceDelta = overflowToBalance - balanceRequested
+
+      if (balanceRequested > 0) {
+        const { error: balPayErr } = await supabase.from('payments').insert({
+          business_id: profile?.business_id,
+          customer_id: completingAppt.customer_id,
+          appointment_id: completingAppt.id,
+          package_id: effectivePackageId,
+          amount: balanceRequested,
+          method: 'bakiye',
+          created_by_user_id: profile?.id,
+        })
+        if (balPayErr) {
+          setError('Randevu tamamlandı ama bakiyeden düşülemedi: ' + balPayErr.message)
+          setCompletingAppt(null)
+          await loadData(true)
+          return
+        }
+      }
+
+      if (cashForThisAppt > 0) {
+        const { error: payErr } = await supabase.from('payments').insert({
+          business_id: profile?.business_id,
+          customer_id: completingAppt.customer_id,
+          appointment_id: completingAppt.id,
+          package_id: effectivePackageId,
+          amount: cashForThisAppt,
+          method: completePaymentMethod,
+          created_by_user_id: profile?.id,
+        })
+        if (payErr) {
+          // Randevu zaten tamamlandi olarak isaretlendi (geri alinamaz) —
+          // modal kapatilip hata ana sayfadaki banner'da gosterilir, boylece
+          // "hicbir sey olmamis gibi" hissettirmez.
+          setError('Randevu tamamlandı ama ödeme kaydedilemedi: ' + payErr.message)
+          setCompletingAppt(null)
+          await loadData(true)
+          return
+        }
+      }
+
+      if (creditBalanceDelta !== 0 && completingAppt.customer_id) {
+        const { error: creditErr } = await supabase
+          .from('customers')
+          .update({ credit_balance: Math.max(0, balanceAvailable + creditBalanceDelta) })
+          .eq('id', completingAppt.customer_id)
+        if (creditErr) {
+          setError('Randevu tamamlandı ama müşteri bakiyesi güncellenemedi: ' + creditErr.message)
+          setCompletingAppt(null)
+          await loadData(true)
+          return
         }
       }
 
@@ -1426,47 +1476,94 @@ export default function AppointmentsPage() {
                   step="0.01"
                   value={completePriceOverride}
                   onChange={(e) => {
+                    const newPrice = Number(e.target.value) || 0
+                    const balance = Number(completeBalanceAmount) || 0
                     setCompletePriceOverride(e.target.value)
-                    setCompletePaymentAmount(e.target.value)
+                    setCompletePaymentAmount(String(Math.max(0, newPrice - balance)))
                   }}
                 />
               </div>
 
-              <div className="field" style={{ gridColumn: '1 / -1', marginBottom: 0 }}>
-                <label className={styles.checkboxLabel}>
-                  <input
-                    type="checkbox"
-                    checked={completeRecordPayment}
-                    onChange={(e) => setCompleteRecordPayment(e.target.checked)}
-                  />
-                  Ödeme alındı
-                </label>
-              </div>
-
-              {completeRecordPayment && (
-                <>
-                  <div className="field">
-                    <label htmlFor="completeAmount">Alınan Tutar (TL)</label>
+              {(() => {
+                const price = Number(completePriceOverride) || 0
+                const customer = customers.find((c) => c.id === completingAppt.customer_id)
+                const balanceAvailable = customer?.credit_balance ?? 0
+                if (balanceAvailable <= 0) return null
+                const balanceRequested = Math.min(Number(completeBalanceAmount) || 0, balanceAvailable, price)
+                return (
+                  <div className="field" style={{ gridColumn: '1 / -1' }}>
+                    <label htmlFor="completeBalanceAmount">
+                      Müşteri Bakiyesi: {currency.format(balanceAvailable)} — Bakiyeden Al (TL)
+                    </label>
                     <input
-                      id="completeAmount"
+                      id="completeBalanceAmount"
                       type="number"
                       min={0}
+                      max={Math.min(balanceAvailable, price)}
                       step="0.01"
-                      value={completePaymentAmount}
-                      onChange={(e) => setCompletePaymentAmount(e.target.value)}
+                      value={completeBalanceAmount}
+                      onChange={(e) => {
+                        const requested = Math.min(Number(e.target.value) || 0, balanceAvailable, price)
+                        setCompleteBalanceAmount(e.target.value)
+                        setCompletePaymentAmount(String(Math.max(0, price - requested)))
+                      }}
                     />
+                    {balanceRequested >= price && price > 0 && (
+                      <p style={{ color: 'var(--ok-text)', fontSize: 12.5, marginTop: 6 }}>
+                        Bakiye bu randevunun tamamını karşılıyor, ek ödeme gerekmiyor.
+                      </p>
+                    )}
                   </div>
-                  <div className="field">
-                    <label htmlFor="completeMethod">Ödeme Yöntemi</label>
-                    <Select
-                      id="completeMethod"
-                      value={completePaymentMethod}
-                      onChange={setCompletePaymentMethod}
-                      options={PAYMENT_METHOD_OPTIONS}
-                    />
-                  </div>
-                </>
-              )}
+                )
+              })()}
+
+              {(() => {
+                const price = Number(completePriceOverride) || 0
+                const customer = customers.find((c) => c.id === completingAppt.customer_id)
+                const balanceAvailable = customer?.credit_balance ?? 0
+                const balanceRequested = Math.min(Number(completeBalanceAmount) || 0, balanceAvailable, price)
+                const remainingDue = Math.max(0, price - balanceRequested)
+                if (remainingDue <= 0) return null
+                return (
+                  <>
+                    <div className="field" style={{ gridColumn: '1 / -1', marginBottom: 0 }}>
+                      <label className={styles.checkboxLabel}>
+                        <input
+                          type="checkbox"
+                          checked={completeRecordPayment}
+                          onChange={(e) => setCompleteRecordPayment(e.target.checked)}
+                        />
+                        Ödeme alındı {balanceRequested > 0 ? `(Kalan ${currency.format(remainingDue)})` : ''}
+                      </label>
+                    </div>
+
+                    {completeRecordPayment && (
+                      <>
+                        <div className="field">
+                          <label htmlFor="completeAmount">Alınan Tutar (TL)</label>
+                          <input
+                            id="completeAmount"
+                            type="number"
+                            min={0}
+                            step="0.01"
+                            value={completePaymentAmount}
+                            onChange={(e) => setCompletePaymentAmount(e.target.value)}
+                          />
+                        </div>
+                        <div className="field">
+                          <label htmlFor="completeMethod">Ödeme Yöntemi</label>
+                          <Select
+                            id="completeMethod"
+                            value={completePaymentMethod}
+                            onChange={setCompletePaymentMethod}
+                            options={PAYMENT_METHOD_OPTIONS}
+                          />
+                        </div>
+                      </>
+                    )}
+                  </>
+                )
+              })()}
 
               <div className="field" style={{ gridColumn: '1 / -1', marginBottom: 0 }}>
                 <label className={styles.checkboxLabel}>
