@@ -1,0 +1,241 @@
+.wrap {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+}
+
+.backBtn {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  align-self: flex-start;
+  background: none;
+  border: none;
+  color: var(--text-dim);
+  font-size: 13px;
+  font-weight: 600;
+  font-family: var(--font-body);
+  cursor: pointer;
+  padding: 0;
+}
+
+.backIcon {
+  transform: rotate(180deg);
+}
+
+.headerCard {
+  display: flex;
+  align-items: center;
+  gap: 14px;
+}
+
+.headerInfo {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  min-width: 0;
+}
+
+.headerName {
+  font-family: var(--font-heading);
+  font-size: 17px;
+  font-weight: 600;
+  color: var(--text);
+}
+
+.headerLine {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 12.5px;
+  color: var(--text-dim);
+}
+
+.balanceRow {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 10px;
+}
+
+.balanceCard {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.balanceLabel {
+  font-size: 12px;
+  color: var(--text-dim);
+}
+
+.balanceValueOk {
+  font-family: var(--font-heading);
+  font-size: 19px;
+  font-weight: 600;
+  color: var(--ok-text);
+}
+
+.balanceValueDanger {
+  font-family: var(--font-heading);
+  font-size: 19px;
+  font-weight: 600;
+  color: var(--danger-text);
+}
+
+.payBtn {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  width: 100%;
+  background: var(--signal);
+  color: #fff;
+  border: none;
+  border-radius: 999px;
+  padding: 13px;
+  font-size: 14px;
+  font-weight: 700;
+  font-family: var(--font-body);
+  cursor: pointer;
+}
+
+.payBtn:hover {
+  opacity: 0.92;
+}
+
+.empty {
+  color: var(--text-dim);
+  font-size: 13px;
+}
+
+.list {
+  display: flex;
+  flex-direction: column;
+}
+
+.packageRow {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+  padding: 12px 2px;
+  border-bottom: 1px solid var(--line);
+}
+
+.packageRow:last-child {
+  border-bottom: none;
+}
+
+.packageRowMain {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  min-width: 0;
+}
+
+.packageRowName {
+  font-size: 13.5px;
+  font-weight: 700;
+  color: var(--text);
+}
+
+.packageRowProgress {
+  font-size: 12px;
+  color: var(--text-dim);
+}
+
+.packageRowStats {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-end;
+  gap: 2px;
+  flex-shrink: 0;
+}
+
+.packageRowExpected {
+  font-size: 12.5px;
+  font-weight: 700;
+  color: var(--text);
+}
+
+.packageRowRemainingOk {
+  font-size: 11px;
+  font-weight: 600;
+  color: var(--ok-text);
+}
+
+.packageRowRemainingDanger {
+  font-size: 11px;
+  font-weight: 600;
+  color: var(--danger-text);
+}
+
+.paymentRow {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+  padding: 10px 2px;
+  border-bottom: 1px solid var(--line);
+}
+
+.paymentRow:last-child {
+  border-bottom: none;
+}
+
+.paymentRowMain {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  min-width: 0;
+}
+
+.paymentRowAmount {
+  font-size: 13.5px;
+  font-weight: 700;
+  color: var(--ok-text);
+}
+
+.paymentRowMeta {
+  font-size: 12px;
+  color: var(--text-dim);
+}
+
+/* ---------- Odeme al modali ---------- */
+
+.modalBackdrop {
+  position: fixed;
+  inset: 0;
+  background: rgba(31, 41, 55, 0.4);
+  display: flex;
+  align-items: flex-start;
+  justify-content: center;
+  padding: 48px 24px;
+  overflow-y: auto;
+  z-index: 80;
+}
+
+.modalCard {
+  width: 100%;
+  max-width: 420px;
+}
+
+.modalHead {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 16px;
+}
+
+.modalClose {
+  background: none;
+  border: none;
+  color: var(--text-dim);
+  cursor: pointer;
+  display: flex;
+  padding: 4px;
+}
+
+.modalClose:hover {
+  color: var(--text);
+}

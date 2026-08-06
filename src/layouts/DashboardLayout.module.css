@@ -1,166 +1,67 @@
 .shell {
-  display: grid;
-  grid-template-columns: 240px 1fr;
-  grid-template-rows: 100vh;
+  display: flex;
+  flex-direction: column;
   height: 100vh;
-}
-
-.sidebar {
-  background: var(--panel);
-  border-right: 1px solid var(--line);
-  padding: 24px 16px;
-  display: flex;
-  flex-direction: column;
-  gap: 20px;
-  overflow-y: auto;
-}
-
-.logoWrap {
-  padding: 0 8px;
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-}
-
-.drawerClose {
-  display: none;
-  background: transparent;
-  border: none;
-  color: var(--text-dim);
-  cursor: pointer;
-  padding: 4px;
-}
-
-.menuBtn {
-  display: none;
-  width: 36px;
-  height: 36px;
-  border-radius: 50%;
-  background: transparent;
-  border: 1px solid var(--line);
-  color: var(--text);
-  align-items: center;
-  justify-content: center;
-  cursor: pointer;
-  flex-shrink: 0;
-}
-
-.backdrop {
-  display: none;
-}
-
-.nav {
-  display: flex;
-  flex-direction: column;
-  gap: 4px;
-}
-
-.navItem {
-  display: flex;
-  align-items: center;
-  gap: 10px;
-  padding: 10px 12px;
-  border-radius: var(--radius-sm);
-  color: var(--text-dim);
-  font-size: 14px;
-  font-weight: 500;
-  transition:
-    background 0.15s,
-    color 0.15s;
-}
-
-.navIcon {
-  width: 18px;
-  height: 18px;
-  flex-shrink: 0;
-}
-
-.navItem:hover {
-  color: var(--text);
-  background: var(--panel-2);
-}
-
-.navItemActive {
-  color: var(--signal);
-  background: var(--ok-bg);
-}
-
-.newAppointmentBtn {
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  gap: 8px;
-  background: var(--signal);
-  color: var(--signal-text);
-  border: none;
-  border-radius: 999px;
-  padding: 13px;
-  font-size: 14px;
-  font-weight: 600;
-  font-family: var(--font-body);
-  cursor: pointer;
-  margin-top: auto;
-  transition: opacity 0.15s;
-}
-
-.newAppointmentBtn:hover {
-  opacity: 0.9;
-}
-
-.sidebarSignOut {
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  gap: 8px;
-  background: transparent;
-  border: 1px solid var(--line);
-  color: var(--text-dim);
-  border-radius: 999px;
-  padding: 11px;
-  font-size: 13px;
-  font-weight: 500;
-  font-family: var(--font-body);
-  cursor: pointer;
-  transition:
-    border-color 0.15s,
-    color 0.15s;
-}
-
-.sidebarSignOut:hover {
-  color: var(--danger-text);
-  border-color: var(--danger-text);
-}
-
-.main {
-  display: flex;
-  flex-direction: column;
-  min-width: 0;
-  height: 100vh;
-  overflow: hidden;
+  /* Mobil tarayicilarda (ör. localhost'u telefon Chrome'unda test ederken)
+     adres cubugu gorunurken 100vh gercek gorunur alandan buyuk oluyor —
+     bottomNav'in "bottom:0"u bu yuzden tarayici arayuzunun ARDINDA kalip
+     yarim gorunuyordu. dvh gercek/dinamik gorunur yuksekligi kullanir;
+     desteklemeyen eski tarayicilar bu satiri yok sayip yukaridaki vh
+     degerini kullanmaya devam eder. Paketlenmis APK'nin WebView'inde zaten
+     adres cubugu olmadigi icin bu sorun hic yasanmiyordu. */
+  height: 100dvh;
+  background: var(--bg);
 }
 
 .topbar {
   position: relative;
-  height: 64px;
-  border-bottom: 1px solid var(--line);
+  flex-shrink: 0;
   display: flex;
   align-items: center;
-  gap: 24px;
-  padding: 0 32px;
+  gap: 14px;
+  padding: 14px 20px;
+  background: var(--panel);
+  border-bottom: 1px solid var(--line);
+}
+
+.greeting {
+  display: flex;
+  flex-direction: column;
+  gap: 1px;
   flex-shrink: 0;
 }
 
+.greeting h1 {
+  font-size: 19px;
+  font-weight: 700;
+  color: var(--text);
+}
+
+.greeting p {
+  font-size: 12.5px;
+  color: var(--text-dim);
+}
+
 .pageTitle {
-  font-size: 18px;
+  font-size: 19px;
+  font-weight: 700;
+  color: var(--text);
   flex-shrink: 0;
 }
+
+.pageTitleHidden {
+  display: none;
+}
+
+/* ---------- Arama ---------- */
 
 .searchWrap {
   position: relative;
   flex: 1;
-  max-width: 360px;
+  max-width: 280px;
   display: flex;
   align-items: center;
+  margin-left: auto;
 }
 
 .searchInputIcon {
@@ -175,22 +76,61 @@
 }
 
 .searchIconBtn {
-  display: none;
+  display: flex;
   width: 36px;
   height: 36px;
   border-radius: 50%;
-  background: transparent;
+  background: var(--panel-2);
   border: 1px solid var(--line);
   color: var(--text-dim);
   align-items: center;
   justify-content: center;
   cursor: pointer;
   flex-shrink: 0;
+  margin-left: auto;
 }
 
 .searchIconBtn .searchIcon {
   width: 15px;
   height: 15px;
+}
+
+.searchWrap .searchInputIcon,
+.searchWrap .searchInput,
+.searchWrap .searchSubmitBtn,
+.searchWrap .searchCloseBtn {
+  display: none;
+}
+
+.searchWrapExpanded {
+  position: fixed;
+  left: 16px;
+  right: 16px;
+  top: 14px;
+  z-index: 60;
+  max-width: none;
+  margin-left: 0;
+}
+
+.searchWrapExpanded .searchIconBtn {
+  display: none;
+}
+
+.searchWrapExpanded .searchInputIcon {
+  display: block;
+}
+
+.searchWrapExpanded .searchInput {
+  display: block;
+  box-shadow: 0 8px 24px rgba(31, 41, 55, 0.18);
+}
+
+.searchWrapExpanded .searchSubmitBtn {
+  display: flex;
+}
+
+.searchWrapExpanded .searchCloseBtn {
+  display: flex;
 }
 
 .searchInput {
@@ -261,11 +201,13 @@
   background: var(--panel-2);
 }
 
+/* ---------- Bildirim + Profil ---------- */
+
 .topbarRight {
   display: flex;
   align-items: center;
-  gap: 16px;
-  margin-left: auto;
+  gap: 10px;
+  flex-shrink: 0;
 }
 
 .bellWrap {
@@ -274,17 +216,19 @@
 
 .bellBtn {
   position: relative;
-  width: 36px;
-  height: 36px;
+  width: 38px;
+  height: 38px;
   border-radius: 50%;
-  background: transparent;
+  background: var(--panel-2);
   border: 1px solid var(--line);
   color: var(--text-dim);
   display: flex;
   align-items: center;
   justify-content: center;
   cursor: pointer;
-  transition: border-color 0.15s, color 0.15s;
+  transition:
+    border-color 0.15s,
+    color 0.15s;
 }
 
 .bellBtn:hover {
@@ -296,11 +240,11 @@
   position: absolute;
   top: -3px;
   right: -3px;
-  min-width: 16px;
-  height: 16px;
+  min-width: 17px;
+  height: 17px;
   padding: 0 3px;
   border-radius: 999px;
-  background: var(--danger-text);
+  background: var(--accent-pink);
   color: white;
   font-size: 10px;
   font-weight: 700;
@@ -308,19 +252,20 @@
   align-items: center;
   justify-content: center;
   line-height: 1;
+  border: 2px solid var(--panel);
 }
 
 .bellDropdown {
   position: absolute;
   right: 0;
-  top: 44px;
+  top: 46px;
   width: 280px;
   background: var(--panel);
   border: 1px solid var(--line);
   border-radius: var(--radius-lg);
-  box-shadow: 0 8px 24px rgba(43, 43, 38, 0.12);
+  box-shadow: 0 8px 24px rgba(31, 41, 55, 0.14);
   padding: 12px;
-  z-index: 20;
+  z-index: 55;
 }
 
 .bellDropdownTitle {
@@ -369,19 +314,15 @@
 
 .profile {
   display: flex;
-  align-items: center;
-  gap: 10px;
   background: transparent;
   border: none;
   padding: 0;
   cursor: pointer;
-  font-family: var(--font-body);
-  text-align: left;
 }
 
 .avatar {
-  width: 34px;
-  height: 34px;
+  width: 38px;
+  height: 38px;
   border-radius: 50%;
   background: var(--signal);
   color: var(--signal-text);
@@ -390,41 +331,44 @@
   justify-content: center;
   font-family: var(--font-heading);
   font-weight: 700;
-  font-size: 13px;
+  font-size: 14px;
   flex-shrink: 0;
-}
-
-.profileText {
-  display: flex;
-  flex-direction: column;
-  line-height: 1.3;
-}
-
-.profileName {
-  font-size: 13px;
-  font-weight: 600;
-  color: var(--text);
-}
-
-.profileRole {
-  font-size: 11px;
-  color: var(--text-dim);
 }
 
 .profileDropdown {
   position: absolute;
   right: 0;
-  top: 46px;
-  width: 200px;
+  top: 48px;
+  width: 210px;
   background: var(--panel);
   border: 1px solid var(--line);
   border-radius: var(--radius-lg);
-  box-shadow: 0 8px 24px rgba(43, 43, 38, 0.12);
+  box-shadow: 0 8px 24px rgba(31, 41, 55, 0.14);
   padding: 6px;
   display: flex;
   flex-direction: column;
   gap: 1px;
-  z-index: 20;
+  z-index: 55;
+}
+
+.profileDropdownHead {
+  padding: 10px 10px 12px;
+  margin-bottom: 4px;
+  border-bottom: 1px solid var(--line);
+  display: flex;
+  flex-direction: column;
+  gap: 1px;
+}
+
+.profileDropdownName {
+  font-size: 13px;
+  font-weight: 700;
+  color: var(--text);
+}
+
+.profileDropdownRole {
+  font-size: 11px;
+  color: var(--text-dim);
 }
 
 .profileDropdownItem {
@@ -451,132 +395,181 @@
   color: var(--danger-text);
 }
 
+/* ---------- İçerik ---------- */
+
 .content {
-  padding: 32px;
   flex: 1;
   min-height: 0;
   overflow-y: auto;
-  background: var(--bg);
+  padding: 16px;
 }
 
-/* ================= Mobil (telefon/tablet) ================= */
-@media (max-width: 768px) {
-  .shell {
-    grid-template-columns: 1fr;
-  }
+/* ---------- Alt sekme çubuğu ---------- */
 
-  .sidebar {
-    position: fixed;
-    top: 0;
-    left: 0;
-    bottom: 0;
-    width: 260px;
-    transform: translateX(-100%);
-    transition: transform 0.25s ease;
-    z-index: 50;
-    box-shadow: 0 0 0 1px var(--line);
-  }
+/* Eskiden position:fixed + bottom:0 idi — mobil tarayicilarda (localhost'u
+   telefonda test ederken) adres cubugu gorunurken bu, gercek gorunur alanin
+   ALTINA (tarayici arayuzunun ardina) denk gelip barin yarisini gizliyordu
+   ("100vh" mobil tarayicilarda adres cubugu gizliyken hesaplanan BUYUK
+   yukseklik olabiliyor). .shell zaten 100dvh (gercek gorunur yukseklik) bir
+   flex sutunu oldugu icin bar burada normal akista SON eleman olarak
+   kalirsa her zaman gercekten gorunen alanin tam altina oturur — ayrica
+   paketlenmis APK'nin WebView'inde adres cubugu olmadigi icin bu degisiklik
+   orada gorsel olarak fark yaratmiyor. */
+.bottomNav {
+  flex-shrink: 0;
+  display: flex;
+  align-items: center;
+  justify-content: space-around;
+  height: 64px;
+  padding: 0 6px;
+  background: var(--panel);
+  border-top: 1px solid var(--line);
+}
 
-  .sidebarOpen {
-    transform: translateX(0);
-  }
+.tab {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 3px;
+  flex: 1;
+  height: 100%;
+  color: var(--text-dim);
+  font-size: 10.5px;
+  font-weight: 600;
+}
 
-  .drawerClose {
-    display: block;
-  }
+.tabActive {
+  color: var(--signal);
+}
 
-  .backdrop {
-    display: block;
-    position: fixed;
-    inset: 0;
-    background: rgba(43, 43, 38, 0.4);
-    z-index: 40;
-  }
+.fab {
+  width: 54px;
+  height: 54px;
+  border-radius: 50%;
+  background: var(--signal);
+  color: #fff;
+  border: none;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  margin-top: -26px;
+  box-shadow: 0 8px 18px rgba(108, 54, 241, 0.38);
+  flex-shrink: 0;
+  transition: opacity 0.15s;
+}
 
-  .menuBtn {
-    display: flex;
-  }
+.fab:hover {
+  opacity: 0.92;
+}
 
-  .topbar {
-    padding: 0 16px;
-    gap: 10px;
-  }
+/* ---------- Hızlı işlem sheet'i ---------- */
 
-  .content {
-    padding: 16px;
-  }
+.sheetBackdrop {
+  position: fixed;
+  inset: 0;
+  background: rgba(31, 41, 55, 0.45);
+  z-index: 90;
+  display: flex;
+  align-items: flex-end;
+  justify-content: center;
+}
 
-  .searchWrap {
-    position: static;
-    flex: 0 0 auto;
-    max-width: none;
-  }
+.sheet {
+  width: 100%;
+  max-width: 520px;
+  background: var(--panel);
+  border-radius: 22px 22px 0 0;
+  padding: 12px 20px calc(28px + env(safe-area-inset-bottom, 0px));
+  animation: sheetUp 0.22s ease;
+}
 
-  .searchIconBtn {
-    display: flex;
+@keyframes sheetUp {
+  from {
+    transform: translateY(100%);
   }
+  to {
+    transform: translateY(0);
+  }
+}
 
-  .searchWrap .searchInputIcon,
-  .searchWrap .searchInput,
-  .searchWrap .searchSubmitBtn,
-  .searchWrap .searchCloseBtn {
-    display: none;
-  }
+.sheetHandle {
+  width: 36px;
+  height: 4px;
+  background: var(--line);
+  border-radius: 999px;
+  margin: 0 auto 16px;
+}
 
-  .searchWrapExpanded {
-    position: fixed;
-    left: 16px;
-    right: 16px;
-    top: 14px;
-    z-index: 60;
-    flex: 1;
-  }
+.sheetTitle {
+  font-size: 15px;
+  margin-bottom: 14px;
+  color: var(--text);
+}
 
-  .searchWrapExpanded .searchIconBtn {
-    display: none;
-  }
+.sheetGrid {
+  display: grid;
+  grid-template-columns: repeat(2, 1fr);
+  gap: 12px;
+}
 
-  .searchWrapExpanded .searchInputIcon {
-    display: block;
-  }
+.sheetItem {
+  position: relative;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 8px;
+  background: var(--panel-2);
+  border: 1px solid var(--line);
+  border-radius: 16px;
+  padding: 16px 10px;
+  font-size: 12.5px;
+  font-weight: 600;
+  color: var(--text);
+  font-family: var(--font-body);
+  cursor: pointer;
+}
 
-  .searchWrapExpanded .searchInput {
-    display: block;
-    box-shadow: 0 8px 24px rgba(43, 43, 38, 0.18);
-  }
+.sheetItem:disabled {
+  opacity: 0.55;
+  cursor: not-allowed;
+}
 
-  .searchWrapExpanded .searchSubmitBtn {
-    display: flex;
-  }
+.sheetItemIcon {
+  width: 42px;
+  height: 42px;
+  border-radius: 13px;
+  background: var(--panel);
+  color: var(--text-dim);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
 
-  .searchWrapExpanded .searchCloseBtn {
-    display: flex;
-  }
+.sheetItemIconSignal {
+  background: var(--signal);
+  color: #fff;
+}
 
-  .pageTitleHidden {
-    display: none;
-  }
+.sheetItemIconPink {
+  background: var(--accent-pink);
+  color: #fff;
+}
 
-  .profileText,
-  .profileRole {
-    display: none;
-  }
+.sheetItemIconOk {
+  background: var(--ok-text);
+  color: #fff;
+}
 
-  .profileDropdown {
-    position: fixed;
-    right: 16px;
-    left: auto;
-    top: 68px;
-    width: 200px;
-  }
-
-  .bellDropdown {
-    position: fixed;
-    left: 16px;
-    right: 16px;
-    top: 68px;
-    width: auto;
-    max-width: none;
-    z-index: 55;
-  }
+.sheetItemBadge {
+  position: absolute;
+  top: 8px;
+  right: 8px;
+  font-size: 9px;
+  font-weight: 700;
+  background: var(--warn-bg);
+  color: var(--warn-text);
+  padding: 2px 6px;
+  border-radius: 999px;
 }

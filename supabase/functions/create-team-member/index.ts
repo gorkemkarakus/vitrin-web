@@ -1,16 +1,5 @@
 import { createClient } from 'https://esm.sh/@supabase/supabase-js@2'
-
-const corsHeaders = {
-  'Access-Control-Allow-Origin': '*',
-  'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type',
-}
-
-function json(body: unknown, status: number) {
-  return new Response(JSON.stringify(body), {
-    status,
-    headers: { ...corsHeaders, 'Content-Type': 'application/json' },
-  })
-}
+import { corsHeaders, json } from '../_shared/http.ts'
 
 Deno.serve(async (req) => {
   if (req.method === 'OPTIONS') {
@@ -47,19 +36,23 @@ Deno.serve(async (req) => {
     return json({ error: 'Bu işlemi sadece işletme yöneticisi yapabilir' }, 403)
   }
 
-  let body: { email?: string; password?: string; full_name?: string; gender?: string }
+  let body: { email?: string; password?: string; full_name?: string; gender?: string; phone?: string }
   try {
     body = await req.json()
   } catch {
     return json({ error: 'Geçersiz istek gövdesi' }, 400)
   }
 
-  const { email, password, full_name, gender } = body
-  if (!email || !password || !full_name) {
-    return json({ error: 'email, password ve full_name zorunlu' }, 400)
+  const { email, password, full_name, gender, phone } = body
+  if (!email || !password || !full_name || !phone) {
+    return json({ error: 'email, password, full_name ve phone zorunlu' }, 400)
   }
   if (password.length < 6) {
     return json({ error: 'Şifre en az 6 karakter olmalı' }, 400)
+  }
+  const phoneDigits = phone.replace(/\D/g, '')
+  if (phoneDigits.length < 10) {
+    return json({ error: 'Geçerli bir telefon numarası girin' }, 400)
   }
   // gender opsiyonel — calisan bunu belirtmek istemeyebilir (ör. kurulumu
   // yoneticinin yaptigi durumlarda), boyle bir durumda NULL kalir ve chatbot
@@ -101,7 +94,12 @@ Deno.serve(async (req) => {
   })
 
   if (createErr || !created.user) {
-    return json({ error: createErr?.message ?? 'Kullanıcı oluşturulamadı' }, 400)
+    // Ham GoTrue hatasi (ör. "User already registered") dogrudan donmuyor —
+    // auth.users proje genelinde benzersiz oldugu icin bu, cagiran isletme
+    // disindaki bir e-postanin platformda kayitli olup olmadigini sizdiran
+    // bir enumeration sinyali olurdu.
+    console.error('create-team-member user create error:', createErr?.message)
+    return json({ error: 'Kullanıcı oluşturulamadı (e-posta zaten kullanılıyor olabilir)' }, 400)
   }
 
   const { error: insertErr } = await admin.from('profiles').insert({
@@ -111,13 +109,19 @@ Deno.serve(async (req) => {
     full_name,
     is_active: true,
     gender: gender ?? null,
+    whatsapp_phone: phoneDigits,
   })
 
   if (insertErr) {
     // Profil eklenemediyse yetim auth kullanıcısı kalmasın
+    console.error('create-team-member profile insert error:', insertErr.message)
     await admin.auth.admin.deleteUser(created.user.id)
-    return json({ error: 'Profil oluşturulamadı: ' + insertErr.message }, 500)
+    const isDupPhone = insertErr.code === '23505' && insertErr.message.includes('whatsapp_phone')
+    return json({ error: isDupPhone ? 'Bu telefon numarası başka bir çalışana kayıtlı' : 'Profil oluşturulamadı' }, 500)
   }
 
-  return json({ data: { id: created.user.id, email, full_name, role: 'user', gender: gender ?? null } }, 200)
+  return json(
+    { data: { id: created.user.id, email, full_name, role: 'user', gender: gender ?? null, phone: phoneDigits } },
+    200,
+  )
 })

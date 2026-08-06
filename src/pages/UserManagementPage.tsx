@@ -36,6 +36,7 @@ export default function UserManagementPage() {
 
   const [fullName, setFullName] = useState('')
   const [email, setEmail] = useState('')
+  const [phone, setPhone] = useState('')
   const [password, setPassword] = useState('')
   const [gender, setGender] = useState<'' | 'kadin' | 'erkek'>('')
   const [submitting, setSubmitting] = useState(false)
@@ -87,7 +88,7 @@ export default function UserManagementPage() {
             Authorization: `Bearer ${session?.access_token}`,
             apikey: import.meta.env.VITE_SUPABASE_ANON_KEY,
           },
-          body: JSON.stringify({ email, password, full_name: fullName, gender: gender || null }),
+          body: JSON.stringify({ email, password, full_name: fullName, phone, gender: gender || null }),
         },
       )
       const body = await res.json()
@@ -98,6 +99,7 @@ export default function UserManagementPage() {
       setSuccess(`${fullName} eklendi.`)
       setFullName('')
       setEmail('')
+      setPhone('')
       setPassword('')
       setGender('')
       await loadData(true)
@@ -111,6 +113,36 @@ export default function UserManagementPage() {
   async function toggleActive(member: TeamProfile) {
     await supabase.from('profiles').update({ is_active: !member.is_active }).eq('id', member.id)
     await loadData(true)
+  }
+
+  async function deleteMember(member: TeamProfile) {
+    const ok = window.confirm(
+      `"${member.full_name ?? 'Bu çalışan'}" hesabını kalıcı olarak silmek istediğinize emin misiniz?\n\nGeçmiş randevuları silinmez, sadece çalışan bağlantısı boşa düşer. Bu işlem geri alınamaz.`,
+    )
+    if (!ok) return
+    setError(null)
+    try {
+      const res = await fetch(
+        `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/delete-team-member`,
+        {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+            Authorization: `Bearer ${session?.access_token}`,
+            apikey: import.meta.env.VITE_SUPABASE_ANON_KEY,
+          },
+          body: JSON.stringify({ id: member.id }),
+        },
+      )
+      const body = await res.json()
+      if (!res.ok) {
+        setError(body.error ?? 'Çalışan silinemedi.')
+        return
+      }
+      await loadData(true)
+    } catch {
+      setError('Sunucuya ulaşılamadı, tekrar deneyin.')
+    }
   }
 
   async function updateGender(member: TeamProfile, newGender: '' | 'kadin' | 'erkek') {
@@ -173,6 +205,20 @@ export default function UserManagementPage() {
               onChange={(e) => setEmail(e.target.value)}
               placeholder="ayse@ornek.com"
               required
+              disabled={seatsFull}
+            />
+          </div>
+          <div className="field">
+            <label htmlFor="newPhone">Telefon</label>
+            <input
+              id="newPhone"
+              type="tel"
+              inputMode="numeric"
+              value={phone}
+              onChange={(e) => setPhone(e.target.value.replace(/\D/g, ''))}
+              placeholder="05xx xxx xx xx"
+              required
+              minLength={10}
               disabled={seatsFull}
             />
           </div>
@@ -258,9 +304,14 @@ export default function UserManagementPage() {
                   </td>
                   <td data-label="">
                     {m.id !== profile?.id && m.role !== 'admin' && (
-                      <button className="btn-secondary" onClick={() => toggleActive(m)}>
-                        {m.is_active ? 'Pasife al' : 'Aktifleştir'}
-                      </button>
+                      <span className={styles.rowActions}>
+                        <button className="btn-secondary" onClick={() => toggleActive(m)}>
+                          {m.is_active ? 'Pasife al' : 'Aktifleştir'}
+                        </button>
+                        <button className={styles.deleteBtn} onClick={() => deleteMember(m)}>
+                          Sil
+                        </button>
+                      </span>
                     )}
                   </td>
                 </tr>

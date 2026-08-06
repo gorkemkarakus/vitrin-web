@@ -13,6 +13,10 @@ interface StatusDropdownProps {
   options: StatusDropdownOption[]
   onChange: (value: string) => void
   urgent?: boolean
+  // Tablo hücresi disinda (ör. randevu kartinin ayagi gibi dar/icerik-genisligi
+  // alanlarda) kullanildiginda varsayilan width:100% yerine kucuk bir "hap"
+  // gibi icerik genisliginde gorunur — statusBadge ile ayni olcude kalir.
+  compact?: boolean
 }
 
 // Native <select>'in açık menüsü tarayıcıya/işletim sistemine bırakılır ve
@@ -20,10 +24,30 @@ interface StatusDropdownProps {
 // açıldığında çıkan standart kare liste birbirine uymuyordu (test edilip
 // bildirildi). Bu yüzden açılır menü sıfırdan, tamamen kontrol edilebilir
 // şekilde kuruldu.
-export default function StatusDropdown({ value, options, onChange, urgent }: StatusDropdownProps) {
+// Randevu listesi kaydirildiginda satirlar alt navigasyon barina (fixed,
+// 64px) yakin kalabiliyor — menu her zaman asagi acilirsa son secenekler
+// bu barin ARDINDA kalip tiklanamaz hale geliyordu (test edilip bildirildi).
+// Acilmadan once asagida yeterli yer olup olmadigi olculup gerekirse menu
+// yukari acilir.
+const MENU_ITEM_HEIGHT = 34
+const MENU_PADDING = 12
+const BOTTOM_NAV_RESERVE = 80
+
+export default function StatusDropdown({ value, options, onChange, urgent, compact }: StatusDropdownProps) {
   const [open, setOpen] = useState(false)
+  const [openUpward, setOpenUpward] = useState(false)
   const wrapRef = useRef<HTMLDivElement>(null)
   const current = options.find((o) => o.value === value) ?? options[0]
+
+  function toggleOpen() {
+    if (!open && wrapRef.current) {
+      const rect = wrapRef.current.getBoundingClientRect()
+      const menuHeight = options.length * MENU_ITEM_HEIGHT + MENU_PADDING
+      const spaceBelow = window.innerHeight - rect.bottom - BOTTOM_NAV_RESERVE
+      setOpenUpward(spaceBelow < menuHeight)
+    }
+    setOpen((v) => !v)
+  }
 
   useEffect(() => {
     if (!open) return
@@ -42,12 +66,12 @@ export default function StatusDropdown({ value, options, onChange, urgent }: Sta
   }, [open])
 
   return (
-    <div className={styles.wrap} ref={wrapRef}>
+    <div className={`${styles.wrap} ${compact ? styles.wrapCompact : ''}`} ref={wrapRef}>
       <button
         type="button"
-        className={`${styles.trigger} ${urgent ? styles.triggerUrgent : ''}`}
+        className={`${styles.trigger} ${compact ? styles.triggerCompact : ''} ${urgent ? styles.triggerUrgent : ''}`}
         style={{ color: current.color, background: current.bg }}
-        onClick={() => setOpen((v) => !v)}
+        onClick={toggleOpen}
         aria-haspopup="listbox"
         aria-expanded={open}
       >
@@ -64,7 +88,7 @@ export default function StatusDropdown({ value, options, onChange, urgent }: Sta
         </svg>
       </button>
       {open && (
-        <div className={styles.menu} role="listbox">
+        <div className={`${styles.menu} ${openUpward ? styles.menuUp : ''}`} role="listbox">
           {options.map((o) => (
             <button
               type="button"

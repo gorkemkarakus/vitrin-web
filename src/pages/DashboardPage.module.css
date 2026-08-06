@@ -1,7 +1,480 @@
 .wrap {
   display: flex;
   flex-direction: column;
-  gap: 24px;
+  gap: 20px;
+}
+
+/* ---------- Bolum etiketleri ---------- */
+
+.sectionLabel {
+  font-size: 11px;
+  font-weight: 700;
+  color: var(--text-dim);
+  text-transform: uppercase;
+  letter-spacing: 0.07em;
+  margin-bottom: -10px;
+}
+
+/* ---------- Tarih filtresi ---------- */
+
+.filterRow {
+  display: flex;
+  gap: 6px;
+}
+
+.filterBtn,
+.filterBtnActive {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 5px;
+  flex: 1;
+  min-width: 0;
+  background: var(--panel);
+  border: 1px solid var(--line);
+  color: var(--text-dim);
+  border-radius: 999px;
+  padding: 9px 8px;
+  font-size: 12.5px;
+  font-weight: 600;
+  font-family: var(--font-body);
+  cursor: pointer;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.filterBtnActive {
+  background: var(--signal);
+  border-color: var(--signal);
+  color: #fff;
+}
+
+.customRangeRow {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 12px;
+}
+
+/* ---------- Ozet kartlari ---------- */
+
+.summaryRow {
+  display: grid;
+  grid-template-columns: repeat(2, 1fr);
+  gap: 12px;
+}
+
+@media (min-width: 640px) {
+  .summaryRow {
+    grid-template-columns: repeat(4, 1fr);
+  }
+}
+
+.summaryTile {
+  display: flex;
+  flex-direction: column;
+  gap: 3px;
+  border: none;
+}
+
+.summaryTileSignal {
+  background: #f5f2fe;
+}
+
+.summaryTileOk {
+  background: #eafaf3;
+}
+
+.summaryTileDanger {
+  background: #fdefee;
+}
+
+.summaryTopRow {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 8px;
+  margin-bottom: 6px;
+}
+
+.summaryIcon {
+  width: 30px;
+  height: 30px;
+  border-radius: 9px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+}
+
+.summaryIconSignal {
+  background: #e4defc;
+  color: var(--signal);
+}
+
+.summaryIconOk {
+  background: #d1f2e3;
+  color: var(--ok-text);
+}
+
+.summaryIconDanger {
+  background: #fbdedc;
+  color: var(--danger-text);
+}
+
+.summaryValue {
+  font-family: var(--font-heading);
+  font-size: 21px;
+  font-weight: 600;
+  color: var(--text);
+}
+
+.summaryValueOk {
+  color: var(--ok-text);
+}
+
+.summaryValueDanger {
+  color: var(--danger-text);
+}
+
+.summaryLabel {
+  font-size: 12.5px;
+  font-weight: 600;
+  color: var(--text-dim);
+}
+
+.summaryHint {
+  font-size: 11px;
+  color: var(--text-dim);
+}
+
+/* ---------- Bolum basliklari ---------- */
+
+.sectionHead {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 14px;
+}
+
+.sectionHead h2 {
+  font-size: 15px;
+}
+
+.sectionLink {
+  display: flex;
+  align-items: center;
+  gap: 2px;
+  background: none;
+  border: none;
+  color: var(--signal);
+  font-size: 12.5px;
+  font-weight: 600;
+  font-family: var(--font-body);
+  cursor: pointer;
+}
+
+/* ---------- Bugunku randevular ---------- */
+
+.apptList {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.apptRow {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 9px 4px;
+  border-bottom: 1px solid var(--line);
+}
+
+.apptRow:last-child {
+  border-bottom: none;
+}
+
+.apptTime {
+  font-size: 13px;
+  font-weight: 700;
+  color: var(--signal);
+  width: 42px;
+  flex-shrink: 0;
+  font-variant-numeric: tabular-nums;
+}
+
+.apptText {
+  display: flex;
+  flex-direction: column;
+  min-width: 0;
+  flex: 1;
+  gap: 1px;
+}
+
+.apptCustomer {
+  font-size: 13.5px;
+  font-weight: 600;
+  color: var(--text);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.apptService {
+  font-size: 12px;
+  color: var(--text-dim);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.apptEmployee {
+  font-size: 12px;
+  color: var(--text-dim);
+  flex-shrink: 0;
+  display: none;
+}
+
+@media (min-width: 420px) {
+  .apptEmployee {
+    display: block;
+  }
+}
+
+.apptStatus {
+  flex-shrink: 0;
+  font-size: 10.5px;
+  font-weight: 700;
+  padding: 4px 9px;
+  border-radius: 999px;
+}
+
+.apptStatus_bekliyor {
+  background: var(--warn-bg);
+  color: var(--warn-text);
+}
+
+.apptStatus_onaylandi {
+  background: var(--ok-bg);
+  color: var(--ok-text);
+}
+
+.apptStatus_tamamlandi {
+  background: var(--info-bg);
+  color: var(--info-text);
+}
+
+.apptStatus_iptal {
+  background: var(--danger-bg);
+  color: var(--danger-text);
+}
+
+/* ---------- Yaklasan odemeler ---------- */
+
+.paymentList {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  margin-bottom: 14px;
+}
+
+.paymentRow {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 9px 4px;
+  border-bottom: 1px solid var(--line);
+}
+
+.paymentRow:last-child {
+  border-bottom: none;
+}
+
+.paymentIcon {
+  width: 34px;
+  height: 34px;
+  border-radius: 10px;
+  background: var(--accent-pink-bg);
+  color: var(--accent-pink);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+}
+
+.paymentIconDanger {
+  background: var(--danger-bg);
+  color: var(--danger-text);
+}
+
+.paymentText {
+  display: flex;
+  flex-direction: column;
+  min-width: 0;
+  flex: 1;
+  gap: 1px;
+}
+
+.paymentDesc {
+  font-size: 13.5px;
+  font-weight: 600;
+  color: var(--text);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.paymentDate {
+  font-size: 12px;
+  color: var(--text-dim);
+}
+
+.paymentAmount {
+  font-size: 13px;
+  font-weight: 700;
+  color: var(--text);
+  flex-shrink: 0;
+  font-variant-numeric: tabular-nums;
+}
+
+.paymentAmountDanger {
+  font-size: 13px;
+  font-weight: 700;
+  color: var(--danger-text);
+  flex-shrink: 0;
+  font-variant-numeric: tabular-nums;
+}
+
+.debtTotalHint {
+  margin-top: 10px;
+  font-size: 12.5px;
+  color: var(--text-dim);
+}
+
+.debtTotalHint strong {
+  color: var(--danger-text);
+}
+
+.paymentDays,
+.paymentDaysUrgent {
+  flex-shrink: 0;
+  font-size: 10.5px;
+  font-weight: 700;
+  padding: 4px 9px;
+  border-radius: 999px;
+  background: var(--ok-bg);
+  color: var(--ok-text);
+}
+
+.paymentDaysUrgent {
+  background: var(--danger-bg);
+  color: var(--danger-text);
+}
+
+.addPaymentBtn {
+  width: auto;
+}
+
+/* ---------- Hizli islemler ---------- */
+
+.quickTitle {
+  font-size: 15px;
+  margin-bottom: 12px;
+}
+
+.quickRow {
+  display: flex;
+  gap: 10px;
+  overflow-x: auto;
+  padding-bottom: 2px;
+  scrollbar-width: none;
+  -ms-overflow-style: none;
+}
+
+.quickRow::-webkit-scrollbar {
+  display: none;
+}
+
+.quickBtn {
+  position: relative;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 8px;
+  flex-shrink: 0;
+  width: 84px;
+  background: var(--panel);
+  border: 1px solid var(--line);
+  border-radius: var(--radius-lg);
+  padding: 14px 8px;
+  font-size: 12px;
+  font-weight: 600;
+  color: var(--text);
+  font-family: var(--font-body);
+  cursor: pointer;
+}
+
+.quickBtn:disabled {
+  opacity: 0.55;
+  cursor: not-allowed;
+}
+
+.quickIcon {
+  width: 38px;
+  height: 38px;
+  border-radius: 12px;
+  background: var(--panel-2);
+  color: var(--text-dim);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.quickIconSignal {
+  background: var(--signal);
+  color: #fff;
+}
+
+.quickIconPink {
+  background: var(--accent-pink);
+  color: #fff;
+}
+
+.quickIconOk {
+  background: var(--ok-text);
+  color: #fff;
+}
+
+.quickIconInfo {
+  background: var(--info-text);
+  color: #fff;
+}
+
+.quickBadge {
+  position: absolute;
+  top: 6px;
+  right: 6px;
+  font-size: 8.5px;
+  font-weight: 700;
+  background: var(--warn-bg);
+  color: var(--warn-text);
+  padding: 2px 5px;
+  border-radius: 999px;
+}
+
+/* ---------- Detayli analiz (korunan bolum) ---------- */
+
+.analyticsSection {
+  display: flex;
+  flex-direction: column;
+  gap: 20px;
+  padding-top: 8px;
+  border-top: 1px dashed var(--line);
+}
+
+.analyticsTitle {
+  font-size: 16px;
+  color: var(--text-dim);
 }
 
 .linkCard {

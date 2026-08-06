@@ -13,32 +13,43 @@
 }
 
 .viewToggle {
-  display: inline-flex;
-  background: var(--panel-2);
-  border: 1px solid var(--line);
-  border-radius: 999px;
-  padding: 3px;
-  gap: 2px;
+  display: flex;
+  gap: 8px;
+}
+
+.customRangeRow {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 12px;
+}
+
+.customRangeRow input {
+  color-scheme: dark;
 }
 
 .viewToggleBtn,
 .viewToggleBtnActive {
-  border: none;
-  background: transparent;
-  padding: 7px 16px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+  flex: 1;
+  border: 1px solid var(--line);
+  background: var(--panel);
+  padding: 10px 14px;
   border-radius: 999px;
-  font-size: 13px;
+  font-size: 13.5px;
+  font-weight: 600;
   font-family: var(--font-body);
   cursor: pointer;
   color: var(--text-dim);
-  transition: background 0.15s, color 0.15s;
+  transition: background 0.15s, color 0.15s, border-color 0.15s;
 }
 
 .viewToggleBtnActive {
-  background: var(--panel);
-  color: var(--text);
-  font-weight: 600;
-  box-shadow: 0 1px 2px rgba(43, 43, 38, 0.08);
+  background: var(--signal);
+  border-color: var(--signal);
+  color: #fff;
 }
 
 .banner {
@@ -83,7 +94,10 @@
   justify-content: center;
   padding: 48px 24px;
   overflow-y: auto;
-  z-index: 30;
+  /* DashboardLayout .bottomNav (fixed, z-index: 50) altinda kalirsa alt
+     navigasyon barı modalin alt kismini kaplayip formu kaydirilamaz/eksik
+     gosteriyordu — modal artik barin tamamen ustunde acilir. */
+  z-index: 60;
 }
 
 .modalCard {
@@ -124,6 +138,33 @@
   margin-top: 6px;
 }
 
+.packageModeRow {
+  display: flex;
+  gap: 8px;
+  flex-wrap: wrap;
+}
+
+.packageModeBtn,
+.packageModeBtnActive {
+  flex: 1;
+  min-width: 100px;
+  border: 1px solid var(--line);
+  background: var(--panel-2);
+  color: var(--text-dim);
+  border-radius: var(--radius-sm);
+  padding: 9px 10px;
+  font-size: 12.5px;
+  font-weight: 600;
+  font-family: var(--font-body);
+  cursor: pointer;
+}
+
+.packageModeBtnActive {
+  background: var(--signal);
+  border-color: var(--signal);
+  color: #fff;
+}
+
 .formActions {
   grid-column: 1 / -1;
   display: flex;
@@ -135,6 +176,21 @@
 .formActions button {
   width: auto;
   padding: 11px 20px;
+}
+
+.checkboxLabel {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--text);
+  cursor: pointer;
+}
+
+.checkboxLabel input[type='checkbox'] {
+  width: auto;
+  accent-color: var(--signal);
 }
 
 .dateColumn {
@@ -294,6 +350,24 @@
   border-radius: 999px;
 }
 
+.apptService {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 4px;
+}
+
+.packageTag {
+  display: inline-block;
+  background: #f5f2fe;
+  color: var(--signal);
+  font-size: 10.5px;
+  font-weight: 700;
+  padding: 2px 8px;
+  border-radius: 999px;
+  white-space: nowrap;
+}
+
 .apptEmployee {
   font-size: 13px;
   color: var(--text-dim);
@@ -426,12 +500,17 @@
 
   .modalBackdrop {
     padding: 0;
-    align-items: stretch;
+    /* align-items:stretch KULLANMA — modalCard'i backdrop yuksekligine
+       kilitleyip formun uzun icerigini (birden fazla alan + Kaydet butonu)
+       tasarken bazi Android WebView surumlerinde kirpip kaydirilamaz hale
+       getiriyordu. Varsayilan (flex-start) davranista kart kendi icerigi
+       kadar uzayabiliyor, backdrop'un overflow-y:auto'su onu dogal olarak
+       kaydiriyor. */
   }
 
   .modalCard {
     max-width: none;
-    min-height: 100vh;
+    min-height: 100%;
     border-radius: 0;
   }
 
@@ -472,6 +551,464 @@
   .todayButton {
     width: 100%;
     text-align: center;
+    margin-left: 0;
+  }
+}
+
+/* ---------- Gunluk tarih basligi + gun seridi ---------- */
+
+.dateHeaderRow {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 10px;
+  margin-bottom: 14px;
+}
+
+.dateNavBtn {
+  width: 26px;
+  height: 26px;
+  border: none;
+  background: none;
+  color: var(--text-dim);
+  font-size: 18px;
+  line-height: 1;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  flex-shrink: 0;
+}
+
+.dateNavBtn:hover {
+  color: var(--text);
+}
+
+.dateHeaderLabel {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  background: none;
+  border: none;
+  font-family: var(--font-heading);
+  font-size: 15px;
+  font-weight: 600;
+  color: var(--text);
+  cursor: pointer;
+  text-align: center;
+}
+
+.dateHeaderChevron {
+  color: var(--text-dim);
+  transform: rotate(90deg);
+  flex-shrink: 0;
+}
+
+.hiddenDateInput {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  opacity: 0;
+  pointer-events: none;
+}
+
+.dayStrip {
+  display: flex;
+  justify-content: space-between;
+  gap: 4px;
+  margin-bottom: 10px;
+}
+
+.dayStripBtn,
+.dayStripBtnActive {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 4px;
+  flex: 1;
+  background: transparent;
+  border: none;
+  border-radius: 14px;
+  padding: 8px 2px;
+  cursor: pointer;
+  font-family: var(--font-body);
+}
+
+.dayStripWeekday {
+  font-size: 11px;
+  color: var(--text-dim);
+  font-weight: 600;
+}
+
+.dayStripNum {
+  width: 30px;
+  height: 30px;
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 14px;
+  font-weight: 700;
+  color: var(--text);
+}
+
+.dayStripBtnActive .dayStripNum {
+  background: var(--signal);
+  color: #fff;
+}
+
+.dayStripBtnActive .dayStripWeekday {
+  color: var(--signal);
+}
+
+.dayNavHint {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 10px;
+  margin-bottom: 12px;
+}
+
+.dayControlsRow {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  flex-wrap: wrap;
+  padding-bottom: 14px;
+  margin-bottom: 14px;
+  border-bottom: 1px solid var(--line);
+}
+
+/* ---------- Duz metin acilir menuler (Calisan/Gorunum filtreleri) ---------- */
+
+.plainDropdown {
+  position: relative;
+}
+
+.plainDropdownRight {
+  margin-left: auto;
+}
+
+.plainDropdownTrigger {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  background: none;
+  border: none;
+  padding: 0;
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--text-dim);
+  cursor: pointer;
+  font-family: var(--font-body);
+  white-space: nowrap;
+}
+
+.plainDropdownTriggerSignal {
+  color: var(--signal);
+}
+
+.plainDropdownChevron {
+  opacity: 0.7;
+  transform: rotate(90deg);
+  flex-shrink: 0;
+}
+
+.plainDropdownMenu {
+  position: absolute;
+  top: calc(100% + 8px);
+  left: 0;
+  min-width: 180px;
+  background: var(--panel);
+  border: 1px solid var(--line);
+  border-radius: var(--radius-sm);
+  box-shadow: 0 8px 24px rgba(31, 41, 55, 0.14);
+  padding: 5px;
+  display: flex;
+  flex-direction: column;
+  gap: 1px;
+  z-index: 20;
+}
+
+.plainDropdownMenuRight {
+  left: auto;
+  right: 0;
+}
+
+.plainDropdownMenuItem {
+  background: none;
+  border: none;
+  border-radius: 6px;
+  padding: 8px 10px;
+  font-size: 13px;
+  color: var(--text);
+  text-align: left;
+  cursor: pointer;
+  font-family: var(--font-body);
+  white-space: nowrap;
+}
+
+.plainDropdownMenuItem:hover {
+  background: var(--panel-2);
+}
+
+/* ---------- Gunluk Gorunum: esit-boslukli randevu kart listesi ---------- */
+
+.timelineList {
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+}
+
+/* Saat | randevu karti — klasik ajanda/takvim "tablo" duzeni: saat sabit
+   genislikte sol sutunda, kart sagdaki kalan alani doldurur. */
+.timelineRow {
+  display: flex;
+  align-items: flex-start;
+  gap: 10px;
+}
+
+.timelineRowGutter {
+  width: 42px;
+  flex-shrink: 0;
+  padding-top: 13px;
+  font-size: 12px;
+  font-weight: 700;
+  font-variant-numeric: tabular-nums;
+  line-height: 1;
+}
+
+.timelineCard {
+  flex: 1;
+  min-width: 0;
+  border-radius: 14px;
+  padding: 12px 14px;
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.timelineCardOverdue {
+  outline: 2px solid var(--danger-text);
+  outline-offset: -2px;
+}
+
+.timelineCardHead {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 8px;
+}
+
+.timelineCardCustomerCol {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  min-width: 0;
+}
+
+.timelineCardCustomer {
+  font-size: 14px;
+  font-weight: 700;
+  color: var(--text);
+}
+
+.timelineCardPhone {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  font-size: 11px;
+  color: var(--text-dim);
+}
+
+.timelineCardServiceRow {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+}
+
+.timelineCardService {
+  font-size: 12.5px;
+  color: var(--text-dim);
+}
+
+.timelineCardFoot {
+  margin-top: 4px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+}
+
+.timelineCardEmployee {
+  font-size: 11.5px;
+  color: var(--text-dim);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.timelineNowTime {
+  display: block;
+  text-align: center;
+  font-size: 10px;
+  font-weight: 700;
+  color: #fff;
+  background: var(--signal);
+  padding: 3px 6px;
+  border-radius: 999px;
+}
+
+.timelineNowLine {
+  flex: 1;
+  align-self: center;
+  height: 2px;
+  background: var(--signal);
+  border-radius: 2px;
+}
+
+.timelineColor0 {
+  background: #f1ecfe;
+}
+
+.timelineColor1 {
+  background: #e6f8ef;
+}
+
+.timelineColor2 {
+  background: #fdf3e0;
+}
+
+.timelineColor3 {
+  background: #fdedf3;
+}
+
+.timelineColor4 {
+  background: #e7f1fd;
+}
+
+.timelineColor5 {
+  background: #eef0fb;
+}
+
+.timelineText0 {
+  color: var(--signal);
+}
+
+.timelineText1 {
+  color: var(--ok-text);
+}
+
+.timelineText2 {
+  color: var(--warn-text);
+}
+
+.timelineText3 {
+  color: var(--accent-pink);
+}
+
+.timelineText4 {
+  color: var(--info-text);
+}
+
+.timelineText5 {
+  color: var(--signal-2);
+}
+
+/* ---------- Ust istatistik satiri (sayfayla kaydirilirken en ustte sabit kalir) ----------
+   Not: negatif margin ile kenara-kadar-yasla numarasi bazi WebView'lerde
+   (Android) position:sticky ile birlikte satirin yarisinin kirpilmesine
+   sebep oluyordu — bu yuzden duz, normal-akista bir kart olarak birakildi. */
+
+.statBar {
+  position: sticky;
+  top: 0;
+  z-index: 15;
+  display: grid;
+  grid-template-columns: repeat(5, 1fr);
+  gap: 2px;
+  padding: 10px 8px;
+  background: var(--panel);
+  border: 1px solid var(--line);
+  border-radius: var(--radius-lg);
+}
+
+.statBarItem {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 1px;
+  text-align: center;
+}
+
+.statBarIconSignal,
+.statBarIconOk,
+.statBarIconWarn,
+.statBarIconInfo,
+.statBarIconDanger {
+  margin-bottom: 2px;
+}
+
+.statBarIconSignal {
+  color: var(--signal);
+}
+
+.statBarIconOk {
+  color: var(--ok-text);
+}
+
+.statBarIconWarn {
+  color: var(--warn-text);
+}
+
+.statBarIconInfo {
+  color: var(--info-text);
+}
+
+.statBarIconDanger {
+  color: var(--danger-text);
+}
+
+.statBarValue {
+  font-family: var(--font-heading);
+  font-size: 14px;
+  font-weight: 700;
+  color: var(--text);
+  line-height: 1.2;
+}
+
+.statBarValueOk {
+  color: var(--ok-text);
+}
+
+.statBarValueWarn {
+  color: var(--warn-text);
+}
+
+.statBarValueInfo {
+  color: var(--info-text);
+}
+
+.statBarValueDanger {
+  color: var(--danger-text);
+}
+
+.statBarLabel {
+  font-size: 7.5px;
+  font-weight: 600;
+  color: var(--text-dim);
+  line-height: 1.15;
+}
+
+@media (max-width: 640px) {
+  .dayControlsRow {
+    flex-direction: column;
+    align-items: stretch;
+  }
+
+  .plainDropdownRight {
     margin-left: 0;
   }
 }

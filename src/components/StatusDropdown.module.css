@@ -32,6 +32,16 @@
   box-shadow: 0 0 0 1.5px var(--danger-text);
 }
 
+.wrapCompact {
+  width: auto;
+  flex-shrink: 0;
+}
+
+.triggerCompact {
+  width: auto;
+  padding: 4px 9px 4px 8px;
+}
+
 .chevron {
   margin-left: auto;
   flex-shrink: 0;
@@ -58,7 +68,20 @@
   display: flex;
   flex-direction: column;
   gap: 1px;
-  z-index: 20;
+  /* Alt navigasyon barinin (DashboardLayout .bottomNav, z-index: 50)
+     ustunde kalmali — aksi halde randevu listesinin altlarindaki satirlarda
+     menu barin ARDINDA gorunup son secenekler tiklanamaz oluyordu. */
+  z-index: 60;
+}
+
+.menuUp {
+  top: auto;
+  bottom: calc(100% + 6px);
+}
+
+.wrapCompact .menu {
+  left: auto;
+  right: 0;
 }
 
 .menuItem {

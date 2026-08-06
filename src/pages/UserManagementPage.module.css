@@ -131,6 +131,29 @@
   background: var(--text-dim);
 }
 
+.rowActions {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.deleteBtn {
+  background: transparent;
+  border: 1px solid var(--danger-text);
+  border-radius: var(--radius-sm);
+  color: var(--danger-text);
+  font-size: 13px;
+  font-family: var(--font-body);
+  font-weight: 600;
+  padding: 6px 10px;
+  cursor: pointer;
+  transition: background 0.15s;
+}
+
+.deleteBtn:hover {
+  background: var(--danger-bg);
+}
+
 @media (max-width: 640px) {
   .table thead {
     display: none;

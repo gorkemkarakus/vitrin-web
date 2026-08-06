@@ -73,7 +73,9 @@
   display: flex;
   flex-direction: column;
   gap: 1px;
-  z-index: 40;
+  /* StatusDropdown ile ayni sebep: alt navigasyon barinin (z-index: 50)
+     altinda kalirsa sayfanin alt kisimlarinda menu barin ardinda gorunur. */
+  z-index: 60;
 }
 
 .menuEmpty {

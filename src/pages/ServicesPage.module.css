@@ -1,109 +1,430 @@
 .wrap {
   display: flex;
   flex-direction: column;
-  gap: 24px;
+  gap: 16px;
 }
 
-.form {
-  display: grid;
-  grid-template-columns: 2fr 1fr 1fr auto;
-  gap: 12px;
-  align-items: end;
-}
-
-@media (max-width: 860px) {
-  .form {
-    grid-template-columns: 1fr;
-  }
-}
-
-.form .field {
-  margin-bottom: 0;
-}
-
-.form button {
-  height: 41px;
-}
-
-.table {
+.heroCta {
   width: 100%;
-  border-collapse: collapse;
-  font-size: 14px;
+  background: var(--signal);
+  color: #fff;
+  border: none;
+  border-radius: 999px;
+  padding: 15px;
+  font-size: 14.5px;
+  font-weight: 700;
+  font-family: var(--font-body);
+  cursor: pointer;
+  transition: opacity 0.15s;
 }
 
-.table th {
-  text-align: left;
+.heroCta:hover {
+  opacity: 0.92;
+}
+
+/* ---------- Arama + filtrele ---------- */
+
+.searchRow {
+  display: flex;
+  gap: 10px;
+}
+
+.searchBox {
+  flex: 1;
+  min-width: 0;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  background: var(--panel);
+  border: 1px solid var(--line);
+  border-radius: var(--radius-sm);
+  padding: 0 12px;
+}
+
+.searchIcon {
   color: var(--text-dim);
-  font-weight: 500;
-  font-size: 12px;
-  padding: 10px 12px;
+  flex-shrink: 0;
+}
+
+.searchInput {
+  flex: 1;
+  min-width: 0;
+  border: none;
+  background: none;
+  outline: none;
+  padding: 11px 0;
+  font-size: 14px;
+  font-family: var(--font-body);
+  color: var(--text);
+}
+
+.searchInput::placeholder {
+  color: var(--text-dim);
+}
+
+.filterWrap {
+  position: relative;
+  flex-shrink: 0;
+}
+
+.filterBtn {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  height: 100%;
+  background: var(--panel);
+  border: 1px solid var(--line);
+  border-radius: var(--radius-sm);
+  padding: 0 14px;
+  font-size: 13.5px;
+  font-weight: 600;
+  color: var(--text);
+  font-family: var(--font-body);
+  cursor: pointer;
+}
+
+.filterMenu {
+  position: absolute;
+  top: calc(100% + 6px);
+  right: 0;
+  min-width: 210px;
+  background: var(--panel);
+  border: 1px solid var(--line);
+  border-radius: var(--radius-sm);
+  box-shadow: 0 8px 24px rgba(31, 41, 55, 0.14);
+  padding: 5px;
+  display: flex;
+  flex-direction: column;
+  gap: 1px;
+  z-index: 20;
+}
+
+.filterMenuItem {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+  background: none;
+  border: none;
+  border-radius: 6px;
+  padding: 9px 10px;
+  font-size: 13px;
+  color: var(--text);
+  text-align: left;
+  cursor: pointer;
+  font-family: var(--font-body);
+  white-space: nowrap;
+}
+
+.filterMenuItem:hover {
+  background: var(--panel-2);
+}
+
+.filterMenuItem svg {
+  color: var(--signal);
+  flex-shrink: 0;
+}
+
+/* ---------- Kategori sekmeleri (dinamik sayida, kaydirmali) ---------- */
+
+.categoryRow {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  overflow-x: auto;
+  scrollbar-width: none;
+  -ms-overflow-style: none;
+}
+
+.categoryRow::-webkit-scrollbar {
+  display: none;
+}
+
+.categoryBtn,
+.categoryBtnActive {
+  flex-shrink: 0;
+  border: 1px solid var(--line);
+  background: var(--panel);
+  padding: 8px 14px;
+  border-radius: 999px;
+  font-size: 12.5px;
+  font-weight: 600;
+  font-family: var(--font-body);
+  color: var(--text-dim);
+  cursor: pointer;
+  white-space: nowrap;
+}
+
+.categoryBtnActive {
+  background: var(--signal);
+  border-color: var(--signal);
+  color: #fff;
+}
+
+/* ---------- Ust istatistik kartlari ---------- */
+
+.statsGrid {
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  gap: 6px;
+}
+
+.statCard {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 7px;
+  min-width: 0;
+  border-radius: var(--radius-sm);
+  padding: 10px 8px;
+}
+
+.statCardSignal {
+  background: #f5f2fe;
+}
+
+.statCardOk {
+  background: #eafaf3;
+}
+
+.statCardWarn {
+  background: #fdf3e7;
+}
+
+.statCardInfo {
+  background: #eaf2fd;
+}
+
+.statIcon {
+  width: 26px;
+  height: 26px;
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+}
+
+.statIconSignal {
+  background: #e4defc;
+  color: var(--signal);
+}
+
+.statIconOk {
+  background: #d1f2e3;
+  color: var(--ok-text);
+}
+
+.statIconWarn {
+  background: #fae6c8;
+  color: var(--warn-text);
+}
+
+.statIconInfo {
+  background: #d3e6fb;
+  color: var(--info-text);
+}
+
+.statValue {
+  font-family: var(--font-heading);
+  font-size: 15px;
+  font-weight: 700;
+  color: var(--text);
+  font-variant-numeric: tabular-nums;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  max-width: 100%;
+}
+
+.statLabel {
+  font-size: 9.5px;
+  font-weight: 600;
+  color: var(--text-dim);
+  line-height: 1.25;
+}
+
+.empty {
+  color: var(--text-dim);
+  font-size: 13px;
+}
+
+/* ---------- Hizmet listesi ---------- */
+
+.list {
+  display: flex;
+  flex-direction: column;
+}
+
+.rowWrap {
   border-bottom: 1px solid var(--line);
 }
 
-.table td {
-  padding: 10px 12px;
-  border-bottom: 1px solid var(--line);
-}
-
-.table tr:last-child td {
+.rowWrap:last-child {
   border-bottom: none;
 }
 
-.table tr.inactive td {
-  opacity: 0.5;
+.row {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 10px 2px;
 }
 
-.nameInput {
-  width: 100%;
-  min-width: 140px;
-  background: transparent;
-  border: 1px solid transparent;
-  border-radius: var(--radius-sm);
-  padding: 7px 9px;
+.thumb {
+  width: 42px;
+  height: 42px;
+  border-radius: 10px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+}
+
+.rowMain {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 2px;
+  min-width: 0;
+  flex: 1;
+}
+
+.rowName {
+  font-size: 13.5px;
+  font-weight: 700;
   color: var(--text);
-  font-size: 14px;
-  font-family: var(--font-body);
-  outline: none;
-  transition: border-color 0.15s, background 0.15s;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  max-width: 100%;
 }
 
-.nameInput:hover {
-  background: var(--panel-2);
+.rowCategory {
+  font-size: 11px;
+  font-weight: 600;
+  color: var(--signal);
 }
 
-.nameInput:focus {
-  border-color: var(--signal);
-  background: var(--panel-2);
+.rowDuration {
+  display: flex;
+  align-items: center;
+  gap: 3px;
+  flex-shrink: 0;
+  font-size: 11.5px;
+  color: var(--text-dim);
+  white-space: nowrap;
 }
 
-.numberInput {
-  width: 90px;
-  background: transparent;
-  border: 1px solid transparent;
-  border-radius: var(--radius-sm);
-  padding: 7px 9px;
+.rowPrice {
+  flex-shrink: 0;
+  font-size: 13px;
+  font-weight: 700;
   color: var(--text);
-  font-size: 14px;
-  font-family: var(--font-body);
-  outline: none;
   font-variant-numeric: tabular-nums;
-  transition: border-color 0.15s, background 0.15s;
+  white-space: nowrap;
 }
 
-.numberInput:hover {
+.statusPillActive,
+.statusPillInactive {
+  flex-shrink: 0;
+  font-size: 10px;
+  font-weight: 700;
+  padding: 3px 8px;
+  border-radius: 999px;
+  white-space: nowrap;
+}
+
+.statusPillActive {
+  color: var(--ok-text);
+  background: var(--ok-bg);
+}
+
+.statusPillInactive {
+  color: var(--danger-text);
+  background: var(--danger-bg);
+}
+
+.moreBtn {
+  flex-shrink: 0;
+  width: 26px;
+  height: 26px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border: none;
+  background: none;
+  color: var(--text-dim);
+  border-radius: 50%;
+  cursor: pointer;
+}
+
+.moreBtn:hover {
   background: var(--panel-2);
+  color: var(--text);
 }
 
-.numberInput:focus {
+/* ---------- Genisletilmis duzenleme paneli ---------- */
+
+.expandPanel {
+  background: var(--bg);
+  border-radius: var(--radius-sm);
+  padding: 14px;
+  margin: 0 0 12px;
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+}
+
+.editGrid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 10px;
+}
+
+.editField {
+  display: flex;
+  flex-direction: column;
+  gap: 5px;
+}
+
+.editField label {
+  font-size: 11px;
+  color: var(--text-dim);
+  font-weight: 500;
+}
+
+.editField input,
+.editField select {
+  width: 100%;
+  background: var(--panel-2);
+  border: 1px solid var(--line);
+  border-radius: var(--radius-sm);
+  padding: 8px 10px;
+  color: var(--text);
+  font-size: 13px;
+  font-family: var(--font-body);
+  outline: none;
+  transition: border-color 0.15s;
+}
+
+.editField input:focus,
+.editField select:focus {
   border-color: var(--signal);
-  background: var(--panel-2);
+}
+
+.editActionsRow {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  flex-wrap: wrap;
 }
 
 .toggle,
 .toggleActive {
   position: relative;
-  width: 40px;
-  height: 22px;
+  width: 38px;
+  height: 21px;
   border-radius: 999px;
   border: none;
   cursor: pointer;
@@ -123,8 +444,8 @@
 .toggleActive::after {
   content: '';
   position: absolute;
-  top: 3px;
-  left: 3px;
+  top: 2.5px;
+  left: 2.5px;
   width: 16px;
   height: 16px;
   border-radius: 50%;
@@ -133,98 +454,86 @@
 }
 
 .toggleActive::after {
-  transform: translateX(18px);
+  transform: translateX(17px);
 }
 
-.empty {
+.toggleLabel {
+  font-size: 12.5px;
+  font-weight: 600;
   color: var(--text-dim);
+}
+
+.descLink {
+  margin-left: auto;
+  font-size: 12.5px;
+  font-weight: 600;
+  color: var(--signal);
+  text-decoration: none;
+}
+
+.descLink:hover {
+  text-decoration: underline;
+}
+
+.deleteBtn {
+  width: 100%;
+  background: transparent;
+  border: 1px solid var(--danger-text);
+  border-radius: var(--radius-sm);
+  color: var(--danger-text);
   font-size: 13px;
+  font-family: var(--font-body);
+  font-weight: 600;
+  padding: 10px;
+  cursor: pointer;
+  transition: background 0.15s;
 }
 
-.summaryRow {
-  display: grid;
-  grid-template-columns: repeat(3, 1fr);
-  gap: 16px;
+.deleteBtn:hover {
+  background: var(--danger-bg);
 }
 
-@media (max-width: 760px) {
-  .summaryRow {
-    grid-template-columns: repeat(2, 1fr);
-    gap: 10px;
-  }
-}
+/* ---------- Yeni hizmet modali ---------- */
 
-.summaryTile {
+.modalBackdrop {
+  position: fixed;
+  inset: 0;
+  background: rgba(31, 41, 55, 0.4);
   display: flex;
-  flex-direction: column;
-  gap: 4px;
+  align-items: flex-start;
+  justify-content: center;
+  padding: 48px 24px;
+  overflow-y: auto;
+  z-index: 80;
 }
 
-.summaryValue {
-  font-family: var(--font-heading);
-  font-size: 24px;
-  font-weight: 500;
+.modalCard {
+  width: 100%;
+  max-width: 420px;
 }
 
-.summaryLabel {
-  font-size: 12px;
+.modalHead {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 16px;
+}
+
+.modalClose {
+  background: none;
+  border: none;
   color: var(--text-dim);
+  cursor: pointer;
+  display: flex;
+  padding: 4px;
 }
 
-@media (max-width: 640px) {
-  .table thead {
-    display: none;
-  }
+.modalClose:hover {
+  color: var(--text);
+}
 
-  .table,
-  .table tbody,
-  .table tr,
-  .table td {
-    display: block;
-    width: 100%;
-  }
-
-  .table tr {
-    border: 1px solid var(--line);
-    border-radius: var(--radius-lg);
-    padding: 12px;
-    margin-bottom: 12px;
-  }
-
-  .table tr:last-child {
-    margin-bottom: 0;
-  }
-
-  .table td {
-    display: flex;
-    align-items: center;
-    justify-content: space-between;
-    gap: 12px;
-    padding: 8px 0;
-    border-bottom: 1px solid var(--line);
-  }
-
-  .table td:last-child {
-    border-bottom: none;
-  }
-
-  .table td::before {
-    content: attr(data-label);
-    font-size: 11px;
-    font-weight: 600;
-    text-transform: uppercase;
-    letter-spacing: 0.03em;
-    color: var(--text-dim);
-    flex-shrink: 0;
-  }
-
-  .table td:empty,
-  .table td[data-label='']::before {
-    display: none;
-  }
-
-  .nameInput,
-  .numberInput {
-    text-align: right;
+@media (max-width: 480px) {
+  .editGrid {
+    grid-template-columns: 1fr;
   }
 }

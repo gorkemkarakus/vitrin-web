@@ -1,0 +1,42 @@
+.backdrop {
+  position: fixed;
+  inset: 0;
+  background: rgba(31, 41, 55, 0.4);
+  display: flex;
+  align-items: flex-start;
+  justify-content: center;
+  padding: 48px 24px;
+  overflow-y: auto;
+  z-index: 80;
+}
+
+.card {
+  width: 100%;
+  max-width: 420px;
+}
+
+.head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 16px;
+}
+
+.closeBtn {
+  background: none;
+  border: none;
+  color: var(--text-dim);
+  cursor: pointer;
+  display: flex;
+  padding: 4px;
+}
+
+.closeBtn:hover {
+  color: var(--text);
+}
+
+.error {
+  color: var(--danger-text);
+  font-size: 13px;
+  margin-bottom: 12px;
+}

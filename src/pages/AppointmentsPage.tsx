@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState, type FormEvent } from 'react'
+import { useEffect, useMemo, useRef, useState, type FormEvent } from 'react'
 import { useOutletContext, useSearchParams } from 'react-router-dom'
 import { supabase } from '../lib/supabase'
 import { useAuth } from '../contexts/AuthContext'
@@ -6,6 +6,14 @@ import { TIME_OPTIONS } from '../lib/timeOptions'
 import Avatar from '../components/Avatar'
 import StatusDropdown, { type StatusDropdownOption } from '../components/StatusDropdown'
 import Select from '../components/Select'
+import {
+  CalendarIcon,
+  ChevronRightIcon,
+  CheckCircleIcon,
+  ClockIcon,
+  XCircleIcon,
+  PhoneIcon,
+} from '../components/icons'
 import type { LayoutOutletContext } from '../layouts/DashboardLayout'
 import styles from './AppointmentsPage.module.css'
 
@@ -13,6 +21,7 @@ interface Customer {
   id: string
   full_name: string
   phone: string | null
+  contact_phone: string | null
 }
 
 interface Service {
@@ -59,7 +68,21 @@ interface Appointment {
   status: 'bekliyor' | 'onaylandi' | 'tamamlandi' | 'iptal'
   source: string
   source_note: string | null
+  package_id: string | null
 }
+
+interface ServicePackage {
+  id: string
+  customer_id: string
+  service_id: string | null
+  total_sessions: number
+}
+
+const PAYMENT_METHOD_OPTIONS = [
+  { value: 'nakit', label: 'Nakit' },
+  { value: 'kart', label: 'Kart' },
+  { value: 'diger', label: 'Diğer' },
+]
 
 const SOURCE_OPTIONS = [
   { value: 'kullanici_uzerinden', label: 'Çalışan Üzerinden' },
@@ -93,7 +116,7 @@ const STATUS_DROPDOWN_OPTIONS: StatusDropdownOption[] = [
 const SLOT_MINUTES = 30
 const WEEKDAY_SHORT = ['Paz', 'Pzt', 'Sal', 'Çar', 'Per', 'Cum', 'Cmt']
 
-type ViewMode = 'gunluk' | 'liste' | 'haftalik'
+type ViewMode = 'gunluk' | 'liste' | 'haftalik' | 'ozel'
 
 function todayLocalDateString() {
   const d = new Date()
@@ -108,6 +131,15 @@ function timeStringToMinutes(t: string) {
   const [h, m] = t.split(':').map(Number)
   return h * 60 + m
 }
+
+const TIMELINE_COLORS = [
+  styles.timelineColor0,
+  styles.timelineColor1,
+  styles.timelineColor2,
+  styles.timelineColor3,
+  styles.timelineColor4,
+  styles.timelineColor5,
+]
 
 // Chatbot (book-appointment) ve herkese açık randevu sayfasındaki
 // (public-book-appointment) rankEligibleByFairness ile AYNI algoritma —
@@ -137,6 +169,7 @@ export default function AppointmentsPage() {
 
   const [appointments, setAppointments] = useState<Appointment[]>([])
   const [customers, setCustomers] = useState<Customer[]>([])
+  const [servicePackages, setServicePackages] = useState<ServicePackage[]>([])
   const [services, setServices] = useState<Service[]>([])
   const [profiles, setProfiles] = useState<Profile[]>([])
   const [employeeCategories, setEmployeeCategories] = useState<EmployeeCategory[]>([])
@@ -145,14 +178,14 @@ export default function AppointmentsPage() {
   const [loading, setLoading] = useState(true)
   const [viewMode, setViewMode] = useState<ViewMode>('gunluk')
   const [viewDate, setViewDate] = useState(todayLocalDateString())
+  const [customRangeStart, setCustomRangeStart] = useState(todayLocalDateString())
+  const [customRangeEnd, setCustomRangeEnd] = useState(todayLocalDateString())
   const [now] = useState(new Date())
+  const [employeeFilter, setEmployeeFilter] = useState('')
+  const [dailyDisplay, setDailyDisplay] = useState<'zaman' | 'liste'>('zaman')
+  const dateInputRef = useRef<HTMLInputElement>(null)
 
   const [showForm, setShowForm] = useState(false)
-  const [showQuickBooking, setShowQuickBooking] = useState(false)
-  const [quickText, setQuickText] = useState('')
-  const [quickParsing, setQuickParsing] = useState(false)
-  const [quickError, setQuickError] = useState<string | null>(null)
-  const [quickUnclear, setQuickUnclear] = useState<string[]>([])
 
   useEffect(() => {
     setSearchPlaceholder('Müşteri veya randevu ara…')
@@ -163,6 +196,7 @@ export default function AppointmentsPage() {
     let changed = false
     if (searchParams.get('yeni') === '1') {
       setShowForm(true)
+      setError(null)
       searchParams.delete('yeni')
       changed = true
     }
@@ -174,8 +208,32 @@ export default function AppointmentsPage() {
       changed = true
     }
     if (changed) setSearchParams(searchParams, { replace: true })
+    // "yeni"/"tarih" sorgu parametreleri sayfa ZATEN acikken de gelebilir
+    // (ör. Takvim'deyken alt navigasyondaki + > "Yeni Randevu"ya basmak) —
+    // bos bagimlilik dizisi sadece ilk mount'ta calisirdi, o durumda hicbir
+    // sey olmuyordu. searchParams degistikce yeniden calismali.
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [])
+  }, [searchParams])
+
+  const [employeeMenuOpen, setEmployeeMenuOpen] = useState(false)
+  const [displayMenuOpen, setDisplayMenuOpen] = useState(false)
+  const employeeMenuRef = useRef<HTMLDivElement>(null)
+  const displayMenuRef = useRef<HTMLDivElement>(null)
+
+  useEffect(() => {
+    if (!employeeMenuOpen && !displayMenuOpen) return
+    function handleClick(e: MouseEvent) {
+      const target = e.target as Node
+      if (employeeMenuOpen && employeeMenuRef.current && !employeeMenuRef.current.contains(target)) {
+        setEmployeeMenuOpen(false)
+      }
+      if (displayMenuOpen && displayMenuRef.current && !displayMenuRef.current.contains(target)) {
+        setDisplayMenuOpen(false)
+      }
+    }
+    document.addEventListener('mousedown', handleClick)
+    return () => document.removeEventListener('mousedown', handleClick)
+  }, [employeeMenuOpen, displayMenuOpen])
 
   const [useNewCustomer, setUseNewCustomer] = useState(false)
   const [customerId, setCustomerId] = useState('')
@@ -191,6 +249,22 @@ export default function AppointmentsPage() {
   const [error, setError] = useState<string | null>(null)
   const [success, setSuccess] = useState<string | null>(null)
 
+  // Yeni randevu formu — paket (seans) secenekleri.
+  const [packageMode, setPackageMode] = useState<'yok' | 'yeni' | 'mevcut'>('yok')
+  const [packageTotalSessions, setPackageTotalSessions] = useState('8')
+  const [existingPackageId, setExistingPackageId] = useState('')
+
+  // "Tamamlandi" isaretlenince acilan odeme + devam randevusu mini-sihirbazi.
+  const [completingAppt, setCompletingAppt] = useState<Appointment | null>(null)
+  const [completeRecordPayment, setCompleteRecordPayment] = useState(true)
+  const [completePaymentAmount, setCompletePaymentAmount] = useState('')
+  const [completePaymentMethod, setCompletePaymentMethod] = useState('nakit')
+  const [completeFollowup, setCompleteFollowup] = useState(false)
+  const [completeFollowupDate, setCompleteFollowupDate] = useState('')
+  const [completeFollowupTime, setCompleteFollowupTime] = useState('')
+  const [completeBusy, setCompleteBusy] = useState(false)
+  const [completeError, setCompleteError] = useState<string | null>(null)
+
   // "silent=true" bir mutasyondan sonra cagrilir — veriyi arka planda
   // tazeler ama "loading" bayragini geri true yapmaz, boylece sayfa her
   // islemden sonra bos "Yükleniyor…" yazisina donup yeniden cizilmiyor.
@@ -199,6 +273,7 @@ export default function AppointmentsPage() {
     const [
       { data: appts },
       { data: custs },
+      { data: pkgs },
       { data: svcs },
       { data: profs },
       { data: empCats },
@@ -208,10 +283,11 @@ export default function AppointmentsPage() {
       supabase
         .from('appointments')
         .select(
-          'id, customer_id, service_id, employee_id, created_by_user_id, scheduled_at, duration_minutes, status, source, source_note',
+          'id, customer_id, service_id, employee_id, created_by_user_id, scheduled_at, duration_minutes, status, source, source_note, package_id',
         )
         .order('scheduled_at', { ascending: true }),
-      supabase.from('customers').select('id, full_name, phone').order('full_name'),
+      supabase.from('customers').select('id, full_name, phone, contact_phone').order('full_name'),
+      supabase.from('service_packages').select('id, customer_id, service_id, total_sessions'),
       supabase
         .from('services')
         .select('id, name, duration_minutes, price, category_id')
@@ -224,6 +300,7 @@ export default function AppointmentsPage() {
     ])
     setAppointments(appts ?? [])
     setCustomers(custs ?? [])
+    setServicePackages(pkgs ?? [])
     setServices(svcs ?? [])
     setProfiles(profs ?? [])
     setEmployeeCategories(empCats ?? [])
@@ -237,7 +314,12 @@ export default function AppointmentsPage() {
   }, [])
 
   const customerName = (id: string | null) => customers.find((c) => c.id === id)?.full_name ?? '—'
-  const customerPhone = (id: string | null) => customers.find((c) => c.id === id)?.phone ?? null
+  // "phone" bazen chatbot kanal kimligi olabilir (ör. Instagram IGSID) —
+  // gercek numara varsa (contact_phone) her zaman ona oncelik ver.
+  const customerPhone = (id: string | null) => {
+    const c = customers.find((c) => c.id === id)
+    return c?.contact_phone || c?.phone || null
+  }
   const serviceName = (id: string | null) => services.find((s) => s.id === id)?.name ?? '—'
   const employeeName = (id: string | null) => profiles.find((p) => p.id === id)?.full_name ?? '—'
 
@@ -245,9 +327,26 @@ export default function AppointmentsPage() {
     return profile?.role === 'admin' || appt.created_by_user_id === profile?.id
   }
 
+  // Randevu bir paketin parcasiysa "3/8" gibi ilerleme bilgisini dondurur —
+  // seans numarasi ayri bir sutunda tutulmuyor, paketteki randevular tarihe
+  // gore siralanip bu randevunun kacinci sirada oldugu buradan hesaplaniyor.
+  function packageProgress(a: Appointment): { current: number; total: number } | null {
+    if (!a.package_id) return null
+    const pkg = servicePackages.find((p) => p.id === a.package_id)
+    if (!pkg) return null
+    const siblings = appointments
+      .filter((x) => x.package_id === a.package_id)
+      .sort((x, y) => x.scheduled_at.localeCompare(y.scheduled_at))
+    const idx = siblings.findIndex((x) => x.id === a.id)
+    return { current: idx + 1, total: pkg.total_sessions }
+  }
+
   function closeForm() {
     setShowForm(false)
-    setQuickUnclear([])
+    setPackageMode('yok')
+    setPackageTotalSessions('8')
+    setExistingPackageId('')
+    setError(null)
   }
 
   const selectedService = services.find((s) => s.id === serviceId) ?? null
@@ -311,6 +410,14 @@ export default function AppointmentsPage() {
       setError('Yeni müşteri için ad soyad zorunlu.')
       return
     }
+    if (packageMode === 'yeni' && (!Number(packageTotalSessions) || Number(packageTotalSessions) < 1)) {
+      setError('Paket için geçerli bir toplam seans sayısı girin.')
+      return
+    }
+    if (packageMode === 'mevcut' && !existingPackageId) {
+      setError('Eklemek istediğiniz paketi seçin.')
+      return
+    }
 
     const service = services.find((s) => s.id === serviceId)
     const start = new Date(`${apptDate}T${apptTime}`)
@@ -347,11 +454,39 @@ export default function AppointmentsPage() {
           .select('id')
           .single()
         if (custErr || !newCustomer) {
-          setError('Müşteri oluşturulamadı: ' + (custErr?.message ?? ''))
+          const isDupPhone = custErr?.code === '23505' && custErr.message.includes('phone')
+          setError(
+            isDupPhone
+              ? 'Bu telefon numarası zaten başka bir müşteriye kayıtlı. "Mevcut müşteri seç" ile arayıp seçebilirsiniz.'
+              : 'Müşteri oluşturulamadı: ' + (custErr?.message ?? ''),
+          )
           setSubmitting(false)
           return
         }
         finalCustomerId = newCustomer.id
+      }
+
+      let finalPackageId: string | null = null
+      if (packageMode === 'yeni') {
+        const { data: newPackage, error: pkgErr } = await supabase
+          .from('service_packages')
+          .insert({
+            business_id: profile?.business_id,
+            customer_id: finalCustomerId,
+            service_id: serviceId,
+            total_sessions: Math.max(1, Math.round(Number(packageTotalSessions))),
+            created_by_user_id: profile?.id,
+          })
+          .select('id')
+          .single()
+        if (pkgErr || !newPackage) {
+          setError('Paket oluşturulamadı: ' + (pkgErr?.message ?? ''))
+          setSubmitting(false)
+          return
+        }
+        finalPackageId = newPackage.id
+      } else if (packageMode === 'mevcut') {
+        finalPackageId = existingPackageId
       }
 
       const { error: apptErr } = await supabase.from('appointments').insert({
@@ -364,6 +499,7 @@ export default function AppointmentsPage() {
         duration_minutes: duration,
         source,
         source_note: sourceNote.trim() || null,
+        package_id: finalPackageId,
       })
 
       if (apptErr) {
@@ -385,77 +521,152 @@ export default function AppointmentsPage() {
       setEmployeeId('')
       setApptTime('')
       setSourceNote('')
+      setPackageMode('yok')
+      setPackageTotalSessions('8')
+      setExistingPackageId('')
       await loadData(true)
       setShowForm(false)
-      setQuickUnclear([])
     } finally {
       setSubmitting(false)
-    }
-  }
-
-  async function handleQuickParse() {
-    if (!quickText.trim()) return
-    setQuickParsing(true)
-    setQuickError(null)
-    setQuickUnclear([])
-    try {
-      const { data, error: invokeErr } = await supabase.functions.invoke('parse-appointment-command', {
-        body: {
-          text: quickText.trim(),
-          today: todayLocalDateString(),
-          services: services.map((s) => ({ id: s.id, name: s.name, duration_minutes: s.duration_minutes })),
-          employees: profiles.map((p) => ({ id: p.id, name: p.full_name ?? '' })),
-        },
-      })
-      if (invokeErr) {
-        let message = 'Komut ayrıştırılamadı, lütfen tekrar deneyin.'
-        const ctx = (invokeErr as { context?: Response }).context
-        if (ctx) {
-          try {
-            const parsed = await ctx.clone().json()
-            if (parsed?.error) message = parsed.error
-          } catch {
-            // ham metin çözümlenemedi, varsayılan mesaj kullanılacak
-          }
-        }
-        setQuickError(message)
-        return
-      }
-
-      // Ayrıştırılan alanları mevcut "Yeni Randevu" formuna aktar — kullanıcı
-      // formda gözden geçirip normal onay akışıyla oluşturuyor.
-      if (data.service_id && services.some((s) => s.id === data.service_id)) setServiceId(data.service_id)
-      if (data.employee_id && profiles.some((p) => p.id === data.employee_id)) setEmployeeId(data.employee_id)
-      if (data.date) setApptDate(data.date)
-      if (data.time) setApptTime(data.time)
-
-      const name = (data.customer_name ?? '').trim()
-      if (name) {
-        const existing = customers.find((c) => c.full_name.trim().toLowerCase() === name.toLowerCase())
-        if (existing) {
-          setUseNewCustomer(false)
-          setCustomerId(existing.id)
-        } else {
-          setUseNewCustomer(true)
-          setNewCustomerName(name)
-          setNewCustomerPhone(data.customer_phone ?? '')
-        }
-      }
-
-      setSource('kullanici_uzerinden')
-      setSourceNote(`Hızlı yazma: "${quickText.trim().slice(0, 120)}"`)
-      setQuickUnclear(Array.isArray(data.unclear_fields) ? data.unclear_fields : [])
-      setShowQuickBooking(false)
-      setQuickText('')
-      setShowForm(true)
-    } finally {
-      setQuickParsing(false)
     }
   }
 
   async function updateStatus(appt: Appointment, status: Appointment['status']) {
     await supabase.from('appointments').update({ status }).eq('id', appt.id)
     await loadData(true)
+  }
+
+  function handleStatusChange(appt: Appointment, status: Appointment['status']) {
+    if (status === 'tamamlandi') {
+      const svc = services.find((s) => s.id === appt.service_id)
+      setCompletingAppt(appt)
+      setCompleteRecordPayment(true)
+      setCompletePaymentAmount(String(svc?.price ?? 0))
+      setCompletePaymentMethod('nakit')
+      setCompleteFollowup(false)
+      setCompleteFollowupDate('')
+      setCompleteFollowupTime('')
+      setCompleteError(null)
+    } else {
+      updateStatus(appt, status)
+    }
+  }
+
+  async function submitCompletion() {
+    if (!completingAppt) return
+    setCompleteError(null)
+
+    const svc = services.find((s) => s.id === completingAppt.service_id)
+    const followupDuration = svc?.duration_minutes ?? SLOT_MINUTES
+    let followupStart: Date | null = null
+    if (completeFollowup && completeFollowupDate && completeFollowupTime) {
+      followupStart = new Date(`${completeFollowupDate}T${completeFollowupTime}`)
+      // Ana "Yeni Randevu" formuyla AYNI kontrol (isEmployeeAvailable): calisan
+      // atanmissa mesai saatleri/izin/cakisma burada da uygulanmali — daha
+      // once bu kontrol atlanip her saat kabul ediliyordu (test edilip
+      // bildirildi). Kontrol basarisiz olursa hicbir sey kaydedilmeden
+      // (randevu tamamlanmadan) modal acik kalip hata gosterilir.
+      if (completingAppt.employee_id && !isEmployeeAvailable(completingAppt.employee_id, followupStart, followupDuration)) {
+        setCompleteError('Seçilen çalışan bu saatte müsait değil (mesai dışı, izinli veya dolu). Farklı bir saat seçin.')
+        return
+      }
+    }
+
+    setCompleteBusy(true)
+    try {
+      const { error: statusErr } = await supabase
+        .from('appointments')
+        .update({ status: 'tamamlandi' })
+        .eq('id', completingAppt.id)
+      if (statusErr) {
+        setCompleteError('Randevu tamamlanamadı: ' + statusErr.message)
+        return
+      }
+
+      if (completeRecordPayment) {
+        const amount = Number(completePaymentAmount) || 0
+        if (amount > 0) {
+          const { error: payErr } = await supabase.from('payments').insert({
+            business_id: profile?.business_id,
+            customer_id: completingAppt.customer_id,
+            appointment_id: completingAppt.id,
+            package_id: completingAppt.package_id,
+            amount,
+            method: completePaymentMethod,
+            created_by_user_id: profile?.id,
+          })
+          if (payErr) {
+            // Randevu zaten tamamlandi olarak isaretlendi (geri alinamaz) —
+            // modal kapatilip hata ana sayfadaki banner'da gosterilir, boylece
+            // "hicbir sey olmamis gibi" hissettirmez.
+            setError('Randevu tamamlandı ama ödeme kaydedilemedi: ' + payErr.message)
+            setCompletingAppt(null)
+            await loadData(true)
+            return
+          }
+        }
+      }
+
+      if (completeFollowup && followupStart) {
+        // Tamamlanan randevu bir pakete ait degilse ("tek seferlik" acilmisti
+        // ama is bitmedi/devami var), devam randevusu istendiginde geriye
+        // donuk 2 seanslik bir paket olusturup HER IKI randevuyu da buna
+        // baglıyoruz — boylece "2. seans" ilerlemesi mevcut paket
+        // altyapisiyla (packageProgress) otomatik gorunur, ayri bir kavram
+        // icat etmeye gerek kalmiyor.
+        let followupPackageId = completingAppt.package_id
+        if (!followupPackageId) {
+          const { data: newPackage, error: pkgErr } = await supabase
+            .from('service_packages')
+            .insert({
+              business_id: profile?.business_id,
+              customer_id: completingAppt.customer_id,
+              service_id: completingAppt.service_id,
+              total_sessions: 2,
+              created_by_user_id: profile?.id,
+            })
+            .select('id')
+            .single()
+          if (pkgErr || !newPackage) {
+            setError('Randevu tamamlandı ama devam randevusu için paket oluşturulamadı: ' + (pkgErr?.message ?? ''))
+            setCompletingAppt(null)
+            await loadData(true)
+            return
+          }
+          followupPackageId = newPackage.id
+          await supabase.from('appointments').update({ package_id: followupPackageId }).eq('id', completingAppt.id)
+        }
+
+        const { error: followupErr } = await supabase.from('appointments').insert({
+          business_id: profile?.business_id,
+          customer_id: completingAppt.customer_id,
+          service_id: completingAppt.service_id,
+          employee_id: completingAppt.employee_id,
+          created_by_user_id: profile?.id,
+          scheduled_at: followupStart.toISOString(),
+          duration_minutes: followupDuration,
+          source: completingAppt.source,
+          package_id: followupPackageId,
+        })
+        if (followupErr) {
+          const isOverlap = /exclusion|conflicting key|deadlock/i.test(followupErr.message)
+          setError(
+            'Randevu tamamlandı ama devam randevusu oluşturulamadı: ' +
+              (isOverlap
+                ? 'seçilen saat az önce başka bir randevuyla dolmuş. Farklı bir saati "Mevcut Pakete Ekle" ile ekleyin.'
+                : followupErr.message),
+          )
+          setCompletingAppt(null)
+          await loadData(true)
+          return
+        }
+      }
+
+      setCompletingAppt(null)
+      await loadData(true)
+    } finally {
+      setCompleteBusy(false)
+    }
   }
 
   function shiftDate(days: number) {
@@ -494,20 +705,65 @@ export default function AppointmentsPage() {
       )
     : appointments
 
+  // Çalışan filtresi (Takvim'deki "Tüm Çalışanlar" seçici).
+  const employeeFiltered = employeeFilter
+    ? searchFiltered.filter((a) => a.employee_id === employeeFilter)
+    : searchFiltered
+
+  // Gunun 7-gunluk seridi (Pazartesi-Pazar), gun secici icin.
+  const dayStripDates = useMemo(() => {
+    const anchor = new Date(`${viewDate}T00:00:00`)
+    const isoDay = (anchor.getDay() + 6) % 7
+    const monday = new Date(anchor)
+    monday.setDate(anchor.getDate() - isoDay)
+    return Array.from({ length: 7 }, (_, i) => {
+      const d = new Date(monday)
+      d.setDate(monday.getDate() + i)
+      return d
+    })
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [viewDate])
+
   // --- Görünüm moduna göre gösterilecek randevuları hesapla ---
   let visible: Appointment[] = []
   let groupedByDate: { dateKey: string; label: string; items: Appointment[] }[] = []
 
   if (viewMode === 'gunluk') {
-    visible = searchFiltered.filter((a) => toLocalDateString(new Date(a.scheduled_at)) === viewDate)
+    visible = employeeFiltered.filter((a) => toLocalDateString(new Date(a.scheduled_at)) === viewDate)
   } else if (viewMode === 'liste') {
-    const todayStr = todayLocalDateString()
-    const windowEnd = new Date()
-    windowEnd.setDate(windowEnd.getDate() + 30)
-    const windowEndStr = toLocalDateString(windowEnd)
-    visible = searchFiltered.filter((a) => {
+    // "Ay": icinde bulunulan takvim ayinin tamami.
+    const monthStart = new Date()
+    monthStart.setDate(1)
+    const monthEnd = new Date(monthStart.getFullYear(), monthStart.getMonth() + 1, 0)
+    const monthStartStr = toLocalDateString(monthStart)
+    const monthEndStr = toLocalDateString(monthEnd)
+    visible = employeeFiltered.filter((a) => {
       const dk = toLocalDateString(new Date(a.scheduled_at))
-      return dk >= todayStr && dk <= windowEndStr
+      return dk >= monthStartStr && dk <= monthEndStr
+    })
+    const byDate = new Map<string, Appointment[]>()
+    for (const a of visible) {
+      const dk = toLocalDateString(new Date(a.scheduled_at))
+      const list = byDate.get(dk) ?? []
+      list.push(a)
+      byDate.set(dk, list)
+    }
+    groupedByDate = Array.from(byDate.keys())
+      .sort()
+      .map((dateKey) => ({
+        dateKey,
+        label: new Date(dateKey + 'T00:00:00').toLocaleDateString('tr-TR', {
+          day: 'numeric',
+          month: 'long',
+          weekday: 'long',
+        }),
+        items: byDate.get(dateKey)!,
+      }))
+  } else if (viewMode === 'ozel') {
+    // "Özel": kullanicinin sectigi serbest tarih araligi.
+    visible = employeeFiltered.filter((a) => {
+      const dk = toLocalDateString(new Date(a.scheduled_at))
+      return dk >= customRangeStart && dk <= customRangeEnd
     })
     const byDate = new Map<string, Appointment[]>()
     for (const a of visible) {
@@ -540,7 +796,7 @@ export default function AppointmentsPage() {
       days.push(toLocalDateString(d))
     }
     const byDate = new Map<string, Appointment[]>(days.map((d) => [d, []]))
-    for (const a of searchFiltered) {
+    for (const a of employeeFiltered) {
       const dk = toLocalDateString(new Date(a.scheduled_at))
       if (byDate.has(dk)) byDate.get(dk)!.push(a)
     }
@@ -549,6 +805,34 @@ export default function AppointmentsPage() {
       label: new Date(dateKey + 'T00:00:00').toLocaleDateString('tr-TR', { day: 'numeric', month: 'long', weekday: 'long' }),
       items: byDate.get(dateKey) ?? [],
     }))
+    visible = groupedByDate.flatMap((g) => g.items)
+  }
+
+  // Gunluk Gorunum: randevular sirali, esit bosluklu bir kart listesi olarak
+  // akar (gercek saatle orantili yukseklik/konum YOK) — "su an" cizgisi,
+  // kronolojik olarak dogru sıraya senkron bir satir gibi eklenir.
+  const timelineEntries: ({ kind: 'appt'; appt: Appointment; colorIdx: number } | { kind: 'now' })[] = []
+  if (viewMode === 'gunluk' && dailyDisplay === 'zaman') {
+    const showNow = viewDate === todayLocalDateString()
+    let nowInserted = !showNow
+    visible.forEach((a, i) => {
+      if (!nowInserted && new Date(a.scheduled_at).getTime() >= now.getTime()) {
+        timelineEntries.push({ kind: 'now' })
+        nowInserted = true
+      }
+      timelineEntries.push({ kind: 'appt', appt: a, colorIdx: i })
+    })
+    if (!nowInserted) timelineEntries.push({ kind: 'now' })
+  }
+
+  // Alt istatistik satiri — su an ekranda gorunen (secili gun/hafta/ay,
+  // calisan filtresi uygulanmis) randevularin durum dagilimi.
+  const statusStats = {
+    total: visible.length,
+    onaylandi: visible.filter((a) => a.status === 'onaylandi').length,
+    bekliyor: visible.filter((a) => a.status === 'bekliyor').length,
+    tamamlandi: visible.filter((a) => a.status === 'tamamlandi').length,
+    iptal: visible.filter((a) => a.status === 'iptal').length,
   }
 
   function renderRow(a: Appointment) {
@@ -579,6 +863,11 @@ export default function AppointmentsPage() {
         </div>
         <div className={styles.apptService}>
           <span className={styles.serviceTag}>{serviceName(a.service_id)}</span>
+          {packageProgress(a) && (
+            <span className={styles.packageTag}>
+              {packageProgress(a)!.current}/{packageProgress(a)!.total} seans
+            </span>
+          )}
         </div>
         <div className={styles.apptEmployee}>{employeeName(a.employee_id)}</div>
         <div className={styles.apptStatus}>
@@ -587,7 +876,7 @@ export default function AppointmentsPage() {
               value={a.status}
               options={STATUS_DROPDOWN_OPTIONS}
               urgent={isOverdue}
-              onChange={(v) => updateStatus(a, v as Appointment['status'])}
+              onChange={(v) => handleStatusChange(a, v as Appointment['status'])}
             />
           ) : (
             <span className={`${styles.statusBadge} ${STATUS_CLASS[a.status]}`}>
@@ -600,8 +889,90 @@ export default function AppointmentsPage() {
     )
   }
 
+  // Gunluk Gorunum karti — "birebir ayni" istegi geregi durum, sabit kucuk
+  // bir rozet olarak gosteriliyor (Liste Gorunumu'ndeki tikla-degistir
+  // StatusDropdown'dan farkli, daha sade); durum degistirmek icin Liste
+  // Gorunumu'ne gecilir.
+  function renderTimelineCard(a: Appointment, colorIdx: number) {
+    const d = new Date(a.scheduled_at)
+    const durMin = a.duration_minutes ?? SLOT_MINUTES
+    const isPast = new Date(d.getTime() + durMin * 60000) < now
+    const isOverdue = isPast && a.status === 'bekliyor'
+
+    return (
+      <div
+        className={`${styles.timelineCard} ${TIMELINE_COLORS[colorIdx % TIMELINE_COLORS.length]} ${isOverdue ? styles.timelineCardOverdue : ''}`}
+      >
+        <div className={styles.timelineCardHead}>
+          <div className={styles.timelineCardCustomerCol}>
+            <span className={styles.timelineCardCustomer}>{customerName(a.customer_id)}</span>
+            {customerPhone(a.customer_id) && (
+              <span className={styles.timelineCardPhone}>
+                <PhoneIcon width={10} height={10} />
+                {customerPhone(a.customer_id)}
+              </span>
+            )}
+          </div>
+          <Avatar name={employeeName(a.employee_id)} size={30} />
+        </div>
+        <div className={styles.timelineCardServiceRow}>
+          <span className={styles.timelineCardService}>{serviceName(a.service_id)}</span>
+          {packageProgress(a) && (
+            <span className={styles.packageTag}>
+              {packageProgress(a)!.current}/{packageProgress(a)!.total} seans
+            </span>
+          )}
+        </div>
+        <div className={styles.timelineCardFoot}>
+          <span className={styles.timelineCardEmployee}>👤 {employeeName(a.employee_id)}</span>
+          {canEdit(a) ? (
+            <StatusDropdown
+              compact
+              value={a.status}
+              options={STATUS_DROPDOWN_OPTIONS}
+              urgent={isOverdue}
+              onChange={(v) => handleStatusChange(a, v as Appointment['status'])}
+            />
+          ) : (
+            <span className={`${styles.statusBadge} ${STATUS_CLASS[a.status]}`}>
+              {STATUS_OPTIONS.find((o) => o.value === a.status)?.label ?? a.status}
+            </span>
+          )}
+        </div>
+      </div>
+    )
+  }
+
   return (
     <div className={styles.wrap}>
+      <div className={styles.statBar}>
+        <div className={styles.statBarItem}>
+          <CalendarIcon width={15} height={15} className={styles.statBarIconSignal} />
+          <span className={styles.statBarValue}>{statusStats.total}</span>
+          <span className={styles.statBarLabel}>Toplam Randevu</span>
+        </div>
+        <div className={styles.statBarItem}>
+          <CheckCircleIcon width={15} height={15} className={styles.statBarIconOk} />
+          <span className={`${styles.statBarValue} ${styles.statBarValueOk}`}>{statusStats.onaylandi}</span>
+          <span className={styles.statBarLabel}>Onaylandı</span>
+        </div>
+        <div className={styles.statBarItem}>
+          <ClockIcon width={15} height={15} className={styles.statBarIconWarn} />
+          <span className={`${styles.statBarValue} ${styles.statBarValueWarn}`}>{statusStats.bekliyor}</span>
+          <span className={styles.statBarLabel}>Bekliyor</span>
+        </div>
+        <div className={styles.statBarItem}>
+          <CheckCircleIcon width={15} height={15} className={styles.statBarIconInfo} />
+          <span className={`${styles.statBarValue} ${styles.statBarValueInfo}`}>{statusStats.tamamlandi}</span>
+          <span className={styles.statBarLabel}>Tamamlandı</span>
+        </div>
+        <div className={styles.statBarItem}>
+          <XCircleIcon width={15} height={15} className={styles.statBarIconDanger} />
+          <span className={`${styles.statBarValue} ${styles.statBarValueDanger}`}>{statusStats.iptal}</span>
+          <span className={styles.statBarLabel}>İptal Edildi</span>
+        </div>
+      </div>
+
       {(error || success) && (
         <div className={`${styles.banner} ${error ? styles.bannerError : styles.bannerSuccess}`}>
           <span>{error ?? success}</span>
@@ -618,82 +989,65 @@ export default function AppointmentsPage() {
         </div>
       )}
 
-      <div className={styles.topRow}>
-        <button type="button" className="btn-primary" style={{ width: 'auto' }} onClick={() => setShowForm(true)}>
-          + Yeni Randevu
-        </button>
-        <button
-          type="button"
-          className="btn-secondary"
-          style={{ width: 'auto' }}
-          onClick={() => {
-            setQuickError(null)
-            setShowQuickBooking(true)
-          }}
-        >
-          ✨ Hızlı Yaz
-        </button>
-
-        <div className={styles.viewToggle}>
-          {(
-            [
-              { value: 'gunluk', label: 'Günlük' },
-              { value: 'liste', label: 'Liste' },
-              { value: 'haftalik', label: 'Haftalık' },
-            ] as { value: ViewMode; label: string }[]
-          ).map((v) => (
-            <button
-              key={v.value}
-              type="button"
-              className={viewMode === v.value ? styles.viewToggleBtnActive : styles.viewToggleBtn}
-              onClick={() => setViewMode(v.value)}
-            >
-              {v.label}
-            </button>
-          ))}
-        </div>
+      <div className={styles.viewToggle}>
+        {(
+          [
+            { value: 'gunluk', label: 'Gün' },
+            { value: 'haftalik', label: 'Hafta' },
+            { value: 'liste', label: 'Ay' },
+            { value: 'ozel', label: 'Özel' },
+          ] as { value: ViewMode; label: string }[]
+        ).map((v) => (
+          <button
+            key={v.value}
+            type="button"
+            className={viewMode === v.value ? styles.viewToggleBtnActive : styles.viewToggleBtn}
+            onClick={() => setViewMode(v.value)}
+          >
+            <CalendarIcon width={14} height={14} />
+            {v.label}
+          </button>
+        ))}
       </div>
 
-      {showQuickBooking && (
-        <div className={styles.modalBackdrop} onClick={() => setShowQuickBooking(false)}>
-          <div className={`card ${styles.modalCard}`} onClick={(e) => e.stopPropagation()}>
-            <div className={styles.modalHeader}>
-              <h2>✨ Hızlı randevu yaz</h2>
-              <button type="button" className={styles.bannerClose} onClick={() => setShowQuickBooking(false)}>
-                ✕
-              </button>
-            </div>
-            <div className={styles.form}>
-              <div className="field">
-                <label htmlFor="quickText">Randevuyu cümleyle anlatın</label>
-                <textarea
-                  id="quickText"
-                  rows={3}
-                  placeholder={'ör. "yarına saat 15:00\'te Ayşe için manikür yaz"'}
-                  value={quickText}
-                  onChange={(e) => setQuickText(e.target.value)}
-                  style={{ width: '100%', resize: 'vertical', fontFamily: 'inherit' }}
-                  autoFocus
-                />
-              </div>
-              {quickError && <p style={{ color: 'var(--danger, #e05555)' }}>{quickError}</p>}
-              <div className={styles.formActions}>
-                <button
-                  type="button"
-                  className="btn-primary"
-                  disabled={quickParsing || !quickText.trim()}
-                  onClick={handleQuickParse}
-                >
-                  {quickParsing ? 'Ayrıştırılıyor…' : 'Ayrıştır ve formu doldur'}
-                </button>
-              </div>
-              <p style={{ color: 'var(--text-dim)', fontSize: 13 }}>
-                Yapay zeka metni okuyup randevu formunu dolduracak — göndermeden önce formu kontrol edip onaylayacaksınız.
-              </p>
-            </div>
+      {viewMode === 'ozel' && (
+        <div className={`card ${styles.customRangeRow}`}>
+          <div className="field" style={{ marginBottom: 0 }}>
+            <label htmlFor="calRangeStart">Başlangıç</label>
+            <input
+              id="calRangeStart"
+              type="date"
+              value={customRangeStart}
+              max={customRangeEnd}
+              onChange={(e) => setCustomRangeStart(e.target.value)}
+            />
+          </div>
+          <div className="field" style={{ marginBottom: 0 }}>
+            <label htmlFor="calRangeEnd">Bitiş</label>
+            <input
+              id="calRangeEnd"
+              type="date"
+              value={customRangeEnd}
+              min={customRangeStart}
+              onChange={(e) => setCustomRangeEnd(e.target.value)}
+            />
           </div>
         </div>
       )}
+
+      <div className={styles.topRow}>
+        <button
+          type="button"
+          className="btn-primary"
+          style={{ width: 'auto' }}
+          onClick={() => {
+            setError(null)
+            setShowForm(true)
+          }}
+        >
+          + Yeni Randevu
+        </button>
+      </div>
 
       {showForm && (
         <div className={styles.modalBackdrop} onClick={closeForm}>
@@ -705,23 +1059,13 @@ export default function AppointmentsPage() {
               </button>
             </div>
 
-            {quickUnclear.length > 0 && (
-              <p style={{ color: 'var(--warning, #c98a1a)', margin: '0 0 12px' }}>
-                ⚠️ Şu alanlardan emin olamadım, lütfen kontrol edin:{' '}
-                {quickUnclear
-                  .map(
-                    (f) =>
-                      ({
-                        service_id: 'hizmet',
-                        employee_id: 'çalışan',
-                        date: 'tarih',
-                        time: 'saat',
-                        customer_name: 'müşteri adı',
-                        customer_phone: 'müşteri telefonu',
-                      })[f] ?? f,
-                  )
-                  .join(', ')}
-              </p>
+            {error && (
+              <div className={`${styles.banner} ${styles.bannerError}`} style={{ marginBottom: 16 }}>
+                <span>{error}</span>
+                <button type="button" className={styles.bannerClose} onClick={() => setError(null)}>
+                  ✕
+                </button>
+              </div>
             )}
 
             <form className={styles.form} onSubmit={handleCreate}>
@@ -732,7 +1076,11 @@ export default function AppointmentsPage() {
                     id="customer"
                     value={customerId}
                     onChange={setCustomerId}
-                    options={customers.map((c) => ({ value: c.id, label: c.full_name, sub: c.phone ?? undefined }))}
+                    options={customers.map((c) => ({
+                      value: c.id,
+                      label: c.full_name,
+                      sub: c.contact_phone || c.phone || undefined,
+                    }))}
                   />
                   <button type="button" className={styles.newCustomerToggle} onClick={() => setUseNewCustomer(true)}>
                     + Yeni müşteri ekle
@@ -749,9 +1097,11 @@ export default function AppointmentsPage() {
                     style={{ marginBottom: 8 }}
                   />
                   <input
-                    placeholder="Telefon (opsiyonel)"
+                    type="tel"
+                    inputMode="numeric"
+                    placeholder="05xx xxx xx xx"
                     value={newCustomerPhone}
-                    onChange={(e) => setNewCustomerPhone(e.target.value)}
+                    onChange={(e) => setNewCustomerPhone(e.target.value.replace(/\D/g, ''))}
                   />
                   <button type="button" className={styles.newCustomerToggle} onClick={() => setUseNewCustomer(false)}>
                     Mevcut müşteri seç
@@ -770,6 +1120,66 @@ export default function AppointmentsPage() {
                   }}
                   options={services.map((s) => ({ value: s.id, label: s.name, sub: `${s.duration_minutes} dk` }))}
                 />
+              </div>
+
+              <div className="field" style={{ gridColumn: '1 / -1' }}>
+                <label>Paket (seans)</label>
+                <div className={styles.packageModeRow}>
+                  <button
+                    type="button"
+                    className={packageMode === 'yok' ? styles.packageModeBtnActive : styles.packageModeBtn}
+                    onClick={() => setPackageMode('yok')}
+                  >
+                    Hayır
+                  </button>
+                  <button
+                    type="button"
+                    className={packageMode === 'yeni' ? styles.packageModeBtnActive : styles.packageModeBtn}
+                    onClick={() => setPackageMode('yeni')}
+                  >
+                    Yeni Paket
+                  </button>
+                  {!useNewCustomer && customerId && (
+                    <button
+                      type="button"
+                      className={packageMode === 'mevcut' ? styles.packageModeBtnActive : styles.packageModeBtn}
+                      onClick={() => setPackageMode('mevcut')}
+                    >
+                      Mevcut Pakete Ekle
+                    </button>
+                  )}
+                </div>
+                {packageMode === 'yeni' && (
+                  <input
+                    type="number"
+                    min={1}
+                    step={1}
+                    value={packageTotalSessions}
+                    onChange={(e) => setPackageTotalSessions(e.target.value)}
+                    placeholder="Toplam seans sayısı (ör. 8)"
+                    style={{ marginTop: 8 }}
+                  />
+                )}
+                {packageMode === 'mevcut' && (
+                  <div style={{ marginTop: 8 }}>
+                    <Select
+                      value={existingPackageId}
+                      onChange={setExistingPackageId}
+                      options={servicePackages
+                        .filter((p) => p.customer_id === customerId)
+                        .map((p) => {
+                          const used = appointments.filter((a) => a.package_id === p.id).length
+                          const svcName = services.find((s) => s.id === p.service_id)?.name ?? 'Hizmet'
+                          return { value: p.id, label: `${svcName} — ${used}/${p.total_sessions} seans` }
+                        })}
+                    />
+                    {servicePackages.filter((p) => p.customer_id === customerId).length === 0 && (
+                      <p style={{ fontSize: 12, color: 'var(--text-dim)', marginTop: 4 }}>
+                        Bu müşterinin açık bir paketi yok.
+                      </p>
+                    )}
+                  </div>
+                )}
               </div>
 
               <div className="field">
@@ -825,47 +1235,256 @@ export default function AppointmentsPage() {
         </div>
       )}
 
-      <div className="card">
-        {viewMode === 'gunluk' && (
-          <div className={styles.dayNav}>
-            <div className={styles.dayNavMain}>
-              <button type="button" className="btn-secondary" onClick={() => shiftDate(-1)}>
-                ← Önceki gün
-              </button>
-              <div className={styles.dateColumn}>
-                <input type="date" value={viewDate} onChange={(e) => setViewDate(e.target.value)} />
-                <span className={styles.dayLabel}>{dayLabel}</span>
-              </div>
-              <button type="button" className="btn-secondary" onClick={() => shiftDate(1)}>
-                Sonraki gün →
+      {completingAppt && (
+        <div className={styles.modalBackdrop} onClick={() => setCompletingAppt(null)}>
+          <div className={`card ${styles.modalCard}`} onClick={(e) => e.stopPropagation()}>
+            <div className={styles.modalHeader}>
+              <h2>Randevu Tamamlandı</h2>
+              <button type="button" className={styles.bannerClose} onClick={() => setCompletingAppt(null)}>
+                ✕
               </button>
             </div>
-            {diffDays !== 0 && (
+
+            {completeError && (
+              <div className={`${styles.banner} ${styles.bannerError}`} style={{ marginBottom: 16 }}>
+                <span>{completeError}</span>
+                <button type="button" className={styles.bannerClose} onClick={() => setCompleteError(null)}>
+                  ✕
+                </button>
+              </div>
+            )}
+
+            <p style={{ color: 'var(--text-dim)', fontSize: 13, marginBottom: 16 }}>
+              {customerName(completingAppt.customer_id)} — {serviceName(completingAppt.service_id)}
+            </p>
+
+            <div className={styles.form}>
+              <div className="field" style={{ gridColumn: '1 / -1', marginBottom: 0 }}>
+                <label className={styles.checkboxLabel}>
+                  <input
+                    type="checkbox"
+                    checked={completeRecordPayment}
+                    onChange={(e) => setCompleteRecordPayment(e.target.checked)}
+                  />
+                  Ödeme alındı
+                </label>
+              </div>
+
+              {completeRecordPayment && (
+                <>
+                  <div className="field">
+                    <label htmlFor="completeAmount">Alınan Tutar (TL)</label>
+                    <input
+                      id="completeAmount"
+                      type="number"
+                      min={0}
+                      step="0.01"
+                      value={completePaymentAmount}
+                      onChange={(e) => setCompletePaymentAmount(e.target.value)}
+                    />
+                  </div>
+                  <div className="field">
+                    <label htmlFor="completeMethod">Ödeme Yöntemi</label>
+                    <Select
+                      id="completeMethod"
+                      value={completePaymentMethod}
+                      onChange={setCompletePaymentMethod}
+                      options={PAYMENT_METHOD_OPTIONS}
+                    />
+                  </div>
+                </>
+              )}
+
+              <div className="field" style={{ gridColumn: '1 / -1', marginBottom: 0 }}>
+                <label className={styles.checkboxLabel}>
+                  <input
+                    type="checkbox"
+                    checked={completeFollowup}
+                    onChange={(e) => setCompleteFollowup(e.target.checked)}
+                  />
+                  {completingAppt.package_id
+                    ? `Devam randevusu oluştur (${packageProgress(completingAppt)?.current ?? 1}/${packageProgress(completingAppt)?.total ?? '?'} tamamlanıyor)`
+                    : 'İş bitmedi, devam randevusu oluştur'}
+                </label>
+              </div>
+              {completeFollowup && (
+                <>
+                  <div className="field">
+                    <label htmlFor="followupDate">Sonraki Seans Tarihi</label>
+                    <input
+                      id="followupDate"
+                      type="date"
+                      value={completeFollowupDate}
+                      onChange={(e) => setCompleteFollowupDate(e.target.value)}
+                    />
+                  </div>
+                  <div className="field">
+                    <label htmlFor="followupTime">Saat</label>
+                    <Select
+                      id="followupTime"
+                      value={completeFollowupTime}
+                      onChange={setCompleteFollowupTime}
+                      options={TIME_OPTIONS.map((t) => ({ value: t, label: t }))}
+                    />
+                  </div>
+                </>
+              )}
+
+              <div className={styles.formActions}>
+                <button type="button" className="btn-primary" disabled={completeBusy} onClick={submitCompletion}>
+                  {completeBusy ? 'Kaydediliyor…' : 'Tamamla'}
+                </button>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {viewMode === 'gunluk' && (
+        <div className="card">
+          <div className={styles.dateHeaderRow}>
+            <button type="button" className={styles.dateNavBtn} onClick={() => shiftDate(-1)} aria-label="Önceki gün">
+              ‹
+            </button>
+            <button
+              type="button"
+              className={styles.dateHeaderLabel}
+              onClick={() => dateInputRef.current?.showPicker?.()}
+            >
+              {new Date(`${viewDate}T00:00:00`).toLocaleDateString('tr-TR', {
+                day: 'numeric',
+                month: 'long',
+                year: 'numeric',
+              })}
+              , {viewWeekday}
+              <ChevronRightIcon width={13} height={13} className={styles.dateHeaderChevron} />
+            </button>
+            <button type="button" className={styles.dateNavBtn} onClick={() => shiftDate(1)} aria-label="Sonraki gün">
+              ›
+            </button>
+            <input
+              ref={dateInputRef}
+              type="date"
+              value={viewDate}
+              onChange={(e) => setViewDate(e.target.value)}
+              className={styles.hiddenDateInput}
+              tabIndex={-1}
+              aria-hidden="true"
+            />
+          </div>
+
+          <div className={styles.dayStrip}>
+            {dayStripDates.map((d) => {
+              const dk = toLocalDateString(d)
+              const active = dk === viewDate
+              return (
+                <button
+                  type="button"
+                  key={dk}
+                  className={active ? styles.dayStripBtnActive : styles.dayStripBtn}
+                  onClick={() => setViewDate(dk)}
+                >
+                  <span className={styles.dayStripWeekday}>{WEEKDAY_SHORT[d.getDay()]}</span>
+                  <span className={styles.dayStripNum}>{d.getDate()}</span>
+                </button>
+              )
+            })}
+          </div>
+
+          {diffDays !== 0 && (
+            <div className={styles.dayNavHint}>
+              <span className={styles.dayLabel}>{dayLabel}</span>
               <button type="button" className={styles.todayButton} onClick={() => setViewDate(todayLocalDateString())}>
                 Bugüne dön
               </button>
-            )}
-          </div>
-        )}
+            </div>
+          )}
 
-        {viewMode === 'haftalik' && (
-          <div className={styles.dayNav}>
-            <button type="button" className="btn-secondary" onClick={() => shiftWeek(-1)}>
-              ← Önceki hafta
-            </button>
-            <span className={styles.dayLabel}>{groupedByDate[0]?.label} – {groupedByDate[6]?.label}</span>
-            <button type="button" className="btn-secondary" onClick={() => shiftWeek(1)}>
-              Sonraki hafta →
-            </button>
-          </div>
-        )}
+          <div className={styles.dayControlsRow}>
+            <div className={styles.plainDropdown} ref={employeeMenuRef}>
+              <button
+                type="button"
+                className={styles.plainDropdownTrigger}
+                onClick={() => setEmployeeMenuOpen((v) => !v)}
+                aria-haspopup="listbox"
+                aria-expanded={employeeMenuOpen}
+              >
+                <CalendarIcon width={14} height={14} />
+                {employeeFilter ? employeeName(employeeFilter) : 'Tüm Çalışanlar'}
+                <ChevronRightIcon width={12} height={12} className={styles.plainDropdownChevron} />
+              </button>
+              {employeeMenuOpen && (
+                <div className={styles.plainDropdownMenu} role="listbox">
+                  <button
+                    type="button"
+                    className={styles.plainDropdownMenuItem}
+                    onClick={() => {
+                      setEmployeeFilter('')
+                      setEmployeeMenuOpen(false)
+                    }}
+                  >
+                    Tüm Çalışanlar
+                  </button>
+                  {profiles.map((p) => (
+                    <button
+                      type="button"
+                      key={p.id}
+                      className={styles.plainDropdownMenuItem}
+                      onClick={() => {
+                        setEmployeeFilter(p.id)
+                        setEmployeeMenuOpen(false)
+                      }}
+                    >
+                      {p.full_name ?? '—'}
+                    </button>
+                  ))}
+                </div>
+              )}
+            </div>
 
-        {loading ? (
-          <p style={{ color: 'var(--text-dim)' }}>Yükleniyor…</p>
-        ) : viewMode === 'gunluk' ? (
-          visible.length === 0 ? (
+            <div className={`${styles.plainDropdown} ${styles.plainDropdownRight}`} ref={displayMenuRef}>
+              <button
+                type="button"
+                className={`${styles.plainDropdownTrigger} ${styles.plainDropdownTriggerSignal}`}
+                onClick={() => setDisplayMenuOpen((v) => !v)}
+                aria-haspopup="listbox"
+                aria-expanded={displayMenuOpen}
+              >
+                {dailyDisplay === 'zaman' ? 'Günlük Görünüm' : 'Liste Görünümü'}
+                <ChevronRightIcon width={12} height={12} className={styles.plainDropdownChevron} />
+              </button>
+              {displayMenuOpen && (
+                <div className={`${styles.plainDropdownMenu} ${styles.plainDropdownMenuRight}`} role="listbox">
+                  <button
+                    type="button"
+                    className={styles.plainDropdownMenuItem}
+                    onClick={() => {
+                      setDailyDisplay('zaman')
+                      setDisplayMenuOpen(false)
+                    }}
+                  >
+                    Günlük Görünüm
+                  </button>
+                  <button
+                    type="button"
+                    className={styles.plainDropdownMenuItem}
+                    onClick={() => {
+                      setDailyDisplay('liste')
+                      setDisplayMenuOpen(false)
+                    }}
+                  >
+                    Liste Görünümü
+                  </button>
+                </div>
+              )}
+            </div>
+          </div>
+
+          {loading ? (
+            <p style={{ color: 'var(--text-dim)' }}>Yükleniyor…</p>
+          ) : visible.length === 0 ? (
             <p style={{ color: 'var(--text-dim)' }}>Bu tarihte randevu yok.</p>
-          ) : (
+          ) : dailyDisplay === 'liste' ? (
             <div className={styles.apptList}>
               <div className={styles.apptListHead}>
                 <span>Saat</span>
@@ -876,31 +1495,95 @@ export default function AppointmentsPage() {
               </div>
               {visible.map((a) => renderRow(a))}
             </div>
-          )
-        ) : (
-          groupedByDate.map((group) => (
-            <div key={group.dateKey} className={styles.dateGroup}>
-              <div className={styles.dateGroupLabel}>
-                {WEEKDAY_SHORT[new Date(group.dateKey + 'T00:00:00').getDay()]} · {group.label}
-              </div>
-              {group.items.length === 0 ? (
-                <p className={styles.sourceNote}>Randevu yok.</p>
-              ) : (
-                <div className={styles.apptList}>
-                  <div className={styles.apptListHead}>
-                    <span>Saat</span>
-                    <span>Müşteri</span>
-                    <span>Hizmet</span>
-                    <span>Uzman</span>
-                    <span>Durum</span>
+          ) : (
+            <div className={styles.timelineList}>
+              {timelineEntries.map((entry, i) =>
+                entry.kind === 'now' ? (
+                  <div key="now" className={styles.timelineRow}>
+                    <div className={styles.timelineRowGutter}>
+                      <span className={styles.timelineNowTime}>
+                        {now.toLocaleTimeString('tr-TR', { hour: '2-digit', minute: '2-digit' })}
+                      </span>
+                    </div>
+                    <span className={styles.timelineNowLine} />
                   </div>
-                  {group.items.map((a) => renderRow(a))}
-                </div>
+                ) : (
+                  <div key={entry.appt.id} className={styles.timelineRow}>
+                    <span
+                      className={`${styles.timelineRowGutter} ${styles[`timelineText${i % TIMELINE_COLORS.length}`]}`}
+                    >
+                      {new Date(entry.appt.scheduled_at).toLocaleTimeString('tr-TR', {
+                        hour: '2-digit',
+                        minute: '2-digit',
+                      })}
+                    </span>
+                    {renderTimelineCard(entry.appt, i)}
+                  </div>
+                ),
               )}
             </div>
-          ))
-        )}
-      </div>
+          )}
+        </div>
+      )}
+
+      {viewMode !== 'gunluk' && (
+        <div className="card">
+          {viewMode === 'haftalik' && (
+            <div className={styles.dateHeaderRow}>
+              <button
+                type="button"
+                className={styles.dateNavBtn}
+                onClick={() => shiftWeek(-1)}
+                aria-label="Önceki hafta"
+              >
+                ‹
+              </button>
+              <span className={styles.dayLabel}>
+                {groupedByDate[0]?.label} – {groupedByDate[6]?.label}
+              </span>
+              <button
+                type="button"
+                className={styles.dateNavBtn}
+                onClick={() => shiftWeek(1)}
+                aria-label="Sonraki hafta"
+              >
+                ›
+              </button>
+            </div>
+          )}
+
+          {loading ? (
+            <p style={{ color: 'var(--text-dim)' }}>Yükleniyor…</p>
+          ) : (
+            groupedByDate.map((group) => (
+              <div key={group.dateKey} className={styles.dateGroup}>
+                <div className={styles.dateGroupLabel}>
+                  {WEEKDAY_SHORT[new Date(group.dateKey + 'T00:00:00').getDay()]} · {group.label}
+                </div>
+                {group.items.length === 0 ? (
+                  <p className={styles.sourceNote}>Randevu yok.</p>
+                ) : (
+                  <div className={styles.timelineList}>
+                    {group.items.map((a, i) => (
+                      <div key={a.id} className={styles.timelineRow}>
+                        <span
+                          className={`${styles.timelineRowGutter} ${styles[`timelineText${i % TIMELINE_COLORS.length}`]}`}
+                        >
+                          {new Date(a.scheduled_at).toLocaleTimeString('tr-TR', {
+                            hour: '2-digit',
+                            minute: '2-digit',
+                          })}
+                        </span>
+                        {renderTimelineCard(a, i)}
+                      </div>
+                    ))}
+                  </div>
+                )}
+              </div>
+            ))
+          )}
+        </div>
+      )}
     </div>
   )
 }

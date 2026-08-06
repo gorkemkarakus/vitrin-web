@@ -14,6 +14,9 @@ import ServiceDescriptionPage from './pages/ServiceDescriptionPage'
 import UserManagementPage from './pages/UserManagementPage'
 import DashboardPage from './pages/DashboardPage'
 import SettingsPage from './pages/SettingsPage'
+import MorePage from './pages/MorePage'
+import CustomersPage from './pages/CustomersPage'
+import CustomerDetailPage from './pages/CustomerDetailPage'
 import PublicBookingPage from './public/PublicBookingPage'
 import ResetPasswordPage from './pages/ResetPasswordPage'
 
@@ -68,6 +71,9 @@ function AppRoutes() {
             <Route path="randevular" element={<AppointmentsPage />} />
             <Route path="mesajlar"   element={<MessagesPage />} />
             <Route path="ayarlar"    element={<SettingsPage />} />
+            <Route path="musteriler" element={<CustomersPage />} />
+            <Route path="musteriler/:id" element={<CustomerDetailPage />} />
+            <Route path="daha-fazla" element={<MorePage />} />
             <Route
               path="dashboard"
               element={<ProtectedRoute adminOnly><DashboardPage /></ProtectedRoute>}
