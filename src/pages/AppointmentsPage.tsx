@@ -679,6 +679,37 @@ export default function AppointmentsPage() {
         return
       }
 
+      // Tamamlanan randevu bir pakete ait degilse ("tek seferlik" acilmisti
+      // ama is bitmedi/devami var), devam randevusu istendiginde geriye
+      // donuk 2 seanslik bir paket olusturup HER IKI randevuyu da buna
+      // baglıyoruz — boylece "2. seans" ilerlemesi mevcut paket
+      // altyapisiyla (packageProgress) otomatik gorunur, ayri bir kavram
+      // icat etmeye gerek kalmiyor. BU ISLEM odeme kaydindan ONCE yapiliyor
+      // — aksi halde odeme eski (bos) package_id ile kaydolup pakete hic
+      // baglanmiyor, paket "hic odenmemis" gibi gorunuyordu (bildirildi).
+      let effectivePackageId = completingAppt.package_id
+      if (completeFollowup && followupStart && !effectivePackageId) {
+        const { data: newPackage, error: pkgErr } = await supabase
+          .from('service_packages')
+          .insert({
+            business_id: profile?.business_id,
+            customer_id: completingAppt.customer_id,
+            service_id: completingAppt.service_id,
+            total_sessions: 2,
+            created_by_user_id: profile?.id,
+          })
+          .select('id')
+          .single()
+        if (pkgErr || !newPackage) {
+          setError('Randevu tamamlandı ama devam randevusu için paket oluşturulamadı: ' + (pkgErr?.message ?? ''))
+          setCompletingAppt(null)
+          await loadData(true)
+          return
+        }
+        effectivePackageId = newPackage.id
+        await supabase.from('appointments').update({ package_id: effectivePackageId }).eq('id', completingAppt.id)
+      }
+
       if (completeRecordPayment) {
         const amount = Number(completePaymentAmount) || 0
         if (amount > 0) {
@@ -686,7 +717,7 @@ export default function AppointmentsPage() {
             business_id: profile?.business_id,
             customer_id: completingAppt.customer_id,
             appointment_id: completingAppt.id,
-            package_id: completingAppt.package_id,
+            package_id: effectivePackageId,
             amount,
             method: completePaymentMethod,
             created_by_user_id: profile?.id,
@@ -704,35 +735,6 @@ export default function AppointmentsPage() {
       }
 
       if (completeFollowup && followupStart) {
-        // Tamamlanan randevu bir pakete ait degilse ("tek seferlik" acilmisti
-        // ama is bitmedi/devami var), devam randevusu istendiginde geriye
-        // donuk 2 seanslik bir paket olusturup HER IKI randevuyu da buna
-        // baglıyoruz — boylece "2. seans" ilerlemesi mevcut paket
-        // altyapisiyla (packageProgress) otomatik gorunur, ayri bir kavram
-        // icat etmeye gerek kalmiyor.
-        let followupPackageId = completingAppt.package_id
-        if (!followupPackageId) {
-          const { data: newPackage, error: pkgErr } = await supabase
-            .from('service_packages')
-            .insert({
-              business_id: profile?.business_id,
-              customer_id: completingAppt.customer_id,
-              service_id: completingAppt.service_id,
-              total_sessions: 2,
-              created_by_user_id: profile?.id,
-            })
-            .select('id')
-            .single()
-          if (pkgErr || !newPackage) {
-            setError('Randevu tamamlandı ama devam randevusu için paket oluşturulamadı: ' + (pkgErr?.message ?? ''))
-            setCompletingAppt(null)
-            await loadData(true)
-            return
-          }
-          followupPackageId = newPackage.id
-          await supabase.from('appointments').update({ package_id: followupPackageId }).eq('id', completingAppt.id)
-        }
-
         const { error: followupErr } = await supabase.from('appointments').insert({
           business_id: profile?.business_id,
           customer_id: completingAppt.customer_id,
@@ -742,7 +744,7 @@ export default function AppointmentsPage() {
           scheduled_at: followupStart.toISOString(),
           duration_minutes: followupDuration,
           source: completingAppt.source,
-          package_id: followupPackageId,
+          package_id: effectivePackageId,
         })
         if (followupErr) {
           const isOverlap = /exclusion|conflicting key|deadlock/i.test(followupErr.message)

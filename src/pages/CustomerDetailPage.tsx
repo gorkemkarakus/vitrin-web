@@ -62,6 +62,15 @@ function customerPhone(c: Customer) {
   return c.contact_phone || c.phone || null
 }
 
+// remaining = beklenen - odenen. Pozitifse borc, negatifse musteri fazla
+// odemis (alacakli) — bu durum sessizce "Ödendi" diye gosterilmek yerine
+// acikca "+X fazla odendi" olarak isaretleniyor (bildirilen sorun).
+function remainingLabel(remaining: number): { text: string; positive: boolean } {
+  if (remaining > 0) return { text: `Kalan ${currency.format(remaining)}`, positive: false }
+  if (remaining < 0) return { text: `+${currency.format(-remaining)} fazla ödendi`, positive: true }
+  return { text: 'Ödendi', positive: true }
+}
+
 export default function CustomerDetailPage() {
   const { id } = useParams<{ id: string }>()
   const navigate = useNavigate()
@@ -148,10 +157,13 @@ export default function CustomerDetailPage() {
   )
 
   const totalPaid = useMemo(() => payments.reduce((s, p) => s + p.amount, 0), [payments])
+  // Kasten KIRPILMADI (Math.max(0, ...) yok) — bir paket/randevuda fazladan
+  // odenen tutar baska bir borcu netlestirebilmeli. Sonuc negatifse musteri
+  // gercekte alacaklidir (fazla odeme) — "Borç yok" diye gizlemek yerine
+  // "+X" olarak acikca gosteriliyor (bildirilen sorun).
   const totalRemaining = useMemo(
     () =>
-      packageStats.reduce((s, p) => s + Math.max(0, p.remaining), 0) +
-      standaloneAppts.reduce((s, a) => s + Math.max(0, a.remaining), 0),
+      packageStats.reduce((s, p) => s + p.remaining, 0) + standaloneAppts.reduce((s, a) => s + a.remaining, 0),
     [packageStats, standaloneAppts],
   )
 
@@ -242,7 +254,11 @@ export default function CustomerDetailPage() {
         <div className={`card ${styles.balanceCard}`}>
           <span className={styles.balanceLabel}>Kalan Bakiye</span>
           <span className={totalRemaining > 0 ? styles.balanceValueDanger : styles.balanceValueOk}>
-            {totalRemaining > 0 ? currency.format(totalRemaining) : 'Borç yok'}
+            {totalRemaining > 0
+              ? currency.format(totalRemaining)
+              : totalRemaining < 0
+                ? `+${currency.format(-totalRemaining)} alacaklı`
+                : 'Borç yok'}
           </span>
         </div>
       </div>
@@ -266,8 +282,8 @@ export default function CustomerDetailPage() {
                 </div>
                 <div className={styles.packageRowStats}>
                   <span className={styles.packageRowExpected}>{currency.format(p.expected)}</span>
-                  <span className={p.remaining > 0 ? styles.packageRowRemainingDanger : styles.packageRowRemainingOk}>
-                    {p.remaining > 0 ? `Kalan ${currency.format(p.remaining)}` : 'Ödendi'}
+                  <span className={remainingLabel(p.remaining).positive ? styles.packageRowRemainingOk : styles.packageRowRemainingDanger}>
+                    {remainingLabel(p.remaining).text}
                   </span>
                 </div>
               </div>
@@ -290,8 +306,8 @@ export default function CustomerDetailPage() {
                 </div>
                 <div className={styles.packageRowStats}>
                   <span className={styles.packageRowExpected}>{currency.format(a.expected)}</span>
-                  <span className={a.remaining > 0 ? styles.packageRowRemainingDanger : styles.packageRowRemainingOk}>
-                    {a.remaining > 0 ? `Kalan ${currency.format(a.remaining)}` : 'Ödendi'}
+                  <span className={remainingLabel(a.remaining).positive ? styles.packageRowRemainingOk : styles.packageRowRemainingDanger}>
+                    {remainingLabel(a.remaining).text}
                   </span>
                 </div>
               </div>
