@@ -1485,82 +1485,105 @@ export default function AppointmentsPage() {
               </div>
 
               {(() => {
-                const price = Number(completePriceOverride) || 0
-                const customer = customers.find((c) => c.id === completingAppt.customer_id)
-                const balanceAvailable = customer?.credit_balance ?? 0
-                if (balanceAvailable <= 0) return null
-                const balanceRequested = Math.min(Number(completeBalanceAmount) || 0, balanceAvailable, price)
-                return (
-                  <div className="field" style={{ gridColumn: '1 / -1' }}>
-                    <label htmlFor="completeBalanceAmount">
-                      Müşteri Bakiyesi: {currency.format(balanceAvailable)} — Bakiyeden Al (TL)
-                    </label>
-                    <input
-                      id="completeBalanceAmount"
-                      type="number"
-                      min={0}
-                      max={Math.min(balanceAvailable, price)}
-                      step="0.01"
-                      value={completeBalanceAmount}
-                      onChange={(e) => {
-                        const requested = Math.min(Number(e.target.value) || 0, balanceAvailable, price)
-                        setCompleteBalanceAmount(e.target.value)
-                        setCompletePaymentAmount(String(Math.max(0, price - requested)))
-                      }}
-                    />
-                    {balanceRequested >= price && price > 0 && (
-                      <p style={{ color: 'var(--ok-text)', fontSize: 12.5, marginTop: 6 }}>
-                        Bakiye bu randevunun tamamını karşılıyor, ek ödeme gerekmiyor.
-                      </p>
-                    )}
-                  </div>
-                )
-              })()}
-
-              {(() => {
+                // Tum odeme alanlarinin ORTAK hesaplamasi — kullanicinin fazlaligi
+                // hangi alana yazdigina bakilmaksizin (Ucret'e mi, Alınan Tutar'a mi)
+                // SONUCUN ne olacagini ANINDA gosteren bir ozet eklendi (asagida),
+                // ciddi bir kafa karisikligi/kayip bildirildi: "Ucret" alanina
+                // dogrudan sisirilmis bir sayi yazilinca (ör. 700) hem fiyat hem
+                // Alınan Tutar 700'e esitleniyor, sistem bunu "hizmet zaten 700'lik"
+                // sanip fazlalik algilamiyordu — mantik hatasi degil ama sessizce
+                // yanlis anlasilabiliyordu. Ozet artik bunu ANINDA gorunur kiliyor.
                 const price = Number(completePriceOverride) || 0
                 const customer = customers.find((c) => c.id === completingAppt.customer_id)
                 const balanceAvailable = customer?.credit_balance ?? 0
                 const balanceRequested = Math.min(Number(completeBalanceAmount) || 0, balanceAvailable, price)
                 const remainingDue = Math.max(0, price - balanceRequested)
-                if (remainingDue <= 0) return null
+                const isPackaged = completingAppt.package_id !== null || (completeFollowup && !!completeFollowupDate && !!completeFollowupTime)
+                const entered = completeRecordPayment ? Number(completePaymentAmount) || 0 : 0
+                const overflowToBalance = isPackaged ? 0 : Math.max(0, entered - remainingDue)
+                const stillOwed = Math.max(0, remainingDue - entered)
+
                 return (
                   <>
-                    <div className="field" style={{ gridColumn: '1 / -1', marginBottom: 0 }}>
-                      <label className={styles.checkboxLabel}>
+                    {balanceAvailable > 0 && (
+                      <div className="field" style={{ gridColumn: '1 / -1' }}>
+                        <label htmlFor="completeBalanceAmount">
+                          Müşteri Bakiyesi: {currency.format(balanceAvailable)} — Bakiyeden Al (TL)
+                        </label>
                         <input
-                          type="checkbox"
-                          checked={completeRecordPayment}
-                          onChange={(e) => setCompleteRecordPayment(e.target.checked)}
+                          id="completeBalanceAmount"
+                          type="number"
+                          min={0}
+                          max={Math.min(balanceAvailable, price)}
+                          step="0.01"
+                          value={completeBalanceAmount}
+                          onChange={(e) => {
+                            const requested = Math.min(Number(e.target.value) || 0, balanceAvailable, price)
+                            setCompleteBalanceAmount(e.target.value)
+                            setCompletePaymentAmount(String(Math.max(0, price - requested)))
+                          }}
                         />
-                        Ödeme alındı {balanceRequested > 0 ? `(Kalan ${currency.format(remainingDue)})` : ''}
-                      </label>
-                    </div>
+                      </div>
+                    )}
 
-                    {completeRecordPayment && (
+                    {remainingDue > 0 && (
                       <>
-                        <div className="field">
-                          <label htmlFor="completeAmount">Alınan Tutar (TL)</label>
-                          <input
-                            id="completeAmount"
-                            type="number"
-                            min={0}
-                            step="0.01"
-                            value={completePaymentAmount}
-                            onChange={(e) => setCompletePaymentAmount(e.target.value)}
-                          />
+                        <div className="field" style={{ gridColumn: '1 / -1', marginBottom: 0 }}>
+                          <label className={styles.checkboxLabel}>
+                            <input
+                              type="checkbox"
+                              checked={completeRecordPayment}
+                              onChange={(e) => setCompleteRecordPayment(e.target.checked)}
+                            />
+                            Ödeme alındı {balanceRequested > 0 ? `(Kalan ${currency.format(remainingDue)})` : ''}
+                          </label>
                         </div>
-                        <div className="field">
-                          <label htmlFor="completeMethod">Ödeme Yöntemi</label>
-                          <Select
-                            id="completeMethod"
-                            value={completePaymentMethod}
-                            onChange={setCompletePaymentMethod}
-                            options={PAYMENT_METHOD_OPTIONS}
-                          />
-                        </div>
+
+                        {completeRecordPayment && (
+                          <>
+                            <div className="field">
+                              <label htmlFor="completeAmount">Alınan Tutar (TL)</label>
+                              <input
+                                id="completeAmount"
+                                type="number"
+                                min={0}
+                                step="0.01"
+                                value={completePaymentAmount}
+                                onChange={(e) => setCompletePaymentAmount(e.target.value)}
+                              />
+                            </div>
+                            <div className="field">
+                              <label htmlFor="completeMethod">Ödeme Yöntemi</label>
+                              <Select
+                                id="completeMethod"
+                                value={completePaymentMethod}
+                                onChange={setCompletePaymentMethod}
+                                options={PAYMENT_METHOD_OPTIONS}
+                              />
+                            </div>
+                          </>
+                        )}
                       </>
                     )}
+
+                    {/* Canli ozet: kullanici hangi alana ne yazarsa yazsin, SONUCUN
+                        ne olacagi (borc mu kalacak, bakiyeye mi eklenecek, tam mi
+                        odendi) her zaman acikca gorunur. */}
+                    <div className="field" style={{ gridColumn: '1 / -1', marginBottom: 0 }}>
+                      {overflowToBalance > 0 ? (
+                        <p style={{ color: 'var(--ok-text)', fontSize: 13, fontWeight: 600 }}>
+                          +{currency.format(overflowToBalance)} müşteri bakiyesine eklenecek
+                        </p>
+                      ) : stillOwed > 0 ? (
+                        <p style={{ color: 'var(--danger-text)', fontSize: 13, fontWeight: 600 }}>
+                          {currency.format(stillOwed)} borç kalacak
+                        </p>
+                      ) : (
+                        <p style={{ color: 'var(--ok-text)', fontSize: 13, fontWeight: 600 }}>
+                          Tam ödendi, borç/alacak kalmıyor
+                        </p>
+                      )}
+                    </div>
                   </>
                 )
               })()}
