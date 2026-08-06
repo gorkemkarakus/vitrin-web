@@ -34,6 +34,7 @@ interface Appointment {
   status: 'bekliyor' | 'onaylandi' | 'tamamlandi' | 'iptal'
   scheduled_at: string
   package_id: string | null
+  price_override: number | null
 }
 
 interface Service {
@@ -148,7 +149,9 @@ export default function CustomersPage() {
       setLoading(true)
       const [{ data: custs }, { data: appts }, { data: pkgs }, { data: pays }, { data: svcs }] = await Promise.all([
         supabase.from('customers').select('id, full_name, phone, contact_phone, email, created_at').order('full_name'),
-        supabase.from('appointments').select('id, customer_id, service_id, status, scheduled_at, package_id'),
+        supabase
+          .from('appointments')
+          .select('id, customer_id, service_id, status, scheduled_at, package_id, price_override'),
         supabase.from('service_packages').select('id, customer_id, service_id, total_sessions'),
         supabase.from('payments').select('id, customer_id, amount, appointment_id, package_id, paid_at'),
         supabase.from('services').select('id, price'),
@@ -212,21 +215,26 @@ export default function CustomersPage() {
     return map
   }, [customers, apptsByCustomer, paymentsByCustomer, currentMonthStart])
 
-  // Musteri basina kalan bakiye: paketler icin (seans sayisi x hizmet fiyati)
-  // - o pakete yapilan odemeler; pakete bagli olmayan tamamlanmis randevular
-  // icin de ayni mantik (hizmet fiyati - o randevuya yapilan odemeler).
+  // Musteri basina kalan bakiye: paketler icin, ZATEN olusturulmus seanslarin
+  // gercek ucretleri (price_override varsa o, yoksa hizmet fiyati) + henuz
+  // acilmamis kalan seanslar icin standart fiyat tahmini, eksi o pakete
+  // yapilan odemeler; pakete bagli olmayan tamamlanmis randevular icin de
+  // ayni mantik (randevunun gercek ucreti - o randevuya yapilan odemeler).
   const debtByCustomer = useMemo(() => {
     const map = new Map<string, number>()
     for (const pkg of packages) {
       const price = pkg.service_id ? (servicePriceById.get(pkg.service_id) ?? 0) : 0
-      const expected = pkg.total_sessions * price
+      const sessions = appointments.filter((a) => a.package_id === pkg.id)
+      const knownSessionsTotal = sessions.reduce((sum, a) => sum + (a.price_override ?? price), 0)
+      const remainingSessionsEstimate = Math.max(0, pkg.total_sessions - sessions.length) * price
+      const expected = knownSessionsTotal + remainingSessionsEstimate
       const paid = payments.filter((p) => p.package_id === pkg.id).reduce((sum, p) => sum + p.amount, 0)
       const remaining = Math.max(0, expected - paid)
       map.set(pkg.customer_id, (map.get(pkg.customer_id) ?? 0) + remaining)
     }
     for (const a of appointments) {
       if (!a.customer_id || a.package_id || a.status !== 'tamamlandi') continue
-      const expected = a.service_id ? (servicePriceById.get(a.service_id) ?? 0) : 0
+      const expected = a.price_override ?? (a.service_id ? (servicePriceById.get(a.service_id) ?? 0) : 0)
       const paid = payments.filter((p) => p.appointment_id === a.id).reduce((sum, p) => sum + p.amount, 0)
       const remaining = Math.max(0, expected - paid)
       if (remaining > 0) map.set(a.customer_id, (map.get(a.customer_id) ?? 0) + remaining)

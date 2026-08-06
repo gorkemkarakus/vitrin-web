@@ -70,6 +70,7 @@ interface Appointment {
   source: string
   source_note: string | null
   package_id: string | null
+  price_override: number | null
 }
 
 interface ServicePackage {
@@ -78,6 +79,8 @@ interface ServicePackage {
   service_id: string | null
   total_sessions: number
 }
+
+const currency = new Intl.NumberFormat('tr-TR', { style: 'currency', currency: 'TRY' })
 
 const PAYMENT_METHOD_OPTIONS = [
   { value: 'nakit', label: 'Nakit' },
@@ -258,6 +261,12 @@ export default function AppointmentsPage() {
   // "Tamamlandi" isaretlenince acilan odeme + devam randevusu mini-sihirbazi.
   const [completingAppt, setCompletingAppt] = useState<Appointment | null>(null)
   const [completeRecordPayment, setCompleteRecordPayment] = useState(true)
+  // Standart hizmet fiyatindan farkli olabilecek, BU randevuya ozel gercek
+  // ucret (ör. ekstra bakim/boya ile pahalanmis) — "Alınan Tutar"dan ayri,
+  // cunku tutar kismi odenmis olabilir. Degistirilince Alınan Tutar da
+  // otomatik ona esitlenir (cogu zaman tam tahsil edilir varsayimiyla), ama
+  // sonrasinda bagimsiz duzenlenebilir kalir (kismi odeme icin).
+  const [completePriceOverride, setCompletePriceOverride] = useState('')
   const [completePaymentAmount, setCompletePaymentAmount] = useState('')
   const [completePaymentMethod, setCompletePaymentMethod] = useState('nakit')
   const [completeFollowup, setCompleteFollowup] = useState(false)
@@ -301,7 +310,7 @@ export default function AppointmentsPage() {
       supabase
         .from('appointments')
         .select(
-          'id, customer_id, service_id, employee_id, created_by_user_id, scheduled_at, duration_minutes, status, source, source_note, package_id',
+          'id, customer_id, service_id, employee_id, created_by_user_id, scheduled_at, duration_minutes, status, source, source_note, package_id, price_override',
         )
         .order('scheduled_at', { ascending: true }),
       supabase.from('customers').select('id, full_name, phone, contact_phone').order('full_name'),
@@ -635,9 +644,11 @@ export default function AppointmentsPage() {
   function handleStatusChange(appt: Appointment, status: Appointment['status']) {
     if (status === 'tamamlandi') {
       const svc = services.find((s) => s.id === appt.service_id)
+      const price = appt.price_override ?? svc?.price ?? 0
       setCompletingAppt(appt)
       setCompleteRecordPayment(true)
-      setCompletePaymentAmount(String(svc?.price ?? 0))
+      setCompletePriceOverride(String(price))
+      setCompletePaymentAmount(String(price))
       setCompletePaymentMethod('nakit')
       setCompleteFollowup(false)
       setCompleteFollowupDate('')
@@ -670,9 +681,13 @@ export default function AppointmentsPage() {
 
     setCompleteBusy(true)
     try {
+      const priceOverrideValue = Number(completePriceOverride)
       const { error: statusErr } = await supabase
         .from('appointments')
-        .update({ status: 'tamamlandi' })
+        .update({
+          status: 'tamamlandi',
+          price_override: Number.isFinite(priceOverrideValue) && priceOverrideValue >= 0 ? priceOverrideValue : null,
+        })
         .eq('id', completingAppt.id)
       if (statusErr) {
         setCompleteError('Randevu tamamlanamadı: ' + statusErr.message)
@@ -1396,6 +1411,27 @@ export default function AppointmentsPage() {
             </p>
 
             <div className={styles.form}>
+              <div className="field" style={{ gridColumn: '1 / -1' }}>
+                <label htmlFor="completePriceOverride">
+                  Bu Randevunun Ücreti (TL)
+                  {(() => {
+                    const svc = services.find((s) => s.id === completingAppt.service_id)
+                    return svc?.price != null ? ` — standart ücret: ${currency.format(svc.price)}` : ''
+                  })()}
+                </label>
+                <input
+                  id="completePriceOverride"
+                  type="number"
+                  min={0}
+                  step="0.01"
+                  value={completePriceOverride}
+                  onChange={(e) => {
+                    setCompletePriceOverride(e.target.value)
+                    setCompletePaymentAmount(e.target.value)
+                  }}
+                />
+              </div>
+
               <div className="field" style={{ gridColumn: '1 / -1', marginBottom: 0 }}>
                 <label className={styles.checkboxLabel}>
                   <input

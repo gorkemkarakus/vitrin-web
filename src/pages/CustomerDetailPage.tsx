@@ -28,6 +28,7 @@ interface Appointment {
   scheduled_at: string
   status: 'bekliyor' | 'onaylandi' | 'tamamlandi' | 'iptal'
   package_id: string | null
+  price_override: number | null
 }
 
 interface ServicePackage {
@@ -101,7 +102,7 @@ export default function CustomerDetailPage() {
         .maybeSingle(),
       supabase
         .from('appointments')
-        .select('id, service_id, scheduled_at, status, package_id')
+        .select('id, service_id, scheduled_at, status, package_id, price_override')
         .eq('customer_id', id)
         .order('scheduled_at', { ascending: false }),
       supabase.from('service_packages').select('id, service_id, total_sessions, created_at').eq('customer_id', id),
@@ -127,15 +128,21 @@ export default function CustomerDetailPage() {
 
   const serviceById = useMemo(() => new Map(services.map((s) => [s.id, s])), [services])
 
-  // Paket bazinda: beklenen = seans sayisi x hizmet fiyati, odenen = o pakete
-  // bagli tum odemelerin toplami, kalan = beklenen - odenen.
+  // Paket bazinda: beklenen = ZATEN olusturulmus seanslarin gercek ucretleri
+  // (price_override varsa o, yoksa hizmet fiyati) + henuz randevusu
+  // acilmamis kalan seanslar icin standart fiyat tahmini. Boylece bir
+  // seansta ekstra bakim/boya gibi sebeplerle fiyat degisirse (bildirilen
+  // ihtiyac) paketin toplam beklenen tutari da buna gore guncelleniyor.
+  // Odenen = o pakete bagli tum odemelerin toplami, kalan = beklenen - odenen.
   const packageStats = useMemo(
     () =>
       packages.map((pkg) => {
         const svc = pkg.service_id ? serviceById.get(pkg.service_id) : undefined
         const sessions = appointments.filter((a) => a.package_id === pkg.id)
         const completed = sessions.filter((a) => a.status === 'tamamlandi').length
-        const expected = pkg.total_sessions * (svc?.price ?? 0)
+        const knownSessionsTotal = sessions.reduce((sum, a) => sum + (a.price_override ?? svc?.price ?? 0), 0)
+        const remainingSessionsEstimate = Math.max(0, pkg.total_sessions - sessions.length) * (svc?.price ?? 0)
+        const expected = knownSessionsTotal + remainingSessionsEstimate
         const paid = payments.filter((p) => p.package_id === pkg.id).reduce((s, p) => s + p.amount, 0)
         return { pkg, svc, sessionCount: sessions.length, completed, expected, paid, remaining: expected - paid }
       }),
@@ -149,7 +156,7 @@ export default function CustomerDetailPage() {
         .filter((a) => !a.package_id && a.status === 'tamamlandi')
         .map((a) => {
           const svc = a.service_id ? serviceById.get(a.service_id) : undefined
-          const expected = svc?.price ?? 0
+          const expected = a.price_override ?? svc?.price ?? 0
           const paid = payments.filter((p) => p.appointment_id === a.id).reduce((s, p) => s + p.amount, 0)
           return { appt: a, svc, expected, paid, remaining: expected - paid }
         }),

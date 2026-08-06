@@ -26,6 +26,7 @@ interface Appointment {
   scheduled_at: string
   duration_minutes: number | null
   package_id: string | null
+  price_override: number | null
 }
 
 interface Service {
@@ -121,7 +122,7 @@ export default function DashboardPage() {
           supabase
             .from('appointments')
             .select(
-              'id, customer_id, service_id, employee_id, created_by_user_id, status, source, scheduled_at, duration_minutes, package_id',
+              'id, customer_id, service_id, employee_id, created_by_user_id, status, source, scheduled_at, duration_minutes, package_id, price_override',
             ),
           supabase.from('services').select('id, name, price'),
           supabase.from('profiles').select('id, full_name'),
@@ -211,14 +212,16 @@ export default function DashboardPage() {
     )
     if (!hasSessionInRange) continue
     const price = pkg.service_id ? (servicePriceById.get(pkg.service_id) ?? 0) : 0
-    const expected = pkg.total_sessions * price
+    const knownSessionsTotal = sessions.reduce((sum, a) => sum + (a.price_override ?? price), 0)
+    const remainingSessionsEstimate = Math.max(0, pkg.total_sessions - sessions.length) * price
+    const expected = knownSessionsTotal + remainingSessionsEstimate
     const paid = payments.filter((p) => p.package_id === pkg.id).reduce((sum, p) => sum + p.amount, 0)
     const remaining = Math.max(0, expected - paid)
     if (remaining > 0) debtByCustomerInRange.set(pkg.customer_id, (debtByCustomerInRange.get(pkg.customer_id) ?? 0) + remaining)
   }
   for (const a of rangedCompleted) {
     if (a.package_id || !a.customer_id) continue
-    const expected = a.service_id ? (servicePriceById.get(a.service_id) ?? 0) : 0
+    const expected = a.price_override ?? (a.service_id ? (servicePriceById.get(a.service_id) ?? 0) : 0)
     const paid = payments.filter((p) => p.appointment_id === a.id).reduce((sum, p) => sum + p.amount, 0)
     const remaining = Math.max(0, expected - paid)
     if (remaining > 0) debtByCustomerInRange.set(a.customer_id, (debtByCustomerInRange.get(a.customer_id) ?? 0) + remaining)
