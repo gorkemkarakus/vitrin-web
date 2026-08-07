@@ -441,9 +441,9 @@
   width: 34px;
   height: 34px;
   border-radius: 50%;
-  border: 1px solid var(--line);
-  background: var(--panel);
-  color: var(--text);
+  border: none;
+  background: var(--info-bg);
+  color: var(--signal);
   font-size: 18px;
   font-weight: 700;
   cursor: pointer;
@@ -501,6 +501,11 @@
   display: flex;
   flex-direction: column;
   min-width: 0;
+}
+
+.packageTopColDivided {
+  border-left: 1px solid var(--line);
+  padding-left: 16px;
 }
 
 .packageEditBtn {

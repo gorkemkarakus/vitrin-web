@@ -1846,7 +1846,7 @@ export default function AppointmentsPage() {
                             )}
                           </div>
 
-                          <div className={styles.packageTopCol}>
+                          <div className={`${styles.packageTopCol} ${styles.packageTopColDivided}`}>
                             <div className={styles.completeInfoStripLabel} style={{ marginBottom: 8 }}>
                               Paket Tutarı
                             </div>
