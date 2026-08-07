@@ -25,6 +25,7 @@ import {
   HelpCircleIcon,
   ServicesIcon,
   LayersIcon,
+  ReceiptIcon,
 } from '../components/icons'
 import type { LayoutOutletContext } from '../layouts/DashboardLayout'
 import styles from './AppointmentsPage.module.css'
@@ -115,12 +116,9 @@ function CompleteSectionHeader({ number, title, optional }: { number: number; ti
     <div className={styles.sectionHeader}>
       <span className={styles.sectionHeaderTitle}>
         {number}. {title}
+        {optional && <span className={styles.sectionOptionalSuffix}> (İsteğe Bağlı)</span>}
       </span>
-      {optional ? (
-        <span className={styles.sectionBadgeOptional}>İsteğe Bağlı</span>
-      ) : (
-        <span className={styles.sectionBadgeRequired}>Zorunlu</span>
-      )}
+      {!optional && <span className={styles.sectionBadgeRequired}>Zorunlu</span>}
     </div>
   )
 }
@@ -333,6 +331,9 @@ export default function AppointmentsPage() {
   const [completePaymentMethod, setCompletePaymentMethod] = useState('')
   const [completeFollowupDate, setCompleteFollowupDate] = useState('')
   const [completeFollowupTime, setCompleteFollowupTime] = useState('')
+  // "Tarih Seç" dokunulana kadar tarih/saat alanlari gizli kalir (amber
+  // kartta sadece bir buton gorunur) — dokununca acilir.
+  const [completeNextSessionExpanded, setCompleteNextSessionExpanded] = useState(false)
   const [completeNote, setCompleteNote] = useState('')
   const [completeBusy, setCompleteBusy] = useState(false)
   const [completeError, setCompleteError] = useState<string | null>(null)
@@ -718,6 +719,7 @@ export default function AppointmentsPage() {
       setCompletePaymentMethod('')
       setCompleteFollowupDate('')
       setCompleteFollowupTime('')
+      setCompleteNextSessionExpanded(false)
       setCompleteNote('')
       setCompleteError(null)
 
@@ -2070,27 +2072,40 @@ export default function AppointmentsPage() {
                               <div className={styles.nextSessionTitle}>Bir sonraki seans tarihini seçin.</div>
                               <div className={styles.nextSessionSub}>Tarih seçilmeden işlem tamamlanamaz.</div>
                             </div>
+                            {!completeNextSessionExpanded && (
+                              <button
+                                type="button"
+                                className={styles.nextSessionPickBtn}
+                                onClick={() => setCompleteNextSessionExpanded(true)}
+                              >
+                                <CalendarIcon width={13} height={13} /> Tarih Seç
+                                <ChevronRightIcon width={13} height={13} />
+                              </button>
+                            )}
                           </div>
-                          <div className={styles.nextSessionFields}>
-                            <div className="field" style={{ flex: 1, marginBottom: 0 }}>
-                              <label htmlFor="followupDate">Tarih</label>
-                              <input
-                                id="followupDate"
-                                type="date"
-                                value={completeFollowupDate}
-                                onChange={(e) => setCompleteFollowupDate(e.target.value)}
-                              />
+                          {(completeNextSessionExpanded || (completeFollowupDate && completeFollowupTime)) && (
+                            <div className={styles.nextSessionFields}>
+                              <div className="field" style={{ flex: 1, marginBottom: 0 }}>
+                                <label htmlFor="followupDate">Tarih</label>
+                                <input
+                                  id="followupDate"
+                                  type="date"
+                                  autoFocus
+                                  value={completeFollowupDate}
+                                  onChange={(e) => setCompleteFollowupDate(e.target.value)}
+                                />
+                              </div>
+                              <div className="field" style={{ flex: 1, marginBottom: 0 }}>
+                                <label htmlFor="followupTime">Saat</label>
+                                <Select
+                                  id="followupTime"
+                                  value={completeFollowupTime}
+                                  onChange={setCompleteFollowupTime}
+                                  options={TIME_OPTIONS.map((t) => ({ value: t, label: t }))}
+                                />
+                              </div>
                             </div>
-                            <div className="field" style={{ flex: 1, marginBottom: 0 }}>
-                              <label htmlFor="followupTime">Saat</label>
-                              <Select
-                                id="followupTime"
-                                value={completeFollowupTime}
-                                onChange={setCompleteFollowupTime}
-                                options={TIME_OPTIONS.map((t) => ({ value: t, label: t }))}
-                              />
-                            </div>
-                          </div>
+                          )}
                         </>
                       ) : (
                         <div className={styles.lastSessionCard}>
@@ -2104,13 +2119,18 @@ export default function AppointmentsPage() {
                   {showCompleteRest && (
                     <div className={styles.sectionBlock}>
                       <CompleteSectionHeader number={nextNum()} title="NOT" optional />
-                      <textarea
-                        className={styles.noteTextarea}
-                        placeholder="Not eklemek için dokunun…"
-                        maxLength={250}
-                        value={completeNote}
-                        onChange={(e) => setCompleteNote(e.target.value)}
-                      />
+                      <div className={styles.noteInputWrap}>
+                        <span className={styles.noteIcon}>
+                          <ReceiptIcon width={15} height={15} />
+                        </span>
+                        <textarea
+                          className={styles.noteTextarea}
+                          placeholder="Not eklemek için dokunun…"
+                          maxLength={250}
+                          value={completeNote}
+                          onChange={(e) => setCompleteNote(e.target.value)}
+                        />
+                      </div>
                       <div className={styles.noteCounter}>{completeNote.length} / 250</div>
                     </div>
                   )}
