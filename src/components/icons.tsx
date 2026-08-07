@@ -356,6 +356,55 @@ export function SparkleIcon(props: IconProps) {
   )
 }
 
+export function UserIcon(props: IconProps) {
+  return (
+    <svg {...base} {...props}>
+      <circle cx="12" cy="8" r="4" />
+      <path d="M4 20c0-3.9 3.6-7 8-7s8 3.1 8 7" />
+    </svg>
+  )
+}
+
+export function CreditCardIcon(props: IconProps) {
+  return (
+    <svg {...base} {...props}>
+      <rect x="2.5" y="5" width="19" height="14" rx="2" />
+      <path d="M2.5 9.5h19" />
+      <path d="M6 14.5h4" />
+    </svg>
+  )
+}
+
+export function BankIcon(props: IconProps) {
+  return (
+    <svg {...base} {...props}>
+      <path d="M3 9.5 12 4l9 5.5" />
+      <path d="M4.5 9.5v9M9 9.5v9M15 9.5v9M19.5 9.5v9" />
+      <path d="M3 18.5h18" />
+    </svg>
+  )
+}
+
+export function InfoIcon(props: IconProps) {
+  return (
+    <svg {...base} {...props}>
+      <circle cx="12" cy="12" r="9" />
+      <path d="M12 11v5.5" />
+      <circle cx="12" cy="7.8" r="0.6" fill="currentColor" stroke="none" />
+    </svg>
+  )
+}
+
+export function LayersIcon(props: IconProps) {
+  return (
+    <svg {...base} {...props}>
+      <path d="M12 3.5 21 8.5 12 13.5 3 8.5Z" />
+      <path d="m3 13 9 5 9-5" />
+      <path d="m3 17.5 9 5 9-5" />
+    </svg>
+  )
+}
+
 export function PencilIcon(props: IconProps) {
   return (
     <svg {...base} {...props}>
