@@ -1811,8 +1811,8 @@ export default function AppointmentsPage() {
                     <div className={styles.sectionBlock}>
                       <CompleteSectionHeader number={nextNum()} title="PAKET BİLGİLERİ" />
                       <div className="card" style={{ padding: 14 }}>
-                        <div className={styles.packageInfoGrid}>
-                          <div>
+                        <div className={styles.packageTopRow}>
+                          <div className={styles.packageTopCol}>
                             <div className={styles.completeInfoStripLabel} style={{ marginBottom: 8 }}>
                               Toplam Seans
                             </div>
@@ -1845,15 +1845,18 @@ export default function AppointmentsPage() {
                               <span className={styles.stepperValue}>{completionPreview.totalSessionsForCheck}</span>
                             )}
                           </div>
-                          <div className={styles.packageAmountBlock}>
-                            <div className={styles.completeInfoStripLabel}>Paket Tutarı</div>
+
+                          <div className={styles.packageTopCol}>
+                            <div className={styles.completeInfoStripLabel} style={{ marginBottom: 8 }}>
+                              Paket Tutarı
+                            </div>
                             {completePackageAmountEditing ? (
                               <input
                                 type="number"
                                 min={0}
                                 step="0.01"
                                 autoFocus
-                                style={{ maxWidth: 140, textAlign: 'right' }}
+                                style={{ maxWidth: 130 }}
                                 defaultValue={completionPreview.previewExpected}
                                 onChange={(e) => {
                                   const newTotal = Number(e.target.value) || 0
@@ -1863,23 +1866,21 @@ export default function AppointmentsPage() {
                                 onBlur={() => setCompletePackageAmountEditing(false)}
                               />
                             ) : (
-                              <>
-                                <span className={styles.packageAmountValue}>
-                                  {currency.format(completionPreview.previewExpected)}
-                                </span>
-                                {completionPreview.creatingPackage && (
-                                  <button
-                                    type="button"
-                                    className={styles.priceEditLink}
-                                    style={{ marginTop: 4 }}
-                                    onClick={() => setCompletePackageAmountEditing(true)}
-                                  >
-                                    <PencilIcon width={11} height={11} /> Düzenle
-                                  </button>
-                                )}
-                              </>
+                              <span className={styles.packageAmountValue}>
+                                {currency.format(completionPreview.previewExpected)}
+                              </span>
                             )}
                           </div>
+
+                          {!completePackageAmountEditing && completionPreview.creatingPackage && (
+                            <button
+                              type="button"
+                              className={styles.packageEditBtn}
+                              onClick={() => setCompletePackageAmountEditing(true)}
+                            >
+                              <PencilIcon width={12} height={12} /> Düzenle
+                            </button>
+                          )}
                         </div>
 
                         <div className={styles.progressBarWrap}>
@@ -1889,22 +1890,21 @@ export default function AppointmentsPage() {
                               {completionPreview.currentSessionNumber} / {completionPreview.totalSessionsForCheck} Seans
                             </span>
                           </div>
-                          <div className={styles.progressBarTrackWrap}>
-                            <div className={styles.progressBarTrack}>
-                              <div
-                                className={styles.progressBarFill}
-                                style={{
-                                  width: `${Math.min(100, (completionPreview.currentSessionNumber / Math.max(1, completionPreview.totalSessionsForCheck)) * 100)}%`,
-                                }}
-                              />
-                            </div>
-                            <span className={styles.progressBarStartCheck}>
-                              <CheckCircleIcon width={9} height={9} />
-                            </span>
+                          <div className={styles.segmentBar}>
+                            {Array.from({ length: completionPreview.totalSessionsForCheck }).map((_, i) => (
+                              <span
+                                key={i}
+                                className={i < completionPreview!.currentSessionNumber ? styles.segmentDone : styles.segmentPending}
+                              >
+                                {i < completionPreview!.currentSessionNumber && (
+                                  <CheckCircleIcon width={9} height={9} />
+                                )}
+                              </span>
+                            ))}
                           </div>
                         </div>
 
-                        <div className={styles.debtBlock}>
+                        <div className={styles.debtBlockStacked}>
                           <span className={styles.debtLabel}>Kalan Borç</span>
                           {(() => {
                             const pkgDebt = Math.max(
