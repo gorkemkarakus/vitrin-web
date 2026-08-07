@@ -81,13 +81,16 @@ interface ServicePackage {
   customer_id: string
   service_id: string | null
   total_sessions: number
+  session_offset: number
+  status: 'aktif' | 'tamamlandi'
 }
 
 const currency = new Intl.NumberFormat('tr-TR', { style: 'currency', currency: 'TRY' })
 
 const PAYMENT_METHOD_OPTIONS = [
   { value: 'nakit', label: 'Nakit' },
-  { value: 'kart', label: 'Kart' },
+  { value: 'kart', label: 'Kredi Kartı' },
+  { value: 'havale', label: 'Havale / EFT' },
   { value: 'diger', label: 'Diğer' },
 ]
 
@@ -261,9 +264,21 @@ export default function AppointmentsPage() {
   const [packageTotalSessions, setPackageTotalSessions] = useState('8')
   const [existingPackageId, setExistingPackageId] = useState('')
 
-  // "Tamamlandi" isaretlenince acilan odeme + devam randevusu mini-sihirbazi.
+  // "Tamamlandi" isaretlenince acilan odeme + sonraki seans mini-sihirbazi.
   const [completingAppt, setCompletingAppt] = useState<Appointment | null>(null)
-  const [completeRecordPayment, setCompleteRecordPayment] = useState(true)
+  // Randevu henuz bir pakete bagli degilse (ilk tamamlama), zorunlu olarak
+  // sorulan "Tek Seferlik / Seanslı" karari — paket zaten varsa bu soru hic
+  // sorulmuyor (asagida completingAppt.package_id kontrolu ile atlaniyor).
+  const [completeTransactionType, setCompleteTransactionType] = useState<'tek' | 'seansli' | null>(null)
+  const [completePackageTotalSessions, setCompletePackageTotalSessions] = useState('8')
+  const [completePackageSessionNumber, setCompletePackageSessionNumber] = useState('1')
+  const [completePackageNote, setCompletePackageNote] = useState('')
+  // Randevu zaten bir pakete bagliysa, o paketin TUM seanslari+odemeleri
+  // taze cekilip (handleStatusChange icinde) paket zaten tamamen tahsil
+  // edilmis mi diye onceden hesaplanir — oyleyse odeme alanlari hic
+  // gosterilmez ("Bu paket daha once tamamen tahsil edilmistir").
+  const [completeFullyPaid, setCompleteFullyPaid] = useState(false)
+  const [completeLoadingScope, setCompleteLoadingScope] = useState(false)
   // Standart hizmet fiyatindan farkli olabilecek, BU randevuya ozel gercek
   // ucret (ör. ekstra bakim/boya ile pahalanmis) — "Alınan Tutar"dan ayri,
   // cunku tutar kismi odenmis olabilir. Degistirilince Alınan Tutar da
@@ -274,8 +289,9 @@ export default function AppointmentsPage() {
   // bakiye tum ucreti karsiliyorsa nakit/kart alanlarina hic gerek kalmaz.
   const [completeBalanceAmount, setCompleteBalanceAmount] = useState('')
   const [completePaymentAmount, setCompletePaymentAmount] = useState('')
-  const [completePaymentMethod, setCompletePaymentMethod] = useState('nakit')
-  const [completeFollowup, setCompleteFollowup] = useState(false)
+  // Bos birakiliyor (varsayilan yontem YOK) — bir tutar girildiyse yontem
+  // secilmeden Tamamla butonu acilmiyor (zorunlu secim).
+  const [completePaymentMethod, setCompletePaymentMethod] = useState('')
   const [completeFollowupDate, setCompleteFollowupDate] = useState('')
   const [completeFollowupTime, setCompleteFollowupTime] = useState('')
   const [completeBusy, setCompleteBusy] = useState(false)
@@ -320,7 +336,7 @@ export default function AppointmentsPage() {
         )
         .order('scheduled_at', { ascending: true }),
       supabase.from('customers').select('id, full_name, phone, contact_phone, credit_balance').order('full_name'),
-      supabase.from('service_packages').select('id, customer_id, service_id, total_sessions'),
+      supabase.from('service_packages').select('id, customer_id, service_id, total_sessions, session_offset, status'),
       supabase
         .from('services')
         .select('id, name, duration_minutes, price, category_id')
@@ -449,7 +465,7 @@ export default function AppointmentsPage() {
       .filter((x) => x.package_id === a.package_id)
       .sort((x, y) => x.scheduled_at.localeCompare(y.scheduled_at))
     const idx = siblings.findIndex((x) => x.id === a.id)
-    return { current: idx + 1, total: pkg.total_sessions }
+    return { current: idx + 1 + pkg.session_offset, total: pkg.total_sessions }
   }
 
   function closeForm() {
@@ -648,22 +664,47 @@ export default function AppointmentsPage() {
     await loadData(true)
   }
 
-  function handleStatusChange(appt: Appointment, status: Appointment['status']) {
+  async function handleStatusChange(appt: Appointment, status: Appointment['status']) {
     if (status === 'tamamlandi') {
       const svc = services.find((s) => s.id === appt.service_id)
       const price = appt.price_override ?? svc?.price ?? 0
       const customer = customers.find((c) => c.id === appt.customer_id)
       const suggestedFromBalance = customer ? Math.min(customer.credit_balance, price) : 0
       setCompletingAppt(appt)
-      setCompleteRecordPayment(true)
+      setCompleteTransactionType(appt.package_id ? 'seansli' : null)
+      setCompletePackageTotalSessions('8')
+      setCompletePackageSessionNumber('1')
+      setCompletePackageNote('')
+      setCompleteFullyPaid(false)
       setCompletePriceOverride(String(price))
       setCompleteBalanceAmount(suggestedFromBalance > 0 ? String(suggestedFromBalance) : '')
       setCompletePaymentAmount(String(Math.max(0, price - suggestedFromBalance)))
-      setCompletePaymentMethod('nakit')
-      setCompleteFollowup(false)
+      setCompletePaymentMethod('')
       setCompleteFollowupDate('')
       setCompleteFollowupTime('')
       setCompleteError(null)
+
+      // Randevu zaten bir pakete bagliysa, "Bu paket daha once tamamen
+      // tahsil edilmis mi?" sorusunu modal acilmadan ONCE, o paketin taze
+      // seans+odeme verisiyle yanitliyoruz — submitCompletion'daki "scope"
+      // hesabinin (satir ~830+) birebir ayni formulu.
+      if (appt.package_id) {
+        setCompleteLoadingScope(true)
+        const pkg = servicePackages.find((p) => p.id === appt.package_id)
+        const pkgServicePrice = pkg?.service_id ? (services.find((s) => s.id === pkg.service_id)?.price ?? 0) : 0
+        const [{ data: sessions }, { data: pkgPayments }] = await Promise.all([
+          supabase.from('appointments').select('price_override').eq('package_id', appt.package_id),
+          supabase.from('payments').select('amount').eq('package_id', appt.package_id),
+        ])
+        const knownSessionsTotal = (sessions ?? []).reduce((sum, s) => sum + (s.price_override ?? pkgServicePrice), 0)
+        const remainingSessionsEstimate =
+          Math.max(0, (pkg?.total_sessions ?? 0) - (pkg?.session_offset ?? 0) - (sessions ?? []).length) *
+          pkgServicePrice
+        const scopeExpected = knownSessionsTotal + remainingSessionsEstimate
+        const scopePaid = (pkgPayments ?? []).reduce((sum, p) => sum + p.amount, 0)
+        setCompleteFullyPaid(scopePaid >= scopeExpected)
+        setCompleteLoadingScope(false)
+      }
     } else {
       updateStatus(appt, status)
     }
@@ -673,10 +714,63 @@ export default function AppointmentsPage() {
     if (!completingAppt) return
     setCompleteError(null)
 
+    // 1) Islem turu zorunlu (paket henuz yoksa).
+    const isNewPackageDecision = !completingAppt.package_id
+    if (isNewPackageDecision && !completeTransactionType) {
+      setCompleteError('Lütfen işlem türünü seçin.')
+      return
+    }
+    const creatingPackage = isNewPackageDecision && completeTransactionType === 'seansli'
+
+    let packageTotalSessionsValue = 0
+    let packageSessionNumberValue = 0
+    if (creatingPackage) {
+      packageTotalSessionsValue = Math.round(Number(completePackageTotalSessions))
+      packageSessionNumberValue = Math.round(Number(completePackageSessionNumber))
+      if (!packageTotalSessionsValue || packageTotalSessionsValue < 1) {
+        setCompleteError('Geçerli bir toplam seans sayısı girin.')
+        return
+      }
+      if (
+        !packageSessionNumberValue ||
+        packageSessionNumberValue < 1 ||
+        packageSessionNumberValue > packageTotalSessionsValue
+      ) {
+        setCompleteError('Geçerli bir "kaçıncı seans" girin (1 ile toplam seans sayısı arasında).')
+        return
+      }
+    }
+
     const svc = services.find((s) => s.id === completingAppt.service_id)
+    const isPackageFlow = !!completingAppt.package_id || creatingPackage
+
+    // 2) Bu seans kacinci/son seans mi? (mevcut paketse siblings'ten,
+    // yeni olusturuluyorsa girilen degerlerden hesaplanir).
+    let currentSessionNumber = 0
+    let totalSessionsForCheck = 0
+    if (creatingPackage) {
+      currentSessionNumber = packageSessionNumberValue
+      totalSessionsForCheck = packageTotalSessionsValue
+    } else if (completingAppt.package_id) {
+      const pkg = servicePackages.find((p) => p.id === completingAppt.package_id)
+      totalSessionsForCheck = pkg?.total_sessions ?? 0
+      const siblings = appointments
+        .filter((x) => x.package_id === completingAppt.package_id)
+        .sort((x, y) => x.scheduled_at.localeCompare(y.scheduled_at))
+      const idx = siblings.findIndex((x) => x.id === completingAppt.id)
+      currentSessionNumber = idx + 1 + (pkg?.session_offset ?? 0)
+    }
+    const isLastSession = isPackageFlow && totalSessionsForCheck > 0 && currentSessionNumber >= totalSessionsForCheck
+    const needsNextSession = isPackageFlow && !isLastSession
+
+    // 3) Sonraki seans tarihi zorunlu (paket akisinda, son seans degilse).
     const followupDuration = svc?.duration_minutes ?? SLOT_MINUTES
     let followupStart: Date | null = null
-    if (completeFollowup && completeFollowupDate && completeFollowupTime) {
+    if (needsNextSession) {
+      if (!completeFollowupDate || !completeFollowupTime) {
+        setCompleteError('Bir sonraki seans tarihini seçiniz.')
+        return
+      }
       followupStart = new Date(`${completeFollowupDate}T${completeFollowupTime}`)
       // Ana "Yeni Randevu" formuyla AYNI kontrol (isEmployeeAvailable): calisan
       // atanmissa mesai saatleri/izin/cakisma burada da uygulanmali — daha
@@ -687,6 +781,30 @@ export default function AppointmentsPage() {
         setCompleteError('Seçilen çalışan bu saatte müsait değil (mesai dışı, izinli veya dolu). Farklı bir saat seçin.')
         return
       }
+    }
+
+    // Ucret: bakiyeden dusulen + nakit/kart ile alinan kismin toplami.
+    // Odemeler HER ZAMAN girildigi gibi (kirpilmadan) kaydedilir; fazlalik
+    // olup olmadigi bu islemden SONRA, ilgili KAPSAMIN (paketliyse TUM
+    // paketin, degilse sadece bu randevunun) GUNCEL veritabani durumuna
+    // bakilarak hesaplanir — boylece "seans 1'de az, seans 2'de fazla
+    // odendi" gibi durumlar da doğru netlesir. Fazlalik HER DURUMDA
+    // (paketli/paketsiz fark etmeksizin) musteri bakiyesine gider; bir
+    // sonraki seansta/randevuda "Bakiyeden Al" ile goruluyor ve
+    // kullanilabiliyor. Paket zaten tamamen tahsil edilmisse (completeFullyPaid)
+    // odeme alanlari hic gosterilmedigi icin burada da hep 0 kalir.
+    const price = Number(completePriceOverride) || 0
+    const customer = customers.find((c) => c.id === completingAppt.customer_id)
+    const balanceAvailable = customer?.credit_balance ?? 0
+    const balanceRequested = completeFullyPaid
+      ? 0
+      : Math.min(Number(completeBalanceAmount) || 0, balanceAvailable, price)
+    const entered = completeFullyPaid ? 0 : Number(completePaymentAmount) || 0
+
+    // 4) Odeme yontemi zorunlu (bir tutar tahsil ediliyorsa).
+    if (!completeFullyPaid && entered > 0 && !completePaymentMethod) {
+      setCompleteError('Ödeme yöntemini seçin.')
+      return
     }
 
     setCompleteBusy(true)
@@ -704,29 +822,27 @@ export default function AppointmentsPage() {
         return
       }
 
-      // Tamamlanan randevu bir pakete ait degilse ("tek seferlik" acilmisti
-      // ama is bitmedi/devami var), devam randevusu istendiginde geriye
-      // donuk 2 seanslik bir paket olusturup HER IKI randevuyu da buna
-      // baglıyoruz — boylece "2. seans" ilerlemesi mevcut paket
-      // altyapisiyla (packageProgress) otomatik gorunur, ayri bir kavram
-      // icat etmeye gerek kalmiyor. BU ISLEM odeme kaydindan ONCE yapiliyor
-      // — aksi halde odeme eski (bos) package_id ile kaydolup pakete hic
-      // baglanmiyor, paket "hic odenmemis" gibi gorunuyordu (bildirildi).
+      // "Seanslı İşlem" ilk kez secildiyse paket burada olusturulup randevu
+      // ona baglaniyor — bu ODEME KAYDINDAN ONCE yapiliyor, aksi halde odeme
+      // eski (bos) package_id ile kaydolup pakete hic baglanmiyor, paket
+      // "hic odenmemis" gibi gorunuyordu (daha once bildirilmis bir hata).
       let effectivePackageId = completingAppt.package_id
-      if (completeFollowup && followupStart && !effectivePackageId) {
+      if (creatingPackage) {
         const { data: newPackage, error: pkgErr } = await supabase
           .from('service_packages')
           .insert({
             business_id: profile?.business_id,
             customer_id: completingAppt.customer_id,
             service_id: completingAppt.service_id,
-            total_sessions: 2,
+            total_sessions: packageTotalSessionsValue,
+            session_offset: Math.max(0, packageSessionNumberValue - 1),
+            note: completePackageNote.trim() || null,
             created_by_user_id: profile?.id,
           })
           .select('id')
           .single()
         if (pkgErr || !newPackage) {
-          setError('Randevu tamamlandı ama devam randevusu için paket oluşturulamadı: ' + (pkgErr?.message ?? ''))
+          setError('Randevu tamamlandı ama paket oluşturulamadı: ' + (pkgErr?.message ?? ''))
           setCompletingAppt(null)
           await loadData(true)
           return
@@ -734,22 +850,6 @@ export default function AppointmentsPage() {
         effectivePackageId = newPackage.id
         await supabase.from('appointments').update({ package_id: effectivePackageId }).eq('id', completingAppt.id)
       }
-
-      // Ucret: bakiyeden dusulen + nakit/kart ile alinan kismin toplami.
-      // Odemeler HER ZAMAN girildigi gibi (kirpilmadan) kaydedilir; fazlalik
-      // olup olmadigi bu islemden SONRA, ilgili KAPSAMIN (paketliyse TUM
-      // paketin, degilse sadece bu randevunun) GUNCEL veritabani durumuna
-      // bakilarak hesaplanir — boylece "seans 1'de az, seans 2'de fazla
-      // odendi" gibi durumlar da doğru netlesir. Fazlalik HER DURUMDA
-      // (paketli/paketsiz fark etmeksizin) musteri bakiyesine gider; bir
-      // sonraki seansta/randevuda "Bakiyeden Al" ile goruluyor ve
-      // kullanilabiliyor (bildirilen sorun: paket-ici fazlalik hicbir yerde
-      // gorunmeden/kullanilamadan kayboluyordu).
-      const price = Number(completePriceOverride) || 0
-      const customer = customers.find((c) => c.id === completingAppt.customer_id)
-      const balanceAvailable = customer?.credit_balance ?? 0
-      const balanceRequested = Math.min(Number(completeBalanceAmount) || 0, balanceAvailable, price)
-      const entered = completeRecordPayment ? Number(completePaymentAmount) || 0 : 0
 
       if (balanceRequested > 0) {
         const { error: balPayErr } = await supabase.from('payments').insert({
@@ -796,15 +896,26 @@ export default function AppointmentsPage() {
       let scopeExpected = price
       let scopePaid = balanceRequested + entered
       if (effectivePackageId) {
-        const pkg = servicePackages.find((p) => p.id === effectivePackageId)
-        const pkgServicePrice = pkg?.service_id ? (services.find((s) => s.id === pkg.service_id)?.price ?? 0) : 0
+        // Yeni olusturulan paket henuz yerel state'te yok — o durumda
+        // formdan girilen degerler, mevcut pakette ise kayitli degerler
+        // kullanilir (submitCompletion basindaki ayni mantik).
+        const pkgRecord = !creatingPackage ? servicePackages.find((p) => p.id === effectivePackageId) : null
+        const pkgServicePrice = creatingPackage
+          ? (svc?.price ?? 0)
+          : pkgRecord?.service_id
+            ? (services.find((s) => s.id === pkgRecord.service_id)?.price ?? 0)
+            : 0
+        const pkgTotalSessions = creatingPackage ? packageTotalSessionsValue : (pkgRecord?.total_sessions ?? 0)
+        const pkgSessionOffsetValue = creatingPackage
+          ? Math.max(0, packageSessionNumberValue - 1)
+          : (pkgRecord?.session_offset ?? 0)
         const [{ data: sessions }, { data: pkgPayments }] = await Promise.all([
           supabase.from('appointments').select('price_override').eq('package_id', effectivePackageId),
           supabase.from('payments').select('amount').eq('package_id', effectivePackageId),
         ])
         const knownSessionsTotal = (sessions ?? []).reduce((sum, s) => sum + (s.price_override ?? pkgServicePrice), 0)
         const remainingSessionsEstimate =
-          Math.max(0, (pkg?.total_sessions ?? 0) - (sessions ?? []).length) * pkgServicePrice
+          Math.max(0, pkgTotalSessions - pkgSessionOffsetValue - (sessions ?? []).length) * pkgServicePrice
         scopeExpected = knownSessionsTotal + remainingSessionsEstimate
         scopePaid = (pkgPayments ?? []).reduce((sum, p) => sum + p.amount, 0)
       } else if (completingAppt.customer_id) {
@@ -830,7 +941,14 @@ export default function AppointmentsPage() {
         }
       }
 
-      if (completeFollowup && followupStart) {
+      // Son seansta paket otomatik "tamamlandi" durumuna geciyor — bir daha
+      // "Mevcut Pakete Ekle" listesinde gorunmuyor, sonraki seans da hic
+      // istenmiyor (asagida needsNextSession zaten false).
+      if (effectivePackageId && isLastSession) {
+        await supabase.from('service_packages').update({ status: 'tamamlandi' }).eq('id', effectivePackageId)
+      }
+
+      if (needsNextSession && followupStart) {
         const { error: followupErr } = await supabase.from('appointments').insert({
           business_id: profile?.business_id,
           customer_id: completingAppt.customer_id,
@@ -845,7 +963,7 @@ export default function AppointmentsPage() {
         if (followupErr) {
           const isOverlap = /exclusion|conflicting key|deadlock/i.test(followupErr.message)
           setError(
-            'Randevu tamamlandı ama devam randevusu oluşturulamadı: ' +
+            'Randevu tamamlandı ama sonraki seans oluşturulamadı: ' +
               (isOverlap
                 ? 'seçilen saat az önce başka bir randevuyla dolmuş. Farklı bir saati "Mevcut Pakete Ekle" ile ekleyin.'
                 : followupErr.message),
@@ -1028,6 +1146,60 @@ export default function AppointmentsPage() {
     tamamlandi: visible.filter((a) => a.status === 'tamamlandi').length,
     iptal: visible.filter((a) => a.status === 'iptal').length,
   }
+
+  // Tamamlama modalinin "onizlemesi" — modalin hangi bolumlerinin
+  // gosterilecegini ve Tamamla butonunun ne zaman acilacagini belirler.
+  // submitCompletion icindeki AYNI hesaplama gercek kaydi yapar; burasi
+  // sadece render/disabled durumunu onceden bilmek icin.
+  let completionPreview: { isPackageFlow: boolean; isLastSession: boolean; needsNextSession: boolean; creatingPackage: boolean } | null =
+    null
+  if (completingAppt) {
+    const isNewPackageDecision = !completingAppt.package_id
+    const creatingPackage = isNewPackageDecision && completeTransactionType === 'seansli'
+    const isPackageFlow = !!completingAppt.package_id || creatingPackage
+    let currentSessionNumber = 0
+    let totalSessionsForCheck = 0
+    if (creatingPackage) {
+      currentSessionNumber = Math.round(Number(completePackageSessionNumber)) || 0
+      totalSessionsForCheck = Math.round(Number(completePackageTotalSessions)) || 0
+    } else if (completingAppt.package_id) {
+      const pkg = servicePackages.find((p) => p.id === completingAppt.package_id)
+      totalSessionsForCheck = pkg?.total_sessions ?? 0
+      const siblings = appointments
+        .filter((x) => x.package_id === completingAppt.package_id)
+        .sort((x, y) => x.scheduled_at.localeCompare(y.scheduled_at))
+      const idx = siblings.findIndex((x) => x.id === completingAppt.id)
+      currentSessionNumber = idx + 1 + (pkg?.session_offset ?? 0)
+    }
+    const isLastSession = isPackageFlow && totalSessionsForCheck > 0 && currentSessionNumber >= totalSessionsForCheck
+    completionPreview = { isPackageFlow, isLastSession, needsNextSession: isPackageFlow && !isLastSession, creatingPackage }
+  }
+
+  // Eksik zorunlu alanlar — hem "Tamamla" butonunu kilitlemek hem de
+  // kullaniciya NEDEN ilerleyemedigini acikca gostermek icin tek yerden.
+  const completeMissing: string[] = []
+  if (completingAppt) {
+    if (!completingAppt.package_id && !completeTransactionType) {
+      completeMissing.push('İşlem türünü seçin.')
+    }
+    if (completionPreview?.creatingPackage) {
+      const total = Math.round(Number(completePackageTotalSessions))
+      const sessionNo = Math.round(Number(completePackageSessionNumber))
+      if (!total || total < 1) completeMissing.push('Geçerli bir toplam seans sayısı girin.')
+      else if (!sessionNo || sessionNo < 1 || sessionNo > total)
+        completeMissing.push('Geçerli bir "kaçıncı seans" girin.')
+    }
+    if (!completeFullyPaid) {
+      const entered = Number(completePaymentAmount) || 0
+      if (entered > 0 && !completePaymentMethod) {
+        completeMissing.push('Ödeme yöntemini seçin.')
+      }
+    }
+    if (completionPreview?.needsNextSession && (!completeFollowupDate || !completeFollowupTime)) {
+      completeMissing.push('Bir sonraki seans tarihini seçiniz.')
+    }
+  }
+  const canSubmitCompletion = completingAppt !== null && !completeLoadingScope && completeMissing.length === 0
 
   function renderRow(a: Appointment) {
     const d = new Date(a.scheduled_at)
@@ -1399,14 +1571,15 @@ export default function AppointmentsPage() {
                       value={existingPackageId}
                       onChange={setExistingPackageId}
                       options={servicePackages
-                        .filter((p) => p.customer_id === customerId)
+                        .filter((p) => p.customer_id === customerId && p.status !== 'tamamlandi')
                         .map((p) => {
-                          const used = appointments.filter((a) => a.package_id === p.id).length
+                          const used = appointments.filter((a) => a.package_id === p.id).length + p.session_offset
                           const svcName = services.find((s) => s.id === p.service_id)?.name ?? 'Hizmet'
                           return { value: p.id, label: `${svcName} — ${used}/${p.total_sessions} seans` }
                         })}
                     />
-                    {servicePackages.filter((p) => p.customer_id === customerId).length === 0 && (
+                    {servicePackages.filter((p) => p.customer_id === customerId && p.status !== 'tamamlandi')
+                      .length === 0 && (
                       <p style={{ fontSize: 12, color: 'var(--text-dim)', marginTop: 4 }}>
                         Bu müşterinin açık bir paketi yok.
                       </p>
@@ -1491,182 +1664,263 @@ export default function AppointmentsPage() {
               {customerName(completingAppt.customer_id)} — {serviceName(completingAppt.service_id)}
             </p>
 
-            <div className={styles.form}>
-              <div className="field" style={{ gridColumn: '1 / -1' }}>
-                <label htmlFor="completePriceOverride">
-                  Bu Randevunun Ücreti (TL)
-                  {(() => {
-                    const svc = services.find((s) => s.id === completingAppt.service_id)
-                    return svc?.price != null ? ` — standart ücret: ${currency.format(svc.price)}` : ''
-                  })()}
-                </label>
-                <input
-                  id="completePriceOverride"
-                  type="number"
-                  min={0}
-                  step="0.01"
-                  value={completePriceOverride}
-                  onChange={(e) => {
-                    const newPrice = Number(e.target.value) || 0
-                    const balance = Number(completeBalanceAmount) || 0
-                    setCompletePriceOverride(e.target.value)
-                    setCompletePaymentAmount(String(Math.max(0, newPrice - balance)))
-                  }}
-                />
+            {!completingAppt.package_id && !completeTransactionType ? (
+              <div className={styles.form}>
+                <div className="field" style={{ gridColumn: '1 / -1' }}>
+                  <label>Bu işlem hangi türde?</label>
+                  <div className={styles.transactionTypeRow}>
+                    <button
+                      type="button"
+                      className={styles.transactionTypeBtn}
+                      onClick={() => setCompleteTransactionType('tek')}
+                    >
+                      Tek Seferlik İşlem
+                    </button>
+                    <button
+                      type="button"
+                      className={styles.transactionTypeBtn}
+                      onClick={() => setCompleteTransactionType('seansli')}
+                    >
+                      Seanslı İşlem
+                    </button>
+                  </div>
+                </div>
               </div>
+            ) : (
+              <div className={styles.form}>
+                {!completingAppt.package_id && (
+                  <div className="field" style={{ gridColumn: '1 / -1', marginBottom: 0 }}>
+                    <button
+                      type="button"
+                      className={styles.transactionTypeChangeBtn}
+                      onClick={() => setCompleteTransactionType(null)}
+                    >
+                      ← İşlem türü: {completeTransactionType === 'seansli' ? 'Seanslı İşlem' : 'Tek Seferlik İşlem'}{' '}
+                      (değiştir)
+                    </button>
+                  </div>
+                )}
 
-              {(() => {
-                // Tum odeme alanlarinin ORTAK hesaplamasi — kullanicinin fazlaligi
-                // hangi alana yazdigina bakilmaksizin (Ucret'e mi, Alınan Tutar'a mi)
-                // SONUCUN ne olacagini ANINDA gosteren bir ozet eklendi (asagida),
-                // ciddi bir kafa karisikligi/kayip bildirildi: "Ucret" alanina
-                // dogrudan sisirilmis bir sayi yazilinca (ör. 700) hem fiyat hem
-                // Alınan Tutar 700'e esitleniyor, sistem bunu "hizmet zaten 700'lik"
-                // sanip fazlalik algilamiyordu — mantik hatasi degil ama sessizce
-                // yanlis anlasilabiliyordu. Ozet artik bunu ANINDA gorunur kiliyor.
-                const price = Number(completePriceOverride) || 0
-                const customer = customers.find((c) => c.id === completingAppt.customer_id)
-                const balanceAvailable = customer?.credit_balance ?? 0
-                const balanceRequested = Math.min(Number(completeBalanceAmount) || 0, balanceAvailable, price)
-                const remainingDue = Math.max(0, price - balanceRequested)
-                const entered = completeRecordPayment ? Number(completePaymentAmount) || 0 : 0
-                // Not: paketli randevularda gercek sonuc, paketin TUM seanslarinin
-                // guncel toplamina gore Tamamla'ya basildiginda hesaplanir — bu
-                // ozet sadece BU seans bazinda bir on izleme (cogu zaman ayni sonucu
-                // verir, paketin diger seanslarinda zaten borc/alacak yoksa).
-                const overflowToBalance = Math.max(0, entered - remainingDue)
-                const stillOwed = Math.max(0, remainingDue - entered)
-
-                return (
+                {completionPreview?.creatingPackage && (
                   <>
-                    {balanceAvailable > 0 && (
-                      <>
-                        <div className={styles.creditBanner} style={{ gridColumn: '1 / -1' }}>
-                          <span className={styles.creditBannerLeft}>Müşteri Bakiyesi</span>
-                          <span className={styles.creditBannerValue}>{currency.format(balanceAvailable)}</span>
-                        </div>
-                        <div className="field" style={{ gridColumn: '1 / -1' }}>
-                          <label htmlFor="completeBalanceAmount">Bakiyeden Al (TL)</label>
-                          <input
-                            id="completeBalanceAmount"
-                            type="number"
-                            min={0}
-                            max={Math.min(balanceAvailable, price)}
-                            step="0.01"
-                            value={completeBalanceAmount}
-                            onChange={(e) => {
-                              const requested = Math.min(Number(e.target.value) || 0, balanceAvailable, price)
-                              setCompleteBalanceAmount(e.target.value)
-                              setCompletePaymentAmount(String(Math.max(0, price - requested)))
-                            }}
-                          />
-                        </div>
-                      </>
-                    )}
-
-                    {remainingDue > 0 && (
-                      <>
-                        <div className="field" style={{ gridColumn: '1 / -1', marginBottom: 0 }}>
-                          <label className={styles.checkboxLabel}>
-                            <input
-                              type="checkbox"
-                              checked={completeRecordPayment}
-                              onChange={(e) => setCompleteRecordPayment(e.target.checked)}
-                            />
-                            Ödeme alındı {balanceRequested > 0 ? `(Kalan ${currency.format(remainingDue)})` : ''}
-                          </label>
-                        </div>
-
-                        {completeRecordPayment && (
-                          <>
-                            <div className="field">
-                              <label htmlFor="completeAmount">Alınan Tutar (TL)</label>
-                              <input
-                                id="completeAmount"
-                                type="number"
-                                min={0}
-                                step="0.01"
-                                value={completePaymentAmount}
-                                onChange={(e) => setCompletePaymentAmount(e.target.value)}
-                              />
-                            </div>
-                            <div className="field">
-                              <label htmlFor="completeMethod">Ödeme Yöntemi</label>
-                              <Select
-                                id="completeMethod"
-                                value={completePaymentMethod}
-                                onChange={setCompletePaymentMethod}
-                                options={PAYMENT_METHOD_OPTIONS}
-                              />
-                            </div>
-                          </>
-                        )}
-                      </>
-                    )}
-
-                    {/* Canli ozet: kullanici hangi alana ne yazarsa yazsin, SONUCUN
-                        ne olacagi (borc mu kalacak, bakiyeye mi eklenecek, tam mi
-                        odendi) her zaman acikca gorunur. */}
-                    <div className="field" style={{ gridColumn: '1 / -1', marginBottom: 0 }}>
-                      {overflowToBalance > 0 ? (
-                        <p style={{ color: 'var(--ok-text)', fontSize: 13, fontWeight: 600 }}>
-                          +{currency.format(overflowToBalance)} müşteri bakiyesine eklenecek
-                        </p>
-                      ) : stillOwed > 0 ? (
-                        <p style={{ color: 'var(--danger-text)', fontSize: 13, fontWeight: 600 }}>
-                          {currency.format(stillOwed)} borç kalacak
-                        </p>
-                      ) : (
-                        <p style={{ color: 'var(--ok-text)', fontSize: 13, fontWeight: 600 }}>
-                          Tam ödendi, borç/alacak kalmıyor
-                        </p>
-                      )}
+                    <div className="field">
+                      <label htmlFor="pkgTotalSessions">Toplam Seans Sayısı</label>
+                      <input
+                        id="pkgTotalSessions"
+                        type="number"
+                        min={1}
+                        step={1}
+                        value={completePackageTotalSessions}
+                        onChange={(e) => setCompletePackageTotalSessions(e.target.value)}
+                      />
+                    </div>
+                    <div className="field">
+                      <label htmlFor="pkgSessionNumber">Bu Yapılan Kaçıncı Seans</label>
+                      <input
+                        id="pkgSessionNumber"
+                        type="number"
+                        min={1}
+                        step={1}
+                        value={completePackageSessionNumber}
+                        onChange={(e) => setCompletePackageSessionNumber(e.target.value)}
+                      />
+                    </div>
+                    <div className="field" style={{ gridColumn: '1 / -1' }}>
+                      <label htmlFor="pkgNote">Paket Notu (opsiyonel)</label>
+                      <input
+                        id="pkgNote"
+                        value={completePackageNote}
+                        onChange={(e) => setCompletePackageNote(e.target.value)}
+                      />
                     </div>
                   </>
-                )
-              })()}
+                )}
 
-              <div className="field" style={{ gridColumn: '1 / -1', marginBottom: 0 }}>
-                <label className={styles.checkboxLabel}>
-                  <input
-                    type="checkbox"
-                    checked={completeFollowup}
-                    onChange={(e) => setCompleteFollowup(e.target.checked)}
-                  />
-                  {completingAppt.package_id
-                    ? `Devam randevusu oluştur (${packageProgress(completingAppt)?.current ?? 1}/${packageProgress(completingAppt)?.total ?? '?'} tamamlanıyor)`
-                    : 'İş bitmedi, devam randevusu oluştur'}
-                </label>
-              </div>
-              {completeFollowup && (
-                <>
-                  <div className="field">
-                    <label htmlFor="followupDate">Sonraki Seans Tarihi</label>
-                    <input
-                      id="followupDate"
-                      type="date"
-                      value={completeFollowupDate}
-                      onChange={(e) => setCompleteFollowupDate(e.target.value)}
-                    />
+                {completeLoadingScope ? (
+                  <p style={{ gridColumn: '1 / -1', color: 'var(--text-dim)', fontSize: 13 }}>Yükleniyor…</p>
+                ) : completeFullyPaid ? (
+                  <div className={styles.creditBanner} style={{ gridColumn: '1 / -1' }}>
+                    <span className={styles.creditBannerLeft}>Bu paket daha önce tamamen tahsil edilmiştir.</span>
                   </div>
-                  <div className="field">
-                    <label htmlFor="followupTime">Saat</label>
-                    <Select
-                      id="followupTime"
-                      value={completeFollowupTime}
-                      onChange={setCompleteFollowupTime}
-                      options={TIME_OPTIONS.map((t) => ({ value: t, label: t }))}
-                    />
-                  </div>
-                </>
-              )}
+                ) : (
+                  <>
+                    <div className="field" style={{ gridColumn: '1 / -1' }}>
+                      <label htmlFor="completePriceOverride">
+                        Bu Randevunun Ücreti (TL)
+                        {(() => {
+                          const svc = services.find((s) => s.id === completingAppt.service_id)
+                          return svc?.price != null ? ` — standart ücret: ${currency.format(svc.price)}` : ''
+                        })()}
+                      </label>
+                      <input
+                        id="completePriceOverride"
+                        type="number"
+                        min={0}
+                        step="0.01"
+                        value={completePriceOverride}
+                        onChange={(e) => {
+                          const newPrice = Number(e.target.value) || 0
+                          const balance = Number(completeBalanceAmount) || 0
+                          setCompletePriceOverride(e.target.value)
+                          setCompletePaymentAmount(String(Math.max(0, newPrice - balance)))
+                        }}
+                      />
+                    </div>
 
-              <div className={styles.formActions}>
-                <button type="button" className="btn-primary" disabled={completeBusy} onClick={submitCompletion}>
-                  {completeBusy ? 'Kaydediliyor…' : 'Tamamla'}
-                </button>
+                    {(() => {
+                      // Tum odeme alanlarinin ORTAK hesaplamasi — kullanicinin fazlaligi
+                      // hangi alana yazdigina bakilmaksizin (Ucret'e mi, Alınan Tutar'a mi)
+                      // SONUCUN ne olacagini ANINDA gosteren bir ozet eklendi (asagida),
+                      // ciddi bir kafa karisikligi/kayip bildirildi: "Ucret" alanina
+                      // dogrudan sisirilmis bir sayi yazilinca (ör. 700) hem fiyat hem
+                      // Alınan Tutar 700'e esitleniyor, sistem bunu "hizmet zaten 700'lik"
+                      // sanip fazlalik algilamiyordu — mantik hatasi degil ama sessizce
+                      // yanlis anlasilabiliyordu. Ozet artik bunu ANINDA gorunur kiliyor.
+                      const price = Number(completePriceOverride) || 0
+                      const customer = customers.find((c) => c.id === completingAppt.customer_id)
+                      const balanceAvailable = customer?.credit_balance ?? 0
+                      const balanceRequested = Math.min(Number(completeBalanceAmount) || 0, balanceAvailable, price)
+                      const remainingDue = Math.max(0, price - balanceRequested)
+                      const entered = Number(completePaymentAmount) || 0
+                      // Not: paketli randevularda gercek sonuc, paketin TUM seanslarinin
+                      // guncel toplamina gore Tamamla'ya basildiginda hesaplanir — bu
+                      // ozet sadece BU seans bazinda bir on izleme (cogu zaman ayni sonucu
+                      // verir, paketin diger seanslarinda zaten borc/alacak yoksa).
+                      const overflowToBalance = Math.max(0, entered - remainingDue)
+                      const stillOwed = Math.max(0, remainingDue - entered)
+
+                      return (
+                        <>
+                          {balanceAvailable > 0 && (
+                            <>
+                              <div className={styles.creditBanner} style={{ gridColumn: '1 / -1' }}>
+                                <span className={styles.creditBannerLeft}>Müşteri Bakiyesi</span>
+                                <span className={styles.creditBannerValue}>{currency.format(balanceAvailable)}</span>
+                              </div>
+                              <div className="field" style={{ gridColumn: '1 / -1' }}>
+                                <label htmlFor="completeBalanceAmount">Bakiyeden Al (TL)</label>
+                                <input
+                                  id="completeBalanceAmount"
+                                  type="number"
+                                  min={0}
+                                  max={Math.min(balanceAvailable, price)}
+                                  step="0.01"
+                                  value={completeBalanceAmount}
+                                  onChange={(e) => {
+                                    const requested = Math.min(Number(e.target.value) || 0, balanceAvailable, price)
+                                    setCompleteBalanceAmount(e.target.value)
+                                    setCompletePaymentAmount(String(Math.max(0, price - requested)))
+                                  }}
+                                />
+                              </div>
+                            </>
+                          )}
+
+                          {remainingDue > 0 && (
+                            <>
+                              <div className="field">
+                                <label htmlFor="completeAmount">Alınan Tutar (TL)</label>
+                                <input
+                                  id="completeAmount"
+                                  type="number"
+                                  min={0}
+                                  step="0.01"
+                                  value={completePaymentAmount}
+                                  onChange={(e) => setCompletePaymentAmount(e.target.value)}
+                                />
+                              </div>
+                              <div className="field">
+                                <label htmlFor="completeMethod">Ödeme Yöntemi{entered > 0 ? ' (zorunlu)' : ''}</label>
+                                <Select
+                                  id="completeMethod"
+                                  value={completePaymentMethod}
+                                  onChange={setCompletePaymentMethod}
+                                  options={[{ value: '', label: 'Seçiniz' }, ...PAYMENT_METHOD_OPTIONS]}
+                                />
+                              </div>
+                            </>
+                          )}
+
+                          {/* Canli ozet: kullanici hangi alana ne yazarsa yazsin, SONUCUN
+                              ne olacagi (borc mu kalacak, bakiyeye mi eklenecek, tam mi
+                              odendi) her zaman acikca gorunur. */}
+                          <div className="field" style={{ gridColumn: '1 / -1', marginBottom: 0 }}>
+                            {overflowToBalance > 0 ? (
+                              <p style={{ color: 'var(--ok-text)', fontSize: 13, fontWeight: 600 }}>
+                                +{currency.format(overflowToBalance)} müşteri bakiyesine eklenecek
+                              </p>
+                            ) : stillOwed > 0 ? (
+                              <p style={{ color: 'var(--danger-text)', fontSize: 13, fontWeight: 600 }}>
+                                {currency.format(stillOwed)} borç kalacak
+                              </p>
+                            ) : (
+                              <p style={{ color: 'var(--ok-text)', fontSize: 13, fontWeight: 600 }}>
+                                Tam ödendi, borç/alacak kalmıyor
+                              </p>
+                            )}
+                          </div>
+                        </>
+                      )
+                    })()}
+                  </>
+                )}
+
+                {!completeLoadingScope &&
+                  completionPreview?.isPackageFlow &&
+                  (completionPreview.needsNextSession ? (
+                    <>
+                      <div className="field" style={{ gridColumn: '1 / -1', marginBottom: 0 }}>
+                        <p style={{ fontSize: 13, fontWeight: 700, color: 'var(--text)' }}>
+                          Bir sonraki seans tarihini seçiniz.
+                        </p>
+                      </div>
+                      <div className="field">
+                        <label htmlFor="followupDate">Sonraki Seans Tarihi</label>
+                        <input
+                          id="followupDate"
+                          type="date"
+                          value={completeFollowupDate}
+                          onChange={(e) => setCompleteFollowupDate(e.target.value)}
+                        />
+                      </div>
+                      <div className="field">
+                        <label htmlFor="followupTime">Saat</label>
+                        <Select
+                          id="followupTime"
+                          value={completeFollowupTime}
+                          onChange={setCompleteFollowupTime}
+                          options={TIME_OPTIONS.map((t) => ({ value: t, label: t }))}
+                        />
+                      </div>
+                    </>
+                  ) : (
+                    <div className="field" style={{ gridColumn: '1 / -1', marginBottom: 0 }}>
+                      <p style={{ fontSize: 13, color: 'var(--ok-text)', fontWeight: 600 }}>
+                        Bu, paketin son seansı — tamamlanınca paket kapanacak.
+                      </p>
+                    </div>
+                  ))}
+
+                {completeMissing.length > 0 && (
+                  <div className={styles.missingList}>
+                    {completeMissing.map((m) => (
+                      <span key={m}>⚠ {m}</span>
+                    ))}
+                  </div>
+                )}
+
+                <div className={styles.formActions}>
+                  <button
+                    type="button"
+                    className="btn-primary"
+                    disabled={completeBusy || !canSubmitCompletion}
+                    onClick={submitCompletion}
+                  >
+                    {completeBusy ? 'Kaydediliyor…' : 'Tamamla'}
+                  </button>
+                </div>
               </div>
-            </div>
+            )}
           </div>
         </div>
       )}

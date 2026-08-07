@@ -36,20 +36,28 @@ interface ServicePackage {
   id: string
   service_id: string | null
   total_sessions: number
+  session_offset: number
+  status: 'aktif' | 'tamamlandi'
   created_at: string
 }
 
 interface Payment {
   id: string
   amount: number
-  method: 'nakit' | 'kart' | 'diger'
+  method: 'nakit' | 'kart' | 'havale' | 'diger' | 'bakiye'
   paid_at: string
   appointment_id: string | null
   package_id: string | null
   note: string | null
 }
 
-const METHOD_LABEL: Record<Payment['method'], string> = { nakit: 'Nakit', kart: 'Kart', diger: 'Diğer' }
+const METHOD_LABEL: Record<Payment['method'], string> = {
+  nakit: 'Nakit',
+  kart: 'Kredi Kartı',
+  havale: 'Havale / EFT',
+  diger: 'Diğer',
+  bakiye: 'Bakiyeden',
+}
 const SESSION_STATUS_LABEL: Record<Appointment['status'], string> = {
   bekliyor: 'Bekliyor',
   onaylandi: 'Onaylandı',
@@ -58,7 +66,8 @@ const SESSION_STATUS_LABEL: Record<Appointment['status'], string> = {
 }
 const PAYMENT_METHOD_OPTIONS = [
   { value: 'nakit', label: 'Nakit' },
-  { value: 'kart', label: 'Kart' },
+  { value: 'kart', label: 'Kredi Kartı' },
+  { value: 'havale', label: 'Havale / EFT' },
   { value: 'diger', label: 'Diğer' },
 ]
 
@@ -112,7 +121,10 @@ export default function CustomerDetailPage() {
         .select('id, service_id, scheduled_at, status, package_id, price_override')
         .eq('customer_id', id)
         .order('scheduled_at', { ascending: false }),
-      supabase.from('service_packages').select('id, service_id, total_sessions, created_at').eq('customer_id', id),
+      supabase
+        .from('service_packages')
+        .select('id, service_id, total_sessions, session_offset, status, created_at')
+        .eq('customer_id', id),
       supabase
         .from('payments')
         .select('id, amount, method, paid_at, appointment_id, package_id, note')
@@ -146,9 +158,15 @@ export default function CustomerDetailPage() {
       packages.map((pkg) => {
         const svc = pkg.service_id ? serviceById.get(pkg.service_id) : undefined
         const sessions = appointments.filter((a) => a.package_id === pkg.id)
-        const completed = sessions.filter((a) => a.status === 'tamamlandi').length
+        // session_offset: paket, tamamlama ekraninda "kaçıncı seans" 1'den
+        // buyuk girilerek olusturulmus olabilir (musteri sistem disinda
+        // zaten bazi seanslari yapmis) — tamamlanan/kalan seans sayilari bu
+        // offset'i de icermeli, yoksa "kalan" hem seans hem tutar olarak
+        // fazla gorunur.
+        const completed = sessions.filter((a) => a.status === 'tamamlandi').length + pkg.session_offset
         const knownSessionsTotal = sessions.reduce((sum, a) => sum + (a.price_override ?? svc?.price ?? 0), 0)
-        const remainingSessionsEstimate = Math.max(0, pkg.total_sessions - sessions.length) * (svc?.price ?? 0)
+        const remainingSessionsEstimate =
+          Math.max(0, pkg.total_sessions - pkg.session_offset - sessions.length) * (svc?.price ?? 0)
         const expected = knownSessionsTotal + remainingSessionsEstimate
         const paid = payments.filter((p) => p.package_id === pkg.id).reduce((s, p) => s + p.amount, 0)
         const sortedSessions = sessions.slice().sort((a, b) => a.scheduled_at.localeCompare(b.scheduled_at))
@@ -318,7 +336,12 @@ export default function CustomerDetailPage() {
               <div key={p.pkg.id} className={styles.packageRow}>
                 <div className={styles.packageRowTop}>
                   <div className={styles.packageRowMain}>
-                    <span className={styles.packageRowName}>{p.svc?.name ?? 'Hizmet'}</span>
+                    <span className={styles.packageRowName}>
+                      {p.svc?.name ?? 'Hizmet'}
+                      {p.pkg.status === 'tamamlandi' && (
+                        <span className={styles.packageDoneBadge}>Tamamlandı</span>
+                      )}
+                    </span>
                     <span className={styles.packageRowProgress}>
                       {p.completed}/{p.pkg.total_sessions} seans tamamlandı
                     </span>
@@ -334,7 +357,7 @@ export default function CustomerDetailPage() {
                   <div className={styles.sessionList}>
                     {p.sessions.map((s, i) => (
                       <div key={s.id} className={styles.sessionRow}>
-                        <span className={styles.sessionRowLabel}>{i + 1}. Seans</span>
+                        <span className={styles.sessionRowLabel}>{i + 1 + p.pkg.session_offset}. Seans</span>
                         <span className={styles.sessionRowDate}>
                           {new Date(s.scheduled_at).toLocaleDateString('tr-TR', {
                             day: 'numeric',

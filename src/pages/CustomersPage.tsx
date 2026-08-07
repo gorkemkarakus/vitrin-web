@@ -48,6 +48,7 @@ interface ServicePackage {
   customer_id: string
   service_id: string | null
   total_sessions: number
+  session_offset: number
 }
 
 interface Payment {
@@ -156,7 +157,7 @@ export default function CustomersPage() {
         supabase
           .from('appointments')
           .select('id, customer_id, service_id, status, scheduled_at, package_id, price_override'),
-        supabase.from('service_packages').select('id, customer_id, service_id, total_sessions'),
+        supabase.from('service_packages').select('id, customer_id, service_id, total_sessions, session_offset'),
         supabase.from('payments').select('id, customer_id, amount, appointment_id, package_id, paid_at'),
         supabase.from('services').select('id, price'),
       ])
@@ -230,7 +231,7 @@ export default function CustomersPage() {
       const price = pkg.service_id ? (servicePriceById.get(pkg.service_id) ?? 0) : 0
       const sessions = appointments.filter((a) => a.package_id === pkg.id)
       const knownSessionsTotal = sessions.reduce((sum, a) => sum + (a.price_override ?? price), 0)
-      const remainingSessionsEstimate = Math.max(0, pkg.total_sessions - sessions.length) * price
+      const remainingSessionsEstimate = Math.max(0, pkg.total_sessions - pkg.session_offset - sessions.length) * price
       const expected = knownSessionsTotal + remainingSessionsEstimate
       const paid = payments.filter((p) => p.package_id === pkg.id).reduce((sum, p) => sum + p.amount, 0)
       const remaining = Math.max(0, expected - paid)
