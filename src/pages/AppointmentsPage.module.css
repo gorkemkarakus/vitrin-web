@@ -610,6 +610,83 @@
   gap: 2px;
 }
 
+/* Odeme Bilgileri ust satiri — Alınacak Tutar | Tahsil Edilen Tutar |
+   Kalan Borç, uc kolon halinde tek satirda. */
+.paymentTopRow {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 14px;
+  flex-wrap: wrap;
+}
+
+.paymentTopCol {
+  display: flex;
+  flex-direction: column;
+  min-width: 0;
+}
+
+.paymentFieldLabel {
+  font-size: 12px;
+  color: var(--text-dim);
+  margin-bottom: 6px;
+}
+
+.priceEditChip {
+  display: inline-flex;
+  align-items: center;
+  align-self: flex-start;
+  gap: 4px;
+  background: var(--info-bg);
+  border: none;
+  color: var(--signal);
+  border-radius: 999px;
+  padding: 4px 10px;
+  margin-top: 6px;
+  font-size: 11.5px;
+  font-weight: 600;
+  font-family: var(--font-body);
+  cursor: pointer;
+}
+
+.currencyInputWrap {
+  position: relative;
+  width: 96px;
+}
+
+.currencyPrefix {
+  position: absolute;
+  left: 13px;
+  top: 50%;
+  transform: translateY(-50%);
+  color: var(--text-dim);
+  font-size: 14px;
+  pointer-events: none;
+}
+
+.currencyInput {
+  width: 100%;
+  background: var(--panel-2);
+  border: 1px solid var(--line);
+  border-radius: var(--radius-sm);
+  padding: 11px 13px 11px 28px;
+  color: var(--text);
+  font-size: 14px;
+  outline: none;
+  font-family: var(--font-body);
+  transition: border-color 0.15s;
+}
+
+.currencyInput:focus {
+  border-color: var(--signal);
+}
+
+.sectionDivider {
+  height: 1px;
+  background: var(--line);
+  margin: 18px 0 14px;
+}
+
 .debtLabel {
   font-size: 12px;
   color: var(--text-dim);

@@ -1953,9 +1953,9 @@ export default function AppointmentsPage() {
                               seansinda duzenlenebilir — bu fiyat paketin seans
                               basi ucreti olarak kilitlenir, sonraki seanslarda bir
                               daha sorulmaz/degistirilmez. */}
-                          {completionPreview?.creatingPackage || !completionPreview?.isPackageFlow ? (
-                            <div className={styles.packageInfoGrid}>
-                              <div>
+                          <div className={styles.paymentTopRow}>
+                            {(completionPreview?.creatingPackage || !completionPreview?.isPackageFlow) && (
+                              <div className={styles.paymentTopCol}>
                                 <div className={styles.amountDisplayLabel} style={{ marginBottom: 6 }}>
                                   <InfoIcon width={13} height={13} /> Alınacak Tutar
                                 </div>
@@ -1975,6 +1975,7 @@ export default function AppointmentsPage() {
                                       setCompletePaymentAmount(String(Math.max(0, newExpected)))
                                     }}
                                     onBlur={() => setCompletePriceEditing(false)}
+                                    style={{ maxWidth: 110 }}
                                   />
                                 ) : (
                                   <>
@@ -1983,21 +1984,26 @@ export default function AppointmentsPage() {
                                     </div>
                                     <button
                                       type="button"
-                                      className={styles.priceEditLink}
-                                      style={{ marginTop: 4 }}
+                                      className={styles.priceEditChip}
                                       onClick={() => setCompletePriceEditing(true)}
                                     >
-                                      <PencilIcon width={12} height={12} /> Esnek Fiyat
+                                      <PencilIcon width={11} height={11} /> Esnek Fiyat
                                     </button>
                                   </>
                                 )}
                               </div>
+                            )}
 
-                              {completePaymentSummary.remainingDue > 0 && (
-                                <div className="field" style={{ marginBottom: 0 }}>
-                                  <label htmlFor="completeAmount">Tahsil Edilen Tutar (TL)</label>
+                            {completePaymentSummary.remainingDue > 0 && (
+                              <div className={styles.paymentTopCol}>
+                                <label htmlFor="completeAmount" className={styles.paymentFieldLabel}>
+                                  Tahsil Edilen Tutar
+                                </label>
+                                <div className={styles.currencyInputWrap}>
+                                  <span className={styles.currencyPrefix}>₺</span>
                                   <input
                                     id="completeAmount"
+                                    className={styles.currencyInput}
                                     type="number"
                                     min={0}
                                     max={completePaymentSummary.remainingDue}
@@ -2006,35 +2012,23 @@ export default function AppointmentsPage() {
                                     onChange={(e) => setCompletePaymentAmount(e.target.value)}
                                   />
                                 </div>
-                              )}
-                            </div>
-                          ) : (
-                            completePaymentSummary.remainingDue > 0 && (
-                              <div className="field" style={{ marginBottom: 0 }}>
-                                <label htmlFor="completeAmount">Tahsil Edilen Tutar (TL)</label>
-                                <input
-                                  id="completeAmount"
-                                  type="number"
-                                  min={0}
-                                  max={completePaymentSummary.remainingDue}
-                                  step="0.01"
-                                  value={completePaymentAmount}
-                                  onChange={(e) => setCompletePaymentAmount(e.target.value)}
-                                />
                               </div>
-                            )
-                          )}
+                            )}
 
-                          <div className={styles.debtBlock}>
-                            <span className={styles.debtLabel}>Kalan Borç</span>
-                            <span
-                              className={completePaymentSummary.stillOwed > 0 ? styles.debtValue : styles.debtValueOk}
-                            >
-                              {currency.format(completePaymentSummary.stillOwed)}
-                            </span>
+                            <div className={styles.paymentTopCol}>
+                              <span className={styles.debtLabel}>Kalan Borç</span>
+                              <span
+                                className={completePaymentSummary.stillOwed > 0 ? styles.debtValue : styles.debtValueOk}
+                                style={{ marginTop: 6 }}
+                              >
+                                {currency.format(completePaymentSummary.stillOwed)}
+                              </span>
+                            </div>
                           </div>
 
-                          <div style={{ marginTop: 18 }}>
+                          <div className={styles.sectionDivider} />
+
+                          <div>
                             <div className={styles.sectionHeader} style={{ marginBottom: 8 }}>
                               <span className={styles.completeInfoStripLabel}>Ödeme Yöntemi</span>
                               <span className={styles.sectionBadgeRequired}>Zorunlu</span>
