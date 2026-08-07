@@ -289,11 +289,6 @@ export default function AppointmentsPage() {
   const [error, setError] = useState<string | null>(null)
   const [success, setSuccess] = useState<string | null>(null)
 
-  // Yeni randevu formu — paket (seans) secenekleri.
-  const [packageMode, setPackageMode] = useState<'yok' | 'yeni' | 'mevcut'>('yok')
-  const [packageTotalSessions, setPackageTotalSessions] = useState('8')
-  const [existingPackageId, setExistingPackageId] = useState('')
-
   // "Tamamlandi" isaretlenince acilan odeme + sonraki seans mini-sihirbazi.
   const [completingAppt, setCompletingAppt] = useState<Appointment | null>(null)
   // Randevu henuz bir pakete bagli degilse (ilk tamamlama), zorunlu olarak
@@ -511,9 +506,6 @@ export default function AppointmentsPage() {
 
   function closeForm() {
     setShowForm(false)
-    setPackageMode('yok')
-    setPackageTotalSessions('8')
-    setExistingPackageId('')
     setError(null)
   }
 
@@ -604,14 +596,6 @@ export default function AppointmentsPage() {
       setError('Yeni müşteri için ad soyad zorunlu.')
       return
     }
-    if (packageMode === 'yeni' && (!Number(packageTotalSessions) || Number(packageTotalSessions) < 1)) {
-      setError('Paket için geçerli bir toplam seans sayısı girin.')
-      return
-    }
-    if (packageMode === 'mevcut' && !existingPackageId) {
-      setError('Eklemek istediğiniz paketi seçin.')
-      return
-    }
 
     const service = services.find((s) => s.id === serviceId)
     const start = new Date(`${apptDate}T${apptTime}`)
@@ -660,29 +644,10 @@ export default function AppointmentsPage() {
         finalCustomerId = newCustomer.id
       }
 
-      let finalPackageId: string | null = null
-      if (packageMode === 'yeni') {
-        const { data: newPackage, error: pkgErr } = await supabase
-          .from('service_packages')
-          .insert({
-            business_id: profile?.business_id,
-            customer_id: finalCustomerId,
-            service_id: serviceId,
-            total_sessions: Math.max(1, Math.round(Number(packageTotalSessions))),
-            created_by_user_id: profile?.id,
-          })
-          .select('id')
-          .single()
-        if (pkgErr || !newPackage) {
-          setError('Paket oluşturulamadı: ' + (pkgErr?.message ?? ''))
-          setSubmitting(false)
-          return
-        }
-        finalPackageId = newPackage.id
-      } else if (packageMode === 'mevcut') {
-        finalPackageId = existingPackageId
-      }
-
+      // Paket (seans) ataması artik burada sorulmuyor — randevu tamamlanırken
+      // ("İşlem Türü: Seanslı İşlem") soruluyor, bkz. handleStatusChange/
+      // submitCompletion. Yeni randevular her zaman package_id: null ile
+      // oluşturulur.
       const { error: apptErr } = await supabase.from('appointments').insert({
         business_id: profile?.business_id,
         customer_id: finalCustomerId,
@@ -693,7 +658,7 @@ export default function AppointmentsPage() {
         duration_minutes: duration,
         source,
         source_note: sourceNote.trim() || null,
-        package_id: finalPackageId,
+        package_id: null,
       })
 
       if (apptErr) {
@@ -715,9 +680,6 @@ export default function AppointmentsPage() {
       setEmployeeId('')
       setApptTime('')
       setSourceNote('')
-      setPackageMode('yok')
-      setPackageTotalSessions('8')
-      setExistingPackageId('')
       await loadData(true)
       setShowForm(false)
     } finally {
@@ -1597,67 +1559,6 @@ export default function AppointmentsPage() {
                   }}
                   options={services.map((s) => ({ value: s.id, label: s.name, sub: `${s.duration_minutes} dk` }))}
                 />
-              </div>
-
-              <div className="field" style={{ gridColumn: '1 / -1' }}>
-                <label>Paket (seans)</label>
-                <div className={styles.packageModeRow}>
-                  <button
-                    type="button"
-                    className={packageMode === 'yok' ? styles.packageModeBtnActive : styles.packageModeBtn}
-                    onClick={() => setPackageMode('yok')}
-                  >
-                    Hayır
-                  </button>
-                  <button
-                    type="button"
-                    className={packageMode === 'yeni' ? styles.packageModeBtnActive : styles.packageModeBtn}
-                    onClick={() => setPackageMode('yeni')}
-                  >
-                    Yeni Paket
-                  </button>
-                  {!useNewCustomer && customerId && (
-                    <button
-                      type="button"
-                      className={packageMode === 'mevcut' ? styles.packageModeBtnActive : styles.packageModeBtn}
-                      onClick={() => setPackageMode('mevcut')}
-                    >
-                      Mevcut Pakete Ekle
-                    </button>
-                  )}
-                </div>
-                {packageMode === 'yeni' && (
-                  <input
-                    type="number"
-                    min={1}
-                    step={1}
-                    value={packageTotalSessions}
-                    onChange={(e) => setPackageTotalSessions(e.target.value)}
-                    placeholder="Toplam seans sayısı (ör. 8)"
-                    style={{ marginTop: 8 }}
-                  />
-                )}
-                {packageMode === 'mevcut' && (
-                  <div style={{ marginTop: 8 }}>
-                    <Select
-                      value={existingPackageId}
-                      onChange={setExistingPackageId}
-                      options={servicePackages
-                        .filter((p) => p.customer_id === customerId && p.status !== 'tamamlandi')
-                        .map((p) => {
-                          const used = appointments.filter((a) => a.package_id === p.id).length + p.session_offset
-                          const svcName = services.find((s) => s.id === p.service_id)?.name ?? 'Hizmet'
-                          return { value: p.id, label: `${svcName} — ${used}/${p.total_sessions} seans` }
-                        })}
-                    />
-                    {servicePackages.filter((p) => p.customer_id === customerId && p.status !== 'tamamlandi')
-                      .length === 0 && (
-                      <p style={{ fontSize: 12, color: 'var(--text-dim)', marginTop: 4 }}>
-                        Bu müşterinin açık bir paketi yok.
-                      </p>
-                    )}
-                  </div>
-                )}
               </div>
 
               <div className="field">
