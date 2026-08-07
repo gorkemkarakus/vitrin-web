@@ -849,7 +849,20 @@ export default function AppointmentsPage() {
       packagePaidSoFar = completeScopePaid
     }
     const remainingDue = isPackageFlow ? Math.max(0, packageExpected - packagePaidSoFar) : Math.max(0, price)
-    const entered = completeFullyPaid ? 0 : Math.min(Number(completePaymentAmount) || 0, remainingDue)
+    const rawEntered = Number(completePaymentAmount) || 0
+    if (!completeFullyPaid && rawEntered > remainingDue) {
+      setCompleteError('Kalan borçtan fazla tutar girilemez.')
+      return
+    }
+    const entered = completeFullyPaid ? 0 : Math.min(rawEntered, remainingDue)
+
+    // Paketin SON seansi kismi odemeyle kapatilamaz — o seansta paketin
+    // tum kalan bakiyesi tahsil edilmis olmali (sonraki seans olmayacagi
+    // icin kalan borcu tahsil edecek baska bir firsat kalmaz).
+    if (isLastSession && !completeFullyPaid && Math.max(0, remainingDue - entered) > 0) {
+      setCompleteError('Son seansta paketin tüm tutarı ödenmelidir.')
+      return
+    }
 
     // 4) Odeme yontemi zorunlu (bir tutar tahsil ediliyorsa).
     if (!completeFullyPaid && entered > 0 && !completePaymentMethod) {
@@ -1217,6 +1230,16 @@ export default function AppointmentsPage() {
     }
     if (!completeFullyPaid && completePaymentSummary.entered > 0 && !completePaymentMethod) {
       completeMissing.push('Ödeme yöntemini seçin.')
+    }
+    if (!completeFullyPaid && (Number(completePaymentAmount) || 0) > completePaymentSummary.remainingDue) {
+      completeMissing.push('Kalan borçtan fazla tutar girilemez.')
+    }
+    // Paketin SON seansinda kismi odemeyle kapatilamaz — o ana kadar
+    // biriken tum paket bakiyesi bu seansta tahsil edilmis olmali,
+    // aksi halde bir sonraki seans olmayacagi icin kalan borc hic
+    // tahsil edilme sansi bulamadan unutulur.
+    if (completionPreview?.isLastSession && !completeFullyPaid && completePaymentSummary.stillOwed > 0) {
+      completeMissing.push('Son seansta paketin tüm tutarı ödenmelidir.')
     }
     if (completionPreview?.needsNextSession && (!completeFollowupDate || !completeFollowupTime)) {
       completeMissing.push('Bir sonraki seans tarihini seçiniz.')
@@ -1858,7 +1881,7 @@ export default function AppointmentsPage() {
                                 min={0}
                                 step="0.01"
                                 autoFocus
-                                style={{ maxWidth: 130 }}
+                                className={styles.packageAmountEditInput}
                                 defaultValue={completionPreview.previewExpected}
                                 onChange={(e) => {
                                   const newTotal = Number(e.target.value) || 0
@@ -1956,11 +1979,24 @@ export default function AppointmentsPage() {
                               basi ucreti olarak kilitlenir, sonraki seanslarda bir
                               daha sorulmaz/degistirilmez. */}
                           <div className={styles.paymentTopRow}>
-                            {(completionPreview?.creatingPackage || !completionPreview?.isPackageFlow) && (
+                            {completionPreview?.isPackageFlow ? (
+                              // Paket akisinda "Paket Ücreti" HER seansta paketin TUM
+                              // toplamini gosterir (ör. 8000 TL — 3. seansta da, 5.
+                              // seansta da ayni) — duzenleme burada degil, sadece
+                              // Paket Bilgileri karti icindeki "Düzenle" ile yapilir
+                              // (tek bir kaynak, iki ayri duzenleme noktasi degil).
                               <div className={styles.paymentTopCol}>
                                 <div className={styles.amountDisplayLabel} style={{ marginBottom: 6 }}>
-                                  <InfoIcon width={13} height={13} />{' '}
-                                  {completionPreview?.isPackageFlow ? 'Paket Ücreti' : 'Alınacak Tutar'}
+                                  <InfoIcon width={13} height={13} /> Paket Ücreti
+                                </div>
+                                <div className={styles.amountDisplayValueBtn} style={{ cursor: 'default' }}>
+                                  {currency.format(completionPreview.previewExpected)}
+                                </div>
+                              </div>
+                            ) : (
+                              <div className={styles.paymentTopCol}>
+                                <div className={styles.amountDisplayLabel} style={{ marginBottom: 6 }}>
+                                  <InfoIcon width={13} height={13} /> Alınacak Tutar
                                 </div>
                                 {completePriceEditing ? (
                                   <input
@@ -1971,12 +2007,8 @@ export default function AppointmentsPage() {
                                     className={styles.amountEditInput}
                                     value={completePriceOverride}
                                     onChange={(e) => {
-                                      const newPrice = Number(e.target.value) || 0
                                       setCompletePriceOverride(e.target.value)
-                                      const newExpected = completionPreview?.isPackageFlow
-                                        ? (Math.round(Number(completePackageTotalSessions)) || 0) * newPrice
-                                        : newPrice
-                                      setCompletePaymentAmount(String(Math.max(0, newExpected)))
+                                      setCompletePaymentAmount(e.target.value)
                                     }}
                                     onBlur={() => setCompletePriceEditing(false)}
                                   />
@@ -2031,8 +2063,8 @@ export default function AppointmentsPage() {
                               ) : (
                                 <span className={styles.debtPaidNote} style={{ marginTop: 6 }}>
                                   {completionPreview?.isPackageFlow
-                                    ? 'Paket ücretinin tamamı alınmıştır.'
-                                    : 'Ücretin tamamı alınmıştır.'}
+                                    ? 'Paket ücretinin tamamı ödendi.'
+                                    : 'Ücretin tamamı ödendi.'}
                                 </span>
                               )}
                             </div>

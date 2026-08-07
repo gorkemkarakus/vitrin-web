@@ -486,6 +486,21 @@
   color: var(--text);
 }
 
+.packageAmountEditInput {
+  width: 100%;
+  max-width: 120px;
+  background: none;
+  border: none;
+  border-bottom: 2px solid var(--signal);
+  padding: 0 0 2px;
+  margin: 0;
+  font-family: var(--font-heading);
+  font-size: 19px;
+  font-weight: 700;
+  color: var(--text);
+  outline: none;
+}
+
 /* Paket Bilgileri karti — ust satir: Toplam Seans | Paket Tutari | Duzenle,
    ucu de tek satirda, deger cizgisine hizali (align-items:flex-end). */
 .packageTopRow {
