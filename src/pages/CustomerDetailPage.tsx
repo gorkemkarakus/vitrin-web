@@ -14,7 +14,6 @@ interface Customer {
   contact_phone: string | null
   email: string | null
   created_at: string
-  credit_balance: number
 }
 
 interface Service {
@@ -113,7 +112,7 @@ export default function CustomerDetailPage() {
     const [{ data: cust }, { data: appts }, { data: pkgs }, { data: pays }, { data: svcs }] = await Promise.all([
       supabase
         .from('customers')
-        .select('id, full_name, phone, contact_phone, email, created_at, credit_balance')
+        .select('id, full_name, phone, contact_phone, email, created_at')
         .eq('id', id)
         .maybeSingle(),
       supabase
@@ -164,12 +163,16 @@ export default function CustomerDetailPage() {
         // offset'i de icermeli, yoksa "kalan" hem seans hem tutar olarak
         // fazla gorunur.
         const completed = sessions.filter((a) => a.status === 'tamamlandi').length + pkg.session_offset
-        const knownSessionsTotal = sessions.reduce((sum, a) => sum + (a.price_override ?? svc?.price ?? 0), 0)
+        // Paketin seans basi ucreti ILK seansta belirlenen ozel fiyata
+        // kilitlidir (bkz. AppointmentsPage tamamlama akisi) — standart
+        // hizmet fiyati sadece hic seans acilmamissa yedek olarak kullanilir.
+        const sortedSessions = sessions.slice().sort((a, b) => a.scheduled_at.localeCompare(b.scheduled_at))
+        const sessionPrice = sortedSessions[0]?.price_override ?? svc?.price ?? 0
+        const knownSessionsTotal = sessions.reduce((sum, a) => sum + (a.price_override ?? sessionPrice), 0)
         const remainingSessionsEstimate =
-          Math.max(0, pkg.total_sessions - pkg.session_offset - sessions.length) * (svc?.price ?? 0)
+          Math.max(0, pkg.total_sessions - pkg.session_offset - sessions.length) * sessionPrice
         const expected = knownSessionsTotal + remainingSessionsEstimate
         const paid = payments.filter((p) => p.package_id === pkg.id).reduce((s, p) => s + p.amount, 0)
-        const sortedSessions = sessions.slice().sort((a, b) => a.scheduled_at.localeCompare(b.scheduled_at))
         return {
           pkg,
           svc,
@@ -199,20 +202,11 @@ export default function CustomerDetailPage() {
   )
 
   const totalPaid = useMemo(() => payments.reduce((s, p) => s + p.amount, 0), [payments])
-  // Paket VE paketsiz randevularda fazla odeme artik musteri.credit_balance'a
-  // gidiyor (bkz. AppointmentsPage submitCompletion — randevu tamamlanirken
-  // ilgili kapsamin -paketliyse TUM paketin- guncel durumuna gore fazlalik
-  // otomatik bakiyeye aktarilir). Burada KIRPILIYOR (Math.max(0, ...)),
-  // aksi halde ayni fazlalik hem bu satirda hem credit_balance'ta iki kere
-  // sayilmis olurdu. credit_balance net toplami dogrudan asagi cekiyor —
-  // yeterince yuksekse "Kalan Bakiye" negatife duser, "+X alacaklı" olarak
-  // gosterilir.
   const totalRemaining = useMemo(
     () =>
       packageStats.reduce((s, p) => s + Math.max(0, p.remaining), 0) +
-      standaloneAppts.reduce((s, a) => s + Math.max(0, a.remaining), 0) -
-      (customer?.credit_balance ?? 0),
-    [packageStats, standaloneAppts, customer],
+      standaloneAppts.reduce((s, a) => s + Math.max(0, a.remaining), 0),
+    [packageStats, standaloneAppts],
   )
 
   const paymentTargetOptions = useMemo(() => {
@@ -302,26 +296,10 @@ export default function CustomerDetailPage() {
         <div className={`card ${styles.balanceCard}`}>
           <span className={styles.balanceLabel}>Kalan Bakiye</span>
           <span className={totalRemaining > 0 ? styles.balanceValueDanger : styles.balanceValueOk}>
-            {totalRemaining > 0
-              ? currency.format(totalRemaining)
-              : totalRemaining < 0
-                ? `+${currency.format(-totalRemaining)} alacaklı`
-                : 'Borç yok'}
+            {totalRemaining > 0 ? currency.format(totalRemaining) : 'Borç yok'}
           </span>
         </div>
       </div>
-
-      {customer.credit_balance > 0 && (
-        <div className={styles.creditBanner}>
-          <span className={styles.creditBannerLeft}>
-            <span className={styles.creditBannerIcon}>
-              <WalletIcon width={15} height={15} />
-            </span>
-            Müşteri Bakiyesi
-          </span>
-          <span className={styles.creditBannerValue}>{currency.format(customer.credit_balance)}</span>
-        </div>
-      )}
 
       <button type="button" className={styles.payBtn} onClick={() => setPayModalOpen(true)}>
         <WalletIcon width={16} height={16} />

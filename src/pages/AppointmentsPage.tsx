@@ -31,7 +31,6 @@ interface Customer {
   full_name: string
   phone: string | null
   contact_phone: string | null
-  credit_balance: number
 }
 
 interface Service {
@@ -320,9 +319,6 @@ export default function AppointmentsPage() {
   // ucret salt-okunur buyuk yazi ile gosterilir, degistirmek icin once
   // "Esnek Fiyat" dokunulur.
   const [completePriceEditing, setCompletePriceEditing] = useState(false)
-  // Musterinin mevcut bakiyesinden bu randevu icin dusulmek istenen tutar —
-  // bakiye tum ucreti karsiliyorsa nakit/kart alanlarina hic gerek kalmaz.
-  const [completeBalanceAmount, setCompleteBalanceAmount] = useState('')
   const [completePaymentAmount, setCompletePaymentAmount] = useState('')
   // Bos birakiliyor (varsayilan yontem YOK) — bir tutar girildiyse yontem
   // secilmeden Tamamla butonu acilmiyor (zorunlu secim).
@@ -371,7 +367,7 @@ export default function AppointmentsPage() {
           'id, customer_id, service_id, employee_id, created_by_user_id, scheduled_at, duration_minutes, status, source, source_note, package_id, price_override',
         )
         .order('scheduled_at', { ascending: true }),
-      supabase.from('customers').select('id, full_name, phone, contact_phone, credit_balance').order('full_name'),
+      supabase.from('customers').select('id, full_name, phone, contact_phone').order('full_name'),
       supabase.from('service_packages').select('id, customer_id, service_id, total_sessions, session_offset, status'),
       supabase
         .from('services')
@@ -702,10 +698,6 @@ export default function AppointmentsPage() {
 
   async function handleStatusChange(appt: Appointment, status: Appointment['status']) {
     if (status === 'tamamlandi') {
-      const svc = services.find((s) => s.id === appt.service_id)
-      const price = appt.price_override ?? svc?.price ?? 0
-      const customer = customers.find((c) => c.id === appt.customer_id)
-      const suggestedFromBalance = customer ? Math.min(customer.credit_balance, price) : 0
       setCompletingAppt(appt)
       setCompleteTransactionType(appt.package_id ? 'seansli' : null)
       setCompletePackageTotalSessions('8')
@@ -713,39 +705,44 @@ export default function AppointmentsPage() {
       setCompleteScopeExpected(0)
       setCompleteScopePaid(0)
       setCompleteFullyPaid(false)
-      setCompletePriceOverride(String(price))
       setCompletePriceEditing(false)
-      setCompleteBalanceAmount(suggestedFromBalance > 0 ? String(suggestedFromBalance) : '')
-      setCompletePaymentAmount(String(Math.max(0, price - suggestedFromBalance)))
       setCompletePaymentMethod('')
       setCompleteFollowupDate('')
       setCompleteFollowupTime('')
       setCompleteNote('')
       setCompleteError(null)
 
-      // Randevu zaten bir pakete bagliysa, "Bu paket daha once tamamen
-      // tahsil edilmis mi?" sorusunu modal acilmadan ONCE, o paketin taze
-      // seans+odeme verisiyle yanitliyoruz — submitCompletion'daki "scope"
-      // hesabinin (satir ~830+) birebir ayni formulu. Ayni sayilar "Paket
-      // Tutarı"/"Kalan Borç" onizlemesinde de kullanilir.
       if (appt.package_id) {
+        // Paket zaten varsa (ilk seans degil), fiyat ILK SEANSTA belirlenmis
+        // ozel ucrete KILITLENIR — bu seansta ayrica sorulmaz/degistirilemez,
+        // sadece paketin GUNCEL kalan bakiyesi gosterilir. Ayni sorguyla
+        // "zaten tamamen tahsil edilmis mi?" (completeFullyPaid) de burada
+        // onceden hesaplanir.
         setCompleteLoadingScope(true)
         const pkg = servicePackages.find((p) => p.id === appt.package_id)
-        const pkgServicePrice = pkg?.service_id ? (services.find((s) => s.id === pkg.service_id)?.price ?? 0) : 0
+        const standardPrice = pkg?.service_id ? (services.find((s) => s.id === pkg.service_id)?.price ?? 0) : 0
         const [{ data: sessions }, { data: pkgPayments }] = await Promise.all([
-          supabase.from('appointments').select('price_override').eq('package_id', appt.package_id),
+          supabase.from('appointments').select('price_override, scheduled_at').eq('package_id', appt.package_id),
           supabase.from('payments').select('amount').eq('package_id', appt.package_id),
         ])
-        const knownSessionsTotal = (sessions ?? []).reduce((sum, s) => sum + (s.price_override ?? pkgServicePrice), 0)
+        const sortedSessions = (sessions ?? []).slice().sort((a, b) => a.scheduled_at.localeCompare(b.scheduled_at))
+        const pkgSessionPrice = sortedSessions[0]?.price_override ?? standardPrice
+        const knownSessionsTotal = sortedSessions.reduce((sum, s) => sum + (s.price_override ?? pkgSessionPrice), 0)
         const remainingSessionsEstimate =
-          Math.max(0, (pkg?.total_sessions ?? 0) - (pkg?.session_offset ?? 0) - (sessions ?? []).length) *
-          pkgServicePrice
+          Math.max(0, (pkg?.total_sessions ?? 0) - (pkg?.session_offset ?? 0) - sortedSessions.length) * pkgSessionPrice
         const scopeExpected = knownSessionsTotal + remainingSessionsEstimate
         const scopePaid = (pkgPayments ?? []).reduce((sum, p) => sum + p.amount, 0)
         setCompleteScopeExpected(scopeExpected)
         setCompleteScopePaid(scopePaid)
         setCompleteFullyPaid(scopePaid >= scopeExpected)
+        setCompletePriceOverride(String(appt.price_override ?? pkgSessionPrice))
+        setCompletePaymentAmount(String(Math.max(0, scopeExpected - scopePaid)))
         setCompleteLoadingScope(false)
+      } else {
+        const svc = services.find((s) => s.id === appt.service_id)
+        const price = appt.price_override ?? svc?.price ?? 0
+        setCompletePriceOverride(String(price))
+        setCompletePaymentAmount(String(price))
       }
     } else {
       updateStatus(appt, status)
@@ -825,23 +822,23 @@ export default function AppointmentsPage() {
       }
     }
 
-    // Ucret: bakiyeden dusulen + nakit/kart ile alinan kismin toplami.
-    // Odemeler HER ZAMAN girildigi gibi (kirpilmadan) kaydedilir; fazlalik
-    // olup olmadigi bu islemden SONRA, ilgili KAPSAMIN (paketliyse TUM
-    // paketin, degilse sadece bu randevunun) GUNCEL veritabani durumuna
-    // bakilarak hesaplanir — boylece "seans 1'de az, seans 2'de fazla
-    // odendi" gibi durumlar da doğru netlesir. Fazlalik HER DURUMDA
-    // (paketli/paketsiz fark etmeksizin) musteri bakiyesine gider; bir
-    // sonraki seansta/randevuda "Bakiyeden Al" ile goruluyor ve
-    // kullanilabiliyor. Paket zaten tamamen tahsil edilmisse (completeFullyPaid)
-    // odeme alanlari hic gosterilmedigi icin burada da hep 0 kalir.
+    // Ucret: paket akisinda BU seansin fiyati ilk seansta kilitlenmis ozel
+    // ucrettir (completePriceOverride uzerinden gelir, sonraki seanslarda
+    // kullaniciya hic sorulmaz). Tahsil edilen tutar, paket akisindaysa
+    // PAKETIN GUNCEL kalan bakiyesine, degilse SADECE bu islemin ucretine
+    // gore kirpilir — musteri bakiyesi/fazla odeme kavrami kaldirildi,
+    // girilen tutar hicbir zaman kalan borcu asamaz.
     const price = Number(completePriceOverride) || 0
-    const customer = customers.find((c) => c.id === completingAppt.customer_id)
-    const balanceAvailable = customer?.credit_balance ?? 0
-    const balanceRequested = completeFullyPaid
-      ? 0
-      : Math.min(Number(completeBalanceAmount) || 0, balanceAvailable, price)
-    const entered = completeFullyPaid ? 0 : Number(completePaymentAmount) || 0
+    let packageExpected = 0
+    let packagePaidSoFar = 0
+    if (creatingPackage) {
+      packageExpected = packageTotalSessionsValue * price
+    } else if (completingAppt.package_id) {
+      packageExpected = completeScopeExpected
+      packagePaidSoFar = completeScopePaid
+    }
+    const remainingDue = isPackageFlow ? Math.max(0, packageExpected - packagePaidSoFar) : Math.max(0, price)
+    const entered = completeFullyPaid ? 0 : Math.min(Number(completePaymentAmount) || 0, remainingDue)
 
     // 4) Odeme yontemi zorunlu (bir tutar tahsil ediliyorsa).
     if (!completeFullyPaid && entered > 0 && !completePaymentMethod) {
@@ -896,24 +893,6 @@ export default function AppointmentsPage() {
         await supabase.from('appointments').update({ package_id: effectivePackageId }).eq('id', completingAppt.id)
       }
 
-      if (balanceRequested > 0) {
-        const { error: balPayErr } = await supabase.from('payments').insert({
-          business_id: profile?.business_id,
-          customer_id: completingAppt.customer_id,
-          appointment_id: completingAppt.id,
-          package_id: effectivePackageId,
-          amount: balanceRequested,
-          method: 'bakiye',
-          created_by_user_id: profile?.id,
-        })
-        if (balPayErr) {
-          setError('Randevu tamamlandı ama bakiyeden düşülemedi: ' + balPayErr.message)
-          setCompletingAppt(null)
-          await loadData(true)
-          return
-        }
-      }
-
       if (entered > 0) {
         const { error: payErr } = await supabase.from('payments').insert({
           business_id: profile?.business_id,
@@ -929,57 +908,6 @@ export default function AppointmentsPage() {
           // modal kapatilip hata ana sayfadaki banner'da gosterilir, boylece
           // "hicbir sey olmamis gibi" hissettirmez.
           setError('Randevu tamamlandı ama ödeme kaydedilemedi: ' + payErr.message)
-          setCompletingAppt(null)
-          await loadData(true)
-          return
-        }
-      }
-
-      // Bu islemin ait oldugu kapsamin (paket varsa TUM paket, yoksa sadece
-      // bu randevu) GUNCEL beklenen/odenen tutarini taze bir sorguyla
-      // hesaplayip, fazlaligi (varsa) musteri bakiyesine aktar.
-      let scopeExpected = price
-      let scopePaid = balanceRequested + entered
-      if (effectivePackageId) {
-        // Yeni olusturulan paket henuz yerel state'te yok — o durumda
-        // formdan girilen degerler, mevcut pakette ise kayitli degerler
-        // kullanilir (submitCompletion basindaki ayni mantik).
-        const pkgRecord = !creatingPackage ? servicePackages.find((p) => p.id === effectivePackageId) : null
-        const pkgServicePrice = creatingPackage
-          ? (svc?.price ?? 0)
-          : pkgRecord?.service_id
-            ? (services.find((s) => s.id === pkgRecord.service_id)?.price ?? 0)
-            : 0
-        const pkgTotalSessions = creatingPackage ? packageTotalSessionsValue : (pkgRecord?.total_sessions ?? 0)
-        const pkgSessionOffsetValue = creatingPackage
-          ? Math.max(0, packageSessionNumberValue - 1)
-          : (pkgRecord?.session_offset ?? 0)
-        const [{ data: sessions }, { data: pkgPayments }] = await Promise.all([
-          supabase.from('appointments').select('price_override').eq('package_id', effectivePackageId),
-          supabase.from('payments').select('amount').eq('package_id', effectivePackageId),
-        ])
-        const knownSessionsTotal = (sessions ?? []).reduce((sum, s) => sum + (s.price_override ?? pkgServicePrice), 0)
-        const remainingSessionsEstimate =
-          Math.max(0, pkgTotalSessions - pkgSessionOffsetValue - (sessions ?? []).length) * pkgServicePrice
-        scopeExpected = knownSessionsTotal + remainingSessionsEstimate
-        scopePaid = (pkgPayments ?? []).reduce((sum, p) => sum + p.amount, 0)
-      } else if (completingAppt.customer_id) {
-        const { data: apptPayments } = await supabase
-          .from('payments')
-          .select('amount')
-          .eq('appointment_id', completingAppt.id)
-        scopePaid = (apptPayments ?? []).reduce((sum, p) => sum + p.amount, 0)
-      }
-      const sweepToBalance = Math.max(0, scopePaid - scopeExpected)
-      const creditBalanceDelta = sweepToBalance - balanceRequested
-
-      if (creditBalanceDelta !== 0 && completingAppt.customer_id) {
-        const { error: creditErr } = await supabase
-          .from('customers')
-          .update({ credit_balance: Math.max(0, balanceAvailable + creditBalanceDelta) })
-          .eq('id', completingAppt.customer_id)
-        if (creditErr) {
-          setError('Randevu tamamlandı ama müşteri bakiyesi güncellenemedi: ' + creditErr.message)
           setCompletingAppt(null)
           await loadData(true)
           return
@@ -1209,18 +1137,18 @@ export default function AppointmentsPage() {
   } | null = null
   let completePaymentSummary = {
     price: 0,
-    balanceAvailable: 0,
-    balanceRequested: 0,
     remainingDue: 0,
     entered: 0,
-    overflowToBalance: 0,
     stillOwed: 0,
   }
   if (completingAppt) {
     const isNewPackageDecision = !completingAppt.package_id
     const creatingPackage = isNewPackageDecision && completeTransactionType === 'seansli'
     const isPackageFlow = !!completingAppt.package_id || creatingPackage
-    const svcPrice = services.find((s) => s.id === completingAppt.service_id)?.price ?? 0
+    // Paket akisinda "price" seans basi kilitli ozel ucrettir — Esnek
+    // Fiyat'la degistirilince Paket Tutarı da ANINDA buna gore yeniden
+    // hesaplanir (bkz. asagida previewExpected).
+    const price = Number(completePriceOverride) || 0
     let currentSessionNumber = 0
     let totalSessionsForCheck = 0
     let previewExpected = 0
@@ -1228,7 +1156,7 @@ export default function AppointmentsPage() {
     if (creatingPackage) {
       currentSessionNumber = Math.round(Number(completePackageSessionNumber)) || 0
       totalSessionsForCheck = Math.round(Number(completePackageTotalSessions)) || 0
-      previewExpected = totalSessionsForCheck * svcPrice
+      previewExpected = totalSessionsForCheck * price
     } else if (completingAppt.package_id) {
       const pkg = servicePackages.find((p) => p.id === completingAppt.package_id)
       totalSessionsForCheck = pkg?.total_sessions ?? 0
@@ -1253,14 +1181,12 @@ export default function AppointmentsPage() {
     }
 
     if (!completeFullyPaid) {
-      const price = Number(completePriceOverride) || 0
-      const balanceAvailable = customers.find((c) => c.id === completingAppt.customer_id)?.credit_balance ?? 0
-      const balanceRequested = Math.min(Number(completeBalanceAmount) || 0, balanceAvailable, price)
-      const remainingDue = Math.max(0, price - balanceRequested)
-      const entered = Number(completePaymentAmount) || 0
-      const overflowToBalance = Math.max(0, entered - remainingDue)
+      // Musteri bakiyesi/fazla odeme kavrami kaldirildi — girilen tutar
+      // hicbir zaman kalan borcu asamaz, dogrudan buna gore kirpilir.
+      const remainingDue = isPackageFlow ? Math.max(0, previewExpected - previewPaidSoFar) : Math.max(0, price)
+      const entered = Math.min(Number(completePaymentAmount) || 0, remainingDue)
       const stillOwed = Math.max(0, remainingDue - entered)
-      completePaymentSummary = { price, balanceAvailable, balanceRequested, remainingDue, entered, overflowToBalance, stillOwed }
+      completePaymentSummary = { price, remainingDue, entered, stillOwed }
     }
   }
 
@@ -1922,10 +1848,7 @@ export default function AppointmentsPage() {
                           {(() => {
                             const pkgDebt = Math.max(
                               0,
-                              completionPreview.previewExpected -
-                                completionPreview.previewPaidSoFar -
-                                completePaymentSummary.balanceRequested -
-                                completePaymentSummary.entered,
+                              completionPreview.previewExpected - completionPreview.previewPaidSoFar,
                             )
                             return (
                               <span className={pkgDebt > 0 ? styles.debtValue : styles.debtValueOk}>
@@ -1965,70 +1888,49 @@ export default function AppointmentsPage() {
                         </div>
                       ) : (
                         <div className="card" style={{ padding: 14 }}>
-                          <div className={styles.amountDisplayRow}>
-                            <span className={styles.amountDisplayLabel}>
-                              <InfoIcon width={13} height={13} /> Alınan Tutar
-                            </span>
-                            {!completePriceEditing && (
-                              <span className={styles.amountDisplayValue}>
-                                {currency.format(completePaymentSummary.price)}
-                              </span>
-                            )}
-                          </div>
-                          {completePriceEditing ? (
-                            <input
-                              type="number"
-                              min={0}
-                              step="0.01"
-                              autoFocus
-                              value={completePriceOverride}
-                              onChange={(e) => {
-                                const newPrice = Number(e.target.value) || 0
-                                const balance = Number(completeBalanceAmount) || 0
-                                setCompletePriceOverride(e.target.value)
-                                setCompletePaymentAmount(String(Math.max(0, newPrice - balance)))
-                              }}
-                              onBlur={() => setCompletePriceEditing(false)}
-                              style={{ marginBottom: 14 }}
-                            />
-                          ) : (
-                            <button
-                              type="button"
-                              className={styles.priceEditLink}
-                              onClick={() => setCompletePriceEditing(true)}
-                            >
-                              <PencilIcon width={12} height={12} /> Esnek Fiyat
-                            </button>
-                          )}
-
-                          {completePaymentSummary.balanceAvailable > 0 && (
+                          {/* Esnek Fiyat sadece tek seferlik islemde ve paketin ILK
+                              seansinda duzenlenebilir — bu fiyat paketin seans
+                              basi ucreti olarak kilitlenir, sonraki seanslarda bir
+                              daha sorulmaz/degistirilmez. */}
+                          {(completionPreview?.creatingPackage || !completionPreview?.isPackageFlow) && (
                             <>
-                              <div className={styles.creditBanner} style={{ marginBottom: 12 }}>
-                                <span className={styles.creditBannerLeft}>Müşteri Bakiyesi</span>
-                                <span className={styles.creditBannerValue}>
-                                  {currency.format(completePaymentSummary.balanceAvailable)}
+                              <div className={styles.amountDisplayRow}>
+                                <span className={styles.amountDisplayLabel}>
+                                  <InfoIcon width={13} height={13} /> Alınan Tutar
                                 </span>
+                                {!completePriceEditing && (
+                                  <span className={styles.amountDisplayValue}>
+                                    {currency.format(completePaymentSummary.price)}
+                                  </span>
+                                )}
                               </div>
-                              <div className="field">
-                                <label htmlFor="completeBalanceAmount">Bakiyeden Al (TL)</label>
+                              {completePriceEditing ? (
                                 <input
-                                  id="completeBalanceAmount"
                                   type="number"
                                   min={0}
-                                  max={Math.min(completePaymentSummary.balanceAvailable, completePaymentSummary.price)}
                                   step="0.01"
-                                  value={completeBalanceAmount}
+                                  autoFocus
+                                  value={completePriceOverride}
                                   onChange={(e) => {
-                                    const requested = Math.min(
-                                      Number(e.target.value) || 0,
-                                      completePaymentSummary.balanceAvailable,
-                                      completePaymentSummary.price,
-                                    )
-                                    setCompleteBalanceAmount(e.target.value)
-                                    setCompletePaymentAmount(String(Math.max(0, completePaymentSummary.price - requested)))
+                                    const newPrice = Number(e.target.value) || 0
+                                    setCompletePriceOverride(e.target.value)
+                                    const newExpected = completionPreview?.isPackageFlow
+                                      ? (Math.round(Number(completePackageTotalSessions)) || 0) * newPrice
+                                      : newPrice
+                                    setCompletePaymentAmount(String(Math.max(0, newExpected)))
                                   }}
+                                  onBlur={() => setCompletePriceEditing(false)}
+                                  style={{ marginBottom: 14 }}
                                 />
-                              </div>
+                              ) : (
+                                <button
+                                  type="button"
+                                  className={styles.priceEditLink}
+                                  onClick={() => setCompletePriceEditing(true)}
+                                >
+                                  <PencilIcon width={12} height={12} /> Esnek Fiyat
+                                </button>
+                              )}
                             </>
                           )}
 
@@ -2039,6 +1941,7 @@ export default function AppointmentsPage() {
                                 id="completeAmount"
                                 type="number"
                                 min={0}
+                                max={completePaymentSummary.remainingDue}
                                 step="0.01"
                                 value={completePaymentAmount}
                                 onChange={(e) => setCompletePaymentAmount(e.target.value)}
@@ -2048,19 +1951,11 @@ export default function AppointmentsPage() {
 
                           <div className={styles.debtBlock}>
                             <span className={styles.debtLabel}>Kalan Borç</span>
-                            {completePaymentSummary.overflowToBalance > 0 ? (
-                              <span className={styles.debtValueOk}>
-                                +{currency.format(completePaymentSummary.overflowToBalance)}
-                              </span>
-                            ) : (
-                              <span
-                                className={
-                                  completePaymentSummary.stillOwed > 0 ? styles.debtValue : styles.debtValueOk
-                                }
-                              >
-                                {currency.format(completePaymentSummary.stillOwed)}
-                              </span>
-                            )}
+                            <span
+                              className={completePaymentSummary.stillOwed > 0 ? styles.debtValue : styles.debtValueOk}
+                            >
+                              {currency.format(completePaymentSummary.stillOwed)}
+                            </span>
                           </div>
 
                           <div style={{ marginTop: 18 }}>

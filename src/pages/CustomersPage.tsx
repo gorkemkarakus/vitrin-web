@@ -25,7 +25,6 @@ interface Customer {
   contact_phone: string | null
   email: string | null
   created_at: string
-  credit_balance: number
 }
 
 interface Appointment {
@@ -152,7 +151,7 @@ export default function CustomersPage() {
       const [{ data: custs }, { data: appts }, { data: pkgs }, { data: pays }, { data: svcs }] = await Promise.all([
         supabase
           .from('customers')
-          .select('id, full_name, phone, contact_phone, email, created_at, credit_balance')
+          .select('id, full_name, phone, contact_phone, email, created_at')
           .order('full_name'),
         supabase
           .from('appointments')
@@ -228,8 +227,15 @@ export default function CustomersPage() {
   const debtByCustomer = useMemo(() => {
     const map = new Map<string, number>()
     for (const pkg of packages) {
-      const price = pkg.service_id ? (servicePriceById.get(pkg.service_id) ?? 0) : 0
-      const sessions = appointments.filter((a) => a.package_id === pkg.id)
+      const standardPrice = pkg.service_id ? (servicePriceById.get(pkg.service_id) ?? 0) : 0
+      // Paketin seans basi ucreti, ILK seansta belirlenen ozel fiyata
+      // kilitlidir (bkz. AppointmentsPage tamamlama akisi) — standart
+      // hizmet fiyati sadece hic seans acilmamissa yedek olarak kullanilir.
+      const sessions = appointments
+        .filter((a) => a.package_id === pkg.id)
+        .slice()
+        .sort((a, b) => a.scheduled_at.localeCompare(b.scheduled_at))
+      const price = sessions[0]?.price_override ?? standardPrice
       const knownSessionsTotal = sessions.reduce((sum, a) => sum + (a.price_override ?? price), 0)
       const remainingSessionsEstimate = Math.max(0, pkg.total_sessions - pkg.session_offset - sessions.length) * price
       const expected = knownSessionsTotal + remainingSessionsEstimate
@@ -244,18 +250,8 @@ export default function CustomersPage() {
       const remaining = Math.max(0, expected - paid)
       if (remaining > 0) map.set(a.customer_id, (map.get(a.customer_id) ?? 0) + remaining)
     }
-    // Musteri bakiyesi (credit_balance) varsa borcu netlestirir — bakiye
-    // borcu tamamen karsiliyorsa "Borçlu" sekmesinden tamamen dusmeli.
-    for (const c of customers) {
-      if (c.credit_balance <= 0) continue
-      const current = map.get(c.id)
-      if (current === undefined) continue
-      const net = Math.max(0, current - c.credit_balance)
-      if (net > 0) map.set(c.id, net)
-      else map.delete(c.id)
-    }
     return map
-  }, [packages, payments, appointments, servicePriceById, customers])
+  }, [packages, payments, appointments, servicePriceById])
 
   // Yeni (bu ay eklendi) > Sadik (3+ tamamlanan randevu) > Pasif (90+ gundur
   // randevusu yok) onceligiyle TEK bir segmente atanir; hicbirine uymayan
@@ -567,7 +563,6 @@ export default function CustomersPage() {
                   contact_phone: null,
                   email: null,
                   created_at: new Date().toISOString(),
-                  credit_balance: 0,
                 },
               ].sort(
                 (a, b) => a.full_name.localeCompare(b.full_name, 'tr'),

@@ -43,7 +43,6 @@ interface Profile {
 interface Customer {
   id: string
   full_name: string | null
-  credit_balance: number
 }
 
 interface Expense {
@@ -128,7 +127,7 @@ export default function DashboardPage() {
             ),
           supabase.from('services').select('id, name, price'),
           supabase.from('profiles').select('id, full_name'),
-          supabase.from('customers').select('id, full_name, credit_balance'),
+          supabase.from('customers').select('id, full_name'),
           supabase.from('business_expenses').select('id, description, amount, expense_date'),
           supabase.from('service_packages').select('id, customer_id, service_id, total_sessions, session_offset'),
           supabase.from('payments').select('id, customer_id, amount, appointment_id, package_id, paid_at'),
@@ -213,7 +212,12 @@ export default function DashboardPage() {
       (a) => a.status === 'tamamlandi' && dateWithinRange(a.scheduled_at, rangeStart, rangeEnd),
     )
     if (!hasSessionInRange) continue
-    const price = pkg.service_id ? (servicePriceById.get(pkg.service_id) ?? 0) : 0
+    const standardPrice = pkg.service_id ? (servicePriceById.get(pkg.service_id) ?? 0) : 0
+    // Paketin seans basi ucreti ILK seansta belirlenen ozel fiyata
+    // kilitlidir (bkz. AppointmentsPage tamamlama akisi) — standart hizmet
+    // fiyati sadece hic seans acilmamissa yedek olarak kullanilir.
+    const sortedSessions = sessions.slice().sort((a, b) => a.scheduled_at.localeCompare(b.scheduled_at))
+    const price = sortedSessions[0]?.price_override ?? standardPrice
     const knownSessionsTotal = sessions.reduce((sum, a) => sum + (a.price_override ?? price), 0)
     const remainingSessionsEstimate = Math.max(0, pkg.total_sessions - pkg.session_offset - sessions.length) * price
     const expected = knownSessionsTotal + remainingSessionsEstimate
@@ -227,16 +231,6 @@ export default function DashboardPage() {
     const paid = payments.filter((p) => p.appointment_id === a.id).reduce((sum, p) => sum + p.amount, 0)
     const remaining = Math.max(0, expected - paid)
     if (remaining > 0) debtByCustomerInRange.set(a.customer_id, (debtByCustomerInRange.get(a.customer_id) ?? 0) + remaining)
-  }
-  // Musteri bakiyesi varsa borcu netlestirir — bakiye borcu tamamen
-  // karsiliyorsa "Bekleyen Tahsilatlar"dan tamamen dusmeli.
-  for (const c of customers) {
-    if (c.credit_balance <= 0) continue
-    const current = debtByCustomerInRange.get(c.id)
-    if (current === undefined) continue
-    const net = Math.max(0, current - c.credit_balance)
-    if (net > 0) debtByCustomerInRange.set(c.id, net)
-    else debtByCustomerInRange.delete(c.id)
   }
   const totalDebtInRange = Array.from(debtByCustomerInRange.values()).reduce((sum, v) => sum + v, 0)
   const topDebtors = Array.from(debtByCustomerInRange.entries())
