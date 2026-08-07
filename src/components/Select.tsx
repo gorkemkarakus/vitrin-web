@@ -5,6 +5,7 @@ export interface SelectOption {
   value: string
   label: string
   sub?: string // ikinci satır (ör. telefon numarası, süre/fiyat)
+  disabled?: boolean // ör. musait olmayan saat — soluk gorunur, secilemez
 }
 
 interface SelectProps {
@@ -84,8 +85,11 @@ export default function Select({
               key={o.value}
               role="option"
               aria-selected={o.value === value}
-              className={`${styles.menuItem} ${o.value === value ? styles.menuItemActive : ''}`}
+              aria-disabled={o.disabled}
+              disabled={o.disabled}
+              className={`${styles.menuItem} ${o.value === value ? styles.menuItemActive : ''} ${o.disabled ? styles.menuItemDisabled : ''}`}
               onClick={() => {
+                if (o.disabled) return
                 onChange(o.value)
                 setOpen(false)
               }}

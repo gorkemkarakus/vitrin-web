@@ -109,6 +109,15 @@
   font-weight: 600;
 }
 
+.menuItemDisabled {
+  opacity: 0.35;
+  cursor: not-allowed;
+}
+
+.menuItemDisabled:hover {
+  background: none;
+}
+
 .menuItemText {
   display: flex;
   flex-direction: column;

@@ -562,6 +562,31 @@ export default function AppointmentsPage() {
     return !hasConflict
   }
 
+  // Verilen tarihte, aday calisanlardan EN AZ birinin o gun (haftanin o
+  // gunu icin) tanimli bir calisma saati var mi? Hicbirinin yoksa o gun
+  // hicbir sekilde randevu alinamaz — "isletme kapali" sayilir. Aday
+  // listesi bossa (ör. randevuya henuz calisan atanmamis) kisitlama
+  // uygulanmaz, her gun acik sayilir — mevcut isEmployeeAvailable
+  // kontrolundeki "calisan atanmamissa kontrolu atla" davranisiyla tutarli.
+  function isDayOpenForCandidates(dateStr: string, candidateIds: string[]) {
+    if (candidateIds.length === 0) return true
+    const dayOfWeek = new Date(`${dateStr}T00:00:00`).getDay()
+    return schedules.some((s) => candidateIds.includes(s.profile_id) && s.day_of_week === dayOfWeek)
+  }
+
+  // TIME_OPTIONS listesindeki her saat icin, aday calisanlardan en az biri
+  // musaitse secilebilir, hicbiri musait degilse "disabled" (soluk/
+  // secilemez) olarak isaretlenir — kullanici artik dolu bir saati secip
+  // "Tamamla"da hata almak yerine, dolu saatleri hic secemez.
+  function buildTimeOptions(dateStr: string, candidateIds: string[], durationMinutes: number, excludeApptId?: string) {
+    return TIME_OPTIONS.map((t) => {
+      if (candidateIds.length === 0 || !dateStr) return { value: t, label: t }
+      const start = new Date(`${dateStr}T${t}`)
+      const available = candidateIds.some((id) => isEmployeeAvailable(id, start, durationMinutes, excludeApptId))
+      return { value: t, label: t, disabled: !available }
+    })
+  }
+
   async function handleCreate(e: FormEvent) {
     e.preventDefault()
     setError(null)
@@ -1650,7 +1675,25 @@ export default function AppointmentsPage() {
 
               <div className="field">
                 <label htmlFor="apptDate">Tarih</label>
-                <input id="apptDate" type="date" value={apptDate} onChange={(e) => setApptDate(e.target.value)} />
+                <input
+                  id="apptDate"
+                  type="date"
+                  value={apptDate}
+                  onChange={(e) => {
+                    const newDate = e.target.value
+                    const candidateIds = employeeId ? [employeeId] : eligibleEmployees.map((p) => p.id)
+                    if (newDate && !isDayOpenForCandidates(newDate, candidateIds)) {
+                      setError(
+                        employeeId
+                          ? 'Seçilen çalışan bu gün çalışmıyor.'
+                          : 'İşletme bu gün kapalı, uygun çalışan yok.',
+                      )
+                      return
+                    }
+                    setError(null)
+                    setApptDate(newDate)
+                  }}
+                />
               </div>
 
               <div className="field">
@@ -1659,7 +1702,11 @@ export default function AppointmentsPage() {
                   id="apptTime"
                   value={apptTime}
                   onChange={setApptTime}
-                  options={TIME_OPTIONS.map((t) => ({ value: t, label: t }))}
+                  options={buildTimeOptions(
+                    apptDate,
+                    employeeId ? [employeeId] : eligibleEmployees.map((p) => p.id),
+                    selectedService?.duration_minutes ?? SLOT_MINUTES,
+                  )}
                 />
               </div>
 
@@ -2134,7 +2181,16 @@ export default function AppointmentsPage() {
                                   type="date"
                                   autoFocus
                                   value={completeFollowupDate}
-                                  onChange={(e) => setCompleteFollowupDate(e.target.value)}
+                                  onChange={(e) => {
+                                    const newDate = e.target.value
+                                    const candidateIds = completingAppt.employee_id ? [completingAppt.employee_id] : []
+                                    if (newDate && !isDayOpenForCandidates(newDate, candidateIds)) {
+                                      setCompleteError('Seçilen çalışan bu gün çalışmıyor.')
+                                      return
+                                    }
+                                    setCompleteError(null)
+                                    setCompleteFollowupDate(newDate)
+                                  }}
                                 />
                               </div>
                               <div className="field" style={{ flex: 1, marginBottom: 0 }}>
@@ -2143,7 +2199,12 @@ export default function AppointmentsPage() {
                                   id="followupTime"
                                   value={completeFollowupTime}
                                   onChange={setCompleteFollowupTime}
-                                  options={TIME_OPTIONS.map((t) => ({ value: t, label: t }))}
+                                  options={buildTimeOptions(
+                                    completeFollowupDate,
+                                    completingAppt.employee_id ? [completingAppt.employee_id] : [],
+                                    services.find((s) => s.id === completingAppt.service_id)?.duration_minutes ??
+                                      SLOT_MINUTES,
+                                  )}
                                 />
                               </div>
                             </div>
@@ -2339,7 +2400,25 @@ export default function AppointmentsPage() {
 
               <div className="field">
                 <label htmlFor="editDate">Tarih</label>
-                <input id="editDate" type="date" value={editDate} onChange={(e) => setEditDate(e.target.value)} />
+                <input
+                  id="editDate"
+                  type="date"
+                  value={editDate}
+                  onChange={(e) => {
+                    const newDate = e.target.value
+                    const candidateIds = editEmployeeId ? [editEmployeeId] : profiles.map((p) => p.id)
+                    if (newDate && !isDayOpenForCandidates(newDate, candidateIds)) {
+                      setEditError(
+                        editEmployeeId
+                          ? 'Seçilen çalışan bu gün çalışmıyor.'
+                          : 'İşletme bu gün kapalı, uygun çalışan yok.',
+                      )
+                      return
+                    }
+                    setEditError(null)
+                    setEditDate(newDate)
+                  }}
+                />
               </div>
 
               <div className="field">
@@ -2348,7 +2427,12 @@ export default function AppointmentsPage() {
                   id="editTime"
                   value={editTime}
                   onChange={setEditTime}
-                  options={TIME_OPTIONS.map((t) => ({ value: t, label: t }))}
+                  options={buildTimeOptions(
+                    editDate,
+                    editEmployeeId ? [editEmployeeId] : profiles.map((p) => p.id),
+                    services.find((s) => s.id === editServiceId)?.duration_minutes ?? SLOT_MINUTES,
+                    editingAppt.id,
+                  )}
                 />
               </div>
 
