@@ -440,7 +440,7 @@
 .stepperBtn {
   width: 34px;
   height: 34px;
-  border-radius: 50%;
+  border-radius: 9px;
   border: none;
   background: var(--info-bg);
   color: var(--signal);
