@@ -405,6 +405,16 @@ export function LayersIcon(props: IconProps) {
   )
 }
 
+export function HelpCircleIcon(props: IconProps) {
+  return (
+    <svg {...base} {...props}>
+      <circle cx="12" cy="12" r="9" />
+      <path d="M9.5 9a2.5 2.5 0 1 1 3.5 2.3c-.7.3-1 .8-1 1.4v.6" />
+      <circle cx="12" cy="16.3" r="0.6" fill="currentColor" stroke="none" />
+    </svg>
+  )
+}
+
 export function PencilIcon(props: IconProps) {
   return (
     <svg {...base} {...props}>

@@ -22,6 +22,9 @@ import {
   BankIcon,
   MoreHorizontalIcon,
   InfoIcon,
+  HelpCircleIcon,
+  ServicesIcon,
+  LayersIcon,
 } from '../components/icons'
 import type { LayoutOutletContext } from '../layouts/DashboardLayout'
 import styles from './AppointmentsPage.module.css'
@@ -319,6 +322,11 @@ export default function AppointmentsPage() {
   // ucret salt-okunur buyuk yazi ile gosterilir, degistirmek icin once
   // "Esnek Fiyat" dokunulur.
   const [completePriceEditing, setCompletePriceEditing] = useState(false)
+  // "Paket Tutarı" da (Düzenle ile) dogrudan toplam olarak girilebilir —
+  // girilen toplam, seans basi fiyati (completePriceOverride = toplam /
+  // seans sayisi) geriye donuk hesaplayarak gunceller, boylece tek bir
+  // kaynak (seans basi fiyat) her zaman dogru kalir.
+  const [completePackageAmountEditing, setCompletePackageAmountEditing] = useState(false)
   const [completePaymentAmount, setCompletePaymentAmount] = useState('')
   // Bos birakiliyor (varsayilan yontem YOK) — bir tutar girildiyse yontem
   // secilmeden Tamamla butonu acilmiyor (zorunlu secim).
@@ -706,6 +714,7 @@ export default function AppointmentsPage() {
       setCompleteScopePaid(0)
       setCompleteFullyPaid(false)
       setCompletePriceEditing(false)
+      setCompletePackageAmountEditing(false)
       setCompletePaymentMethod('')
       setCompleteFollowupDate('')
       setCompleteFollowupTime('')
@@ -1657,10 +1666,18 @@ export default function AppointmentsPage() {
       {completingAppt && (
         <div className={styles.modalBackdrop} onClick={() => setCompletingAppt(null)}>
           <div className={`card ${styles.modalCard}`} onClick={(e) => e.stopPropagation()}>
-            <div className={styles.modalHeader}>
+            <div className={styles.completeHeader}>
+              <button
+                type="button"
+                className={styles.completeHeaderIconBtn}
+                onClick={() => setCompletingAppt(null)}
+                aria-label="Kapat"
+              >
+                <ChevronRightIcon width={18} height={18} style={{ transform: 'rotate(180deg)' }} />
+              </button>
               <h2>İşlemi Tamamla</h2>
-              <button type="button" className={styles.bannerClose} onClick={() => setCompletingAppt(null)}>
-                ✕
+              <button type="button" className={styles.completeHeaderIconBtn} aria-label="Yardım">
+                <HelpCircleIcon width={18} height={18} />
               </button>
             </div>
 
@@ -1701,11 +1718,15 @@ export default function AppointmentsPage() {
 
             <div className={styles.completeInfoStrip}>
               <div className={styles.completeInfoStripItem}>
-                <span className={styles.completeInfoStripLabel}>Hizmet</span>
+                <span className={styles.completeInfoStripLabel}>
+                  <ServicesIcon width={11} height={11} /> Hizmet
+                </span>
                 <span className={styles.completeInfoStripValue}>{serviceName(completingAppt.service_id)}</span>
               </div>
               <div className={styles.completeInfoStripItem}>
-                <span className={styles.completeInfoStripLabel}>Tarih / Saat</span>
+                <span className={styles.completeInfoStripLabel}>
+                  <CalendarIcon width={11} height={11} /> Tarih / Saat
+                </span>
                 <span className={styles.completeInfoStripValue}>
                   {new Date(completingAppt.scheduled_at).toLocaleDateString('tr-TR', { day: 'numeric', month: 'short' })}
                   {' · '}
@@ -1716,7 +1737,9 @@ export default function AppointmentsPage() {
                 </span>
               </div>
               <div className={styles.completeInfoStripItem}>
-                <span className={styles.completeInfoStripLabel}>Paket</span>
+                <span className={styles.completeInfoStripLabel}>
+                  <LayersIcon width={11} height={11} /> Paket
+                </span>
                 <span className={styles.completeInfoStripValue}>
                   {completingAppt.package_id
                     ? `${servicePackages.find((p) => p.id === completingAppt.package_id)?.total_sessions ?? '?'} Seans Paketi`
@@ -1741,11 +1764,13 @@ export default function AppointmentsPage() {
                           className={`${styles.typeCard} ${completeTransactionType === 'tek' ? styles.typeCardActive : ''}`}
                           onClick={() => setCompleteTransactionType('tek')}
                         >
-                          {completeTransactionType === 'tek' && (
-                            <span className={styles.typeCardCheck}>
-                              <CheckCircleIcon width={12} height={12} />
-                            </span>
-                          )}
+                          <span
+                            className={
+                              completeTransactionType === 'tek' ? styles.typeCardCheck : styles.typeCardRadio
+                            }
+                          >
+                            {completeTransactionType === 'tek' && <CheckCircleIcon width={12} height={12} />}
+                          </span>
                           <span className={styles.typeCardIcon}>
                             <UserIcon width={18} height={18} />
                           </span>
@@ -1757,11 +1782,13 @@ export default function AppointmentsPage() {
                           className={`${styles.typeCard} ${completeTransactionType === 'seansli' ? styles.typeCardActive : ''}`}
                           onClick={() => setCompleteTransactionType('seansli')}
                         >
-                          {completeTransactionType === 'seansli' && (
-                            <span className={styles.typeCardCheck}>
-                              <CheckCircleIcon width={12} height={12} />
-                            </span>
-                          )}
+                          <span
+                            className={
+                              completeTransactionType === 'seansli' ? styles.typeCardCheck : styles.typeCardRadio
+                            }
+                          >
+                            {completeTransactionType === 'seansli' && <CheckCircleIcon width={12} height={12} />}
+                          </span>
                           <span className={styles.typeCardIcon}>
                             <TeamIcon width={18} height={18} />
                           </span>
@@ -1820,9 +1847,38 @@ export default function AppointmentsPage() {
                           </div>
                           <div className={styles.packageAmountBlock}>
                             <div className={styles.completeInfoStripLabel}>Paket Tutarı</div>
-                            <span className={styles.packageAmountValue}>
-                              {currency.format(completionPreview.previewExpected)}
-                            </span>
+                            {completePackageAmountEditing ? (
+                              <input
+                                type="number"
+                                min={0}
+                                step="0.01"
+                                autoFocus
+                                style={{ maxWidth: 140, textAlign: 'right' }}
+                                defaultValue={completionPreview.previewExpected}
+                                onChange={(e) => {
+                                  const newTotal = Number(e.target.value) || 0
+                                  const sessionCount = Math.max(1, Math.round(Number(completePackageTotalSessions)) || 1)
+                                  setCompletePriceOverride(String(newTotal / sessionCount))
+                                }}
+                                onBlur={() => setCompletePackageAmountEditing(false)}
+                              />
+                            ) : (
+                              <>
+                                <span className={styles.packageAmountValue}>
+                                  {currency.format(completionPreview.previewExpected)}
+                                </span>
+                                {completionPreview.creatingPackage && (
+                                  <button
+                                    type="button"
+                                    className={styles.priceEditLink}
+                                    style={{ marginTop: 4 }}
+                                    onClick={() => setCompletePackageAmountEditing(true)}
+                                  >
+                                    <PencilIcon width={11} height={11} /> Düzenle
+                                  </button>
+                                )}
+                              </>
+                            )}
                           </div>
                         </div>
 
@@ -1833,13 +1889,18 @@ export default function AppointmentsPage() {
                               {completionPreview.currentSessionNumber} / {completionPreview.totalSessionsForCheck} Seans
                             </span>
                           </div>
-                          <div className={styles.progressBarTrack}>
-                            <div
-                              className={styles.progressBarFill}
-                              style={{
-                                width: `${Math.min(100, (completionPreview.currentSessionNumber / Math.max(1, completionPreview.totalSessionsForCheck)) * 100)}%`,
-                              }}
-                            />
+                          <div className={styles.progressBarTrackWrap}>
+                            <div className={styles.progressBarTrack}>
+                              <div
+                                className={styles.progressBarFill}
+                                style={{
+                                  width: `${Math.min(100, (completionPreview.currentSessionNumber / Math.max(1, completionPreview.totalSessionsForCheck)) * 100)}%`,
+                                }}
+                              />
+                            </div>
+                            <span className={styles.progressBarStartCheck}>
+                              <CheckCircleIcon width={9} height={9} />
+                            </span>
                           </div>
                         </div>
 
@@ -1892,61 +1953,76 @@ export default function AppointmentsPage() {
                               seansinda duzenlenebilir — bu fiyat paketin seans
                               basi ucreti olarak kilitlenir, sonraki seanslarda bir
                               daha sorulmaz/degistirilmez. */}
-                          {(completionPreview?.creatingPackage || !completionPreview?.isPackageFlow) && (
-                            <>
-                              <div className={styles.amountDisplayRow}>
-                                <span className={styles.amountDisplayLabel}>
-                                  <InfoIcon width={13} height={13} /> Alınan Tutar
-                                </span>
-                                {!completePriceEditing && (
-                                  <span className={styles.amountDisplayValue}>
-                                    {currency.format(completePaymentSummary.price)}
-                                  </span>
+                          {completionPreview?.creatingPackage || !completionPreview?.isPackageFlow ? (
+                            <div className={styles.packageInfoGrid}>
+                              <div>
+                                <div className={styles.amountDisplayLabel} style={{ marginBottom: 6 }}>
+                                  <InfoIcon width={13} height={13} /> Alınacak Tutar
+                                </div>
+                                {completePriceEditing ? (
+                                  <input
+                                    type="number"
+                                    min={0}
+                                    step="0.01"
+                                    autoFocus
+                                    value={completePriceOverride}
+                                    onChange={(e) => {
+                                      const newPrice = Number(e.target.value) || 0
+                                      setCompletePriceOverride(e.target.value)
+                                      const newExpected = completionPreview?.isPackageFlow
+                                        ? (Math.round(Number(completePackageTotalSessions)) || 0) * newPrice
+                                        : newPrice
+                                      setCompletePaymentAmount(String(Math.max(0, newExpected)))
+                                    }}
+                                    onBlur={() => setCompletePriceEditing(false)}
+                                  />
+                                ) : (
+                                  <>
+                                    <div className={styles.amountDisplayValue}>
+                                      {currency.format(completePaymentSummary.price)}
+                                    </div>
+                                    <button
+                                      type="button"
+                                      className={styles.priceEditLink}
+                                      style={{ marginTop: 4 }}
+                                      onClick={() => setCompletePriceEditing(true)}
+                                    >
+                                      <PencilIcon width={12} height={12} /> Esnek Fiyat
+                                    </button>
+                                  </>
                                 )}
                               </div>
-                              {completePriceEditing ? (
+
+                              {completePaymentSummary.remainingDue > 0 && (
+                                <div className="field" style={{ marginBottom: 0 }}>
+                                  <label htmlFor="completeAmount">Tahsil Edilen Tutar (TL)</label>
+                                  <input
+                                    id="completeAmount"
+                                    type="number"
+                                    min={0}
+                                    max={completePaymentSummary.remainingDue}
+                                    step="0.01"
+                                    value={completePaymentAmount}
+                                    onChange={(e) => setCompletePaymentAmount(e.target.value)}
+                                  />
+                                </div>
+                              )}
+                            </div>
+                          ) : (
+                            completePaymentSummary.remainingDue > 0 && (
+                              <div className="field" style={{ marginBottom: 0 }}>
+                                <label htmlFor="completeAmount">Tahsil Edilen Tutar (TL)</label>
                                 <input
+                                  id="completeAmount"
                                   type="number"
                                   min={0}
+                                  max={completePaymentSummary.remainingDue}
                                   step="0.01"
-                                  autoFocus
-                                  value={completePriceOverride}
-                                  onChange={(e) => {
-                                    const newPrice = Number(e.target.value) || 0
-                                    setCompletePriceOverride(e.target.value)
-                                    const newExpected = completionPreview?.isPackageFlow
-                                      ? (Math.round(Number(completePackageTotalSessions)) || 0) * newPrice
-                                      : newPrice
-                                    setCompletePaymentAmount(String(Math.max(0, newExpected)))
-                                  }}
-                                  onBlur={() => setCompletePriceEditing(false)}
-                                  style={{ marginBottom: 14 }}
+                                  value={completePaymentAmount}
+                                  onChange={(e) => setCompletePaymentAmount(e.target.value)}
                                 />
-                              ) : (
-                                <button
-                                  type="button"
-                                  className={styles.priceEditLink}
-                                  onClick={() => setCompletePriceEditing(true)}
-                                >
-                                  <PencilIcon width={12} height={12} /> Esnek Fiyat
-                                </button>
-                              )}
-                            </>
-                          )}
-
-                          {completePaymentSummary.remainingDue > 0 && (
-                            <div className="field" style={{ marginBottom: 0 }}>
-                              <label htmlFor="completeAmount">Tahsil Edilen Tutar (TL)</label>
-                              <input
-                                id="completeAmount"
-                                type="number"
-                                min={0}
-                                max={completePaymentSummary.remainingDue}
-                                step="0.01"
-                                value={completePaymentAmount}
-                                onChange={(e) => setCompletePaymentAmount(e.target.value)}
-                              />
-                            </div>
+                              </div>
+                            )
                           )}
 
                           <div className={styles.debtBlock}>
