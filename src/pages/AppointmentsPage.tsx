@@ -1959,7 +1959,8 @@ export default function AppointmentsPage() {
                             {(completionPreview?.creatingPackage || !completionPreview?.isPackageFlow) && (
                               <div className={styles.paymentTopCol}>
                                 <div className={styles.amountDisplayLabel} style={{ marginBottom: 6 }}>
-                                  <InfoIcon width={13} height={13} /> Alınacak Tutar
+                                  <InfoIcon width={13} height={13} />{' '}
+                                  {completionPreview?.isPackageFlow ? 'Paket Ücreti' : 'Alınacak Tutar'}
                                 </div>
                                 {completePriceEditing ? (
                                   <input
@@ -1967,6 +1968,7 @@ export default function AppointmentsPage() {
                                     min={0}
                                     step="0.01"
                                     autoFocus
+                                    className={styles.amountEditInput}
                                     value={completePriceOverride}
                                     onChange={(e) => {
                                       const newPrice = Number(e.target.value) || 0
@@ -1977,13 +1979,16 @@ export default function AppointmentsPage() {
                                       setCompletePaymentAmount(String(Math.max(0, newExpected)))
                                     }}
                                     onBlur={() => setCompletePriceEditing(false)}
-                                    style={{ maxWidth: 110 }}
                                   />
                                 ) : (
                                   <>
-                                    <div className={styles.amountDisplayValue}>
+                                    <button
+                                      type="button"
+                                      className={styles.amountDisplayValueBtn}
+                                      onClick={() => setCompletePriceEditing(true)}
+                                    >
                                       {currency.format(completePaymentSummary.price)}
-                                    </div>
+                                    </button>
                                     <button
                                       type="button"
                                       className={styles.priceEditChip}
@@ -2019,12 +2024,17 @@ export default function AppointmentsPage() {
 
                             <div className={styles.paymentTopCol}>
                               <span className={styles.debtLabel}>Kalan Borç</span>
-                              <span
-                                className={completePaymentSummary.stillOwed > 0 ? styles.debtValue : styles.debtValueOk}
-                                style={{ marginTop: 6 }}
-                              >
-                                {currency.format(completePaymentSummary.stillOwed)}
-                              </span>
+                              {completePaymentSummary.stillOwed > 0 ? (
+                                <span className={styles.debtValue} style={{ marginTop: 6 }}>
+                                  {currency.format(completePaymentSummary.stillOwed)}
+                                </span>
+                              ) : (
+                                <span className={styles.debtPaidNote} style={{ marginTop: 6 }}>
+                                  {completionPreview?.isPackageFlow
+                                    ? 'Paket ücretinin tamamı alınmıştır.'
+                                    : 'Ücretin tamamı alınmıştır.'}
+                                </span>
+                              )}
                             </div>
                           </div>
 
