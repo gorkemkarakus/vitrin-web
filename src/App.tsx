@@ -17,6 +17,7 @@ import SettingsPage from './pages/SettingsPage'
 import MorePage from './pages/MorePage'
 import CustomersPage from './pages/CustomersPage'
 import CustomerDetailPage from './pages/CustomerDetailPage'
+import EmployeeDetailPage from './pages/EmployeeDetailPage'
 import PerformanceReportPage from './pages/PerformanceReportPage'
 import GiderlerPage from './pages/GiderlerPage'
 import PublicBookingPage from './public/PublicBookingPage'
@@ -87,6 +88,10 @@ function AppRoutes() {
             <Route
               path="ekip"
               element={<ProtectedRoute adminOnly><TeamPage /></ProtectedRoute>}
+            />
+            <Route
+              path="ekip/:id"
+              element={<ProtectedRoute adminOnly><EmployeeDetailPage /></ProtectedRoute>}
             />
             <Route
               path="hizmetler"

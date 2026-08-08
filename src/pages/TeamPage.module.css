@@ -163,6 +163,12 @@
   align-items: center;
   gap: 8px;
   padding: 10px 2px;
+  cursor: pointer;
+  border-radius: var(--radius-sm);
+}
+
+.row:active {
+  background: var(--panel-2);
 }
 
 .avatarWrap {
@@ -233,24 +239,17 @@
   white-space: nowrap;
 }
 
-.rowStats {
-  display: flex;
-  flex-direction: column;
-  align-items: flex-end;
-  gap: 6px;
-  flex-shrink: 0;
-  text-align: right;
-}
-
 .rowStatBlock {
   display: flex;
   flex-direction: column;
   align-items: flex-end;
   gap: 1px;
+  flex-shrink: 0;
+  text-align: right;
 }
 
 .rowStatLabel {
-  font-size: 9px;
+  font-size: 8.5px;
   color: var(--text-dim);
   white-space: nowrap;
 }
@@ -259,13 +258,6 @@
   font-size: 12.5px;
   font-weight: 700;
   color: var(--text);
-  font-variant-numeric: tabular-nums;
-}
-
-.rowStatValueOk {
-  font-size: 12.5px;
-  font-weight: 700;
-  color: var(--ok-text);
   font-variant-numeric: tabular-nums;
 }
 
@@ -293,383 +285,12 @@
   background: var(--panel-2);
 }
 
-.moreBtn {
+.editLabel {
   flex-shrink: 0;
-  width: 26px;
-  height: 26px;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  border: none;
-  background: none;
-  color: var(--text-dim);
-  border-radius: 50%;
-  cursor: pointer;
-}
-
-.moreBtn:hover {
-  background: var(--panel-2);
-  color: var(--text);
-}
-
-.expandPanel {
-  border-top: 1px solid var(--line);
-  background: var(--bg);
-  border-radius: var(--radius-sm);
-  padding: 14px;
-  margin: 0 0 12px;
-}
-
-/* ---------- Genisletilmis panel: kategori/program/bloke saat (korunan mantik) ---------- */
-
-.employeeTags {
-  display: flex;
-  flex-wrap: wrap;
-  gap: 8px;
-  margin: -6px 0 14px;
-}
-
-.hashtag {
   font-size: 12px;
-  font-weight: 600;
-}
-
-.activeToggleRow {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  gap: 10px;
-  padding: 10px 12px;
-  margin-bottom: 14px;
-  background: var(--panel-2);
-  border-radius: var(--radius-sm);
-  font-size: 13px;
-  color: var(--text-dim);
-}
-
-.activeToggleRow strong {
-  color: var(--text);
-}
-
-.activeToggleRow button {
-  width: auto;
-  padding: 7px 14px;
-}
-
-.categoryCheckboxes {
-  display: flex;
-  flex-wrap: wrap;
-  gap: 8px;
-  margin-bottom: 8px;
-}
-
-.categoryChip,
-.categoryChipActive {
-  display: inline-flex;
-  align-items: center;
-  gap: 6px;
-  padding: 8px 14px;
-  border-radius: 999px;
-  font-size: 13px;
-  font-weight: 500;
-  cursor: pointer;
-  text-align: center;
-  transition:
-    background 0.15s,
-    border-color 0.15s,
-    color 0.15s,
-    transform 0.1s;
-}
-
-.categoryChip {
-  background: var(--panel-2);
-  border: 1px solid var(--line);
-  color: var(--text-dim);
-}
-
-.categoryChip:hover {
-  color: var(--text);
-  border-color: var(--text-dim);
-  background: var(--panel);
-}
-
-.categoryChipActive {
-  background: var(--signal);
-  border: 1px solid var(--signal);
-  color: var(--signal-text);
-}
-
-.categoryChipActive:active,
-.categoryChip:active {
-  transform: scale(0.96);
-}
-
-.empty {
-  color: var(--text-dim);
-  font-size: 13px;
-}
-
-.existingSchedules {
-  display: flex;
-  flex-wrap: wrap;
-  gap: 8px;
-  margin-bottom: 12px;
-}
-
-.scheduleRow {
-  display: flex;
-  align-items: center;
-  gap: 8px;
-  font-size: 13px;
-  color: var(--text-dim);
-  background: var(--panel-2);
-  border: 1px solid var(--line);
-  border-radius: 999px;
-  padding: 6px 8px 6px 12px;
-}
-
-.scheduleRow strong {
-  color: var(--text);
-}
-
-.scheduleRow button {
-  background: none;
-  border: none;
+  font-weight: 700;
   color: var(--signal);
-  cursor: pointer;
-  font-size: 12px;
-  padding: 2px 4px;
-}
-
-.addScheduleForm {
-  border-top: 1px solid var(--line);
-  padding-top: 12px;
-  margin-top: 4px;
-}
-
-.scheduleHeadRow {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  gap: 12px;
-  margin-bottom: 10px;
-  flex-wrap: wrap;
-}
-
-.scheduleHeadRow .presetRow {
-  margin-bottom: 0;
-}
-
-.presetRow {
-  display: flex;
-  gap: 8px;
-  margin-bottom: 10px;
-}
-
-.presetRow button {
-  width: auto;
-  padding: 6px 12px;
-  font-size: 12px;
-}
-
-.dayChipRow {
-  display: flex;
-  flex-wrap: wrap;
-  gap: 8px;
-  margin-bottom: 16px;
-}
-
-.dayChip,
-.dayChipActive {
-  width: 42px;
-  height: 36px;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  font-size: 12.5px;
-  font-weight: 600;
-  border-radius: 10px;
-  cursor: pointer;
-  text-align: center;
-  transition:
-    background 0.15s,
-    border-color 0.15s,
-    color 0.15s,
-    transform 0.1s;
-}
-
-.dayChip {
-  background: var(--panel-2);
-  border: 1px solid var(--line);
-  color: var(--text-dim);
-}
-
-.dayChip:hover {
-  color: var(--text);
-  border-color: var(--text-dim);
-  background: var(--panel);
-}
-
-.dayChipActive {
-  background: var(--signal);
-  border: 1px solid var(--signal);
-  color: var(--signal-text);
-}
-
-.dayChipActive:active,
-.dayChip:active {
-  transform: scale(0.94);
-}
-
-.timeRow {
-  display: flex;
-  flex-wrap: wrap;
-  gap: 12px;
-  align-items: flex-end;
-}
-
-.timeField {
-  display: flex;
-  flex-direction: column;
-  gap: 6px;
-}
-
-.timeField label {
-  font-size: 11px;
-  color: var(--text-dim);
-  font-weight: 500;
-}
-
-.timeField select,
-.timeField input {
-  background: var(--panel-2);
-  border: 1px solid var(--line);
-  border-radius: var(--radius-sm);
-  color: var(--text);
-  font-size: 13px;
-  padding: 9px 10px;
-  outline: none;
-  min-width: 90px;
-  transition: border-color 0.15s;
-  font-family: var(--font-body);
-}
-
-.timeField select:focus,
-.timeField input:focus {
-  border-color: var(--signal);
-}
-
-.timeSep {
-  color: var(--text-dim);
-  padding-bottom: 9px;
-}
-
-.timeRow button {
-  width: auto;
-  padding: 9px 16px;
-  font-size: 13px;
-  margin-left: auto;
-  align-self: flex-end;
-}
-
-.blockSection {
-  border-top: 1px solid var(--line);
-  padding-top: 12px;
-  margin-top: 16px;
-}
-
-.blockSectionTitle {
-  font-size: 13px;
-  font-weight: 600;
-  color: var(--text);
-  margin-bottom: 10px;
-}
-
-.blockForm {
-  display: flex;
-  flex-direction: column;
-  gap: 10px;
-  align-items: flex-start;
-}
-
-.blockModeRow {
-  display: flex;
-  gap: 8px;
-}
-
-.blockModeRow button {
-  width: auto;
-  height: auto;
-  padding: 6px 12px;
-  font-size: 12px;
-}
-
-.blockLabelInput {
-  background: var(--panel-2);
-  border: 1px solid var(--line);
-  border-radius: var(--radius-sm);
-  color: var(--text);
-  font-size: 13px;
-  padding: 9px 10px;
-  outline: none;
-  width: 100%;
-  max-width: 280px;
-  font-family: var(--font-body);
-}
-
-.blockLabelInput:focus {
-  border-color: var(--signal);
-}
-
-.blockRow {
-  display: flex;
-  align-items: center;
-  gap: 8px;
-  font-size: 13px;
-  color: var(--danger-text);
-  background: var(--danger-bg);
-  border-radius: 999px;
-  padding: 6px 8px 6px 12px;
-}
-
-.blockRow strong {
-  color: var(--danger-text);
-}
-
-.blockRemove {
-  width: 22px;
-  height: 22px;
-  border-radius: 50%;
-  border: none;
-  background: transparent;
-  color: var(--danger-text);
-  cursor: pointer;
-  display: inline-flex;
-  align-items: center;
-  justify-content: center;
-  flex-shrink: 0;
-}
-
-.blockRemove:hover {
-  background: rgba(220, 38, 38, 0.12);
-}
-
-.dashedAddBtn {
-  width: 100%;
-  background: transparent;
-  border: 1px dashed var(--text-dim);
-  border-radius: var(--radius-sm);
-  color: var(--text-dim);
-  font-size: 13px;
-  font-family: var(--font-body);
-  padding: 10px;
-  cursor: pointer;
-  transition: border-color 0.15s, color 0.15s;
-}
-
-.dashedAddBtn:hover {
-  border-color: var(--signal);
-  color: var(--signal);
+  white-space: nowrap;
 }
 
 /* ---------- Hizli islemler (alt navigasyonun ustune sabit) ---------- */
