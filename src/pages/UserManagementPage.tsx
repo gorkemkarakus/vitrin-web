@@ -155,6 +155,73 @@ export default function UserManagementPage() {
   return (
     <div className={styles.wrap}>
       <div className="card">
+        <h2 style={{ marginBottom: 16 }}>Ekip</h2>
+        {loading ? (
+          <p style={{ color: 'var(--text-dim)' }}>Yükleniyor…</p>
+        ) : (
+          <table className={styles.table}>
+            <thead>
+              <tr>
+                <th>Ad Soyad</th>
+                <th>Rol</th>
+                <th>Cinsiyet</th>
+                <th>Durum</th>
+                <th></th>
+              </tr>
+            </thead>
+            <tbody>
+              {(searchQuery.trim()
+                ? members.filter((m) => (m.full_name ?? '').toLowerCase().includes(searchQuery.trim().toLowerCase()))
+                : members
+              ).map((m) => (
+                <tr key={m.id}>
+                  <td data-label="Ad Soyad">
+                    <span className={styles.nameCell}>
+                      <Avatar name={m.full_name ?? '?'} size={28} />
+                      {m.full_name ?? '—'}
+                    </span>
+                  </td>
+                  <td data-label="Rol">
+                    <span
+                      className={`${styles.roleBadge} ${m.role === 'admin' ? styles.roleBadgeAdmin : ''}`}
+                    >
+                      {m.role === 'admin' ? 'Yönetici' : 'Çalışan'}
+                    </span>
+                  </td>
+                  <td data-label="Cinsiyet">
+                    <Select
+                      value={m.gender ?? ''}
+                      onChange={(v) => updateGender(m, v as '' | 'kadin' | 'erkek')}
+                      options={GENDER_OPTIONS_ROW}
+                      ariaLabel={`${m.full_name ?? 'Çalışan'} cinsiyeti`}
+                    />
+                  </td>
+                  <td data-label="Durum">
+                    <span className={styles.statusDot}>
+                      <span className={m.is_active ? styles.dotActive : styles.dotInactive} />
+                      {m.is_active ? 'Aktif' : 'Pasif'}
+                    </span>
+                  </td>
+                  <td data-label="">
+                    {m.id !== profile?.id && m.role !== 'admin' && (
+                      <span className={styles.rowActions}>
+                        <button className="btn-secondary" onClick={() => toggleActive(m)}>
+                          {m.is_active ? 'Pasife al' : 'Aktifleştir'}
+                        </button>
+                        <button className={styles.deleteBtn} onClick={() => deleteMember(m)}>
+                          Sil
+                        </button>
+                      </span>
+                    )}
+                  </td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        )}
+      </div>
+
+      <div className="card">
         <h2 style={{ marginBottom: 4 }}>Yeni çalışan ekle</h2>
         <p className={styles.seatBadge}>
           Kullanılan koltuk: <strong>{activeUserCount}</strong> / {maxUsers ?? '—'}
@@ -252,73 +319,6 @@ export default function UserManagementPage() {
             {submitting ? 'Ekleniyor…' : 'Ekle'}
           </button>
         </form>
-      </div>
-
-      <div className="card">
-        <h2 style={{ marginBottom: 16 }}>Ekip</h2>
-        {loading ? (
-          <p style={{ color: 'var(--text-dim)' }}>Yükleniyor…</p>
-        ) : (
-          <table className={styles.table}>
-            <thead>
-              <tr>
-                <th>Ad Soyad</th>
-                <th>Rol</th>
-                <th>Cinsiyet</th>
-                <th>Durum</th>
-                <th></th>
-              </tr>
-            </thead>
-            <tbody>
-              {(searchQuery.trim()
-                ? members.filter((m) => (m.full_name ?? '').toLowerCase().includes(searchQuery.trim().toLowerCase()))
-                : members
-              ).map((m) => (
-                <tr key={m.id}>
-                  <td data-label="Ad Soyad">
-                    <span className={styles.nameCell}>
-                      <Avatar name={m.full_name ?? '?'} size={28} />
-                      {m.full_name ?? '—'}
-                    </span>
-                  </td>
-                  <td data-label="Rol">
-                    <span
-                      className={`${styles.roleBadge} ${m.role === 'admin' ? styles.roleBadgeAdmin : ''}`}
-                    >
-                      {m.role === 'admin' ? 'Yönetici' : 'Çalışan'}
-                    </span>
-                  </td>
-                  <td data-label="Cinsiyet">
-                    <Select
-                      value={m.gender ?? ''}
-                      onChange={(v) => updateGender(m, v as '' | 'kadin' | 'erkek')}
-                      options={GENDER_OPTIONS_ROW}
-                      ariaLabel={`${m.full_name ?? 'Çalışan'} cinsiyeti`}
-                    />
-                  </td>
-                  <td data-label="Durum">
-                    <span className={styles.statusDot}>
-                      <span className={m.is_active ? styles.dotActive : styles.dotInactive} />
-                      {m.is_active ? 'Aktif' : 'Pasif'}
-                    </span>
-                  </td>
-                  <td data-label="">
-                    {m.id !== profile?.id && m.role !== 'admin' && (
-                      <span className={styles.rowActions}>
-                        <button className="btn-secondary" onClick={() => toggleActive(m)}>
-                          {m.is_active ? 'Pasife al' : 'Aktifleştir'}
-                        </button>
-                        <button className={styles.deleteBtn} onClick={() => deleteMember(m)}>
-                          Sil
-                        </button>
-                      </span>
-                    )}
-                  </td>
-                </tr>
-              ))}
-            </tbody>
-          </table>
-        )}
       </div>
     </div>
   )

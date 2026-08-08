@@ -1,11 +1,9 @@
 import { useEffect, useMemo, useState } from 'react'
 import { useNavigate, useParams } from 'react-router-dom'
 import { supabase } from '../lib/supabase'
-import { useAuth } from '../contexts/AuthContext'
 import Avatar, { colorForName } from '../components/Avatar'
 import {
   CalendarIcon,
-  CheckCircleIcon,
   ChevronRightIcon,
   ClockIcon,
   InfoIcon,
@@ -13,8 +11,6 @@ import {
   PencilIcon,
   PlusIcon,
   TrophyIcon,
-  UmbrellaIcon,
-  UsersIcon,
 } from '../components/icons'
 import styles from './EmployeeDetailPage.module.css'
 
@@ -130,7 +126,6 @@ interface LeaveSummary {
 export default function EmployeeDetailPage() {
   const { id } = useParams<{ id: string }>()
   const navigate = useNavigate()
-  const { profile } = useAuth()
 
   const [employee, setEmployee] = useState<Employee | null>(null)
   const [categories, setCategories] = useState<Category[]>([])
@@ -198,12 +193,6 @@ export default function EmployeeDetailPage() {
 
   const today = useMemo(() => todayLocalDateString(), [])
 
-  async function toggleActive(active: boolean) {
-    if (!id) return
-    await supabase.from('profiles').update({ is_active: active }).eq('id', id)
-    await loadData(true)
-  }
-
   async function saveProfileInfo() {
     if (!id || !nameDraft.trim()) return
     setSavingProfile(true)
@@ -246,8 +235,6 @@ export default function EmployeeDetailPage() {
   const assignedCategories = categories.filter((c) => empCategoryIds.has(c.id))
   const specialty = assignedCategories.length > 0 ? assignedCategories.map((c) => c.name).join(' • ') : roleLabel(employee.role)
 
-  const canToggleActive = employee.id !== profile?.id && employee.role !== 'admin'
-
   const selectedDayInfo = computeDayInfo(selectedDay, schedules, timeBlocks)
   const weeklyHours = weeklyPlannedHours(schedules, timeBlocks)
 
@@ -278,37 +265,6 @@ export default function EmployeeDetailPage() {
           <span className={styles.topName}>{employee.full_name ?? '—'}</span>
           <span className={styles.topSpecialty}>{specialty}</span>
         </div>
-        <button type="button" className={styles.moreBtn} aria-label="Diğer">
-          <MoreHorizontalIcon width={18} height={18} />
-        </button>
-      </div>
-
-      <div className="card">
-        <h2 style={{ marginBottom: 12 }}>Kişisel Bilgiler</h2>
-        <div className={styles.profileField}>
-          <label htmlFor="empName">Ad Soyad</label>
-          <input id="empName" value={nameDraft} onChange={(e) => setNameDraft(e.target.value)} placeholder="Ad Soyad" />
-        </div>
-        <div className={styles.profileField}>
-          <label htmlFor="empPhone">Telefon</label>
-          <input
-            id="empPhone"
-            type="tel"
-            inputMode="numeric"
-            value={phoneDraft}
-            onChange={(e) => setPhoneDraft(e.target.value.replace(/\D/g, ''))}
-            placeholder="05xx xxx xx xx"
-          />
-        </div>
-        {profileError && <p className={styles.profileError}>{profileError}</p>}
-        <button
-          type="button"
-          className={`btn-primary ${styles.profileSaveBtn}`}
-          onClick={saveProfileInfo}
-          disabled={savingProfile || !nameDraft.trim()}
-        >
-          {savingProfile ? 'Kaydediliyor…' : 'Kaydet'}
-        </button>
       </div>
 
       <div className={styles.tabBar}>
@@ -485,38 +441,6 @@ export default function EmployeeDetailPage() {
       </div>
 
       <div className="card">
-        <h2 style={{ marginBottom: 12 }}>Hızlı Durum</h2>
-        <div className={styles.quickStatusRow}>
-          <button
-            type="button"
-            className={status === 'aktif' ? styles.quickStatusBtnActiveAktif : styles.quickStatusBtn}
-            onClick={() => toggleActive(true)}
-          >
-            <UsersIcon width={15} height={15} />
-            Aktif
-            {status === 'aktif' && <CheckCircleIcon width={14} height={14} />}
-          </button>
-          <button
-            type="button"
-            className={status === 'izinli' ? styles.quickStatusBtnActiveIzinli : styles.quickStatusBtn}
-            onClick={() => navigate(`/ekip/${id}/izinler`)}
-          >
-            <UmbrellaIcon width={15} height={15} />
-            İzinli
-          </button>
-          <button
-            type="button"
-            className={status === 'pasif' ? styles.quickStatusBtnActivePasif : styles.quickStatusBtn}
-            onClick={() => toggleActive(false)}
-            disabled={!canToggleActive}
-          >
-            <UsersIcon width={15} height={15} />
-            Pasif
-          </button>
-        </div>
-      </div>
-
-      <div className="card">
         <h2 style={{ marginBottom: 12 }}>Alanlar</h2>
         <div className={styles.categoryCheckboxes}>
           {categories.map((c) => {
@@ -545,6 +469,34 @@ export default function EmployeeDetailPage() {
             ))}
           </div>
         )}
+      </div>
+
+      <div className="card">
+        <h2 style={{ marginBottom: 12 }}>Kişisel Bilgiler</h2>
+        <div className={styles.profileField}>
+          <label htmlFor="empName">Ad Soyad</label>
+          <input id="empName" value={nameDraft} onChange={(e) => setNameDraft(e.target.value)} placeholder="Ad Soyad" />
+        </div>
+        <div className={styles.profileField}>
+          <label htmlFor="empPhone">Telefon</label>
+          <input
+            id="empPhone"
+            type="tel"
+            inputMode="numeric"
+            value={phoneDraft}
+            onChange={(e) => setPhoneDraft(e.target.value.replace(/\D/g, ''))}
+            placeholder="05xx xxx xx xx"
+          />
+        </div>
+        {profileError && <p className={styles.profileError}>{profileError}</p>}
+        <button
+          type="button"
+          className={`btn-primary ${styles.profileSaveBtn}`}
+          onClick={saveProfileInfo}
+          disabled={savingProfile || !nameDraft.trim()}
+        >
+          {savingProfile ? 'Kaydediliyor…' : 'Kaydet'}
+        </button>
       </div>
     </div>
   )

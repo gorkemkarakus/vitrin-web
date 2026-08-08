@@ -56,20 +56,6 @@
   white-space: nowrap;
 }
 
-.moreBtn {
-  flex-shrink: 0;
-  width: 34px;
-  height: 34px;
-  border-radius: 50%;
-  border: 1px solid var(--line);
-  background: var(--panel);
-  color: var(--text-dim);
-  cursor: pointer;
-  display: inline-flex;
-  align-items: center;
-  justify-content: center;
-}
-
 /* ---------- Kisisel bilgiler ---------- */
 
 .profileField {
@@ -545,60 +531,6 @@
 
 .leaveSummaryMore {
   flex-shrink: 0;
-  color: var(--text-dim);
-}
-
-/* ---------- Hizli durum ---------- */
-
-.quickStatusRow {
-  display: grid;
-  grid-template-columns: repeat(3, 1fr);
-  gap: 8px;
-}
-
-.quickStatusBtn,
-.quickStatusBtnActiveAktif,
-.quickStatusBtnActiveIzinli,
-.quickStatusBtnActivePasif {
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  gap: 6px;
-  border-radius: var(--radius-sm);
-  padding: 11px 6px;
-  font-size: 12px;
-  font-weight: 600;
-  font-family: var(--font-body);
-  cursor: pointer;
-  white-space: nowrap;
-}
-
-.quickStatusBtn {
-  background: var(--panel-2);
-  border: 1px solid var(--line);
-  color: var(--text-dim);
-}
-
-.quickStatusBtn:disabled {
-  opacity: 0.5;
-  cursor: not-allowed;
-}
-
-.quickStatusBtnActiveAktif {
-  background: var(--ok-bg);
-  border: 1px solid var(--ok-text);
-  color: var(--ok-text);
-}
-
-.quickStatusBtnActiveIzinli {
-  background: #ede9fe;
-  border: 1px solid #ddd6fe;
-  color: #5b21b6;
-}
-
-.quickStatusBtnActivePasif {
-  background: var(--panel-2);
-  border: 1px solid var(--text-dim);
   color: var(--text-dim);
 }
 
