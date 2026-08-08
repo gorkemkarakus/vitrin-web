@@ -731,7 +731,15 @@ export default function AccountingPage() {
       {paidConfirm && (
         <ConfirmModal
           title={paidConfirm.next ? 'Ödendi Olarak İşaretle' : 'Ödenmedi Olarak İşaretle'}
-          message={`"${paidConfirm.description}" giderini ${paidConfirm.next ? 'ödendi' : 'ödenmedi'} olarak işaretlemek istediğinize emin misiniz?`}
+          message={
+            <>
+              "{paidConfirm.description}" giderini{' '}
+              <strong style={{ color: paidConfirm.next ? 'var(--ok-text)' : 'var(--danger-text)' }}>
+                {paidConfirm.next ? 'ödendi' : 'ödenmedi'}
+              </strong>{' '}
+              olarak işaretlemek istediğinize emin misiniz?
+            </>
+          }
           confirmLabel="Evet, İşaretle"
           onConfirm={confirmToggleExpensePaid}
           onCancel={() => setPaidConfirm(null)}

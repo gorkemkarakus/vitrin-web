@@ -1,3 +1,4 @@
+import type { ReactNode } from 'react'
 import { AlertTriangleIcon, HelpCircleIcon } from './icons'
 import styles from './ConfirmModal.module.css'
 
@@ -11,7 +12,7 @@ export default function ConfirmModal({
   onCancel,
 }: {
   title: string
-  message: string
+  message: ReactNode
   confirmLabel?: string
   cancelLabel?: string
   danger?: boolean
