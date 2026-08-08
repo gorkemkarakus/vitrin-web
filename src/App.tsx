@@ -17,6 +17,7 @@ import SettingsPage from './pages/SettingsPage'
 import MorePage from './pages/MorePage'
 import CustomersPage from './pages/CustomersPage'
 import CustomerDetailPage from './pages/CustomerDetailPage'
+import PerformanceReportPage from './pages/PerformanceReportPage'
 import PublicBookingPage from './public/PublicBookingPage'
 import ResetPasswordPage from './pages/ResetPasswordPage'
 
@@ -97,6 +98,10 @@ function AppRoutes() {
             <Route
               path="kullanicilar"
               element={<ProtectedRoute adminOnly><UserManagementPage /></ProtectedRoute>}
+            />
+            <Route
+              path="performans-raporu"
+              element={<ProtectedRoute adminOnly><PerformanceReportPage /></ProtectedRoute>}
             />
           </Route>
           <Route path="*" element={<Navigate to="/" replace />} />

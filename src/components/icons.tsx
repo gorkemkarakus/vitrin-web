@@ -415,6 +415,47 @@ export function HelpCircleIcon(props: IconProps) {
   )
 }
 
+export function TrophyIcon(props: IconProps) {
+  return (
+    <svg {...base} {...props}>
+      <path d="M7 4.5h10v4.5a5 5 0 0 1-10 0Z" />
+      <path d="M7 5.5H4a1 1 0 0 0-1 1v1a3.5 3.5 0 0 0 3.5 3.5" />
+      <path d="M17 5.5h3a1 1 0 0 1 1 1v1a3.5 3.5 0 0 1-3.5 3.5" />
+      <path d="M12 13.5v3.5M9 20.5h6" />
+      <path d="M10 17h4v3.5h-4Z" />
+    </svg>
+  )
+}
+
+export function FireIcon(props: IconProps) {
+  return (
+    <svg {...base} {...props}>
+      <path d="M12 2.5c1 3-2.5 4-2.5 7a2.5 2.5 0 0 0 5 0c1 0 1.5 1.3 1.5 2.5a4.5 4.5 0 0 1-9 0c0-4.5 4-5.5 5-9.5Z" />
+    </svg>
+  )
+}
+
+export function UmbrellaIcon(props: IconProps) {
+  return (
+    <svg {...base} {...props}>
+      <path d="M3 12a9 9 0 0 1 18 0Z" />
+      <path d="M12 12V20a2 2 0 0 1-3 1.7" />
+      <path d="M12 3.5v1.5" />
+    </svg>
+  )
+}
+
+export function MehIcon(props: IconProps) {
+  return (
+    <svg {...base} {...props}>
+      <circle cx="12" cy="12" r="9" />
+      <path d="M8.5 15h7" />
+      <circle cx="9" cy="9.5" r="0.6" fill="currentColor" stroke="none" />
+      <circle cx="15" cy="9.5" r="0.6" fill="currentColor" stroke="none" />
+    </svg>
+  )
+}
+
 export function PencilIcon(props: IconProps) {
   return (
     <svg {...base} {...props}>

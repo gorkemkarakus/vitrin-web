@@ -11,7 +11,6 @@ import {
   CheckCircleIcon,
   UserPlusIcon,
   ClockIcon,
-  PieChartIcon,
   MailIcon,
   PhoneIcon,
   MoreHorizontalIcon,
@@ -797,13 +796,6 @@ export default function TeamPage() {
             <ClockIcon width={15} height={15} />
           </span>
           İzin / Mola Ekle
-        </button>
-        <button type="button" className={styles.quickBtn} disabled>
-          <span className={styles.quickIcon}>
-            <PieChartIcon width={15} height={15} />
-          </span>
-          Performans Raporu
-          <span className={styles.quickBadge}>Yakında</span>
         </button>
         <button type="button" className={styles.quickBtn} disabled>
           <span className={styles.quickIcon}>

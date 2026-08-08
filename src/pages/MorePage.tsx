@@ -8,12 +8,14 @@ import {
   SettingsIcon,
   LogOutIcon,
   ChevronRightIcon,
+  TrophyIcon,
 } from '../components/icons'
 import styles from './MorePage.module.css'
 
 const MENU_ITEMS = [
   { path: '/muhasebe', label: 'Muhasebe', sub: 'Gelir, gider ve kasa durumu', adminOnly: true, icon: AccountingIcon },
   { path: '/ekip', label: 'Ekip', sub: 'Personel, programlar ve izinler', adminOnly: true, icon: TeamIcon },
+  { path: '/performans-raporu', label: 'Performans Raporu', sub: 'Çalışan bazlı randevu, kazanç ve izin özeti', adminOnly: true, icon: TrophyIcon },
   { path: '/hizmetler', label: 'Hizmetler', sub: 'Hizmet listesi ve fiyatlar', adminOnly: true, icon: ServicesIcon },
   { path: '/kullanicilar', label: 'Kullanıcılar', sub: 'Ekip üyesi hesapları', adminOnly: true, icon: UsersIcon },
   { path: '/ayarlar', label: 'Ayarlar', sub: 'Hesap ve işletme ayarları', adminOnly: false, icon: SettingsIcon },
