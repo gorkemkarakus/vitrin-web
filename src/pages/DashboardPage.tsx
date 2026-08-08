@@ -9,6 +9,7 @@ import {
   WalletIcon,
   ReceiptIcon,
   CashIcon,
+  AccountingIcon,
   PlusIcon,
   UserPlusIcon,
   ChevronRightIcon,
@@ -379,12 +380,11 @@ export default function DashboardPage() {
             </span>
             Müşteri
           </button>
-          <button type="button" className={styles.quickBtn} disabled>
-            <span className={styles.quickIcon}>
-              <CashIcon width={19} height={19} />
+          <button type="button" className={styles.quickBtn} onClick={() => navigate('/muhasebe')}>
+            <span className={`${styles.quickIcon} ${styles.quickIconSignal}`}>
+              <AccountingIcon width={19} height={19} />
             </span>
-            Kasa
-            <span className={styles.quickBadge}>Yakında</span>
+            Muhasebe
           </button>
           <button type="button" className={styles.quickBtn} onClick={() => navigate('/randevular')}>
             <span className={`${styles.quickIcon} ${styles.quickIconOk}`}>
