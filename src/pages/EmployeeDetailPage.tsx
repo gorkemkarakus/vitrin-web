@@ -4,7 +4,7 @@ import { supabase } from '../lib/supabase'
 import { useAuth } from '../contexts/AuthContext'
 import { TIME_OPTIONS } from '../lib/timeOptions'
 import Avatar, { colorForName } from '../components/Avatar'
-import { CalendarIcon, ChevronRightIcon, CloseIcon, PhoneIcon, PlusIcon, TrashIcon } from '../components/icons'
+import { CalendarIcon, ChevronRightIcon, InfoIcon, PhoneIcon, PlusIcon, TrashIcon } from '../components/icons'
 import styles from './EmployeeDetailPage.module.css'
 
 interface Category {
@@ -85,19 +85,8 @@ const LEAVE_REASON_OPTIONS: { value: 'yillik' | 'mazeret'; label: string }[] = [
 
 const BREAK_LABEL = 'Öğle molası'
 
-// Zaman cizelgesi (timeline) varsayilan olarak 06:00-19:00 araligini
-// gosterir — cogu gunun mesai saati bu aralikta kaldigi icin bar daha
-// okunakli/genis gorunur. Bir gunun saatleri bu araligin disina tasarsa
-// (ör. 05:00'te baslama ya da 21:00'e kadar calisma) eksen sadece o kadar
-// genisler, digerleri yine varsayilan 06-19 penceresinde kalir.
-const DEFAULT_AXIS_START_MIN = 6 * 60
-const DEFAULT_AXIS_END_MIN = 19 * 60
-
 const DAY_LABELS = ['Pazar', 'Pazartesi', 'Salı', 'Çarşamba', 'Perşembe', 'Cuma', 'Cumartesi']
 const WEEK_ORDER = [1, 2, 3, 4, 5, 6, 0]
-const WEEKDAYS = [1, 2, 3, 4, 5]
-const WEEKEND = [6, 0]
-
 const STATUS_LABEL: Record<'aktif' | 'izinli' | 'pasif', string> = {
   aktif: 'Aktif',
   izinli: 'İzinli',
@@ -133,22 +122,14 @@ function dayHours(draft: DayDraft): number {
   return Math.max(0, minutes) / 60
 }
 
-function formatHours(n: number): string {
-  const rounded = Math.round(n * 2) / 2
-  return rounded % 1 === 0 ? String(rounded) : String(rounded).replace('.', ',')
-}
+// 6 saatin altindaki calisma gunleri "Kisa Calisma" olarak etiketlenir —
+// ör. Cumartesi 10:00-15:00 gibi yarim gun mesailer icin.
+const SHORT_DAY_THRESHOLD_HOURS = 6
 
-// Eksen (axis) araligini 5 esit parcaya bolup her noktayi en yakin saate
-// yuvarlayarak "06 09 12 16 19" gibi okunakli etiketler uretir.
-function axisTickLabels(axisStartMin: number, axisEndMin: number): string[] {
-  const span = axisEndMin - axisStartMin
-  const labels: string[] = []
-  for (let i = 0; i <= 4; i++) {
-    const minute = axisStartMin + (span * i) / 4
-    const hour = Math.round(minute / 60) % 24
-    labels.push(String(hour).padStart(2, '0'))
-  }
-  return labels
+function dayStatus(draft: DayDraft): { dot: 'calisma' | 'kisa' | 'yok'; label: string } {
+  if (!draft.enabled) return { dot: 'yok', label: 'Çalışma Yok' }
+  if (dayHours(draft) < SHORT_DAY_THRESHOLD_HOURS) return { dot: 'kisa', label: 'Kısa Çalışma' }
+  return { dot: 'calisma', label: 'Çalışma Günü' }
 }
 
 function buildDayDrafts(schedules: Schedule[], timeBlocks: TimeBlock[]): Record<number, DayDraft> {
@@ -189,7 +170,6 @@ export default function EmployeeDetailPage() {
   const [scheduleReady, setScheduleReady] = useState(false)
   const [savingSchedule, setSavingSchedule] = useState(false)
   const [jsonCopied, setJsonCopied] = useState(false)
-  const [copiedDay, setCopiedDay] = useState<number | null>(null)
 
   // Izinli Gunler karti da haftalik program gibi "duzenle -> Kaydet"
   // mantigiyla calisiyor — leaveDrafts sunucudan sadece BIR KERE
@@ -294,18 +274,6 @@ export default function EmployeeDetailPage() {
     })
   }
 
-  function applyPreset(target: 'weekdays' | 'weekend' | 'all' | 'none') {
-    const activeDays = target === 'weekdays' ? WEEKDAYS : target === 'weekend' ? WEEKEND : target === 'all' ? WEEK_ORDER : []
-    setDayDrafts((prev) => {
-      const next = { ...prev }
-      for (const day of WEEK_ORDER) {
-        if (!next[day]) continue
-        next[day] = { ...next[day], enabled: activeDays.includes(day) }
-      }
-      return next
-    })
-  }
-
   function addBreak(day: number) {
     setDayDrafts((prev) => {
       const current = prev[day]
@@ -329,27 +297,6 @@ export default function EmployeeDetailPage() {
       if (!current) return prev
       return { ...prev, [day]: { ...current, breaks: current.breaks.map((b) => (b.id === breakId ? { ...b, ...patch } : b)) } }
     })
-  }
-
-  // Bir gunun program+mola duzenini, o an ACIK olan diger tum gunlere kopyalar.
-  function copyDayToOthers(day: number) {
-    setDayDrafts((prev) => {
-      const source = prev[day]
-      if (!source) return prev
-      const next = { ...prev }
-      for (const d of WEEK_ORDER) {
-        if (d === day || !next[d]?.enabled) continue
-        next[d] = {
-          ...next[d],
-          start: source.start,
-          end: source.end,
-          breaks: source.breaks.map((b) => ({ id: crypto.randomUUID(), start: b.start, end: b.end })),
-        }
-      }
-      return next
-    })
-    setCopiedDay(day)
-    setTimeout(() => setCopiedDay((v) => (v === day ? null : v)), 1200)
   }
 
   async function saveWeeklySchedule() {
@@ -523,7 +470,6 @@ export default function EmployeeDetailPage() {
 
   const empCategoryIds = new Set(employeeCategories.map((ec) => ec.category_id))
 
-  const totalWeeklyHours = WEEK_ORDER.reduce((sum, day) => sum + (dayDrafts[day] ? dayHours(dayDrafts[day]) : 0), 0)
   const openDaysCount = WEEK_ORDER.filter((day) => dayDrafts[day]?.enabled).length
 
   return (
@@ -592,31 +538,17 @@ export default function EmployeeDetailPage() {
         )}
       </div>
 
-      <div className="card">
-        <div className={styles.scheduleHeader}>
-          <div>
-            <h2 style={{ marginBottom: 4 }}>Haftalık Çalışma Saatleri</h2>
-            <p className={styles.scheduleSubtitle}>Müşterilerin randevu alabileceği gün ve saatleri belirle.</p>
-          </div>
-          <div className={styles.scheduleTotalBlock}>
-            <span className={styles.scheduleTotalValue}>{formatHours(totalWeeklyHours)}</span>
-            <span className={styles.scheduleTotalLabel}>saat / hafta</span>
-          </div>
-        </div>
+      <div className={styles.infoBanner}>
+        <InfoIcon width={16} height={16} />
+        Belirlediğiniz saatler online randevu alımına açık olacaktır.
+      </div>
 
-        <div className={styles.presetRow}>
-          <button type="button" className={styles.presetPill} onClick={() => applyPreset('weekdays')}>
-            Hafta içi
-          </button>
-          <button type="button" className={styles.presetPill} onClick={() => applyPreset('weekend')}>
-            Hafta sonu
-          </button>
-          <button type="button" className={styles.presetPill} onClick={() => applyPreset('all')}>
-            Her gün
-          </button>
-          <button type="button" className={styles.presetPill} onClick={() => applyPreset('none')}>
-            Temizle
-          </button>
+      <div className="card">
+        <h2 style={{ marginBottom: 14 }}>Haftalık Çalışma Saatleri</h2>
+
+        <div className={styles.scheduleColumnHeader}>
+          <span className={styles.scheduleColumnHeaderDay}>Günler</span>
+          <span>Çalışma Saatleri</span>
         </div>
 
         {!scheduleReady ? (
@@ -627,136 +559,89 @@ export default function EmployeeDetailPage() {
               {WEEK_ORDER.map((day) => {
                 const draft = dayDrafts[day]
                 if (!draft) return null
-                const hours = dayHours(draft)
+                const status = dayStatus(draft)
 
                 if (!draft.enabled) {
                   return (
                     <div className={styles.dayOffRow} key={day}>
+                      <div className={styles.dayInfo}>
+                        <span className={styles.dayName}>{DAY_LABELS[day]}</span>
+                        <span className={styles.dayStatus}>
+                          <span className={`${styles.dayStatusDot} ${styles[`dayStatusDot_${status.dot}`]}`} />
+                          {status.label}
+                        </span>
+                      </div>
                       <label className={styles.switch}>
                         <input type="checkbox" checked={false} onChange={() => toggleDayEnabled(day)} />
                         <span className={styles.switchTrack} />
                       </label>
-                      <div className={styles.dayInfo}>
-                        <span className={styles.dayName}>{DAY_LABELS[day]}</span>
-                        <span className={styles.dayHours}>Kapalı</span>
-                      </div>
                     </div>
                   )
                 }
 
-                const barStartMin = timeToMinutes(draft.start)
-                const barEndMin = timeToMinutes(draft.end)
-                const barSpan = Math.max(1, barEndMin - barStartMin)
-                const axisStartMin = Math.min(DEFAULT_AXIS_START_MIN, barStartMin)
-                const axisEndMin = Math.max(DEFAULT_AXIS_END_MIN, barEndMin)
-                const axisSpan = Math.max(1, axisEndMin - axisStartMin)
-                const axisTicks = axisTickLabels(axisStartMin, axisEndMin)
-
                 return (
                   <div className={styles.dayRow} key={day}>
                     <div className={styles.dayRowTop}>
+                      <div className={styles.dayInfo}>
+                        <span className={styles.dayName}>{DAY_LABELS[day]}</span>
+                        <span className={styles.dayStatus}>
+                          <span className={`${styles.dayStatusDot} ${styles[`dayStatusDot_${status.dot}`]}`} />
+                          {status.label}
+                        </span>
+                      </div>
+
+                      <div className={styles.dayRangesCol}>
+                        <div className={styles.dayTimesRow}>
+                          <input
+                            type="time"
+                            className={styles.timeInput}
+                            value={draft.start}
+                            onChange={(e) => updateDay(day, { start: e.target.value })}
+                          />
+                          <span className={styles.timeSep}>–</span>
+                          <input
+                            type="time"
+                            className={styles.timeInput}
+                            value={draft.end}
+                            onChange={(e) => updateDay(day, { end: e.target.value })}
+                          />
+                        </div>
+
+                        {draft.breaks.map((b) => (
+                          <div className={styles.dayTimesRow} key={b.id}>
+                            <input
+                              type="time"
+                              className={styles.timeInput}
+                              value={b.start}
+                              onChange={(e) => updateBreak(day, b.id, { start: e.target.value })}
+                            />
+                            <span className={styles.timeSep}>–</span>
+                            <input
+                              type="time"
+                              className={styles.timeInput}
+                              value={b.end}
+                              onChange={(e) => updateBreak(day, b.id, { end: e.target.value })}
+                            />
+                            <button
+                              type="button"
+                              className={styles.extraRangeRemove}
+                              onClick={() => removeBreak(day, b.id)}
+                              aria-label="Saat aralığını kaldır"
+                            >
+                              <TrashIcon width={13} height={13} />
+                            </button>
+                          </div>
+                        ))}
+
+                        <button type="button" className={styles.addBreakBtn} onClick={() => addBreak(day)}>
+                          + Ara Ekle
+                        </button>
+                      </div>
+
                       <label className={styles.switch}>
                         <input type="checkbox" checked={draft.enabled} onChange={() => toggleDayEnabled(day)} />
                         <span className={styles.switchTrack} />
                       </label>
-                      <div className={styles.dayInfo}>
-                        <span className={styles.dayName}>{DAY_LABELS[day]}</span>
-                        <span className={styles.dayHours}>{formatHours(hours)} saat</span>
-                      </div>
-
-                      <div className={styles.dayTimesRow}>
-                        <input
-                          type="time"
-                          className={styles.timeInput}
-                          value={draft.start}
-                          onChange={(e) => updateDay(day, { start: e.target.value })}
-                        />
-                        <span className={styles.timeSep}>–</span>
-                        <input
-                          type="time"
-                          className={styles.timeInput}
-                          value={draft.end}
-                          onChange={(e) => updateDay(day, { end: e.target.value })}
-                        />
-
-                        {draft.breaks.map((b) => (
-                          <div className={styles.breakTag} key={b.id}>
-                            <div className={styles.breakTagHead}>
-                              <span className={styles.breakTagIcon}>☕</span>
-                              <span className={styles.breakTagLabel}>{BREAK_LABEL}</span>
-                              <button
-                                type="button"
-                                className={styles.breakRemoveBtn}
-                                onClick={() => removeBreak(day, b.id)}
-                                aria-label="Molayı kaldır"
-                              >
-                                <CloseIcon width={10} height={10} />
-                              </button>
-                            </div>
-                            <div className={styles.breakTagTimes}>
-                              <input
-                                type="time"
-                                className={styles.breakTimeInput}
-                                value={b.start}
-                                onChange={(e) => updateBreak(day, b.id, { start: e.target.value })}
-                              />
-                              <span className={styles.timeSep}>–</span>
-                              <input
-                                type="time"
-                                className={styles.breakTimeInput}
-                                value={b.end}
-                                onChange={(e) => updateBreak(day, b.id, { end: e.target.value })}
-                              />
-                            </div>
-                          </div>
-                        ))}
-                      </div>
-                    </div>
-
-                    <div className={styles.scheduleActionsRow}>
-                      <button type="button" className={styles.addBreakBtn} onClick={() => addBreak(day)}>
-                        + Öğle molası ekle
-                      </button>
-                      <button
-                        type="button"
-                        className={copiedDay === day ? styles.copyAllBtnCopied : styles.copyAllBtn}
-                        onClick={() => copyDayToOthers(day)}
-                      >
-                        {copiedDay === day ? 'Kopyalandı ✓' : 'Tüm günlere kopyala'}
-                      </button>
-                    </div>
-
-                    <div className={styles.timelineTrackWrap}>
-                      <div className={styles.timelineTrack}>
-                        <div
-                          className={styles.timelineBar}
-                          style={{
-                            left: `${((barStartMin - axisStartMin) / axisSpan) * 100}%`,
-                            width: `${(barSpan / axisSpan) * 100}%`,
-                          }}
-                        >
-                          {draft.breaks.map((b) => {
-                            const bStart = Math.max(barStartMin, timeToMinutes(b.start))
-                            const bEnd = Math.min(barEndMin, timeToMinutes(b.end))
-                            if (bEnd <= bStart) return null
-                            return (
-                              <span
-                                key={b.id}
-                                className={styles.timelineBreak}
-                                style={{
-                                  left: `${((bStart - barStartMin) / barSpan) * 100}%`,
-                                  width: `${((bEnd - bStart) / barSpan) * 100}%`,
-                                }}
-                              />
-                            )
-                          })}
-                        </div>
-                      </div>
-                      <div className={styles.timelineTicks}>
-                        {axisTicks.map((t, i) => (
-                          <span key={i}>{t}</span>
-                        ))}
-                      </div>
                     </div>
                   </div>
                 )
@@ -764,9 +649,7 @@ export default function EmployeeDetailPage() {
             </div>
 
             <div className={styles.scheduleFooter}>
-              <span className={styles.scheduleFooterSummary}>
-                {openDaysCount} gün açık • haftada {formatHours(totalWeeklyHours)} saat
-              </span>
+              <span className={styles.scheduleFooterSummary}>{openDaysCount} gün açık</span>
               <div className={styles.scheduleFooterActions}>
                 <button type="button" className={styles.jsonLink} onClick={copyJson}>
                   {jsonCopied ? 'Kopyalandı ✓' : 'JSON çıktısı'}
