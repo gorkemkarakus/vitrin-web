@@ -562,29 +562,33 @@ export default function EmployeeDetailPage() {
 
                         {draft.breaks.map((b) => (
                           <div className={styles.breakTag} key={b.id}>
-                            <span className={styles.breakTagIcon}>☕</span>
-                            <span className={styles.breakTagLabel}>{BREAK_LABEL}</span>
-                            <input
-                              type="time"
-                              className={styles.breakTimeInput}
-                              value={b.start}
-                              onChange={(e) => updateBreak(day, b.id, { start: e.target.value })}
-                            />
-                            <span className={styles.timeSep}>–</span>
-                            <input
-                              type="time"
-                              className={styles.breakTimeInput}
-                              value={b.end}
-                              onChange={(e) => updateBreak(day, b.id, { end: e.target.value })}
-                            />
-                            <button
-                              type="button"
-                              className={styles.breakRemoveBtn}
-                              onClick={() => removeBreak(day, b.id)}
-                              aria-label="Molayı kaldır"
-                            >
-                              <CloseIcon width={11} height={11} />
-                            </button>
+                            <div className={styles.breakTagHead}>
+                              <span className={styles.breakTagIcon}>☕</span>
+                              <span className={styles.breakTagLabel}>{BREAK_LABEL}</span>
+                              <button
+                                type="button"
+                                className={styles.breakRemoveBtn}
+                                onClick={() => removeBreak(day, b.id)}
+                                aria-label="Molayı kaldır"
+                              >
+                                <CloseIcon width={10} height={10} />
+                              </button>
+                            </div>
+                            <div className={styles.breakTagTimes}>
+                              <input
+                                type="time"
+                                className={styles.breakTimeInput}
+                                value={b.start}
+                                onChange={(e) => updateBreak(day, b.id, { start: e.target.value })}
+                              />
+                              <span className={styles.timeSep}>–</span>
+                              <input
+                                type="time"
+                                className={styles.breakTimeInput}
+                                value={b.end}
+                                onChange={(e) => updateBreak(day, b.id, { end: e.target.value })}
+                              />
+                            </div>
                           </div>
                         ))}
                       </div>
