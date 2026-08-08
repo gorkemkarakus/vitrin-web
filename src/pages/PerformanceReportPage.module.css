@@ -102,10 +102,14 @@
 .kpiDeltaDown,
 .kpiDeltaNeutral {
   display: flex;
-  align-items: baseline;
-  gap: 4px;
+  flex-direction: column;
+  gap: 1px;
   font-size: 11.5px;
   font-weight: 700;
+}
+
+.kpiDeltaMain {
+  white-space: nowrap;
 }
 
 .kpiDeltaUp {
@@ -123,6 +127,7 @@
 .kpiDeltaSub {
   font-weight: 500;
   color: var(--text-dim);
+  white-space: nowrap;
 }
 
 .kpiSparkWrap {

@@ -193,7 +193,15 @@ function Sparkline({ data, color }: { data: number[]; color: string }) {
   return (
     <svg viewBox={`0 0 ${w} ${h}`} preserveAspectRatio="none" className={styles.sparkline} aria-hidden="true">
       <polygon points={areaPoints.join(' ')} fill={color} opacity={0.12} />
-      <path d={`M${linePoints.join(' L')}`} fill="none" stroke={color} strokeWidth={2} strokeLinecap="round" strokeLinejoin="round" />
+      <path
+        d={`M${linePoints.join(' L')}`}
+        fill="none"
+        stroke={color}
+        strokeWidth={1.5}
+        strokeLinecap="round"
+        strokeLinejoin="round"
+        vectorEffect="non-scaling-stroke"
+      />
     </svg>
   )
 }
@@ -232,7 +240,10 @@ function KpiCard({
       <span className={styles.kpiValue}>{value}</span>
       {deltaPct !== null && (
         <span className={deltaClass}>
-          {up ? '↑' : '↓'} %{Math.abs(deltaPct).toFixed(1)} <span className={styles.kpiDeltaSub}>önceki döneme göre</span>
+          <span className={styles.kpiDeltaMain}>
+            {up ? '↑' : '↓'} %{Math.abs(deltaPct).toFixed(1)}
+          </span>
+          <span className={styles.kpiDeltaSub}>önceki döneme göre</span>
         </span>
       )}
       <div className={styles.kpiSparkWrap}>
