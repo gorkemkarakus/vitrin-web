@@ -4,7 +4,7 @@ import { supabase } from '../lib/supabase'
 import { useAuth } from '../contexts/AuthContext'
 import { TIME_OPTIONS } from '../lib/timeOptions'
 import Avatar, { colorForName } from '../components/Avatar'
-import { ChevronRightIcon, CloseIcon, CopyIcon, PhoneIcon, TrashIcon } from '../components/icons'
+import { ChevronRightIcon, CloseIcon, PhoneIcon, TrashIcon } from '../components/icons'
 import styles from './EmployeeDetailPage.module.css'
 
 interface Category {
@@ -64,6 +64,14 @@ interface DayDraft {
 
 const BREAK_LABEL = 'Öğle molası'
 
+// Zaman cizelgesi (timeline) varsayilan olarak 06:00-19:00 araligini
+// gosterir — cogu gunun mesai saati bu aralikta kaldigi icin bar daha
+// okunakli/genis gorunur. Bir gunun saatleri bu araligin disina tasarsa
+// (ör. 05:00'te baslama ya da 21:00'e kadar calisma) eksen sadece o kadar
+// genisler, digerleri yine varsayilan 06-19 penceresinde kalir.
+const DEFAULT_AXIS_START_MIN = 6 * 60
+const DEFAULT_AXIS_END_MIN = 19 * 60
+
 const DAY_LABELS = ['Pazar', 'Pazartesi', 'Salı', 'Çarşamba', 'Perşembe', 'Cuma', 'Cumartesi']
 const DAY_SHORT = ['Paz', 'Pzt', 'Sal', 'Çar', 'Per', 'Cum', 'Cmt']
 const WEEK_ORDER = [1, 2, 3, 4, 5, 6, 0]
@@ -108,6 +116,19 @@ function dayHours(draft: DayDraft): number {
 function formatHours(n: number): string {
   const rounded = Math.round(n * 2) / 2
   return rounded % 1 === 0 ? String(rounded) : String(rounded).replace('.', ',')
+}
+
+// Eksen (axis) araligini 5 esit parcaya bolup her noktayi en yakin saate
+// yuvarlayarak "06 09 12 16 19" gibi okunakli etiketler uretir.
+function axisTickLabels(axisStartMin: number, axisEndMin: number): string[] {
+  const span = axisEndMin - axisStartMin
+  const labels: string[] = []
+  for (let i = 0; i <= 4; i++) {
+    const minute = axisStartMin + (span * i) / 4
+    const hour = Math.round(minute / 60) % 24
+    labels.push(String(hour).padStart(2, '0'))
+  }
+  return labels
 }
 
 function buildDayDrafts(schedules: Schedule[], timeBlocks: TimeBlock[]): Record<number, DayDraft> {
@@ -532,6 +553,10 @@ export default function EmployeeDetailPage() {
                 const barStartMin = timeToMinutes(draft.start)
                 const barEndMin = timeToMinutes(draft.end)
                 const barSpan = Math.max(1, barEndMin - barStartMin)
+                const axisStartMin = Math.min(DEFAULT_AXIS_START_MIN, barStartMin)
+                const axisEndMin = Math.max(DEFAULT_AXIS_END_MIN, barEndMin)
+                const axisSpan = Math.max(1, axisEndMin - axisStartMin)
+                const axisTicks = axisTickLabels(axisStartMin, axisEndMin)
 
                 return (
                   <div className={styles.dayRow} key={day}>
@@ -603,7 +628,10 @@ export default function EmployeeDetailPage() {
                         <div className={styles.timelineTrack}>
                           <div
                             className={styles.timelineBar}
-                            style={{ left: `${(barStartMin / 1440) * 100}%`, width: `${(barSpan / 1440) * 100}%` }}
+                            style={{
+                              left: `${((barStartMin - axisStartMin) / axisSpan) * 100}%`,
+                              width: `${(barSpan / axisSpan) * 100}%`,
+                            }}
                           >
                             {draft.breaks.map((b) => {
                               const bStart = Math.max(barStartMin, timeToMinutes(b.start))
@@ -623,20 +651,17 @@ export default function EmployeeDetailPage() {
                           </div>
                         </div>
                         <div className={styles.timelineTicks}>
-                          <span>00</span>
-                          <span>06</span>
-                          <span>12</span>
-                          <span>18</span>
-                          <span>24</span>
+                          {axisTicks.map((t, i) => (
+                            <span key={i}>{t}</span>
+                          ))}
                         </div>
                       </div>
                       <button
                         type="button"
-                        className={copiedDay === day ? styles.copyBtnCopied : styles.copyBtn}
+                        className={copiedDay === day ? styles.copyAllBtnCopied : styles.copyAllBtn}
                         onClick={() => copyDayToOthers(day)}
-                        aria-label="Bu programı diğer açık günlere kopyala"
                       >
-                        <CopyIcon width={14} height={14} />
+                        {copiedDay === day ? 'Kopyalandı ✓' : 'Tüm günlere kopyala'}
                       </button>
                     </div>
                   </div>

@@ -469,7 +469,8 @@
 .timelineRow {
   display: flex;
   align-items: center;
-  gap: 10px;
+  flex-wrap: wrap;
+  gap: 8px 10px;
   margin-left: 52px;
 }
 
@@ -512,31 +513,35 @@
   color: var(--text-dim);
 }
 
-.copyBtn,
-.copyBtnCopied {
+.copyAllBtn,
+.copyAllBtnCopied {
   flex-shrink: 0;
-  width: 26px;
-  height: 26px;
-  border-radius: 50%;
+  width: auto;
+  height: auto;
+  margin-left: auto;
+  border-radius: 999px;
   border: 1px solid var(--line);
   background: var(--panel);
+  padding: 5px 12px;
+  font-size: 11.5px;
+  font-weight: 600;
+  font-family: var(--font-body);
   cursor: pointer;
-  display: inline-flex;
-  align-items: center;
-  justify-content: center;
+  white-space: nowrap;
 }
 
-.copyBtn {
+.copyAllBtn {
   color: var(--text-dim);
 }
 
-.copyBtn:hover {
+.copyAllBtn:hover {
   border-color: var(--signal);
   color: var(--signal);
 }
 
-.copyBtnCopied {
+.copyAllBtnCopied {
   border-color: var(--ok-text);
+  background: var(--ok-bg);
   color: var(--ok-text);
 }
 
