@@ -430,26 +430,6 @@
   justify-content: center;
 }
 
-.quickIconSignal {
-  background: #004aad;
-  color: #fff;
-}
-
-.quickIconPink {
-  background: var(--panel-2);
-  color: var(--text-dim);
-}
-
-.quickIconOk {
-  background: var(--panel-2);
-  color: var(--text-dim);
-}
-
-.quickIconInfo {
-  background: var(--panel-2);
-  color: var(--text-dim);
-}
-
 .quickBadge {
   position: absolute;
   top: 6px;

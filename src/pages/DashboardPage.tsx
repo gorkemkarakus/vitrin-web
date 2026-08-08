@@ -369,31 +369,31 @@ export default function DashboardPage() {
         <h2 className={styles.quickTitle}>Hızlı İşlemler</h2>
         <div className={styles.quickRow}>
           <button type="button" className={styles.quickBtn} onClick={() => navigate('/randevular?yeni=1')}>
-            <span className={`${styles.quickIcon} ${styles.quickIconSignal}`}>
+            <span className={styles.quickIcon}>
               <PlusIcon width={19} height={19} />
             </span>
             Randevu
           </button>
           <button type="button" className={styles.quickBtn} onClick={() => setShowQuickAddCustomer(true)}>
-            <span className={`${styles.quickIcon} ${styles.quickIconPink}`}>
+            <span className={styles.quickIcon}>
               <UserPlusIcon width={19} height={19} />
             </span>
             Müşteri
           </button>
           <button type="button" className={styles.quickBtn} onClick={() => navigate('/muhasebe')}>
-            <span className={`${styles.quickIcon} ${styles.quickIconSignal}`}>
+            <span className={styles.quickIcon}>
               <AccountingIcon width={19} height={19} />
             </span>
             Muhasebe
           </button>
           <button type="button" className={styles.quickBtn} onClick={() => navigate('/randevular')}>
-            <span className={`${styles.quickIcon} ${styles.quickIconOk}`}>
+            <span className={styles.quickIcon}>
               <CalendarIcon width={19} height={19} />
             </span>
             Takvim
           </button>
           <button type="button" className={styles.quickBtn} onClick={() => navigate('/giderler?yeni=1')}>
-            <span className={`${styles.quickIcon} ${styles.quickIconInfo}`}>
+            <span className={styles.quickIcon}>
               <ReceiptIcon width={19} height={19} />
             </span>
             Ödeme Ekle
