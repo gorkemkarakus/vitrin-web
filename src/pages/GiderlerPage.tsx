@@ -246,7 +246,7 @@ export default function GiderlerPage() {
             <CheckCircleIcon width={14} height={14} />
           </span>
           <span className={styles.statValue}>{currency.format(totalPaid)}</span>
-          <span className={styles.statLabel}>Ödenen</span>
+          <span className={styles.statLabel}>{paidExpenses.length} Ödenmiş</span>
         </div>
         <div className={`${styles.statCard} ${styles.statCardDanger}`}>
           <span className={`${styles.statIcon} ${styles.statIconDanger}`}>

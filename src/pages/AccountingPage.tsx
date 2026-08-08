@@ -498,6 +498,13 @@ export default function AccountingPage() {
             <span className={styles.statValue}>{expenses.length}</span>
             <span className={styles.statLabel}>Toplam Kayıt</span>
           </div>
+          <div className={`${styles.statCard} ${styles.statCardOk}`}>
+            <span className={`${styles.statIcon} ${styles.statIconOk}`}>
+              <CheckCircleIcon width={14} height={14} />
+            </span>
+            <span className={styles.statValue}>{currency.format(paidExpenses.reduce((sum, e) => sum + e.amount, 0))}</span>
+            <span className={styles.statLabel}>{paidExpenses.length} Ödenmiş</span>
+          </div>
           <div className={`${styles.statCard} ${styles.statCardDanger}`}>
             <span className={`${styles.statIcon} ${styles.statIconDanger}`}>
               <AlertTriangleIcon width={14} height={14} />
