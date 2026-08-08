@@ -51,6 +51,27 @@
   color: var(--text-dim);
 }
 
+.editCustomerBtn {
+  flex-shrink: 0;
+  margin-left: auto;
+  align-self: flex-start;
+  width: 32px;
+  height: 32px;
+  border-radius: 50%;
+  border: none;
+  background: var(--panel-2);
+  color: var(--text-dim);
+  cursor: pointer;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.editCustomerBtn:hover {
+  background: var(--info-bg);
+  color: var(--signal);
+}
+
 .balanceRow {
   display: grid;
   grid-template-columns: 1fr 1fr;
@@ -303,6 +324,26 @@
   flex-direction: column;
   gap: 2px;
   min-width: 0;
+  flex: 1;
+}
+
+.editPaymentBtn {
+  flex-shrink: 0;
+  width: 28px;
+  height: 28px;
+  border-radius: 50%;
+  border: none;
+  background: transparent;
+  color: var(--text-dim);
+  cursor: pointer;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.editPaymentBtn:hover {
+  background: var(--info-bg);
+  color: var(--signal);
 }
 
 .paymentRowAmount {

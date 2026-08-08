@@ -40,6 +40,7 @@ interface Expense {
   amount: number
   expense_date: string
   is_recurring: boolean
+  is_paid: boolean
 }
 
 interface ServicePackage {
@@ -125,6 +126,7 @@ export default function AccountingPage() {
   const [expenseAmount, setExpenseAmount] = useState('')
   const [expenseDate, setExpenseDate] = useState(() => toLocalDateString(new Date()))
   const [expenseRecurring, setExpenseRecurring] = useState(false)
+  const [expensePaid, setExpensePaid] = useState(true)
   const [addingExpense, setAddingExpense] = useState(false)
 
   function applyPreset(p: Preset) {
@@ -148,7 +150,7 @@ export default function AccountingPage() {
         supabase.from('business_finance_settings').select('commission_pct, tax_pct').maybeSingle(),
         supabase
           .from('business_expenses')
-          .select('id, description, amount, expense_date, is_recurring')
+          .select('id, description, amount, expense_date, is_recurring, is_paid')
           .gte('expense_date', rangeStart)
           .lte('expense_date', rangeEnd)
           .order('expense_date', { ascending: false }),
@@ -221,16 +223,23 @@ export default function AccountingPage() {
       amount,
       expense_date: expenseDate,
       is_recurring: expenseRecurring,
+      is_paid: expensePaid,
     })
     setExpenseDesc('')
     setExpenseAmount('')
     setExpenseRecurring(false)
+    setExpensePaid(true)
     await loadAll()
     setAddingExpense(false)
   }
 
   async function deleteExpense(id: string) {
     await supabase.from('business_expenses').delete().eq('id', id)
+    await loadAll()
+  }
+
+  async function toggleExpensePaid(id: string, next: boolean) {
+    await supabase.from('business_expenses').update({ is_paid: next }).eq('id', id)
     await loadAll()
   }
 
@@ -327,7 +336,12 @@ export default function AccountingPage() {
   const afterTax = totalRevenue - taxAmount
   const commissionAmount = afterTax * (commissionPct / 100)
   const afterCommission = afterTax - commissionAmount
-  const totalExpenses = expenses.reduce((sum, e) => sum + e.amount, 0)
+  // Odenmemis giderler (henuz fiilen kasadan cikmamis) Net Kar'a girmez —
+  // sadece is_paid=true olanlar dusulur. Odenmemisler Giderler listesinde
+  // gorunmeye devam eder, "Odendi" isaretlenince buraya dahil olur.
+  const paidExpenses = expenses.filter((e) => e.is_paid)
+  const unpaidExpenses = expenses.filter((e) => !e.is_paid)
+  const totalExpenses = paidExpenses.reduce((sum, e) => sum + e.amount, 0)
   const netProfit = afterCommission - totalExpenses
 
   async function handleExportPdf() {
@@ -516,8 +530,13 @@ export default function AccountingPage() {
       </div>
 
       <div className="card">
-        <h2 style={{ marginBottom: 14 }}>Giderler</h2>
-        <form className={styles.expenseForm} onSubmit={addExpense}>
+        <h2 style={{ marginBottom: 4 }}>Giderler</h2>
+        {unpaidExpenses.length > 0 && (
+          <p className={styles.unpaidHint}>
+            {unpaidExpenses.length} ödenmemiş gider — toplam {currency.format(unpaidExpenses.reduce((sum, e) => sum + e.amount, 0))} (Net Kâr'a dahil değil)
+          </p>
+        )}
+        <form className={styles.expenseForm} onSubmit={addExpense} style={{ marginTop: 14 }}>
           <div className={styles.expenseField}>
             <label htmlFor="expenseDesc">Açıklama</label>
             <input
@@ -571,6 +590,25 @@ export default function AccountingPage() {
               </button>
             </div>
           </div>
+          <div className={styles.expenseField}>
+            <label>Ödeme Durumu</label>
+            <div className={styles.recurringToggle}>
+              <button
+                type="button"
+                className={expensePaid ? styles.recurringBtnActive : styles.recurringBtn}
+                onClick={() => setExpensePaid(true)}
+              >
+                Ödendi
+              </button>
+              <button
+                type="button"
+                className={!expensePaid ? styles.recurringBtnActive : styles.recurringBtn}
+                onClick={() => setExpensePaid(false)}
+              >
+                Ödenmedi
+              </button>
+            </div>
+          </div>
           <button type="submit" className={`btn-primary ${styles.saveBtn}`} disabled={addingExpense}>
             {addingExpense ? 'Ekleniyor…' : 'Ekle'}
           </button>
@@ -586,6 +624,7 @@ export default function AccountingPage() {
                   <span className={styles.expenseDescRow}>
                     <span className={styles.expenseDesc}>{e.description}</span>
                     {e.is_recurring && <span className={styles.recurringBadge}>Aylık</span>}
+                    {!e.is_paid && <span className={styles.unpaidBadge}>Ödenmedi</span>}
                   </span>
                   <span className={styles.expenseDate}>
                     {new Date(e.expense_date + 'T00:00:00').toLocaleDateString('tr-TR', {
@@ -596,6 +635,15 @@ export default function AccountingPage() {
                   </span>
                 </div>
                 <span className={styles.expenseAmount}>{currency.format(e.amount)}</span>
+                <button
+                  type="button"
+                  className={e.is_paid ? styles.paidToggleBtnActive : styles.paidToggleBtn}
+                  onClick={() => toggleExpensePaid(e.id, !e.is_paid)}
+                  aria-label={e.is_paid ? `${e.description} giderini ödenmedi işaretle` : `${e.description} giderini ödendi işaretle`}
+                  title={e.is_paid ? 'Ödendi — ödenmedi işaretlemek için tıkla' : 'Ödendi olarak işaretle'}
+                >
+                  <CheckCircleIcon width={16} height={16} />
+                </button>
                 <button
                   type="button"
                   className={styles.rowDeleteBtn}

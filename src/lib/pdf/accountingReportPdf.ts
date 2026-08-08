@@ -37,6 +37,7 @@ interface ExpenseRow {
   amount: number
   expense_date: string
   is_recurring: boolean
+  is_paid: boolean
 }
 
 interface AppointmentLite {
@@ -125,18 +126,30 @@ export async function generateAccountingReportPdf(params: {
 
   // "- Salon giderleri" tek kalem yerine tarih tarih donusuyor, boylece
   // net kara nasil varildigi hesaplama akisinin icinde okunabiliyor —
-  // ayri "Giderler" bolumune gitmeye gerek kalmiyor.
-  report.addSubText(`Salon giderleri — toplam: -${currency.format(waterfall.totalExpenses)}`)
+  // ayri "Giderler" bolumune gitmeye gerek kalmiyor. Sadece ODENMIS
+  // giderler Net Kar'a dahil oldugu icin ustteki toplam onlari yansitir;
+  // odenmemis olanlar da tabloda gorunur ama Durum kolonuyla ayirt edilir.
+  const unpaidTotal = expenses.filter((e) => !e.is_paid).reduce((sum, e) => sum + e.amount, 0)
+  report.addSubText(`Salon giderleri (ödenmiş) — toplam: -${currency.format(waterfall.totalExpenses)}`)
+  if (unpaidTotal > 0) {
+    report.addSubText(`Ödenmemiş gider: -${currency.format(unpaidTotal)} (Net Kâr'a dahil değil)`)
+  }
   if (expenses.length === 0) {
     report.addSubText('Bu aralıkta gider kaydı yok.')
   } else {
     report.addTable({
-      head: ['Tarih', 'Açıklama', 'Tekrar', 'Tutar'],
+      head: ['Tarih', 'Açıklama', 'Tekrar', 'Durum', 'Tutar'],
       body: expenses
         .slice()
         .sort((a, b) => a.expense_date.localeCompare(b.expense_date))
-        .map((e) => [formatDateLabel(e.expense_date), e.description, e.is_recurring ? 'Aylık' : 'Tek Seferlik', `-${currency.format(e.amount)}`]),
-      rightAlignFrom: 3,
+        .map((e) => [
+          formatDateLabel(e.expense_date),
+          e.description,
+          e.is_recurring ? 'Aylık' : 'Tek Seferlik',
+          e.is_paid ? 'Ödendi' : 'Ödenmedi',
+          `-${currency.format(e.amount)}`,
+        ]),
+      rightAlignFrom: 4,
     })
   }
   await yieldToUI()

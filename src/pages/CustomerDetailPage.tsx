@@ -2,9 +2,10 @@ import { useEffect, useMemo, useState, type FormEvent } from 'react'
 import { useNavigate, useParams } from 'react-router-dom'
 import { supabase } from '../lib/supabase'
 import { useAuth } from '../contexts/AuthContext'
+import { formatPersonName } from '../lib/formatName'
 import Avatar from '../components/Avatar'
 import Select from '../components/Select'
-import { ChevronRightIcon, PhoneIcon, MailIcon, WalletIcon } from '../components/icons'
+import { ChevronRightIcon, PhoneIcon, MailIcon, WalletIcon, PencilIcon } from '../components/icons'
 import styles from './CustomerDetailPage.module.css'
 
 interface Customer {
@@ -48,6 +49,7 @@ interface Payment {
   appointment_id: string | null
   package_id: string | null
   note: string | null
+  created_by_user_id: string | null
 }
 
 const METHOD_LABEL: Record<Payment['method'], string> = {
@@ -106,6 +108,19 @@ export default function CustomerDetailPage() {
   const [payNote, setPayNote] = useState('')
   const [paySubmitting, setPaySubmitting] = useState(false)
 
+  const [editingPayment, setEditingPayment] = useState<Payment | null>(null)
+  const [editAmount, setEditAmount] = useState('')
+  const [editMethod, setEditMethod] = useState('nakit')
+  const [editDate, setEditDate] = useState('')
+  const [editNote, setEditNote] = useState('')
+  const [editSubmitting, setEditSubmitting] = useState(false)
+
+  const [editCustomerOpen, setEditCustomerOpen] = useState(false)
+  const [editName, setEditName] = useState('')
+  const [editPhone, setEditPhone] = useState('')
+  const [editEmail, setEditEmail] = useState('')
+  const [editCustomerSubmitting, setEditCustomerSubmitting] = useState(false)
+
   async function loadData() {
     if (!id) return
     setLoading(true)
@@ -126,7 +141,7 @@ export default function CustomerDetailPage() {
         .eq('customer_id', id),
       supabase
         .from('payments')
-        .select('id, amount, method, paid_at, appointment_id, package_id, note')
+        .select('id, amount, method, paid_at, appointment_id, package_id, note, created_by_user_id')
         .eq('customer_id', id)
         .order('paid_at', { ascending: false }),
       supabase.from('services').select('id, name, price'),
@@ -259,6 +274,69 @@ export default function CustomerDetailPage() {
     }
   }
 
+  // Admin herhangi bir odemeyi duzenleyebilir; normal kullanici sadece
+  // kendi kaydettigi odemeyi (RLS'teki payments_update_user ile ayni kural).
+  // "bakiye" turu odemeler musteri kredi bakiyesinden otomatik dusulen
+  // sistem kayitlari — elle duzenlemeye acmiyoruz.
+  function canEditPayment(p: Payment) {
+    if (p.method === 'bakiye') return false
+    return profile?.role === 'admin' || p.created_by_user_id === profile?.id
+  }
+
+  function openEditPayment(p: Payment) {
+    setEditingPayment(p)
+    setEditAmount(String(p.amount))
+    setEditMethod(p.method === 'bakiye' ? 'nakit' : p.method)
+    setEditDate(p.paid_at)
+    setEditNote(p.note ?? '')
+  }
+
+  async function submitEditPayment(e: FormEvent) {
+    e.preventDefault()
+    if (!editingPayment) return
+    const amount = Number(editAmount)
+    if (!amount || amount <= 0) return
+    setEditSubmitting(true)
+    try {
+      await supabase
+        .from('payments')
+        .update({ amount, method: editMethod, paid_at: editDate, note: editNote.trim() || null })
+        .eq('id', editingPayment.id)
+      setEditingPayment(null)
+      await loadData()
+    } finally {
+      setEditSubmitting(false)
+    }
+  }
+
+  function openEditCustomer() {
+    if (!customer) return
+    setEditName(customer.full_name)
+    setEditPhone(customerPhone(customer) ?? '')
+    setEditEmail(customer.email ?? '')
+    setEditCustomerOpen(true)
+  }
+
+  async function submitEditCustomer(e: FormEvent) {
+    e.preventDefault()
+    if (!editName.trim() || !id) return
+    setEditCustomerSubmitting(true)
+    try {
+      await supabase
+        .from('customers')
+        .update({
+          full_name: formatPersonName(editName),
+          contact_phone: editPhone.trim() || null,
+          email: editEmail.trim() || null,
+        })
+        .eq('id', id)
+      setEditCustomerOpen(false)
+      await loadData()
+    } finally {
+      setEditCustomerSubmitting(false)
+    }
+  }
+
   if (loading) return <p style={{ color: 'var(--text-dim)' }}>Yükleniyor…</p>
   if (!customer) return <p style={{ color: 'var(--text-dim)' }}>Müşteri bulunamadı.</p>
 
@@ -286,6 +364,9 @@ export default function CustomerDetailPage() {
             </span>
           )}
         </div>
+        <button type="button" className={styles.editCustomerBtn} onClick={openEditCustomer} aria-label="Müşteri bilgilerini düzenle">
+          <PencilIcon width={15} height={15} />
+        </button>
       </div>
 
       <div className={styles.balanceRow}>
@@ -395,6 +476,16 @@ export default function CustomerDetailPage() {
                     {p.note ? ` · ${p.note}` : ''}
                   </span>
                 </div>
+                {canEditPayment(p) && (
+                  <button
+                    type="button"
+                    className={styles.editPaymentBtn}
+                    onClick={() => openEditPayment(p)}
+                    aria-label="Ödemeyi düzenle"
+                  >
+                    <PencilIcon width={14} height={14} />
+                  </button>
+                )}
               </div>
             ))}
           </div>
@@ -438,6 +529,98 @@ export default function CustomerDetailPage() {
               </div>
               <button type="submit" className="btn-primary" disabled={paySubmitting}>
                 {paySubmitting ? 'Kaydediliyor…' : 'Ödemeyi Kaydet'}
+              </button>
+            </form>
+          </div>
+        </div>
+      )}
+
+      {editingPayment && (
+        <div className={styles.modalBackdrop} onClick={() => setEditingPayment(null)}>
+          <div className={`card ${styles.modalCard}`} onClick={(e) => e.stopPropagation()}>
+            <div className={styles.modalHead}>
+              <h2>Ödemeyi Düzenle</h2>
+              <button type="button" className={styles.modalClose} onClick={() => setEditingPayment(null)}>
+                ✕
+              </button>
+            </div>
+            <form onSubmit={submitEditPayment}>
+              <div className="field">
+                <label htmlFor="editAmount">Tutar (TL)</label>
+                <input
+                  id="editAmount"
+                  type="number"
+                  min={0}
+                  step="0.01"
+                  value={editAmount}
+                  onChange={(e) => setEditAmount(e.target.value)}
+                  required
+                  autoFocus
+                />
+              </div>
+              <div className="field">
+                <label htmlFor="editMethod">Yöntem</label>
+                <Select id="editMethod" value={editMethod} onChange={setEditMethod} options={PAYMENT_METHOD_OPTIONS} />
+              </div>
+              <div className="field">
+                <label htmlFor="editDate">Tarih</label>
+                <input id="editDate" type="date" value={editDate} onChange={(e) => setEditDate(e.target.value)} required />
+              </div>
+              <div className="field">
+                <label htmlFor="editNote">Not (opsiyonel)</label>
+                <input id="editNote" value={editNote} onChange={(e) => setEditNote(e.target.value)} placeholder="ör. indirimli ödendi" />
+              </div>
+              <button type="submit" className="btn-primary" disabled={editSubmitting}>
+                {editSubmitting ? 'Kaydediliyor…' : 'Değişiklikleri Kaydet'}
+              </button>
+            </form>
+          </div>
+        </div>
+      )}
+
+      {editCustomerOpen && (
+        <div className={styles.modalBackdrop} onClick={() => setEditCustomerOpen(false)}>
+          <div className={`card ${styles.modalCard}`} onClick={(e) => e.stopPropagation()}>
+            <div className={styles.modalHead}>
+              <h2>Müşteriyi Düzenle</h2>
+              <button type="button" className={styles.modalClose} onClick={() => setEditCustomerOpen(false)}>
+                ✕
+              </button>
+            </div>
+            <form onSubmit={submitEditCustomer}>
+              <div className="field">
+                <label htmlFor="editCustomerName">Ad Soyad</label>
+                <input
+                  id="editCustomerName"
+                  value={editName}
+                  onChange={(e) => setEditName(e.target.value)}
+                  required
+                  autoFocus
+                />
+              </div>
+              <div className="field">
+                <label htmlFor="editCustomerPhone">Telefon</label>
+                <input
+                  id="editCustomerPhone"
+                  type="tel"
+                  inputMode="numeric"
+                  value={editPhone}
+                  onChange={(e) => setEditPhone(e.target.value.replace(/\D/g, ''))}
+                  placeholder="05xx xxx xx xx"
+                />
+              </div>
+              <div className="field">
+                <label htmlFor="editCustomerEmail">E-posta</label>
+                <input
+                  id="editCustomerEmail"
+                  type="email"
+                  value={editEmail}
+                  onChange={(e) => setEditEmail(e.target.value)}
+                  placeholder="ornek@eposta.com"
+                />
+              </div>
+              <button type="submit" className="btn-primary" disabled={editCustomerSubmitting}>
+                {editCustomerSubmitting ? 'Kaydediliyor…' : 'Değişiklikleri Kaydet'}
               </button>
             </form>
           </div>

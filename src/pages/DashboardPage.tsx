@@ -50,6 +50,7 @@ interface Expense {
   description: string
   amount: number
   expense_date: string
+  is_paid: boolean
 }
 
 interface ServicePackage {
@@ -128,7 +129,7 @@ export default function DashboardPage() {
           supabase.from('services').select('id, name, price'),
           supabase.from('profiles').select('id, full_name'),
           supabase.from('customers').select('id, full_name'),
-          supabase.from('business_expenses').select('id, description, amount, expense_date'),
+          supabase.from('business_expenses').select('id, description, amount, expense_date, is_paid'),
           supabase.from('service_packages').select('id, customer_id, service_id, total_sessions, session_offset'),
           supabase.from('payments').select('id, customer_id, amount, appointment_id, package_id, paid_at'),
         ])
@@ -198,8 +199,10 @@ export default function DashboardPage() {
   const rangeRevenue = payments
     .filter((p) => dateWithinRange(`${p.paid_at}T00:00:00`, rangeStart, rangeEnd))
     .reduce((sum, p) => sum + p.amount, 0)
+  // Sadece fiilen odenmis giderler kasadan cikmis sayilir — odenmemisler
+  // bu bakiyeyi etkilemez, Yaklasan Odemeler'de gorunmeye devam eder.
   const rangeExpenses = expenses
-    .filter((e) => dateWithinRange(`${e.expense_date}T00:00:00`, rangeStart, rangeEnd))
+    .filter((e) => e.is_paid && dateWithinRange(`${e.expense_date}T00:00:00`, rangeStart, rangeEnd))
     .reduce((sum, e) => sum + e.amount, 0)
   const rangeBalance = rangeRevenue - rangeExpenses
 
@@ -247,10 +250,12 @@ export default function DashboardPage() {
     .reduce((sum, p) => sum + p.amount, 0)
   const revenueChangePct = prevRevenue > 0 ? Math.round(((rangeRevenue - prevRevenue) / prevRevenue) * 100) : null
 
-  const upcomingExpenses = expenses
-    .filter((e) => e.expense_date >= todayStr)
+  // Odenmemis TUM giderler — tarihi gectiyse bile listeden dusmez, odenene
+  // kadar hatirlatmaya devam eder. En cok geciken/en yakin en ustte.
+  const allUnpaidExpenses = expenses
+    .filter((e) => !e.is_paid)
     .sort((a, b) => a.expense_date.localeCompare(b.expense_date))
-    .slice(0, 4)
+  const upcomingExpenses = allUnpaidExpenses.slice(0, 4)
 
   function daysUntil(dateStr: string) {
     const d = atMidnight(new Date(`${dateStr}T00:00:00`))
@@ -346,9 +351,9 @@ export default function DashboardPage() {
             </span>
           </div>
           <span className={`${styles.summaryValue} ${styles.summaryValueDanger}`}>
-            {currency.format(upcomingExpenses.reduce((sum, e) => sum + e.amount, 0))}
+            {currency.format(allUnpaidExpenses.reduce((sum, e) => sum + e.amount, 0))}
           </span>
-          <span className={styles.summaryHint}>{upcomingExpenses.length} ödeme</span>
+          <span className={styles.summaryHint}>{allUnpaidExpenses.length} ödeme</span>
         </div>
       </div>
 
@@ -433,7 +438,7 @@ export default function DashboardPage() {
           </button>
         </div>
         {upcomingExpenses.length === 0 ? (
-          <p className={styles.empty}>Yaklaşan planlı ödeme yok.</p>
+          <p className={styles.empty}>Ödenmemiş gider yok.</p>
         ) : (
           <div className={styles.paymentList}>
             {upcomingExpenses.map((e) => {
@@ -454,7 +459,7 @@ export default function DashboardPage() {
                   </span>
                   <span className={styles.paymentAmount}>{currency.format(e.amount)}</span>
                   <span className={left <= 3 ? styles.paymentDaysUrgent : styles.paymentDays}>
-                    {left === 0 ? 'Bugün' : `${left} gün kaldı`}
+                    {left < 0 ? `${Math.abs(left)} gün geçti` : left === 0 ? 'Bugün' : `${left} gün kaldı`}
                   </span>
                 </div>
               )
