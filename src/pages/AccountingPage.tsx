@@ -4,6 +4,7 @@ import { supabase } from '../lib/supabase'
 import { useAuth } from '../contexts/AuthContext'
 import Avatar from '../components/Avatar'
 import PdfProgressModal from '../components/PdfProgressModal'
+import ConfirmModal from '../components/ConfirmModal'
 import {
   SearchIcon,
   WalletIcon,
@@ -121,6 +122,7 @@ export default function AccountingPage() {
   const [savedHint, setSavedHint] = useState(false)
   const [search, setSearch] = useState('')
   const [pdfState, setPdfState] = useState<{ progress: number; step: string; error: string | null } | null>(null)
+  const [paidConfirm, setPaidConfirm] = useState<{ id: string; description: string; next: boolean } | null>(null)
 
   const [expenseDesc, setExpenseDesc] = useState('')
   const [expenseAmount, setExpenseAmount] = useState('')
@@ -238,14 +240,14 @@ export default function AccountingPage() {
     await loadAll()
   }
 
-  async function toggleExpensePaid(id: string, description: string, next: boolean) {
-    const ok = window.confirm(
-      next
-        ? `"${description}" giderini ödendi olarak işaretlemek istediğinize emin misiniz?`
-        : `"${description}" giderini ödenmedi olarak işaretlemek istediğinize emin misiniz?`,
-    )
-    if (!ok) return
-    await supabase.from('business_expenses').update({ is_paid: next }).eq('id', id)
+  function requestToggleExpensePaid(id: string, description: string, next: boolean) {
+    setPaidConfirm({ id, description, next })
+  }
+
+  async function confirmToggleExpensePaid() {
+    if (!paidConfirm) return
+    await supabase.from('business_expenses').update({ is_paid: paidConfirm.next }).eq('id', paidConfirm.id)
+    setPaidConfirm(null)
     await loadAll()
   }
 
@@ -644,7 +646,7 @@ export default function AccountingPage() {
                 <button
                   type="button"
                   className={e.is_paid ? styles.paidToggleBtnActive : styles.paidToggleBtn}
-                  onClick={() => toggleExpensePaid(e.id, e.description, !e.is_paid)}
+                  onClick={() => requestToggleExpensePaid(e.id, e.description, !e.is_paid)}
                   aria-label={e.is_paid ? `${e.description} giderini ödenmedi işaretle` : `${e.description} giderini ödendi işaretle`}
                   title={e.is_paid ? 'Ödendi — ödenmedi işaretlemek için tıkla' : 'Ödendi olarak işaretle'}
                 >
@@ -723,6 +725,16 @@ export default function AccountingPage() {
           step={pdfState.step}
           error={pdfState.error}
           onClose={() => setPdfState(null)}
+        />
+      )}
+
+      {paidConfirm && (
+        <ConfirmModal
+          title={paidConfirm.next ? 'Ödendi Olarak İşaretle' : 'Ödenmedi Olarak İşaretle'}
+          message={`"${paidConfirm.description}" giderini ${paidConfirm.next ? 'ödendi' : 'ödenmedi'} olarak işaretlemek istediğinize emin misiniz?`}
+          confirmLabel="Evet, İşaretle"
+          onConfirm={confirmToggleExpensePaid}
+          onCancel={() => setPaidConfirm(null)}
         />
       )}
     </div>
