@@ -162,15 +162,6 @@
   font-size: 13px;
 }
 
-/* ---------- Calisma saatleri ---------- */
-
-.existingSchedules {
-  display: flex;
-  flex-wrap: wrap;
-  gap: 8px;
-  margin-bottom: 12px;
-}
-
 /* ---------- Haftalik program karti: baslik + toplam saat ---------- */
 
 .scheduleHeader {
@@ -671,91 +662,222 @@
   align-self: flex-end;
 }
 
-/* ---------- Bloke saatler ---------- */
+/* ---------- Izinli gunler ---------- */
 
-.blockForm {
+.leaveModeToggle {
+  display: inline-flex;
+  align-self: flex-start;
+  background: var(--panel-2);
+  border-radius: 10px;
+  padding: 3px;
+  gap: 2px;
+  margin-bottom: 18px;
+}
+
+.leaveModeTab,
+.leaveModeTabActive {
+  width: auto;
+  border: none;
+  background: none;
+  border-radius: 8px;
+  padding: 8px 16px;
+  font-size: 13px;
+  font-weight: 600;
+  font-family: var(--font-body);
+  color: var(--text-dim);
+  cursor: pointer;
+}
+
+.leaveModeTabActive {
+  background: var(--panel);
+  color: var(--text);
+  box-shadow: 0 1px 2px rgba(15, 23, 42, 0.08);
+}
+
+.leaveField {
   display: flex;
   flex-direction: column;
-  gap: 10px;
-  align-items: flex-start;
-}
-
-.blockModeRow {
-  display: flex;
   gap: 8px;
+  margin-bottom: 16px;
 }
 
-.blockModeRow button {
-  width: auto;
-  height: auto;
-  padding: 6px 12px;
-  font-size: 12px;
+.leaveField label {
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--text);
 }
 
-.blockLabelInput {
-  background: var(--panel-2);
+.leaveField input {
+  width: 100%;
+  background: var(--panel);
   border: 1px solid var(--line);
   border-radius: var(--radius-sm);
-  color: var(--text);
-  font-size: 13px;
-  padding: 9px 10px;
-  outline: none;
-  width: 100%;
-  max-width: 280px;
+  padding: 12px 14px;
+  font-size: 14px;
   font-family: var(--font-body);
+  color: var(--text);
+  outline: none;
 }
 
-.blockLabelInput:focus {
+.leaveField input:focus {
   border-color: var(--signal);
 }
 
-.blockRow {
+.leaveAllDayRow {
   display: flex;
   align-items: center;
+  gap: 10px;
+  margin-bottom: 16px;
+}
+
+.leaveAllDayRow span {
+  font-size: 13.5px;
+  font-weight: 600;
+  color: var(--text);
+}
+
+.leaveReasonRow {
+  display: flex;
+  flex-wrap: wrap;
   gap: 8px;
-  font-size: 13px;
-  color: var(--danger-text);
-  background: var(--danger-bg);
+  margin-bottom: 16px;
+}
+
+.leaveReasonChip,
+.leaveReasonChipActive {
+  width: auto;
   border-radius: 999px;
-  padding: 6px 8px 6px 12px;
+  padding: 8px 16px;
+  font-size: 13px;
+  font-weight: 600;
+  font-family: var(--font-body);
+  cursor: pointer;
 }
 
-.blockRow strong {
-  color: var(--danger-text);
+.leaveReasonChip {
+  background: var(--panel);
+  border: 1px solid var(--line);
+  color: var(--text);
 }
 
-.blockRemove {
-  width: 22px;
-  height: 22px;
+.leaveReasonChip:hover {
+  border-color: var(--text-dim);
+}
+
+.leaveReasonChipActive {
+  background: #ede9fe;
+  border: 1px solid #ddd6fe;
+  color: #5b21b6;
+}
+
+.leaveLabelField {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  margin-bottom: 18px;
+}
+
+.leaveLabelField label {
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--text);
+}
+
+.leaveLabelField input {
+  width: 100%;
+  background: var(--panel);
+  border: 1px solid var(--line);
+  border-radius: var(--radius-sm);
+  padding: 12px 14px;
+  font-size: 14px;
+  font-family: var(--font-body);
+  color: var(--text);
+  outline: none;
+}
+
+.leaveLabelField input:focus {
+  border-color: var(--signal);
+}
+
+.addLeaveBtn {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  margin: 4px 0 22px;
+}
+
+.leaveListLabel {
+  font-size: 11px;
+  font-weight: 700;
+  color: var(--text-dim);
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+  margin-bottom: 10px;
+}
+
+.leaveEmpty {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  border: 1px dashed var(--line);
+  border-radius: var(--radius-sm);
+  padding: 28px 16px;
+  color: var(--text-dim);
+  font-size: 13px;
+  text-align: center;
+}
+
+.leaveEmpty svg {
+  opacity: 0.55;
+}
+
+.leaveList {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.leaveRow {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+  background: var(--panel-2);
+  border: 1px solid var(--line);
+  border-radius: var(--radius-sm);
+  padding: 10px 12px;
+}
+
+.leaveRowDate {
+  font-size: 13px;
+  font-weight: 700;
+  color: var(--text);
+}
+
+.leaveRowMeta {
+  font-size: 12px;
+  color: var(--text-dim);
+  margin-top: 1px;
+}
+
+.leaveRemoveBtn {
+  flex-shrink: 0;
+  width: 26px;
+  height: 26px;
   border-radius: 50%;
   border: none;
   background: transparent;
-  color: var(--danger-text);
+  color: var(--text-dim);
   cursor: pointer;
   display: inline-flex;
   align-items: center;
   justify-content: center;
-  flex-shrink: 0;
 }
 
-.blockRemove:hover {
-  background: rgba(220, 38, 38, 0.12);
-}
-
-.dashedAddBtn {
-  width: 100%;
-  background: transparent;
-  border: 1px dashed var(--text-dim);
-  border-radius: var(--radius-sm);
-  color: var(--text-dim);
-  font-size: 13px;
-  font-family: var(--font-body);
-  padding: 10px;
-  cursor: pointer;
-  transition: border-color 0.15s, color 0.15s;
-}
-
-.dashedAddBtn:hover {
-  border-color: var(--signal);
-  color: var(--signal);
+.leaveRemoveBtn:hover {
+  background: var(--danger-bg);
+  color: var(--danger-text);
 }

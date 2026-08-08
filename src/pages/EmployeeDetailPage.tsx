@@ -4,7 +4,7 @@ import { supabase } from '../lib/supabase'
 import { useAuth } from '../contexts/AuthContext'
 import { TIME_OPTIONS } from '../lib/timeOptions'
 import Avatar, { colorForName } from '../components/Avatar'
-import { ChevronRightIcon, CloseIcon, PhoneIcon, TrashIcon } from '../components/icons'
+import { CalendarIcon, ChevronRightIcon, CloseIcon, PhoneIcon, PlusIcon, TrashIcon } from '../components/icons'
 import styles from './EmployeeDetailPage.module.css'
 
 interface Category {
@@ -62,6 +62,27 @@ interface DayDraft {
   breaks: BreakDraft[]
 }
 
+// LeaveDraft de BreakDraft ile ayni mantik: "blockId" doluysa mevcut bir
+// employee_time_blocks satirina karsilik gelir, bos ise henuz kaydedilmemis
+// yeni bir izindir. Haftalik programdan farkli olarak izinler day_of_week
+// DEGIL block_date/end_date ile tutulur (tek gunluk ya da tarih araligi).
+interface LeaveDraft {
+  id: string
+  blockId?: string
+  mode: 'day' | 'range'
+  date: string
+  endDate: string
+  allDay: boolean
+  start: string
+  end: string
+  label: string
+}
+
+const LEAVE_REASON_OPTIONS: { value: 'yillik' | 'mazeret'; label: string }[] = [
+  { value: 'yillik', label: 'Yıllık İzin' },
+  { value: 'mazeret', label: 'Mazeret İzni' },
+]
+
 const BREAK_LABEL = 'Öğle molası'
 
 // Zaman cizelgesi (timeline) varsayilan olarak 06:00-19:00 araligini
@@ -73,7 +94,6 @@ const DEFAULT_AXIS_START_MIN = 6 * 60
 const DEFAULT_AXIS_END_MIN = 19 * 60
 
 const DAY_LABELS = ['Pazar', 'Pazartesi', 'Salı', 'Çarşamba', 'Perşembe', 'Cuma', 'Cumartesi']
-const DAY_SHORT = ['Paz', 'Pzt', 'Sal', 'Çar', 'Per', 'Cum', 'Cmt']
 const WEEK_ORDER = [1, 2, 3, 4, 5, 6, 0]
 const WEEKDAYS = [1, 2, 3, 4, 5]
 const WEEKEND = [6, 0]
@@ -171,13 +191,22 @@ export default function EmployeeDetailPage() {
   const [jsonCopied, setJsonCopied] = useState(false)
   const [copiedDay, setCopiedDay] = useState<number | null>(null)
 
-  const [blockMode, setBlockMode] = useState<'day' | 'date'>('day')
-  const [blockDay, setBlockDay] = useState(1)
-  const [blockDate, setBlockDate] = useState('')
-  const [blockEndDate, setBlockEndDate] = useState('')
-  const [blockStart, setBlockStart] = useState('')
-  const [blockEnd, setBlockEnd] = useState('')
-  const [blockLabel, setBlockLabel] = useState('')
+  // Izinli Gunler karti da haftalik program gibi "duzenle -> Kaydet"
+  // mantigiyla calisiyor — leaveDrafts sunucudan sadece BIR KERE
+  // (leaveReady false iken) dolduruluyor.
+  const [leaveDrafts, setLeaveDrafts] = useState<LeaveDraft[]>([])
+  const [leaveReady, setLeaveReady] = useState(false)
+  const [savingLeaves, setSavingLeaves] = useState(false)
+  const [leaveJsonCopied, setLeaveJsonCopied] = useState(false)
+
+  const [leaveMode, setLeaveMode] = useState<'day' | 'range'>('day')
+  const [leaveDate, setLeaveDate] = useState(todayLocalDateString())
+  const [leaveEndDate, setLeaveEndDate] = useState('')
+  const [leaveAllDay, setLeaveAllDay] = useState(true)
+  const [leaveStart, setLeaveStart] = useState('')
+  const [leaveEnd, setLeaveEnd] = useState('')
+  const [leaveReason, setLeaveReason] = useState<'yillik' | 'mazeret'>('yillik')
+  const [leaveLabel, setLeaveLabel] = useState('Yıllık İzin')
 
   async function loadData(silent = false) {
     if (!id) return
@@ -210,6 +239,26 @@ export default function EmployeeDetailPage() {
     setDayDrafts(buildDayDrafts(schedules, timeBlocks))
     setScheduleReady(true)
   }, [loading, scheduleReady, schedules, timeBlocks])
+
+  useEffect(() => {
+    if (loading || leaveReady) return
+    setLeaveDrafts(
+      timeBlocks
+        .filter((b) => b.day_of_week === null)
+        .map((b) => ({
+          id: b.id,
+          blockId: b.id,
+          mode: b.end_date && b.end_date !== b.block_date ? 'range' : 'day',
+          date: b.block_date ?? '',
+          endDate: b.end_date ?? b.block_date ?? '',
+          allDay: b.starts_at.slice(0, 5) <= '00:05' && b.ends_at.slice(0, 5) >= '23:55',
+          start: b.starts_at.slice(0, 5),
+          end: b.ends_at.slice(0, 5),
+          label: b.label ?? '',
+        })),
+    )
+    setLeaveReady(true)
+  }, [loading, leaveReady, timeBlocks])
 
   const today = useMemo(() => todayLocalDateString(), [])
 
@@ -385,31 +434,82 @@ export default function EmployeeDetailPage() {
     setTimeout(() => setJsonCopied(false), 2000)
   }
 
-  async function addBlock() {
-    if (!id || !blockStart || !blockEnd) return
-    if (blockMode === 'date' && !blockDate) return
-    await supabase.from('employee_time_blocks').insert({
-      profile_id: id,
-      day_of_week: blockMode === 'day' ? blockDay : null,
-      block_date: blockMode === 'date' ? blockDate : null,
-      end_date: blockMode === 'date' ? blockEndDate || blockDate : null,
-      starts_at: blockStart,
-      ends_at: blockEnd,
-      label: blockLabel.trim() || null,
-    })
-    setBlockMode('day')
-    setBlockDay(1)
-    setBlockDate('')
-    setBlockEndDate('')
-    setBlockStart('')
-    setBlockEnd('')
-    setBlockLabel('')
-    await loadData(true)
+  function addLeaveDraft() {
+    if (!leaveDate) return
+    if (!leaveAllDay && (!leaveStart || !leaveEnd)) return
+    const newDraft: LeaveDraft = {
+      id: crypto.randomUUID(),
+      mode: leaveMode,
+      date: leaveDate,
+      endDate: leaveMode === 'range' ? leaveEndDate || leaveDate : leaveDate,
+      allDay: leaveAllDay,
+      start: leaveAllDay ? '00:00' : leaveStart,
+      end: leaveAllDay ? '23:59' : leaveEnd,
+      label: leaveLabel.trim(),
+    }
+    setLeaveDrafts((prev) => [...prev, newDraft])
+    setLeaveMode('day')
+    setLeaveDate(todayLocalDateString())
+    setLeaveEndDate('')
+    setLeaveAllDay(true)
+    setLeaveStart('')
+    setLeaveEnd('')
+    setLeaveReason('yillik')
+    setLeaveLabel('Yıllık İzin')
   }
 
-  async function removeBlock(blockId: string) {
-    await supabase.from('employee_time_blocks').delete().eq('id', blockId)
+  function removeLeaveDraft(draftId: string) {
+    setLeaveDrafts((prev) => prev.filter((d) => d.id !== draftId))
+  }
+
+  function leavesJson() {
+    return JSON.stringify(
+      leaveDrafts.map((d) => ({
+        baslangic: d.date,
+        bitis: d.mode === 'range' ? d.endDate : d.date,
+        tumGunKapali: d.allDay,
+        baslangicSaati: d.allDay ? null : d.start,
+        bitisSaati: d.allDay ? null : d.end,
+        etiket: d.label || null,
+      })),
+      null,
+      2,
+    )
+  }
+
+  function copyLeavesJson() {
+    navigator.clipboard.writeText(leavesJson())
+    setLeaveJsonCopied(true)
+    setTimeout(() => setLeaveJsonCopied(false), 2000)
+  }
+
+  async function saveLeaves() {
+    if (!id) return
+    setSavingLeaves(true)
+    const keepIds = new Set(leaveDrafts.filter((d) => d.blockId).map((d) => d.blockId))
+    const existingLeaveBlocks = timeBlocks.filter((b) => b.day_of_week === null)
+    const ops: PromiseLike<unknown>[] = []
+    for (const b of existingLeaveBlocks) {
+      if (!keepIds.has(b.id)) ops.push(supabase.from('employee_time_blocks').delete().eq('id', b.id))
+    }
+    for (const d of leaveDrafts) {
+      if (d.blockId) continue
+      ops.push(
+        supabase.from('employee_time_blocks').insert({
+          profile_id: id,
+          day_of_week: null,
+          block_date: d.date,
+          end_date: d.endDate || d.date,
+          starts_at: d.start,
+          ends_at: d.end,
+          label: d.label || null,
+        }),
+      )
+    }
+    await Promise.all(ops)
+    setLeaveReady(false)
     await loadData(true)
+    setSavingLeaves(false)
   }
 
   if (loading) return <p style={{ color: 'var(--text-dim)' }}>Yükleniyor…</p>
@@ -422,12 +522,6 @@ export default function EmployeeDetailPage() {
       : 'aktif'
 
   const empCategoryIds = new Set(employeeCategories.map((ec) => ec.category_id))
-
-  // Ogle molasi olarak yukaridaki Haftalik Calisma Saatleri kartinda
-  // yonetilen (day_of_week dolu + label === "Öğle molası") bloklar burada
-  // TEKRAR gosterilmesin diye filtreleniyor — geri kalan (izin/egitim gibi
-  // ozel etiketli haftalik veya tarih araligi) bloklar aynen kaliyor.
-  const visibleBlocks = timeBlocks.filter((b) => !(b.day_of_week !== null && b.label === BREAK_LABEL))
 
   const totalWeeklyHours = WEEK_ORDER.reduce((sum, day) => sum + (dayDrafts[day] ? dayHours(dayDrafts[day]) : 0), 0)
   const openDaysCount = WEEK_ORDER.filter((day) => dayDrafts[day]?.enabled).length
@@ -692,83 +786,58 @@ export default function EmployeeDetailPage() {
       </div>
 
       <div className="card">
-        <h2 style={{ marginBottom: 12 }}>Bloke Saatler (Mola/Eğitim/İzin)</h2>
+        <h2 style={{ marginBottom: 4 }}>İzinli Günler</h2>
+        <p className={styles.scheduleSubtitle} style={{ marginBottom: 16 }}>
+          Yıllık izin veya tek günlük kapanışları buradan tanımla. Bu günlerde randevu alınamaz.
+        </p>
 
-        {visibleBlocks.length > 0 && (
-          <div className={styles.existingSchedules}>
-            {visibleBlocks.map((b) => (
-              <div className={styles.blockRow} key={b.id}>
-                <span>
-                  <strong>
-                    {b.day_of_week !== null
-                      ? DAY_SHORT[b.day_of_week]
-                      : b.end_date && b.end_date !== b.block_date
-                        ? `${new Date(b.block_date + 'T00:00:00').toLocaleDateString('tr-TR', { day: 'numeric', month: 'short' })} – ${new Date(b.end_date + 'T00:00:00').toLocaleDateString('tr-TR', { day: 'numeric', month: 'short' })}`
-                        : new Date(b.block_date + 'T00:00:00').toLocaleDateString('tr-TR', { day: 'numeric', month: 'short' })}
-                  </strong>{' '}
-                  {b.starts_at.slice(0, 5)} – {b.ends_at.slice(0, 5)}
-                  {b.label ? ` (${b.label})` : ''}
-                </span>
-                <button className={styles.blockRemove} onClick={() => removeBlock(b.id)} aria-label="Bloke saati kaldır">
-                  <TrashIcon width={13} height={13} />
-                </button>
-              </div>
-            ))}
+        <div className={styles.leaveModeToggle}>
+          <button
+            type="button"
+            className={leaveMode === 'day' ? styles.leaveModeTabActive : styles.leaveModeTab}
+            onClick={() => setLeaveMode('day')}
+          >
+            Tek gün
+          </button>
+          <button
+            type="button"
+            className={leaveMode === 'range' ? styles.leaveModeTabActive : styles.leaveModeTab}
+            onClick={() => setLeaveMode('range')}
+          >
+            Tarih aralığı
+          </button>
+        </div>
+
+        <div className={styles.leaveField}>
+          <label>{leaveMode === 'range' ? 'Başlangıç Tarihi' : 'Tarih'}</label>
+          <input type="date" value={leaveDate} onChange={(e) => setLeaveDate(e.target.value)} />
+        </div>
+
+        {leaveMode === 'range' && (
+          <div className={styles.leaveField}>
+            <label>Bitiş Tarihi</label>
+            <input
+              type="date"
+              min={leaveDate || undefined}
+              value={leaveEndDate}
+              onChange={(e) => setLeaveEndDate(e.target.value)}
+            />
           </div>
         )}
 
-        <div className={styles.blockForm}>
-          <div className={styles.blockModeRow}>
-            <button
-              type="button"
-              className={blockMode === 'day' ? styles.dayChipActive : styles.dayChip}
-              onClick={() => setBlockMode('day')}
-            >
-              Her hafta
-            </button>
-            <button
-              type="button"
-              className={blockMode === 'date' ? styles.dayChipActive : styles.dayChip}
-              onClick={() => setBlockMode('date')}
-            >
-              Tarih Aralığı
-            </button>
-          </div>
+        <div className={styles.leaveAllDayRow}>
+          <label className={styles.switch}>
+            <input type="checkbox" checked={leaveAllDay} onChange={() => setLeaveAllDay((v) => !v)} />
+            <span className={styles.switchTrack} />
+          </label>
+          <span>Tüm gün kapalı</span>
+        </div>
 
-          {blockMode === 'day' ? (
-            <div className={styles.timeField}>
-              <label>Gün</label>
-              <select value={blockDay} onChange={(e) => setBlockDay(Number(e.target.value))}>
-                {WEEK_ORDER.map((day) => (
-                  <option key={day} value={day}>
-                    {DAY_LABELS[day]}
-                  </option>
-                ))}
-              </select>
-            </div>
-          ) : (
-            <div className={styles.timeRow}>
-              <div className={styles.timeField}>
-                <label>Başlangıç Tarihi</label>
-                <input type="date" value={blockDate} onChange={(e) => setBlockDate(e.target.value)} />
-              </div>
-              <span className={styles.timeSep}>–</span>
-              <div className={styles.timeField}>
-                <label>Bitiş Tarihi (opsiyonel — yıllık izin gibi çok günlük bloklar için)</label>
-                <input
-                  type="date"
-                  min={blockDate || undefined}
-                  value={blockEndDate}
-                  onChange={(e) => setBlockEndDate(e.target.value)}
-                />
-              </div>
-            </div>
-          )}
-
-          <div className={styles.timeRow}>
+        {!leaveAllDay && (
+          <div className={styles.timeRow} style={{ marginBottom: 16 }}>
             <div className={styles.timeField}>
               <label>Başlangıç</label>
-              <select value={blockStart} onChange={(e) => setBlockStart(e.target.value)}>
+              <select value={leaveStart} onChange={(e) => setLeaveStart(e.target.value)}>
                 <option value="">--:--</option>
                 {TIME_OPTIONS.map((t) => (
                   <option key={t} value={t}>
@@ -780,7 +849,7 @@ export default function EmployeeDetailPage() {
             <span className={styles.timeSep}>–</span>
             <div className={styles.timeField}>
               <label>Bitiş</label>
-              <select value={blockEnd} onChange={(e) => setBlockEnd(e.target.value)}>
+              <select value={leaveEnd} onChange={(e) => setLeaveEnd(e.target.value)}>
                 <option value="">--:--</option>
                 {TIME_OPTIONS.map((t) => (
                   <option key={t} value={t}>
@@ -789,28 +858,85 @@ export default function EmployeeDetailPage() {
                 ))}
               </select>
             </div>
+          </div>
+        )}
+
+        <div className={styles.leaveReasonRow}>
+          {LEAVE_REASON_OPTIONS.map((opt) => (
             <button
               type="button"
-              className="btn-secondary"
+              key={opt.value}
+              className={leaveReason === opt.value ? styles.leaveReasonChipActive : styles.leaveReasonChip}
               onClick={() => {
-                setBlockStart(TIME_OPTIONS[0])
-                setBlockEnd(TIME_OPTIONS[TIME_OPTIONS.length - 1])
+                setLeaveReason(opt.value)
+                setLeaveLabel(opt.label)
               }}
             >
-              Tüm Gün
+              {opt.label}
+            </button>
+          ))}
+        </div>
+
+        <div className={styles.leaveLabelField}>
+          <label>Etiket (opsiyonel)</label>
+          <input value={leaveLabel} onChange={(e) => setLeaveLabel(e.target.value)} placeholder="ör. Yıllık İzin" />
+        </div>
+
+        <button type="button" className={`btn-primary ${styles.addLeaveBtn}`} onClick={addLeaveDraft}>
+          <PlusIcon width={15} height={15} /> İzin Ekle
+        </button>
+
+        <div className={styles.leaveListLabel}>Tanımlı İzinler</div>
+
+        {leaveDrafts.length === 0 ? (
+          <div className={styles.leaveEmpty}>
+            <CalendarIcon width={22} height={22} />
+            Henüz izin günü eklenmedi.
+          </div>
+        ) : (
+          <div className={styles.leaveList}>
+            {leaveDrafts.map((d) => (
+              <div className={styles.leaveRow} key={d.id}>
+                <div>
+                  <div className={styles.leaveRowDate}>
+                    {d.mode === 'range' && d.endDate !== d.date
+                      ? `${new Date(d.date + 'T00:00:00').toLocaleDateString('tr-TR', { day: 'numeric', month: 'short' })} – ${new Date(d.endDate + 'T00:00:00').toLocaleDateString('tr-TR', { day: 'numeric', month: 'short' })}`
+                      : new Date(d.date + 'T00:00:00').toLocaleDateString('tr-TR', {
+                          day: 'numeric',
+                          month: 'short',
+                          year: 'numeric',
+                        })}
+                  </div>
+                  <div className={styles.leaveRowMeta}>
+                    {d.allDay ? 'Tüm gün kapalı' : `${d.start} – ${d.end}`}
+                    {d.label ? ` • ${d.label}` : ''}
+                  </div>
+                </div>
+                <button
+                  type="button"
+                  className={styles.leaveRemoveBtn}
+                  onClick={() => removeLeaveDraft(d.id)}
+                  aria-label="İzni kaldır"
+                >
+                  <TrashIcon width={13} height={13} />
+                </button>
+              </div>
+            ))}
+          </div>
+        )}
+
+        <div className={styles.scheduleFooter}>
+          <span className={styles.scheduleFooterSummary}>
+            {leaveDrafts.length === 0 ? 'İzin tanımlı değil' : `${leaveDrafts.length} izin tanımlı`}
+          </span>
+          <div className={styles.scheduleFooterActions}>
+            <button type="button" className={styles.jsonLink} onClick={copyLeavesJson}>
+              {leaveJsonCopied ? 'Kopyalandı ✓' : 'JSON çıktısı'}
+            </button>
+            <button type="button" className={`btn-primary ${styles.saveBtn}`} onClick={saveLeaves} disabled={savingLeaves}>
+              {savingLeaves ? 'Kaydediliyor…' : 'Kaydet'}
             </button>
           </div>
-
-          <input
-            className={styles.blockLabelInput}
-            placeholder="Etiket (ör. Öğle Molası, Eğitim)"
-            value={blockLabel}
-            onChange={(e) => setBlockLabel(e.target.value)}
-          />
-
-          <button type="button" className={styles.dashedAddBtn} onClick={addBlock}>
-            + Bloke Saat Ekle
-          </button>
         </div>
       </div>
     </div>
