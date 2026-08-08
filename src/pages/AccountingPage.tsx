@@ -238,7 +238,13 @@ export default function AccountingPage() {
     await loadAll()
   }
 
-  async function toggleExpensePaid(id: string, next: boolean) {
+  async function toggleExpensePaid(id: string, description: string, next: boolean) {
+    const ok = window.confirm(
+      next
+        ? `"${description}" giderini ödendi olarak işaretlemek istediğinize emin misiniz?`
+        : `"${description}" giderini ödenmedi olarak işaretlemek istediğinize emin misiniz?`,
+    )
+    if (!ok) return
     await supabase.from('business_expenses').update({ is_paid: next }).eq('id', id)
     await loadAll()
   }
@@ -638,7 +644,7 @@ export default function AccountingPage() {
                 <button
                   type="button"
                   className={e.is_paid ? styles.paidToggleBtnActive : styles.paidToggleBtn}
-                  onClick={() => toggleExpensePaid(e.id, !e.is_paid)}
+                  onClick={() => toggleExpensePaid(e.id, e.description, !e.is_paid)}
                   aria-label={e.is_paid ? `${e.description} giderini ödenmedi işaretle` : `${e.description} giderini ödendi işaretle`}
                   title={e.is_paid ? 'Ödendi — ödenmedi işaretlemek için tıkla' : 'Ödendi olarak işaretle'}
                 >
