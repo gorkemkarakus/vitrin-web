@@ -591,45 +591,51 @@ export default function EmployeeDetailPage() {
                       </div>
 
                       <div className={styles.dayRangesCol}>
-                        <div className={styles.dayTimesRow}>
-                          <input
-                            type="time"
-                            className={styles.timeInput}
-                            value={draft.start}
-                            onChange={(e) => updateDay(day, { start: e.target.value })}
-                          />
-                          <span className={styles.timeSep}>–</span>
-                          <input
-                            type="time"
-                            className={styles.timeInput}
-                            value={draft.end}
-                            onChange={(e) => updateDay(day, { end: e.target.value })}
-                          />
-                        </div>
-
-                        {draft.breaks.map((b) => (
-                          <div className={styles.dayTimesRow} key={b.id}>
+                        <div className={styles.rangeGroup}>
+                          <span className={styles.rangeLabel}>Çalışma</span>
+                          <div className={styles.dayTimesRow}>
                             <input
                               type="time"
                               className={styles.timeInput}
-                              value={b.start}
-                              onChange={(e) => updateBreak(day, b.id, { start: e.target.value })}
+                              value={draft.start}
+                              onChange={(e) => updateDay(day, { start: e.target.value })}
                             />
                             <span className={styles.timeSep}>–</span>
                             <input
                               type="time"
                               className={styles.timeInput}
-                              value={b.end}
-                              onChange={(e) => updateBreak(day, b.id, { end: e.target.value })}
+                              value={draft.end}
+                              onChange={(e) => updateDay(day, { end: e.target.value })}
                             />
-                            <button
-                              type="button"
-                              className={styles.extraRangeRemove}
-                              onClick={() => removeBreak(day, b.id)}
-                              aria-label="Saat aralığını kaldır"
-                            >
-                              <TrashIcon width={13} height={13} />
-                            </button>
+                          </div>
+                        </div>
+
+                        {draft.breaks.map((b) => (
+                          <div className={styles.rangeGroup} key={b.id}>
+                            <span className={`${styles.rangeLabel} ${styles.rangeLabelBreak}`}>Mola</span>
+                            <div className={styles.dayTimesRow}>
+                              <input
+                                type="time"
+                                className={styles.timeInput}
+                                value={b.start}
+                                onChange={(e) => updateBreak(day, b.id, { start: e.target.value })}
+                              />
+                              <span className={styles.timeSep}>–</span>
+                              <input
+                                type="time"
+                                className={styles.timeInput}
+                                value={b.end}
+                                onChange={(e) => updateBreak(day, b.id, { end: e.target.value })}
+                              />
+                              <button
+                                type="button"
+                                className={styles.extraRangeRemove}
+                                onClick={() => removeBreak(day, b.id)}
+                                aria-label="Molayı kaldır"
+                              >
+                                <TrashIcon width={13} height={13} />
+                              </button>
+                            </div>
                           </div>
                         ))}
 
