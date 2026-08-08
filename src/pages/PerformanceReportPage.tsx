@@ -6,10 +6,6 @@ import {
   WalletIcon,
   UmbrellaIcon,
   UsersIcon,
-  TrophyIcon,
-  FireIcon,
-  StarIcon,
-  MehIcon,
   ChevronRightIcon,
   TagIcon,
 } from '../components/icons'
@@ -80,20 +76,6 @@ const SOURCE_LABEL: Record<string, string> = {
   chatbot: 'Chatbot',
   online_randevu: 'Online Randevu',
   diger: 'Diğer',
-}
-
-// Skor kademeleri — Muhasebe/Ekip'teki mevcut renk tokenlerinden BAGIMSIZ,
-// bu sayfaya ozel kucuk bir "kademe" paleti (Mukemmel'i Cok Iyi'den net
-// ayirmak icin altin/turuncu ikisi de sicak ton olsa da birbirinden farkli).
-const TIERS = [
-  { min: 90, label: 'Mükemmel', color: '#c9971c', bg: '#fbf3de', Icon: TrophyIcon },
-  { min: 80, label: 'Çok İyi', color: '#ea580c', bg: '#fdece2', Icon: FireIcon },
-  { min: 65, label: 'İyi', color: '#2563eb', bg: '#dbeafe', Icon: StarIcon },
-  { min: 0, label: 'Orta', color: '#64748b', bg: '#f1f5f9', Icon: MehIcon },
-] as const
-
-function tierFor(score: number) {
-  return TIERS.find((t) => score >= t.min) ?? TIERS[TIERS.length - 1]
 }
 
 function toLocalDateString(d: Date) {
@@ -212,34 +194,6 @@ function Sparkline({ data, color }: { data: number[]; color: string }) {
     <svg viewBox={`0 0 ${w} ${h}`} preserveAspectRatio="none" className={styles.sparkline} aria-hidden="true">
       <polygon points={areaPoints.join(' ')} fill={color} opacity={0.12} />
       <path d={`M${linePoints.join(' L')}`} fill="none" stroke={color} strokeWidth={2} strokeLinecap="round" strokeLinejoin="round" />
-    </svg>
-  )
-}
-
-function ScoreRing({ score, color }: { score: number; color: string }) {
-  const size = 54
-  const strokeWidth = 5
-  const radius = (size - strokeWidth) / 2
-  const circumference = 2 * Math.PI * radius
-  const offset = circumference * (1 - Math.min(100, Math.max(0, score)) / 100)
-  return (
-    <svg width={size} height={size} viewBox={`0 0 ${size} ${size}`} className={styles.scoreRing}>
-      <circle cx={size / 2} cy={size / 2} r={radius} fill="none" stroke="var(--line)" strokeWidth={strokeWidth} />
-      <circle
-        cx={size / 2}
-        cy={size / 2}
-        r={radius}
-        fill="none"
-        stroke={color}
-        strokeWidth={strokeWidth}
-        strokeLinecap="round"
-        strokeDasharray={circumference}
-        strokeDashoffset={offset}
-        transform={`rotate(-90 ${size / 2} ${size / 2})`}
-      />
-      <text x="50%" y="51%" textAnchor="middle" dominantBaseline="central" className={styles.scoreRingText}>
-        {Math.round(score)}
-      </text>
     </svg>
   )
 }
@@ -461,19 +415,7 @@ export default function PerformanceReportPage() {
       }
     })
 
-    const maxRevenue = Math.max(1, ...base.map((e) => e.revenue))
-    const maxCompleted = Math.max(1, ...base.map((e) => e.completedCount))
-
     return base
-      .map((e) => {
-        const score =
-          0.35 * Math.min(100, (e.revenue / maxRevenue) * 100) +
-          0.25 * Math.min(100, (e.completedCount / maxCompleted) * 100) +
-          0.2 * e.completionRate +
-          0.2 * e.utilization
-        return { ...e, score }
-      })
-      .sort((a, b) => b.score - a.score)
   }, [profiles, currentAppts, serviceById, timeBlocks, schedules, rangeStart, rangeEnd])
 
   const toplamCalisan = profiles.length
@@ -568,7 +510,6 @@ export default function PerformanceReportPage() {
           <div className={styles.employeeList}>
             {employeeStats.length === 0 && <p className={styles.empty}>Bu dönemde veri bulunamadı.</p>}
             {employeeStats.map((e) => {
-              const tier = tierFor(e.score)
               const isOpen = expandedId === e.profile.id
               return (
                 <div key={e.profile.id} className="card">
@@ -594,12 +535,6 @@ export default function PerformanceReportPage() {
                           <span className={styles.employeeStatLabel}>İzin Günü</span>
                         </div>
                       </div>
-                    </div>
-                    <div className={styles.employeeScoreCol}>
-                      <ScoreRing score={e.score} color={tier.color} />
-                      <span className={styles.employeeTierLabel} style={{ color: tier.color }}>
-                        <tier.Icon width={11} height={11} /> {tier.label}
-                      </span>
                     </div>
                     <ChevronRightIcon
                       width={16}

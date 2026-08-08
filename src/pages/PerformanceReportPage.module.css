@@ -216,34 +216,6 @@
   color: var(--text-dim);
 }
 
-.employeeScoreCol {
-  flex-shrink: 0;
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  gap: 4px;
-}
-
-.scoreRing {
-  flex-shrink: 0;
-}
-
-.scoreRingText {
-  font-family: var(--font-heading);
-  font-size: 15px;
-  font-weight: 700;
-  fill: var(--text);
-}
-
-.employeeTierLabel {
-  display: flex;
-  align-items: center;
-  gap: 3px;
-  font-size: 10px;
-  font-weight: 700;
-  white-space: nowrap;
-}
-
 .employeeChevron {
   flex-shrink: 0;
   color: var(--text-dim);
