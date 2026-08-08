@@ -121,6 +121,7 @@ export default function AccountingPage() {
   const [loading, setLoading] = useState(true)
   const [savedHint, setSavedHint] = useState(false)
   const [search, setSearch] = useState('')
+  const [expenseSearch, setExpenseSearch] = useState('')
   const [pdfState, setPdfState] = useState<{ progress: number; step: string; error: string | null } | null>(null)
   const [paidConfirm, setPaidConfirm] = useState<{ id: string; description: string; next: boolean } | null>(null)
 
@@ -307,7 +308,8 @@ export default function AccountingPage() {
   const allEmployeeStats = Array.from(employeeStatsMap.values()).sort((a, b) => b.revenue - a.revenue)
   const q = search.trim().toLowerCase()
   const employeeStats = q ? allEmployeeStats.filter((e) => e.name.toLowerCase().includes(q)) : allEmployeeStats
-  const visibleExpenses = q ? expenses.filter((e) => e.description.toLowerCase().includes(q)) : expenses
+  const eq = expenseSearch.trim().toLowerCase()
+  const visibleExpenses = eq ? expenses.filter((e) => e.description.toLowerCase().includes(eq)) : expenses
 
   const serviceStatsMap = new Map<string, { id: string; name: string; count: number; revenue: number }>()
   for (const a of rangedCompleted) {
@@ -531,7 +533,7 @@ export default function AccountingPage() {
         <SearchIcon width={16} height={16} className={styles.searchIcon} />
         <input
           className={styles.searchInput}
-          placeholder="Çalışan veya gider ara…"
+          placeholder="Çalışan ara…"
           value={search}
           onChange={(e) => setSearch(e.target.value)}
         />
@@ -544,6 +546,15 @@ export default function AccountingPage() {
             {unpaidExpenses.length} ödenmemiş gider — toplam {currency.format(unpaidExpenses.reduce((sum, e) => sum + e.amount, 0))} (Net Kâr'a dahil değil)
           </p>
         )}
+        <div className={`${styles.searchBox} ${styles.expenseSearchBox}`}>
+          <SearchIcon width={16} height={16} className={styles.searchIcon} />
+          <input
+            className={styles.searchInput}
+            placeholder="Gider ara…"
+            value={expenseSearch}
+            onChange={(e) => setExpenseSearch(e.target.value)}
+          />
+        </div>
         <form className={styles.expenseForm} onSubmit={addExpense} style={{ marginTop: 14 }}>
           <div className={styles.expenseField}>
             <label htmlFor="expenseDesc">Açıklama</label>
@@ -623,7 +634,7 @@ export default function AccountingPage() {
         </form>
 
         {visibleExpenses.length === 0 ? (
-          <p className={styles.empty}>{q ? 'Eşleşen gider yok.' : 'Bu aralıkta gider kaydı yok.'}</p>
+          <p className={styles.empty}>{eq ? 'Eşleşen gider yok.' : 'Bu aralıkta gider kaydı yok.'}</p>
         ) : (
           <div className={styles.list}>
             {visibleExpenses.map((e) => (

@@ -278,6 +278,10 @@
   color: var(--text-dim);
 }
 
+.expenseSearchBox {
+  margin: 10px 0 14px;
+}
+
 /* ---------- Gider ekleme formu ---------- */
 
 .expenseForm {
