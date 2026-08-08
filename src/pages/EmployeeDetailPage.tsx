@@ -4,7 +4,7 @@ import { supabase } from '../lib/supabase'
 import { useAuth } from '../contexts/AuthContext'
 import { TIME_OPTIONS } from '../lib/timeOptions'
 import Avatar, { colorForName } from '../components/Avatar'
-import { ChevronRightIcon, PhoneIcon, TrashIcon } from '../components/icons'
+import { ChevronRightIcon, CloseIcon, CopyIcon, PhoneIcon, TrashIcon } from '../components/icons'
 import styles from './EmployeeDetailPage.module.css'
 
 interface Category {
@@ -44,6 +44,26 @@ interface TimeBlock {
   label: string | null
 }
 
+// Ogle molasi (BreakDraft) icin "id" sadece istemci tarafinda React key +
+// duzenleme takibi amacli — "blockId" doluysa DB'deki mevcut bir
+// employee_time_blocks satirina karsilik gelir (kaydet'te update), bos ise
+// henuz kaydedilmemis yeni bir moladir (kaydet'te insert).
+interface BreakDraft {
+  id: string
+  blockId?: string
+  start: string
+  end: string
+}
+
+interface DayDraft {
+  enabled: boolean
+  start: string
+  end: string
+  breaks: BreakDraft[]
+}
+
+const BREAK_LABEL = 'Öğle molası'
+
 const DAY_LABELS = ['Pazar', 'Pazartesi', 'Salı', 'Çarşamba', 'Perşembe', 'Cuma', 'Cumartesi']
 const DAY_SHORT = ['Paz', 'Pzt', 'Sal', 'Çar', 'Per', 'Cum', 'Cmt']
 const WEEK_ORDER = [1, 2, 3, 4, 5, 6, 0]
@@ -73,6 +93,40 @@ function formatPhone(raw: string) {
   return `0${digits.slice(0, 3)} ${digits.slice(3, 6)} ${digits.slice(6, 8)} ${digits.slice(8, 10)}`
 }
 
+function timeToMinutes(t: string) {
+  const [h, m] = t.split(':').map(Number)
+  return h * 60 + m
+}
+
+function dayHours(draft: DayDraft): number {
+  if (!draft.enabled) return 0
+  let minutes = timeToMinutes(draft.end) - timeToMinutes(draft.start)
+  for (const b of draft.breaks) minutes -= Math.max(0, timeToMinutes(b.end) - timeToMinutes(b.start))
+  return Math.max(0, minutes) / 60
+}
+
+function formatHours(n: number): string {
+  const rounded = Math.round(n * 2) / 2
+  return rounded % 1 === 0 ? String(rounded) : String(rounded).replace('.', ',')
+}
+
+function buildDayDrafts(schedules: Schedule[], timeBlocks: TimeBlock[]): Record<number, DayDraft> {
+  const map: Record<number, DayDraft> = {}
+  for (const day of WEEK_ORDER) {
+    const s = schedules.find((x) => x.day_of_week === day)
+    const breaks = timeBlocks
+      .filter((b) => b.day_of_week === day && b.label === BREAK_LABEL)
+      .map((b) => ({ id: b.id, blockId: b.id, start: b.starts_at.slice(0, 5), end: b.ends_at.slice(0, 5) }))
+    map[day] = {
+      enabled: !!s,
+      start: s ? s.starts_at.slice(0, 5) : '09:00',
+      end: s ? s.ends_at.slice(0, 5) : '18:00',
+      breaks,
+    }
+  }
+  return map
+}
+
 export default function EmployeeDetailPage() {
   const { id } = useParams<{ id: string }>()
   const navigate = useNavigate()
@@ -85,9 +139,16 @@ export default function EmployeeDetailPage() {
   const [timeBlocks, setTimeBlocks] = useState<TimeBlock[]>([])
   const [loading, setLoading] = useState(true)
 
-  const [draftDays, setDraftDays] = useState<Set<number>>(new Set())
-  const [draftStart, setDraftStart] = useState('')
-  const [draftEnd, setDraftEnd] = useState('')
+  // Haftalik Calisma Saatleri karti artik "duzenle -> Kaydet" mantigiyla
+  // calisiyor (eskiden her tiklamada aninda kaydediliyordu). dayDrafts
+  // sunucudan sadece BIR KERE (scheduleReady false iken) dolduruluyor ki
+  // sayfadaki baska bir aksiyonun (kategori checkbox'i gibi) tetikledigi
+  // loadData(true) kaydedilmemis taslagi silip suzmesin.
+  const [dayDrafts, setDayDrafts] = useState<Record<number, DayDraft>>({})
+  const [scheduleReady, setScheduleReady] = useState(false)
+  const [savingSchedule, setSavingSchedule] = useState(false)
+  const [jsonCopied, setJsonCopied] = useState(false)
+  const [copiedDay, setCopiedDay] = useState<number | null>(null)
 
   const [blockMode, setBlockMode] = useState<'day' | 'date'>('day')
   const [blockDay, setBlockDay] = useState(1)
@@ -123,6 +184,12 @@ export default function EmployeeDetailPage() {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [id])
 
+  useEffect(() => {
+    if (loading || scheduleReady) return
+    setDayDrafts(buildDayDrafts(schedules, timeBlocks))
+    setScheduleReady(true)
+  }, [loading, scheduleReady, schedules, timeBlocks])
+
   const today = useMemo(() => todayLocalDateString(), [])
 
   async function toggleActive(active: boolean) {
@@ -141,42 +208,160 @@ export default function EmployeeDetailPage() {
     await loadData(true)
   }
 
-  function applyDraftPreset(preset: number[]) {
-    setDraftDays(new Set(preset))
+  function updateDay(day: number, patch: Partial<Pick<DayDraft, 'start' | 'end'>>) {
+    setDayDrafts((prev) => {
+      const current = prev[day]
+      if (!current) return prev
+      return { ...prev, [day]: { ...current, ...patch } }
+    })
   }
 
-  function toggleDraftDay(day: number) {
-    const days = new Set(draftDays)
-    if (days.has(day)) days.delete(day)
-    else days.add(day)
-    setDraftDays(days)
+  function toggleDayEnabled(day: number) {
+    setDayDrafts((prev) => {
+      const current = prev[day]
+      if (!current) return prev
+      return { ...prev, [day]: { ...current, enabled: !current.enabled } }
+    })
   }
 
-  async function addSchedules() {
-    if (!id || draftDays.size === 0 || !draftStart || !draftEnd) return
-    await Promise.all(
-      Array.from(draftDays).map((day) => {
-        const existing = schedules.find((s) => s.day_of_week === day)
-        if (existing) {
-          return supabase.from('employee_schedules').update({ starts_at: draftStart, ends_at: draftEnd }).eq('id', existing.id)
+  function applyPreset(target: 'weekdays' | 'weekend' | 'all' | 'none') {
+    const activeDays = target === 'weekdays' ? WEEKDAYS : target === 'weekend' ? WEEKEND : target === 'all' ? WEEK_ORDER : []
+    setDayDrafts((prev) => {
+      const next = { ...prev }
+      for (const day of WEEK_ORDER) {
+        if (!next[day]) continue
+        next[day] = { ...next[day], enabled: activeDays.includes(day) }
+      }
+      return next
+    })
+  }
+
+  function addBreak(day: number) {
+    setDayDrafts((prev) => {
+      const current = prev[day]
+      if (!current) return prev
+      const newBreak: BreakDraft = { id: crypto.randomUUID(), start: '12:00', end: '13:00' }
+      return { ...prev, [day]: { ...current, breaks: [...current.breaks, newBreak] } }
+    })
+  }
+
+  function removeBreak(day: number, breakId: string) {
+    setDayDrafts((prev) => {
+      const current = prev[day]
+      if (!current) return prev
+      return { ...prev, [day]: { ...current, breaks: current.breaks.filter((b) => b.id !== breakId) } }
+    })
+  }
+
+  function updateBreak(day: number, breakId: string, patch: Partial<Pick<BreakDraft, 'start' | 'end'>>) {
+    setDayDrafts((prev) => {
+      const current = prev[day]
+      if (!current) return prev
+      return { ...prev, [day]: { ...current, breaks: current.breaks.map((b) => (b.id === breakId ? { ...b, ...patch } : b)) } }
+    })
+  }
+
+  // Bir gunun program+mola duzenini, o an ACIK olan diger tum gunlere kopyalar.
+  function copyDayToOthers(day: number) {
+    setDayDrafts((prev) => {
+      const source = prev[day]
+      if (!source) return prev
+      const next = { ...prev }
+      for (const d of WEEK_ORDER) {
+        if (d === day || !next[d]?.enabled) continue
+        next[d] = {
+          ...next[d],
+          start: source.start,
+          end: source.end,
+          breaks: source.breaks.map((b) => ({ id: crypto.randomUUID(), start: b.start, end: b.end })),
         }
-        return supabase.from('employee_schedules').insert({
-          profile_id: id,
-          day_of_week: day,
-          starts_at: draftStart,
-          ends_at: draftEnd,
-        })
-      }),
-    )
-    setDraftDays(new Set())
-    setDraftStart('')
-    setDraftEnd('')
-    await loadData(true)
+      }
+      return next
+    })
+    setCopiedDay(day)
+    setTimeout(() => setCopiedDay((v) => (v === day ? null : v)), 1200)
   }
 
-  async function removeSchedule(scheduleId: string) {
-    await supabase.from('employee_schedules').delete().eq('id', scheduleId)
+  async function saveWeeklySchedule() {
+    if (!id) return
+    setSavingSchedule(true)
+    const ops: PromiseLike<unknown>[] = []
+
+    for (const day of WEEK_ORDER) {
+      const draft = dayDrafts[day]
+      if (!draft) continue
+      const existingSchedule = schedules.find((s) => s.day_of_week === day)
+      const existingBreaks = timeBlocks.filter((b) => b.day_of_week === day && b.label === BREAK_LABEL)
+
+      if (!draft.enabled) {
+        if (existingSchedule) ops.push(supabase.from('employee_schedules').delete().eq('id', existingSchedule.id))
+        for (const b of existingBreaks) ops.push(supabase.from('employee_time_blocks').delete().eq('id', b.id))
+        continue
+      }
+
+      if (existingSchedule) {
+        ops.push(
+          supabase.from('employee_schedules').update({ starts_at: draft.start, ends_at: draft.end }).eq('id', existingSchedule.id),
+        )
+      } else {
+        ops.push(
+          supabase.from('employee_schedules').insert({ profile_id: id, day_of_week: day, starts_at: draft.start, ends_at: draft.end }),
+        )
+      }
+
+      const keepIds = new Set(draft.breaks.filter((b) => b.blockId).map((b) => b.blockId))
+      for (const b of existingBreaks) {
+        if (!keepIds.has(b.id)) ops.push(supabase.from('employee_time_blocks').delete().eq('id', b.id))
+      }
+      for (const b of draft.breaks) {
+        if (b.blockId) {
+          const existing = existingBreaks.find((x) => x.id === b.blockId)
+          if (existing && (existing.starts_at.slice(0, 5) !== b.start || existing.ends_at.slice(0, 5) !== b.end)) {
+            ops.push(supabase.from('employee_time_blocks').update({ starts_at: b.start, ends_at: b.end }).eq('id', b.blockId))
+          }
+        } else {
+          ops.push(
+            supabase.from('employee_time_blocks').insert({
+              profile_id: id,
+              day_of_week: day,
+              block_date: null,
+              end_date: null,
+              starts_at: b.start,
+              ends_at: b.end,
+              label: BREAK_LABEL,
+            }),
+          )
+        }
+      }
+    }
+
+    await Promise.all(ops)
+    setScheduleReady(false)
     await loadData(true)
+    setSavingSchedule(false)
+  }
+
+  function scheduleJson() {
+    return JSON.stringify(
+      WEEK_ORDER.map((day) => {
+        const draft = dayDrafts[day]
+        return {
+          gun: DAY_LABELS[day],
+          acik: draft?.enabled ?? false,
+          baslangic: draft?.enabled ? draft.start : null,
+          bitis: draft?.enabled ? draft.end : null,
+          molalar: draft?.enabled ? draft.breaks.map((b) => ({ baslangic: b.start, bitis: b.end })) : [],
+        }
+      }),
+      null,
+      2,
+    )
+  }
+
+  function copyJson() {
+    navigator.clipboard.writeText(scheduleJson())
+    setJsonCopied(true)
+    setTimeout(() => setJsonCopied(false), 2000)
   }
 
   async function addBlock() {
@@ -216,6 +401,15 @@ export default function EmployeeDetailPage() {
       : 'aktif'
 
   const empCategoryIds = new Set(employeeCategories.map((ec) => ec.category_id))
+
+  // Ogle molasi olarak yukaridaki Haftalik Calisma Saatleri kartinda
+  // yonetilen (day_of_week dolu + label === "Öğle molası") bloklar burada
+  // TEKRAR gosterilmesin diye filtreleniyor — geri kalan (izin/egitim gibi
+  // ozel etiketli haftalik veya tarih araligi) bloklar aynen kaliyor.
+  const visibleBlocks = timeBlocks.filter((b) => !(b.day_of_week !== null && b.label === BREAK_LABEL))
+
+  const totalWeeklyHours = WEEK_ORDER.reduce((sum, day) => sum + (dayDrafts[day] ? dayHours(dayDrafts[day]) : 0), 0)
+  const openDaysCount = WEEK_ORDER.filter((day) => dayDrafts[day]?.enabled).length
 
   return (
     <div className={styles.wrap}>
@@ -284,93 +478,196 @@ export default function EmployeeDetailPage() {
       </div>
 
       <div className="card">
-        <div className={styles.scheduleHeadRow}>
-          <h2 style={{ marginBottom: 0 }}>Haftalık Çalışma Saatleri</h2>
-          <div className={styles.presetRow}>
-            <button type="button" className="btn-secondary" onClick={() => applyDraftPreset(WEEKDAYS)}>
-              Hafta İçi
-            </button>
-            <button type="button" className="btn-secondary" onClick={() => applyDraftPreset(WEEKEND)}>
-              Hafta Sonu
-            </button>
+        <div className={styles.scheduleHeader}>
+          <div>
+            <h2 style={{ marginBottom: 4 }}>Haftalık Çalışma Saatleri</h2>
+            <p className={styles.scheduleSubtitle}>Müşterilerin randevu alabileceği gün ve saatleri belirle.</p>
+          </div>
+          <div className={styles.scheduleTotalBlock}>
+            <span className={styles.scheduleTotalValue}>{formatHours(totalWeeklyHours)}</span>
+            <span className={styles.scheduleTotalLabel}>saat / hafta</span>
           </div>
         </div>
 
-        {schedules.length > 0 && (
-          <div className={styles.existingSchedules}>
-            {WEEK_ORDER.map((day) => {
-              const s = schedules.find((s) => s.day_of_week === day)
-              if (!s) return null
-              return (
-                <div className={styles.scheduleRow} key={s.id}>
-                  <span>
-                    <strong>{DAY_SHORT[s.day_of_week]}</strong> {s.starts_at.slice(0, 5)} – {s.ends_at.slice(0, 5)}
-                  </span>
-                  <button onClick={() => removeSchedule(s.id)}>Kaldır</button>
-                </div>
-              )
-            })}
-          </div>
-        )}
-
         <div className={styles.presetRow}>
-          <button type="button" className="btn-secondary" onClick={() => applyDraftPreset(WEEK_ORDER)}>
-            Her Gün
+          <button type="button" className={styles.presetPill} onClick={() => applyPreset('weekdays')}>
+            Hafta içi
           </button>
-          <button type="button" className="btn-secondary" onClick={() => applyDraftPreset([])}>
+          <button type="button" className={styles.presetPill} onClick={() => applyPreset('weekend')}>
+            Hafta sonu
+          </button>
+          <button type="button" className={styles.presetPill} onClick={() => applyPreset('all')}>
+            Her gün
+          </button>
+          <button type="button" className={styles.presetPill} onClick={() => applyPreset('none')}>
             Temizle
           </button>
         </div>
 
-        <div className={styles.dayChipRow}>
-          {WEEK_ORDER.map((day) => (
-            <button
-              type="button"
-              key={day}
-              className={draftDays.has(day) ? styles.dayChipActive : styles.dayChip}
-              onClick={() => toggleDraftDay(day)}
-            >
-              {DAY_SHORT[day]}
-            </button>
-          ))}
-        </div>
+        {!scheduleReady ? (
+          <p style={{ color: 'var(--text-dim)', marginTop: 16 }}>Yükleniyor…</p>
+        ) : (
+          <>
+            <div className={styles.dayList}>
+              {WEEK_ORDER.map((day) => {
+                const draft = dayDrafts[day]
+                if (!draft) return null
+                const hours = dayHours(draft)
 
-        <div className={styles.timeRow}>
-          <div className={styles.timeField}>
-            <label>Başlangıç</label>
-            <select value={draftStart} onChange={(e) => setDraftStart(e.target.value)}>
-              <option value="">--:--</option>
-              {TIME_OPTIONS.map((t) => (
-                <option key={t} value={t}>
-                  {t}
-                </option>
-              ))}
-            </select>
-          </div>
-          <span className={styles.timeSep}>–</span>
-          <div className={styles.timeField}>
-            <label>Bitiş</label>
-            <select value={draftEnd} onChange={(e) => setDraftEnd(e.target.value)}>
-              <option value="">--:--</option>
-              {TIME_OPTIONS.map((t) => (
-                <option key={t} value={t}>
-                  {t}
-                </option>
-              ))}
-            </select>
-          </div>
-          <button type="button" className="btn-primary" onClick={addSchedules}>
-            {draftDays.size > 1 ? `${draftDays.size} güne ekle` : 'Ekle'}
-          </button>
-        </div>
+                if (!draft.enabled) {
+                  return (
+                    <div className={styles.dayOffRow} key={day}>
+                      <label className={styles.switch}>
+                        <input type="checkbox" checked={false} onChange={() => toggleDayEnabled(day)} />
+                        <span className={styles.switchTrack} />
+                      </label>
+                      <div className={styles.dayInfo}>
+                        <span className={styles.dayName}>{DAY_LABELS[day]}</span>
+                        <span className={styles.dayHours}>Kapalı</span>
+                      </div>
+                    </div>
+                  )
+                }
+
+                const barStartMin = timeToMinutes(draft.start)
+                const barEndMin = timeToMinutes(draft.end)
+                const barSpan = Math.max(1, barEndMin - barStartMin)
+
+                return (
+                  <div className={styles.dayRow} key={day}>
+                    <div className={styles.dayRowTop}>
+                      <label className={styles.switch}>
+                        <input type="checkbox" checked={draft.enabled} onChange={() => toggleDayEnabled(day)} />
+                        <span className={styles.switchTrack} />
+                      </label>
+                      <div className={styles.dayInfo}>
+                        <span className={styles.dayName}>{DAY_LABELS[day]}</span>
+                        <span className={styles.dayHours}>{formatHours(hours)} saat</span>
+                      </div>
+
+                      <div className={styles.dayTimesRow}>
+                        <input
+                          type="time"
+                          className={styles.timeInput}
+                          value={draft.start}
+                          onChange={(e) => updateDay(day, { start: e.target.value })}
+                        />
+                        <span className={styles.timeSep}>–</span>
+                        <input
+                          type="time"
+                          className={styles.timeInput}
+                          value={draft.end}
+                          onChange={(e) => updateDay(day, { end: e.target.value })}
+                        />
+
+                        {draft.breaks.map((b) => (
+                          <div className={styles.breakTag} key={b.id}>
+                            <span className={styles.breakTagIcon}>☕</span>
+                            <span className={styles.breakTagLabel}>{BREAK_LABEL}</span>
+                            <input
+                              type="time"
+                              className={styles.breakTimeInput}
+                              value={b.start}
+                              onChange={(e) => updateBreak(day, b.id, { start: e.target.value })}
+                            />
+                            <span className={styles.timeSep}>–</span>
+                            <input
+                              type="time"
+                              className={styles.breakTimeInput}
+                              value={b.end}
+                              onChange={(e) => updateBreak(day, b.id, { end: e.target.value })}
+                            />
+                            <button
+                              type="button"
+                              className={styles.breakRemoveBtn}
+                              onClick={() => removeBreak(day, b.id)}
+                              aria-label="Molayı kaldır"
+                            >
+                              <CloseIcon width={11} height={11} />
+                            </button>
+                          </div>
+                        ))}
+                      </div>
+                    </div>
+
+                    <button type="button" className={styles.addBreakBtn} onClick={() => addBreak(day)}>
+                      + Öğle molası ekle
+                    </button>
+
+                    <div className={styles.timelineRow}>
+                      <div className={styles.timelineTrackWrap}>
+                        <div className={styles.timelineTrack}>
+                          <div
+                            className={styles.timelineBar}
+                            style={{ left: `${(barStartMin / 1440) * 100}%`, width: `${(barSpan / 1440) * 100}%` }}
+                          >
+                            {draft.breaks.map((b) => {
+                              const bStart = Math.max(barStartMin, timeToMinutes(b.start))
+                              const bEnd = Math.min(barEndMin, timeToMinutes(b.end))
+                              if (bEnd <= bStart) return null
+                              return (
+                                <span
+                                  key={b.id}
+                                  className={styles.timelineBreak}
+                                  style={{
+                                    left: `${((bStart - barStartMin) / barSpan) * 100}%`,
+                                    width: `${((bEnd - bStart) / barSpan) * 100}%`,
+                                  }}
+                                />
+                              )
+                            })}
+                          </div>
+                        </div>
+                        <div className={styles.timelineTicks}>
+                          <span>00</span>
+                          <span>06</span>
+                          <span>12</span>
+                          <span>18</span>
+                          <span>24</span>
+                        </div>
+                      </div>
+                      <button
+                        type="button"
+                        className={copiedDay === day ? styles.copyBtnCopied : styles.copyBtn}
+                        onClick={() => copyDayToOthers(day)}
+                        aria-label="Bu programı diğer açık günlere kopyala"
+                      >
+                        <CopyIcon width={14} height={14} />
+                      </button>
+                    </div>
+                  </div>
+                )
+              })}
+            </div>
+
+            <div className={styles.scheduleFooter}>
+              <span className={styles.scheduleFooterSummary}>
+                {openDaysCount} gün açık • haftada {formatHours(totalWeeklyHours)} saat
+              </span>
+              <div className={styles.scheduleFooterActions}>
+                <button type="button" className={styles.jsonLink} onClick={copyJson}>
+                  {jsonCopied ? 'Kopyalandı ✓' : 'JSON çıktısı'}
+                </button>
+                <button
+                  type="button"
+                  className={`btn-primary ${styles.saveBtn}`}
+                  onClick={saveWeeklySchedule}
+                  disabled={savingSchedule}
+                >
+                  {savingSchedule ? 'Kaydediliyor…' : 'Kaydet'}
+                </button>
+              </div>
+            </div>
+          </>
+        )}
       </div>
 
       <div className="card">
         <h2 style={{ marginBottom: 12 }}>Bloke Saatler (Mola/Eğitim/İzin)</h2>
 
-        {timeBlocks.length > 0 && (
+        {visibleBlocks.length > 0 && (
           <div className={styles.existingSchedules}>
-            {timeBlocks.map((b) => (
+            {visibleBlocks.map((b) => (
               <div className={styles.blockRow} key={b.id}>
                 <span>
                   <strong>

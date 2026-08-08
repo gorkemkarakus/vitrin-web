@@ -171,61 +171,380 @@
   margin-bottom: 12px;
 }
 
-.scheduleRow {
+/* ---------- Haftalik program karti: baslik + toplam saat ---------- */
+
+.scheduleHeader {
   display: flex;
-  align-items: center;
-  gap: 8px;
-  font-size: 13px;
-  color: var(--text-dim);
-  background: var(--panel-2);
-  border: 1px solid var(--line);
-  border-radius: 999px;
-  padding: 6px 8px 6px 12px;
-}
-
-.scheduleRow strong {
-  color: var(--text);
-}
-
-.scheduleRow button {
-  background: none;
-  border: none;
-  color: var(--signal);
-  cursor: pointer;
-  font-size: 12px;
-  padding: 2px 4px;
-}
-
-.scheduleHeadRow {
-  display: flex;
-  align-items: center;
+  align-items: flex-start;
   justify-content: space-between;
   gap: 12px;
   margin-bottom: 14px;
-  flex-wrap: wrap;
 }
 
-.scheduleHeadRow .presetRow {
-  margin-bottom: 0;
+.scheduleSubtitle {
+  font-size: 12.5px;
+  color: var(--text-dim);
+  margin-top: 2px;
+}
+
+.scheduleTotalBlock {
+  flex-shrink: 0;
+  display: flex;
+  flex-direction: column;
+  align-items: flex-end;
+  text-align: right;
+}
+
+.scheduleTotalValue {
+  font-family: var(--font-heading);
+  font-size: 22px;
+  font-weight: 700;
+  color: var(--signal);
+  font-variant-numeric: tabular-nums;
+  line-height: 1.2;
+}
+
+.scheduleTotalLabel {
+  font-size: 10.5px;
+  color: var(--text-dim);
 }
 
 .presetRow {
   display: flex;
-  gap: 8px;
-  margin-bottom: 10px;
-}
-
-.presetRow button {
-  width: auto;
-  padding: 6px 12px;
-  font-size: 12px;
-}
-
-.dayChipRow {
-  display: flex;
   flex-wrap: wrap;
   gap: 8px;
-  margin-bottom: 16px;
+  margin-bottom: 4px;
+}
+
+.presetPill {
+  width: auto;
+  background: var(--panel);
+  border: 1px solid var(--line);
+  color: var(--text);
+  border-radius: 999px;
+  padding: 8px 14px;
+  font-size: 12.5px;
+  font-weight: 600;
+  font-family: var(--font-body);
+  cursor: pointer;
+  white-space: nowrap;
+}
+
+.presetPill:hover {
+  border-color: var(--text-dim);
+}
+
+.presetPill:active {
+  transform: scale(0.96);
+}
+
+/* ---------- Gun satirlari ---------- */
+
+.dayList {
+  display: flex;
+  flex-direction: column;
+  gap: 20px;
+  margin: 18px 0 16px;
+}
+
+.dayRow {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.dayOffRow {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  opacity: 0.55;
+}
+
+.dayRowTop {
+  display: flex;
+  align-items: flex-start;
+  gap: 12px;
+  flex-wrap: wrap;
+}
+
+.switch {
+  position: relative;
+  display: inline-block;
+  flex-shrink: 0;
+  width: 40px;
+  height: 24px;
+  margin-top: 2px;
+  cursor: pointer;
+}
+
+.switch input {
+  position: absolute;
+  opacity: 0;
+  width: 0;
+  height: 0;
+}
+
+.switchTrack {
+  position: absolute;
+  inset: 0;
+  background: var(--line);
+  border-radius: 999px;
+  transition: background 0.15s;
+}
+
+.switchTrack::before {
+  content: '';
+  position: absolute;
+  left: 3px;
+  top: 3px;
+  width: 18px;
+  height: 18px;
+  background: #fff;
+  border-radius: 50%;
+  box-shadow: 0 1px 3px rgba(31, 41, 55, 0.25);
+  transition: transform 0.15s;
+}
+
+.switch input:checked + .switchTrack {
+  background: var(--signal);
+}
+
+.switch input:checked + .switchTrack::before {
+  transform: translateX(16px);
+}
+
+.dayInfo {
+  display: flex;
+  flex-direction: column;
+  gap: 1px;
+  min-width: 76px;
+  flex-shrink: 0;
+}
+
+.dayName {
+  font-size: 14px;
+  font-weight: 700;
+  color: var(--text);
+}
+
+.dayHours {
+  font-size: 11.5px;
+  color: var(--text-dim);
+  font-variant-numeric: tabular-nums;
+}
+
+.dayTimesRow {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  flex-wrap: wrap;
+  flex: 1;
+  min-width: 200px;
+}
+
+.timeInput {
+  background: var(--panel-2);
+  border: 1px solid var(--line);
+  border-radius: var(--radius-sm);
+  color: var(--text);
+  font-size: 13px;
+  padding: 7px 10px;
+  outline: none;
+  font-family: var(--font-body);
+  transition: border-color 0.15s;
+}
+
+.timeInput:focus {
+  border-color: var(--signal);
+}
+
+.breakTag {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  background: var(--warn-bg);
+  border: 1px solid #fde68a;
+  border-radius: 999px;
+  padding: 4px 6px 4px 10px;
+  font-size: 12px;
+  font-weight: 600;
+  color: var(--warn-text);
+}
+
+.breakTagIcon {
+  font-size: 12px;
+  line-height: 1;
+}
+
+.breakTagLabel {
+  white-space: nowrap;
+}
+
+.breakTimeInput {
+  background: transparent;
+  border: 1px solid rgba(217, 119, 6, 0.35);
+  border-radius: 6px;
+  color: var(--warn-text);
+  font-size: 11.5px;
+  padding: 3px 4px;
+  outline: none;
+  width: 82px;
+  min-width: 82px;
+  font-family: var(--font-body);
+}
+
+.breakRemoveBtn {
+  flex-shrink: 0;
+  width: 18px;
+  height: 18px;
+  border-radius: 50%;
+  border: none;
+  background: rgba(217, 119, 6, 0.15);
+  color: var(--warn-text);
+  cursor: pointer;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.breakRemoveBtn:hover {
+  background: rgba(217, 119, 6, 0.28);
+}
+
+.addBreakBtn {
+  align-self: flex-start;
+  width: auto;
+  margin-left: 52px;
+  background: none;
+  border: none;
+  color: var(--signal);
+  font-size: 12.5px;
+  font-weight: 600;
+  font-family: var(--font-body);
+  padding: 0;
+  cursor: pointer;
+}
+
+.addBreakBtn:hover {
+  text-decoration: underline;
+}
+
+/* ---------- Zaman cizelgesi (timeline) ---------- */
+
+.timelineRow {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  margin-left: 52px;
+}
+
+.timelineTrackWrap {
+  flex: 1;
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.timelineTrack {
+  position: relative;
+  height: 8px;
+  background: var(--panel-2);
+  border: 1px solid var(--line);
+  border-radius: 999px;
+  overflow: hidden;
+}
+
+.timelineBar {
+  position: absolute;
+  top: 0;
+  bottom: 0;
+  background: var(--signal);
+  border-radius: 999px;
+}
+
+.timelineBreak {
+  position: absolute;
+  top: 0;
+  bottom: 0;
+  background-image: repeating-linear-gradient(45deg, var(--warn-text) 0 3px, #fde68a 3px 6px);
+}
+
+.timelineTicks {
+  display: flex;
+  justify-content: space-between;
+  font-size: 9px;
+  color: var(--text-dim);
+}
+
+.copyBtn,
+.copyBtnCopied {
+  flex-shrink: 0;
+  width: 26px;
+  height: 26px;
+  border-radius: 50%;
+  border: 1px solid var(--line);
+  background: var(--panel);
+  cursor: pointer;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.copyBtn {
+  color: var(--text-dim);
+}
+
+.copyBtn:hover {
+  border-color: var(--signal);
+  color: var(--signal);
+}
+
+.copyBtnCopied {
+  border-color: var(--ok-text);
+  color: var(--ok-text);
+}
+
+/* ---------- Haftalik program alt satiri ---------- */
+
+.scheduleFooter {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  flex-wrap: wrap;
+  margin-top: 4px;
+  padding-top: 14px;
+  border-top: 1px solid var(--line);
+}
+
+.scheduleFooterSummary {
+  font-size: 12.5px;
+  color: var(--text-dim);
+}
+
+.scheduleFooterActions {
+  display: flex;
+  align-items: center;
+  gap: 16px;
+}
+
+.jsonLink {
+  width: auto;
+  background: none;
+  border: none;
+  color: var(--signal);
+  font-size: 12.5px;
+  font-weight: 600;
+  font-family: var(--font-body);
+  padding: 0;
+  cursor: pointer;
+}
+
+.saveBtn {
+  width: auto;
+  padding: 10px 22px;
+  font-size: 13.5px;
 }
 
 .dayChip,
