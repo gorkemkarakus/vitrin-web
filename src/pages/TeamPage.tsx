@@ -1,7 +1,15 @@
 import { useMemo, useRef, useState, useEffect } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { supabase } from '../lib/supabase'
-import { SearchIcon, FilterIcon, CheckCircleIcon, PhoneIcon, UmbrellaIcon, ChevronRightIcon } from '../components/icons'
+import {
+  SearchIcon,
+  FilterIcon,
+  CheckCircleIcon,
+  PhoneIcon,
+  UmbrellaIcon,
+  ChevronRightIcon,
+  UserPlusIcon,
+} from '../components/icons'
 import Avatar from '../components/Avatar'
 import styles from './TeamPage.module.css'
 
@@ -191,6 +199,9 @@ export default function TeamPage() {
             onChange={(e) => setSearch(e.target.value)}
           />
         </div>
+        <button type="button" className={styles.addBtn} onClick={() => navigate('/ekip/yeni')} aria-label="Yeni çalışan ekle">
+          <UserPlusIcon width={17} height={17} />
+        </button>
         <div className={styles.filterWrap} ref={sortMenuRef}>
           <button
             type="button"

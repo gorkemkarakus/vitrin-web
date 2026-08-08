@@ -38,7 +38,6 @@ const PAGE_TITLES: Record<string, string> = {
   '/ekip': 'Ekip',
   '/performans-raporu': 'Performans Raporu',
   '/hizmetler': 'Hizmetler',
-  '/kullanicilar': 'Kullanıcılar',
   '/ayarlar': 'Ayarlar',
   '/mesajlar': 'Mesajlar',
 }

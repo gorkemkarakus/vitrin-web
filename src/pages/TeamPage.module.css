@@ -65,6 +65,19 @@
   cursor: pointer;
 }
 
+.addBtn {
+  flex-shrink: 0;
+  width: 42px;
+  background: var(--signal);
+  border: none;
+  border-radius: var(--radius-sm);
+  color: #fff;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+}
+
 .filterMenu {
   position: absolute;
   top: calc(100% + 6px);

@@ -1,7 +1,9 @@
 import { useEffect, useMemo, useState } from 'react'
 import { useNavigate, useParams } from 'react-router-dom'
 import { supabase } from '../lib/supabase'
+import { useAuth } from '../contexts/AuthContext'
 import Avatar, { colorForName } from '../components/Avatar'
+import Select from '../components/Select'
 import {
   CalendarIcon,
   ChevronRightIcon,
@@ -14,12 +16,19 @@ import {
 } from '../components/icons'
 import styles from './EmployeeDetailPage.module.css'
 
+const GENDER_OPTIONS = [
+  { value: '', label: 'Belirtilmesin' },
+  { value: 'kadin', label: 'Kadın' },
+  { value: 'erkek', label: 'Erkek' },
+]
+
 interface Employee {
   id: string
   full_name: string | null
   role: 'admin' | 'user'
   is_active: boolean
   whatsapp_phone: string | null
+  gender: 'kadin' | 'erkek' | null
   updated_at: string
 }
 
@@ -126,6 +135,7 @@ interface LeaveSummary {
 export default function EmployeeDetailPage() {
   const { id } = useParams<{ id: string }>()
   const navigate = useNavigate()
+  const { session } = useAuth()
 
   const [employee, setEmployee] = useState<Employee | null>(null)
   const [categories, setCategories] = useState<Category[]>([])
@@ -144,9 +154,21 @@ export default function EmployeeDetailPage() {
   // tetikledigi loadData(true) yazilmakta olan taslagi silip suzmesin.
   const [nameDraft, setNameDraft] = useState('')
   const [phoneDraft, setPhoneDraft] = useState('')
+  const [genderDraft, setGenderDraft] = useState<'' | 'kadin' | 'erkek'>('')
   const [profileReady, setProfileReady] = useState(false)
   const [savingProfile, setSavingProfile] = useState(false)
   const [profileError, setProfileError] = useState('')
+
+  // Hesap bilgileri (e-posta/sifre) profiles tablosunda degil auth.users'ta
+  // tutuluyor — bu yuzden normal supabase.from() ile degil, service_role
+  // yetkisiyle calisan update-team-member edge function'iyla degistiriliyor.
+  // Alanlar bos birakilirsa o alan degistirilmez (mevcut sifre asla
+  // gosterilmiyor/on-doldurulmuyor).
+  const [accountEmail, setAccountEmail] = useState('')
+  const [accountPassword, setAccountPassword] = useState('')
+  const [savingAccount, setSavingAccount] = useState(false)
+  const [accountError, setAccountError] = useState('')
+  const [accountSuccess, setAccountSuccess] = useState('')
 
   async function loadData(silent = false) {
     if (!id) return
@@ -155,7 +177,11 @@ export default function EmployeeDetailPage() {
     const monthStart = new Date(now.getFullYear(), now.getMonth(), 1).toISOString()
     const monthEnd = new Date(now.getFullYear(), now.getMonth() + 1, 0, 23, 59, 59).toISOString()
     const [{ data: emp }, { data: cats }, { data: empCats }, { data: scheds }, { data: blocks }, { data: appts }] = await Promise.all([
-      supabase.from('profiles').select('id, full_name, role, is_active, whatsapp_phone, updated_at').eq('id', id).maybeSingle(),
+      supabase
+        .from('profiles')
+        .select('id, full_name, role, is_active, whatsapp_phone, gender, updated_at')
+        .eq('id', id)
+        .maybeSingle(),
       supabase.from('service_categories').select('id, name').order('name'),
       supabase.from('employee_categories').select('profile_id, category_id').eq('profile_id', id),
       supabase.from('employee_schedules').select('id, profile_id, day_of_week, starts_at, ends_at').eq('profile_id', id),
@@ -188,6 +214,7 @@ export default function EmployeeDetailPage() {
     if (loading || profileReady || !employee) return
     setNameDraft(employee.full_name ?? '')
     setPhoneDraft(employee.whatsapp_phone ?? '')
+    setGenderDraft(employee.gender ?? '')
     setProfileReady(true)
   }, [loading, profileReady, employee])
 
@@ -199,7 +226,7 @@ export default function EmployeeDetailPage() {
     setProfileError('')
     const { error: err } = await supabase
       .from('profiles')
-      .update({ full_name: nameDraft.trim(), whatsapp_phone: phoneDraft.trim() || null })
+      .update({ full_name: nameDraft.trim(), whatsapp_phone: phoneDraft.trim() || null, gender: genderDraft || null })
       .eq('id', id)
     if (err) {
       const isDupPhone = err.code === '23505' && err.message.includes('whatsapp_phone')
@@ -210,6 +237,41 @@ export default function EmployeeDetailPage() {
     setProfileReady(false)
     await loadData(true)
     setSavingProfile(false)
+  }
+
+  async function saveAccountInfo() {
+    if (!id) return
+    if (!accountEmail.trim() && !accountPassword.trim()) return
+    setSavingAccount(true)
+    setAccountError('')
+    setAccountSuccess('')
+    try {
+      const res = await fetch(`${import.meta.env.VITE_SUPABASE_URL}/functions/v1/update-team-member`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          Authorization: `Bearer ${session?.access_token}`,
+          apikey: import.meta.env.VITE_SUPABASE_ANON_KEY,
+        },
+        body: JSON.stringify({
+          id,
+          email: accountEmail.trim() || undefined,
+          password: accountPassword.trim() || undefined,
+        }),
+      })
+      const body = await res.json()
+      if (!res.ok) {
+        setAccountError(body.error ?? 'Hesap güncellenemedi.')
+        return
+      }
+      setAccountSuccess('Hesap bilgileri güncellendi.')
+      setAccountEmail('')
+      setAccountPassword('')
+    } catch {
+      setAccountError('Sunucuya ulaşılamadı, tekrar deneyin.')
+    } finally {
+      setSavingAccount(false)
+    }
   }
 
   async function toggleCategory(categoryId: string, checked: boolean) {
@@ -488,6 +550,10 @@ export default function EmployeeDetailPage() {
             placeholder="05xx xxx xx xx"
           />
         </div>
+        <div className={styles.profileField}>
+          <label htmlFor="empGender">Cinsiyet</label>
+          <Select id="empGender" value={genderDraft} onChange={(v) => setGenderDraft(v as '' | 'kadin' | 'erkek')} options={GENDER_OPTIONS} />
+        </div>
         {profileError && <p className={styles.profileError}>{profileError}</p>}
         <button
           type="button"
@@ -497,6 +563,41 @@ export default function EmployeeDetailPage() {
         >
           {savingProfile ? 'Kaydediliyor…' : 'Kaydet'}
         </button>
+
+        <div className={styles.accountSection}>
+          <h3 className={styles.accountTitle}>Hesap Bilgileri</h3>
+          <p className={styles.accountHint}>Değiştirmek istemediğin alanı boş bırak.</p>
+          <div className={styles.profileField}>
+            <label htmlFor="empEmail">Yeni E-posta</label>
+            <input
+              id="empEmail"
+              type="email"
+              value={accountEmail}
+              onChange={(e) => setAccountEmail(e.target.value)}
+              placeholder="ayse@ornek.com"
+            />
+          </div>
+          <div className={styles.profileField}>
+            <label htmlFor="empPassword">Yeni Şifre</label>
+            <input
+              id="empPassword"
+              type="text"
+              value={accountPassword}
+              onChange={(e) => setAccountPassword(e.target.value)}
+              placeholder="en az 6 karakter"
+            />
+          </div>
+          {accountError && <p className={styles.profileError}>{accountError}</p>}
+          {accountSuccess && <p className={styles.accountSuccess}>{accountSuccess}</p>}
+          <button
+            type="button"
+            className={`btn-primary ${styles.profileSaveBtn}`}
+            onClick={saveAccountInfo}
+            disabled={savingAccount || (!accountEmail.trim() && !accountPassword.trim())}
+          >
+            {savingAccount ? 'Güncelleniyor…' : 'Hesap Bilgilerini Güncelle'}
+          </button>
+        </div>
       </div>
     </div>
   )

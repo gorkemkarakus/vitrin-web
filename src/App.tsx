@@ -11,13 +11,13 @@ import AccountingPage from './pages/AccountingPage'
 import TeamPage from './pages/TeamPage'
 import ServicesPage from './pages/ServicesPage'
 import ServiceDescriptionPage from './pages/ServiceDescriptionPage'
-import UserManagementPage from './pages/UserManagementPage'
 import DashboardPage from './pages/DashboardPage'
 import SettingsPage from './pages/SettingsPage'
 import MorePage from './pages/MorePage'
 import CustomersPage from './pages/CustomersPage'
 import CustomerDetailPage from './pages/CustomerDetailPage'
 import EmployeeDetailPage from './pages/EmployeeDetailPage'
+import EmployeeCreatePage from './pages/EmployeeCreatePage'
 import EmployeeSchedulePage from './pages/EmployeeSchedulePage'
 import EmployeeLeavesPage from './pages/EmployeeLeavesPage'
 import HolidaysPage from './pages/HolidaysPage'
@@ -97,6 +97,10 @@ function AppRoutes() {
               element={<ProtectedRoute adminOnly><HolidaysPage /></ProtectedRoute>}
             />
             <Route
+              path="ekip/yeni"
+              element={<ProtectedRoute adminOnly><EmployeeCreatePage /></ProtectedRoute>}
+            />
+            <Route
               path="ekip/:id"
               element={<ProtectedRoute adminOnly><EmployeeDetailPage /></ProtectedRoute>}
             />
@@ -115,10 +119,6 @@ function AppRoutes() {
             <Route
               path="hizmetler/:id/aciklama"
               element={<ProtectedRoute adminOnly><ServiceDescriptionPage /></ProtectedRoute>}
-            />
-            <Route
-              path="kullanicilar"
-              element={<ProtectedRoute adminOnly><UserManagementPage /></ProtectedRoute>}
             />
             <Route
               path="performans-raporu"

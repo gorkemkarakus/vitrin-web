@@ -4,7 +4,6 @@ import {
   AccountingIcon,
   TeamIcon,
   ServicesIcon,
-  UsersIcon,
   SettingsIcon,
   LogOutIcon,
   ChevronRightIcon,
@@ -17,7 +16,6 @@ const MENU_ITEMS = [
   { path: '/ekip', label: 'Ekip', sub: 'Personel, programlar ve izinler', adminOnly: true, icon: TeamIcon },
   { path: '/performans-raporu', label: 'Performans Raporu', sub: 'Çalışan bazlı randevu, kazanç ve izin özeti', adminOnly: true, icon: TrophyIcon },
   { path: '/hizmetler', label: 'Hizmetler', sub: 'Hizmet listesi ve fiyatlar', adminOnly: true, icon: ServicesIcon },
-  { path: '/kullanicilar', label: 'Kullanıcılar', sub: 'Ekip üyesi hesapları', adminOnly: true, icon: UsersIcon },
   { path: '/ayarlar', label: 'Ayarlar', sub: 'Hesap ve işletme ayarları', adminOnly: false, icon: SettingsIcon },
 ]
 
