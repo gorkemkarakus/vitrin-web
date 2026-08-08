@@ -543,7 +543,7 @@ export default function AccountingPage() {
         <h2 style={{ marginBottom: 4 }}>Giderler</h2>
         {unpaidExpenses.length > 0 && (
           <p className={styles.unpaidHint}>
-            {unpaidExpenses.length} ödenmemiş gider — toplam {currency.format(unpaidExpenses.reduce((sum, e) => sum + e.amount, 0))} (Net Kâr'a dahil değil)
+            {unpaidExpenses.length} ödenmemiş gider. Toplam {currency.format(unpaidExpenses.reduce((sum, e) => sum + e.amount, 0))}, Net Kâr'a da hesaplanmadı.
           </p>
         )}
         <div className={`${styles.searchBox} ${styles.expenseSearchBox}`}>

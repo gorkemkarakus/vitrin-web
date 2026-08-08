@@ -132,7 +132,7 @@ export async function generateAccountingReportPdf(params: {
   const unpaidTotal = expenses.filter((e) => !e.is_paid).reduce((sum, e) => sum + e.amount, 0)
   report.addSubText(`Salon giderleri (ödenmiş) — toplam: -${currency.format(waterfall.totalExpenses)}`)
   if (unpaidTotal > 0) {
-    report.addSubText(`Ödenmemiş gider: -${currency.format(unpaidTotal)} (Net Kâr'a dahil değil)`)
+    report.addSubText(`Ödenmemiş gider: -${currency.format(unpaidTotal)}. Net Kâr'a da hesaplanmadı.`)
   }
   if (expenses.length === 0) {
     report.addSubText('Bu aralıkta gider kaydı yok.')
