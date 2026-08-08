@@ -143,6 +143,16 @@ export default function EmployeeDetailPage() {
   const [selectedDay, setSelectedDay] = useState<number>(() => new Date().getDay())
   const [leaveFilter, setLeaveFilter] = useState<'day' | 'range'>('range')
 
+  // Ad soyad + telefon duzenleme alani da diger kartlar gibi "duzenle ->
+  // Kaydet" mantigiyla calisiyor; taslak sunucudan sadece BIR KERE
+  // (profileReady false iken) dolduruluyor ki baska bir aksiyonun
+  // tetikledigi loadData(true) yazilmakta olan taslagi silip suzmesin.
+  const [nameDraft, setNameDraft] = useState('')
+  const [phoneDraft, setPhoneDraft] = useState('')
+  const [profileReady, setProfileReady] = useState(false)
+  const [savingProfile, setSavingProfile] = useState(false)
+  const [profileError, setProfileError] = useState('')
+
   async function loadData(silent = false) {
     if (!id) return
     if (!silent) setLoading(true)
@@ -179,12 +189,38 @@ export default function EmployeeDetailPage() {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [id])
 
+  useEffect(() => {
+    if (loading || profileReady || !employee) return
+    setNameDraft(employee.full_name ?? '')
+    setPhoneDraft(employee.whatsapp_phone ?? '')
+    setProfileReady(true)
+  }, [loading, profileReady, employee])
+
   const today = useMemo(() => todayLocalDateString(), [])
 
   async function toggleActive(active: boolean) {
     if (!id) return
     await supabase.from('profiles').update({ is_active: active }).eq('id', id)
     await loadData(true)
+  }
+
+  async function saveProfileInfo() {
+    if (!id || !nameDraft.trim()) return
+    setSavingProfile(true)
+    setProfileError('')
+    const { error: err } = await supabase
+      .from('profiles')
+      .update({ full_name: nameDraft.trim(), whatsapp_phone: phoneDraft.trim() || null })
+      .eq('id', id)
+    if (err) {
+      const isDupPhone = err.code === '23505' && err.message.includes('whatsapp_phone')
+      setProfileError(isDupPhone ? 'Bu telefon numarası başka bir ekip üyesine kayıtlı.' : 'Kaydedilemedi: ' + err.message)
+      setSavingProfile(false)
+      return
+    }
+    setProfileReady(false)
+    await loadData(true)
+    setSavingProfile(false)
   }
 
   async function toggleCategory(categoryId: string, checked: boolean) {
@@ -244,6 +280,34 @@ export default function EmployeeDetailPage() {
         </div>
         <button type="button" className={styles.moreBtn} aria-label="Diğer">
           <MoreHorizontalIcon width={18} height={18} />
+        </button>
+      </div>
+
+      <div className="card">
+        <h2 style={{ marginBottom: 12 }}>Kişisel Bilgiler</h2>
+        <div className={styles.profileField}>
+          <label htmlFor="empName">Ad Soyad</label>
+          <input id="empName" value={nameDraft} onChange={(e) => setNameDraft(e.target.value)} placeholder="Ad Soyad" />
+        </div>
+        <div className={styles.profileField}>
+          <label htmlFor="empPhone">Telefon</label>
+          <input
+            id="empPhone"
+            type="tel"
+            inputMode="numeric"
+            value={phoneDraft}
+            onChange={(e) => setPhoneDraft(e.target.value.replace(/\D/g, ''))}
+            placeholder="05xx xxx xx xx"
+          />
+        </div>
+        {profileError && <p className={styles.profileError}>{profileError}</p>}
+        <button
+          type="button"
+          className={`btn-primary ${styles.profileSaveBtn}`}
+          onClick={saveProfileInfo}
+          disabled={savingProfile || !nameDraft.trim()}
+        >
+          {savingProfile ? 'Kaydediliyor…' : 'Kaydet'}
         </button>
       </div>
 

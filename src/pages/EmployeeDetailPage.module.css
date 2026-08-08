@@ -70,6 +70,49 @@
   justify-content: center;
 }
 
+/* ---------- Kisisel bilgiler ---------- */
+
+.profileField {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  margin-bottom: 14px;
+}
+
+.profileField label {
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--text);
+}
+
+.profileField input {
+  width: 100%;
+  background: var(--panel);
+  border: 1px solid var(--line);
+  border-radius: var(--radius-sm);
+  padding: 12px 14px;
+  font-size: 14px;
+  font-family: var(--font-body);
+  color: var(--text);
+  outline: none;
+}
+
+.profileField input:focus {
+  border-color: var(--signal);
+}
+
+.profileError {
+  color: var(--danger-text);
+  font-size: 12.5px;
+  margin: -4px 0 14px;
+}
+
+.profileSaveBtn {
+  width: auto;
+  padding: 10px 22px;
+  font-size: 13.5px;
+}
+
 /* ---------- Sekme cubugu ---------- */
 
 .tabBar {
