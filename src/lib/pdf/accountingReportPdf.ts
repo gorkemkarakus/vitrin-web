@@ -36,6 +36,7 @@ interface ExpenseRow {
   description: string
   amount: number
   expense_date: string
+  due_date: string | null
   is_recurring: boolean
   is_paid: boolean
 }
@@ -137,19 +138,24 @@ export async function generateAccountingReportPdf(params: {
   if (expenses.length === 0) {
     report.addSubText('Bu aralıkta gider kaydı yok.')
   } else {
+    const todayStr = new Date().toISOString().slice(0, 10)
     report.addTable({
-      head: ['Tarih', 'Açıklama', 'Tekrar', 'Durum', 'Tutar'],
+      head: ['Tarih', 'Son Ödeme', 'Açıklama', 'Tekrar', 'Durum', 'Tutar'],
       body: expenses
         .slice()
         .sort((a, b) => a.expense_date.localeCompare(b.expense_date))
-        .map((e) => [
-          formatDateLabel(e.expense_date),
-          e.description,
-          e.is_recurring ? 'Aylık' : 'Tek Seferlik',
-          e.is_paid ? 'Ödendi' : 'Ödenmedi',
-          `-${currency.format(e.amount)}`,
-        ]),
-      rightAlignFrom: 4,
+        .map((e) => {
+          const overdue = !e.is_paid && !!e.due_date && e.due_date < todayStr
+          return [
+            formatDateLabel(e.expense_date),
+            e.due_date ? formatDateLabel(e.due_date) : '—',
+            e.description,
+            e.is_recurring ? 'Aylık' : 'Tek Seferlik',
+            e.is_paid ? 'Ödendi' : overdue ? 'Vadesi Geçti' : 'Ödenmedi',
+            `-${currency.format(e.amount)}`,
+          ]
+        }),
+      rightAlignFrom: 5,
     })
   }
   await yieldToUI()

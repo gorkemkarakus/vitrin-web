@@ -40,6 +40,7 @@ interface Expense {
   description: string
   amount: number
   expense_date: string
+  due_date: string | null
   is_recurring: boolean
   is_paid: boolean
 }
@@ -128,6 +129,7 @@ export default function AccountingPage() {
   const [expenseDesc, setExpenseDesc] = useState('')
   const [expenseAmount, setExpenseAmount] = useState('')
   const [expenseDate, setExpenseDate] = useState(() => toLocalDateString(new Date()))
+  const [expenseDueDate, setExpenseDueDate] = useState('')
   const [expenseRecurring, setExpenseRecurring] = useState(false)
   const [expensePaid, setExpensePaid] = useState(true)
   const [addingExpense, setAddingExpense] = useState(false)
@@ -153,7 +155,7 @@ export default function AccountingPage() {
         supabase.from('business_finance_settings').select('commission_pct, tax_pct').maybeSingle(),
         supabase
           .from('business_expenses')
-          .select('id, description, amount, expense_date, is_recurring, is_paid')
+          .select('id, description, amount, expense_date, due_date, is_recurring, is_paid')
           .gte('expense_date', rangeStart)
           .lte('expense_date', rangeEnd)
           .order('expense_date', { ascending: false }),
@@ -225,11 +227,13 @@ export default function AccountingPage() {
       description: expenseDesc.trim(),
       amount,
       expense_date: expenseDate,
+      due_date: expenseDueDate || null,
       is_recurring: expenseRecurring,
       is_paid: expensePaid,
     })
     setExpenseDesc('')
     setExpenseAmount('')
+    setExpenseDueDate('')
     setExpenseRecurring(false)
     setExpensePaid(true)
     await loadAll()
@@ -258,6 +262,7 @@ export default function AccountingPage() {
   const serviceNameById = new Map(services.map((s) => [s.id, s.name]))
   const appointmentById = new Map(appointments.map((a) => [a.id, a]))
   const packageServiceById = new Map(packages.map((p) => [p.id, p.service_id]))
+  const todayStr = toLocalDateString(new Date())
 
   // scheduled_at bir timestamptz kolonu — dogru karsilastirma icin gercek
   // Date nesneleri kullaniyoruz (duz string karsilastirmasi saat dilimi
@@ -590,6 +595,16 @@ export default function AccountingPage() {
               onChange={(e) => setExpenseDate(e.target.value)}
             />
           </div>
+          <div className={styles.expenseField} style={{ width: 150 }}>
+            <label htmlFor="expenseDueDate">Son Ödeme Tarihi (opsiyonel)</label>
+            <input
+              id="expenseDueDate"
+              type="date"
+              value={expenseDueDate}
+              min={expenseDate}
+              onChange={(e) => setExpenseDueDate(e.target.value)}
+            />
+          </div>
           <div className={styles.expenseField}>
             <label>Tekrar</label>
             <div className={styles.recurringToggle}>
@@ -637,13 +652,19 @@ export default function AccountingPage() {
           <p className={styles.empty}>{eq ? 'Eşleşen gider yok.' : 'Bu aralıkta gider kaydı yok.'}</p>
         ) : (
           <div className={styles.list}>
-            {visibleExpenses.map((e) => (
+            {visibleExpenses.map((e) => {
+              const isOverdue = !e.is_paid && !!e.due_date && e.due_date < todayStr
+              return (
               <div className={styles.expenseRow} key={e.id}>
                 <div className={styles.expenseRowMain}>
                   <span className={styles.expenseDescRow}>
                     <span className={styles.expenseDesc}>{e.description}</span>
                     {e.is_recurring && <span className={styles.recurringBadge}>Aylık</span>}
-                    {!e.is_paid && <span className={styles.unpaidBadge}>Ödenmedi</span>}
+                    {!e.is_paid && (
+                      <span className={isOverdue ? styles.overdueBadge : styles.unpaidBadge}>
+                        {isOverdue ? 'Vadesi Geçti' : 'Ödenmedi'}
+                      </span>
+                    )}
                   </span>
                   <span className={styles.expenseDate}>
                     {new Date(e.expense_date + 'T00:00:00').toLocaleDateString('tr-TR', {
@@ -651,6 +672,16 @@ export default function AccountingPage() {
                       month: 'long',
                       year: 'numeric',
                     })}
+                    {e.due_date && (
+                      <>
+                        {' · Son ödeme: '}
+                        {new Date(e.due_date + 'T00:00:00').toLocaleDateString('tr-TR', {
+                          day: 'numeric',
+                          month: 'long',
+                          year: 'numeric',
+                        })}
+                      </>
+                    )}
                   </span>
                 </div>
                 <span className={styles.expenseAmount}>{currency.format(e.amount)}</span>
@@ -672,7 +703,8 @@ export default function AccountingPage() {
                   <TrashIcon width={14} height={14} />
                 </button>
               </div>
-            ))}
+              )
+            })}
           </div>
         )}
       </div>
