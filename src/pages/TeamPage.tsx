@@ -1,7 +1,7 @@
 import { useMemo, useRef, useState, useEffect } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { supabase } from '../lib/supabase'
-import { SearchIcon, FilterIcon, CheckCircleIcon, PhoneIcon } from '../components/icons'
+import { SearchIcon, FilterIcon, CheckCircleIcon, PhoneIcon, UmbrellaIcon, ChevronRightIcon } from '../components/icons'
 import Avatar from '../components/Avatar'
 import styles from './TeamPage.module.css'
 
@@ -235,6 +235,17 @@ export default function TeamPage() {
           </button>
         ))}
       </div>
+
+      <button type="button" className={styles.holidayRow} onClick={() => navigate('/ekip/tatiller')}>
+        <span className={styles.holidayRowIcon}>
+          <UmbrellaIcon width={18} height={18} />
+        </span>
+        <span className={styles.holidayRowText}>
+          <span className={styles.holidayRowLabel}>Resmî Tatiller</span>
+          <span className={styles.holidayRowSub}>Tüm ekip için toplu izin günü tanımla</span>
+        </span>
+        <ChevronRightIcon width={16} height={16} className={styles.holidayRowChevron} />
+      </button>
 
       <div className="card">
         <div className={styles.list}>
