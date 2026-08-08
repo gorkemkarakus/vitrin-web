@@ -2,10 +2,6 @@
   display: flex;
   flex-direction: column;
   gap: 16px;
-  /* Alttaki sabit hizli-islem satiri (kendi yuksekligi + ustunde durdugu
-     64px'lik alt navigasyon barı) icerigin ustune binmesin — 88px yetersiz
-     kalip son satiri kismen orttuyordu (bildirildi). */
-  padding-bottom: 160px;
 }
 
 /* ---------- Arama + filtrele satiri ---------- */
@@ -256,11 +252,6 @@
   background: var(--ok-bg);
 }
 
-.badgePasif {
-  color: var(--warn-text);
-  background: var(--warn-bg);
-}
-
 .debtBadge {
   display: inline-flex;
   align-items: center;
@@ -309,90 +300,6 @@
 .rowChevron {
   color: var(--text-dim);
   flex-shrink: 0;
-}
-
-/* ---------- Hizli islemler ---------- */
-
-/* Randevu listesi 600+ musteride ekranlarca uzayabiliyor — bu satir listenin
-   sonuna gomulup kaybolmasin diye alt navigasyonun hemen ustune sabitlendi
-   (Takvim'deki durum bariyla ayni desen). */
-.quickRow {
-  position: fixed;
-  left: 0;
-  right: 0;
-  bottom: 64px;
-  z-index: 40;
-  display: flex;
-  justify-content: center;
-  gap: 8px;
-  overflow-x: auto;
-  padding: 7px 12px calc(7px + env(safe-area-inset-bottom, 0px));
-  background: var(--panel);
-  border-top: 1px solid var(--line);
-  scrollbar-width: none;
-  -ms-overflow-style: none;
-}
-
-.quickRow::-webkit-scrollbar {
-  display: none;
-}
-
-.quickBtn {
-  position: relative;
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  gap: 3px;
-  flex-shrink: 0;
-  width: 82px;
-  background: none;
-  border: none;
-  padding: 2px;
-  font-size: 10px;
-  font-weight: 600;
-  color: var(--text);
-  font-family: var(--font-body);
-  text-align: center;
-  line-height: 1.2;
-  cursor: pointer;
-}
-
-.quickBtn:disabled {
-  opacity: 0.55;
-  cursor: not-allowed;
-}
-
-.quickIcon {
-  width: 20px;
-  height: 20px;
-  color: var(--text-dim);
-  display: flex;
-  align-items: center;
-  justify-content: center;
-}
-
-.quickIconSignal {
-  color: var(--signal);
-}
-
-.quickIconOk {
-  color: var(--ok-text);
-}
-
-.quickIconInfo {
-  color: var(--info-text);
-}
-
-.quickBadge {
-  position: absolute;
-  top: 6px;
-  right: 6px;
-  font-size: 8.5px;
-  font-weight: 700;
-  background: var(--warn-bg);
-  color: var(--warn-text);
-  padding: 2px 5px;
-  border-radius: 999px;
 }
 
 /* ---------- Ust istatistik kartlari ---------- */

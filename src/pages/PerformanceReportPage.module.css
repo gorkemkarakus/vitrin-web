@@ -9,30 +9,27 @@
 .presetRow {
   display: flex;
   gap: 6px;
-  overflow-x: auto;
-  scrollbar-width: none;
-  -ms-overflow-style: none;
-}
-
-.presetRow::-webkit-scrollbar {
-  display: none;
 }
 
 .presetBtn,
 .presetBtnActive {
   display: flex;
   align-items: center;
+  justify-content: center;
   gap: 5px;
-  flex-shrink: 0;
+  flex: 1;
+  min-width: 0;
   background: var(--panel);
   border: 1px solid var(--line);
   color: var(--text-dim);
   border-radius: 999px;
-  padding: 9px 14px;
+  padding: 9px 8px;
   font-size: 12.5px;
   font-weight: 600;
   font-family: var(--font-body);
   cursor: pointer;
+  overflow: hidden;
+  text-overflow: ellipsis;
   white-space: nowrap;
 }
 
@@ -131,8 +128,21 @@
   z-index: 1;
 }
 
-.sortWrap :global(button) {
-  padding-left: 32px;
+.sortSelect {
+  width: 100%;
+  background: var(--panel);
+  border: 1px solid var(--line);
+  border-radius: var(--radius-sm);
+  padding: 10px 12px 10px 32px;
+  font-size: 13.5px;
+  font-weight: 600;
+  color: var(--text);
+  font-family: var(--font-body);
+  outline: none;
+}
+
+.sortSelect:focus {
+  border-color: var(--signal);
 }
 
 .searchBox {

@@ -346,6 +346,32 @@
   color: var(--signal);
 }
 
+.paymentRowActions {
+  display: flex;
+  align-items: center;
+  gap: 2px;
+  flex-shrink: 0;
+}
+
+.voidPaymentBtn {
+  flex-shrink: 0;
+  width: 28px;
+  height: 28px;
+  border-radius: 50%;
+  border: none;
+  background: transparent;
+  color: var(--text-dim);
+  cursor: pointer;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.voidPaymentBtn:hover {
+  background: var(--danger-bg);
+  color: var(--danger-text);
+}
+
 .paymentRowAmount {
   font-size: 13.5px;
   font-weight: 700;
@@ -355,6 +381,26 @@
 .paymentRowMeta {
   font-size: 12px;
   color: var(--text-dim);
+}
+
+.paymentRowVoided {
+  opacity: 0.55;
+}
+
+.paymentRowVoided .paymentRowAmount {
+  color: var(--text-dim);
+  text-decoration: line-through;
+}
+
+.voidedBadge {
+  flex-shrink: 0;
+  font-size: 10.5px;
+  font-weight: 700;
+  padding: 3px 9px;
+  border-radius: 999px;
+  color: var(--text-dim);
+  background: var(--panel-2);
+  white-space: nowrap;
 }
 
 /* ---------- Odeme al modali ---------- */

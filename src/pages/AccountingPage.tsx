@@ -2,10 +2,8 @@ import { useEffect, useState } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { supabase } from '../lib/supabase'
 import { useAuth } from '../contexts/AuthContext'
-import Avatar from '../components/Avatar'
 import PdfProgressModal from '../components/PdfProgressModal'
 import {
-  SearchIcon,
   WalletIcon,
   CheckCircleIcon,
   ReceiptIcon,
@@ -120,7 +118,6 @@ export default function AccountingPage() {
   const [taxInput, setTaxInput] = useState('0')
   const [loading, setLoading] = useState(true)
   const [savedHint, setSavedHint] = useState(false)
-  const [search, setSearch] = useState('')
   const [pdfState, setPdfState] = useState<{ progress: number; step: string; error: string | null } | null>(null)
 
   function applyPreset(p: Preset) {
@@ -156,6 +153,7 @@ export default function AccountingPage() {
         supabase
           .from('payments')
           .select('id, amount, appointment_id, package_id')
+          .is('voided_at', null)
           .gte('paid_at', rangeStart)
           .lte('paid_at', rangeEnd),
       ])
@@ -247,8 +245,6 @@ export default function AccountingPage() {
     employeeStatsMap.set(employeeId, entry)
   }
   const allEmployeeStats = Array.from(employeeStatsMap.values()).sort((a, b) => b.revenue - a.revenue)
-  const q = search.trim().toLowerCase()
-  const employeeStats = q ? allEmployeeStats.filter((e) => e.name.toLowerCase().includes(q)) : allEmployeeStats
 
   const serviceStatsMap = new Map<string, { id: string; name: string; count: number; revenue: number }>()
   for (const a of rangedCompleted) {
@@ -279,6 +275,11 @@ export default function AccountingPage() {
     serviceStatsMap.set(serviceId, entry)
   }
   const serviceStats = Array.from(serviceStatsMap.values()).sort((a, b) => b.revenue - a.revenue)
+
+  const periodLabel =
+    preset === 'ozel'
+      ? `${new Date(rangeStart + 'T00:00:00').toLocaleDateString('tr-TR')} – ${new Date(rangeEnd + 'T00:00:00').toLocaleDateString('tr-TR')}`
+      : (PRESETS.find((p) => p.value === preset)?.label ?? 'Bu Dönem')
 
   const totalRevenue = payments.reduce((sum, p) => sum + p.amount, 0)
   const taxAmount = totalRevenue * (taxPct / 100)
@@ -321,46 +322,48 @@ export default function AccountingPage() {
 
   return (
     <div className={styles.wrap}>
-      <h2 className={styles.sectionLabel}>Tarih Aralığı</h2>
-      <div className={styles.filterRow}>
-        {PRESETS.map((p) => (
-          <button
-            key={p.value}
-            type="button"
-            className={preset === p.value ? styles.filterBtnActive : styles.filterBtn}
-            onClick={() => applyPreset(p.value)}
-          >
-            {p.label}
-          </button>
-        ))}
-      </div>
-
-      <div className={`card ${styles.customRangeRow}`}>
-        <div className="field" style={{ marginBottom: 0 }}>
-          <label htmlFor="rangeStart">Başlangıç</label>
-          <input
-            id="rangeStart"
-            type="date"
-            value={rangeStart}
-            max={rangeEnd}
-            onChange={(e) => {
-              setPreset('ozel')
-              setRangeStart(e.target.value)
-            }}
-          />
+      <div className={styles.stickyFilter}>
+        <h2 className={styles.sectionLabel}>Tarih Aralığı</h2>
+        <div className={styles.filterRow}>
+          {PRESETS.map((p) => (
+            <button
+              key={p.value}
+              type="button"
+              className={preset === p.value ? styles.filterBtnActive : styles.filterBtn}
+              onClick={() => applyPreset(p.value)}
+            >
+              {p.label}
+            </button>
+          ))}
         </div>
-        <div className="field" style={{ marginBottom: 0 }}>
-          <label htmlFor="rangeEnd">Bitiş</label>
-          <input
-            id="rangeEnd"
-            type="date"
-            value={rangeEnd}
-            min={rangeStart}
-            onChange={(e) => {
-              setPreset('ozel')
-              setRangeEnd(e.target.value)
-            }}
-          />
+
+        <div className={`card ${styles.customRangeRow}`}>
+          <div className="field" style={{ marginBottom: 0 }}>
+            <label htmlFor="rangeStart">Başlangıç</label>
+            <input
+              id="rangeStart"
+              type="date"
+              value={rangeStart}
+              max={rangeEnd}
+              onChange={(e) => {
+                setPreset('ozel')
+                setRangeStart(e.target.value)
+              }}
+            />
+          </div>
+          <div className="field" style={{ marginBottom: 0 }}>
+            <label htmlFor="rangeEnd">Bitiş</label>
+            <input
+              id="rangeEnd"
+              type="date"
+              value={rangeEnd}
+              min={rangeStart}
+              onChange={(e) => {
+                setPreset('ozel')
+                setRangeEnd(e.target.value)
+              }}
+            />
+          </div>
         </div>
       </div>
 
@@ -402,7 +405,7 @@ export default function AccountingPage() {
       </div>
 
       <div className="card">
-        <h2 style={{ marginBottom: 14 }}>Bu Dönem Nasıl Hesaplandı</h2>
+        <h2 style={{ marginBottom: 14 }}>{periodLabel} Nasıl Hesaplandı</h2>
         <div className={styles.waterfall}>
           <div className={styles.waterfallRow}>
             <span>Toplam ciro</span>
@@ -469,16 +472,6 @@ export default function AccountingPage() {
         </div>
       </div>
 
-      <div className={styles.searchBox}>
-        <SearchIcon width={16} height={16} className={styles.searchIcon} />
-        <input
-          className={styles.searchInput}
-          placeholder="Çalışan ara…"
-          value={search}
-          onChange={(e) => setSearch(e.target.value)}
-        />
-      </div>
-
       <div className="card">
         <div className={styles.giderlerHead}>
           <h2 style={{ marginBottom: 0 }}>Giderler</h2>
@@ -520,33 +513,6 @@ export default function AccountingPage() {
             <span className={styles.statLabel}>{overdueExpenses.length} Vadesi Geçen</span>
           </div>
         </div>
-      </div>
-
-      <div className="card">
-        <h2 style={{ marginBottom: 14 }}>Çalışan Bazlı Ciro</h2>
-        {employeeStats.length === 0 ? (
-          <p className={styles.empty}>Bu aralıkta randevu veya ödeme kaydı yok.</p>
-        ) : (
-          <div className={styles.list}>
-            {employeeStats.map((e, i) => (
-              <div className={styles.employeeRow} key={e.id}>
-                <span className={styles.rank}>{i + 1}</span>
-                <Avatar name={e.name} size={36} />
-                <span className={styles.employeeName}>{e.name}</span>
-                <div className={styles.employeeStats}>
-                  <div className={styles.employeeStatBlock}>
-                    <span className={styles.employeeStatLabel}>Randevu</span>
-                    <span className={styles.employeeStatValue}>{e.count}</span>
-                  </div>
-                  <div className={styles.employeeStatBlock}>
-                    <span className={styles.employeeStatLabel}>Ciro</span>
-                    <span className={styles.employeeStatValueSignal}>{currency.format(e.revenue)}</span>
-                  </div>
-                </div>
-              </div>
-            ))}
-          </div>
-        )}
       </div>
 
       <div className="card">

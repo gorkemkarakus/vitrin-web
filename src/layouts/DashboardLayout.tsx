@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useRef, useState } from 'react'
+import { useEffect, useRef, useState } from 'react'
 import { NavLink, Outlet, useLocation, useNavigate } from 'react-router-dom'
 import { Capacitor } from '@capacitor/core'
 import { useAuth } from '../contexts/AuthContext'
@@ -9,13 +9,11 @@ import {
   AppointmentsIcon,
   UsersIcon,
   MoreHorizontalIcon,
-  SearchIcon,
   BellIcon,
   PlusIcon,
   UserPlusIcon,
   ReceiptIcon,
   CashIcon,
-  CloseIcon,
   SettingsIcon,
   LogOutIcon,
 } from '../components/icons'
@@ -67,13 +65,13 @@ function apptDateKey(iso: string) {
 }
 
 export interface LayoutOutletContext {
+  // Topbar'daki arama kutusu kaldirildi — searchQuery artik hep bos kalir
+  // (arayan sayfalar "sorgu yok -> hepsini goster" davranisina duser) ve
+  // setSearchPlaceholder no-op'tur. Tip sozlesmesi, bu context'i tuketen
+  // sayfalari (AppointmentsPage, MessagesPage) degistirmeden korumak icin
+  // ayni sekilde birakildi.
   searchQuery: string
   setSearchPlaceholder: (placeholder: string) => void
-  // Sayfa, gercek filtrelenmis sonuclarin bulundugu kapsayiciyi
-  // ref={registerSearchResultsAnchor} ile isaretlerse, Enter/arama butonu o
-  // kapsayiciya kaydirir. Isaretlemeyen sayfalarda (filtrelenen liste zaten
-  // sayfanin en üstündeyse) en basa kaydirma davranisi otomatik devam eder.
-  registerSearchResultsAnchor: (el: HTMLElement | null) => void
 }
 
 export default function DashboardLayout() {
@@ -84,45 +82,20 @@ export default function DashboardLayout() {
   const isHome = location.pathname === '/dashboard'
   const firstName = (profile?.full_name ?? 'İşletmeniz').trim().split(/\s+/)[0]
 
-  const [searchQuery, setSearchQuery] = useState('')
-  const [searchPlaceholder, setSearchPlaceholder] = useState('Ara…')
   const [pending, setPending] = useState<PendingAppointment[]>([])
   const [bellOpen, setBellOpen] = useState(false)
-  const [searchExpanded, setSearchExpanded] = useState(false)
   const [profileMenuOpen, setProfileMenuOpen] = useState(false)
   const [actionSheetOpen, setActionSheetOpen] = useState(false)
   const [quickAddCustomerOpen, setQuickAddCustomerOpen] = useState(false)
 
   const bellRef = useRef<HTMLDivElement>(null)
-  const searchRef = useRef<HTMLDivElement>(null)
   const profileRef = useRef<HTMLDivElement>(null)
   const contentRef = useRef<HTMLDivElement>(null)
-  const searchResultsAnchorRef = useRef<HTMLElement | null>(null)
-  const registerSearchResultsAnchor = useCallback((el: HTMLElement | null) => {
-    searchResultsAnchorRef.current = el
-  }, [])
-
-  function closeSearch() {
-    setSearchExpanded(false)
-    setSearchQuery('')
-  }
-
-  // Liste uzunsa ve kullanici zaten asagi kaydirmissa, filtre uygulansa
-  // bile eslesen satirlar ekran disinda kalabiliyordu — Enter'a basinca
-  // veya bu butona dokununca listeyi basa sarip klavyeyi kapatarak sonucu
-  // dogrudan gozler onune seriyoruz.
-  function goToSearchResults() {
-    const anchor = searchResultsAnchorRef.current
-    if (anchor) anchor.scrollIntoView({ behavior: 'smooth', block: 'start' })
-    else contentRef.current?.scrollTo({ top: 0, behavior: 'smooth' })
-    if (document.activeElement instanceof HTMLElement) document.activeElement.blur()
-  }
 
   function closeOverlays() {
     setBellOpen(false)
     setProfileMenuOpen(false)
     setActionSheetOpen(false)
-    closeSearch()
   }
 
   useEffect(() => {
@@ -180,7 +153,7 @@ export default function DashboardLayout() {
           setQuickAddCustomerOpen(false)
           return
         }
-        if (bellOpen || profileMenuOpen || searchExpanded || actionSheetOpen) {
+        if (bellOpen || profileMenuOpen || actionSheetOpen) {
           closeOverlays()
           return
         }
@@ -191,7 +164,7 @@ export default function DashboardLayout() {
       })
     })
     return () => removeListener?.()
-  }, [bellOpen, profileMenuOpen, searchExpanded, actionSheetOpen, quickAddCustomerOpen, navigate])
+  }, [bellOpen, profileMenuOpen, actionSheetOpen, quickAddCustomerOpen, navigate])
 
   useEffect(() => {
     async function loadPending() {
@@ -221,53 +194,15 @@ export default function DashboardLayout() {
     <div className={styles.shell}>
       <header className={styles.topbar}>
         {isHome ? (
-          <div className={`${styles.greeting} ${searchExpanded ? styles.pageTitleHidden : ''}`}>
+          <div className={styles.greeting}>
             <h1>
               {timeGreeting()}, {firstName} 👋
             </h1>
             <p>Bugün işletmende neler oluyor?</p>
           </div>
         ) : (
-          <h1 className={`${styles.pageTitle} ${searchExpanded ? styles.pageTitleHidden : ''}`}>
-            {pageTitleFor(location.pathname)}
-          </h1>
+          <h1 className={styles.pageTitle}>{pageTitleFor(location.pathname)}</h1>
         )}
-        <div
-          className={`${styles.searchWrap} ${searchExpanded ? styles.searchWrapExpanded : ''}`}
-          ref={searchRef}
-        >
-          <button type="button" className={styles.searchIconBtn} onClick={() => setSearchExpanded(true)} aria-label="Ara">
-            <SearchIcon className={styles.searchIcon} />
-          </button>
-          <SearchIcon className={styles.searchInputIcon} />
-          <input
-            className={styles.searchInput}
-            placeholder={searchPlaceholder}
-            value={searchQuery}
-            onChange={(e) => setSearchQuery(e.target.value)}
-            onKeyDown={(e) => {
-              if (e.key === 'Enter') {
-                e.preventDefault()
-                goToSearchResults()
-              }
-            }}
-            autoFocus={searchExpanded}
-            enterKeyHint="search"
-          />
-          <button
-            type="button"
-            className={styles.searchSubmitBtn}
-            onClick={goToSearchResults}
-            aria-label="Sonuca git"
-          >
-            <SearchIcon width={14} height={14} />
-          </button>
-          {(searchExpanded || searchQuery) && (
-            <button type="button" className={styles.searchCloseBtn} onClick={closeSearch} aria-label="Aramayı kapat">
-              <CloseIcon width={13} height={13} />
-            </button>
-          )}
-        </div>
         <div className={styles.topbarRight}>
           <div className={styles.bellWrap} ref={bellRef}>
             <button
@@ -355,11 +290,7 @@ export default function DashboardLayout() {
       </header>
 
       <main className={styles.content} ref={contentRef}>
-        <Outlet
-          context={
-            { searchQuery, setSearchPlaceholder, registerSearchResultsAnchor } satisfies LayoutOutletContext
-          }
-        />
+        <Outlet context={{ searchQuery: '', setSearchPlaceholder: () => {} } satisfies LayoutOutletContext} />
       </main>
 
       <nav className={styles.bottomNav}>

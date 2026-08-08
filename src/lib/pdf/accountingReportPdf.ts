@@ -93,6 +93,7 @@ export async function generateAccountingReportPdf(params: {
     supabase
       .from('payments')
       .select('id, amount, method, paid_at, appointment_id, package_id')
+      .is('voided_at', null)
       .gte('paid_at', rangeStart)
       .lte('paid_at', rangeEnd)
       .order('paid_at', { ascending: true }),

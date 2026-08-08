@@ -5,6 +5,25 @@
   max-width: 560px;
 }
 
+.backBtn {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  align-self: flex-start;
+  background: none;
+  border: none;
+  color: var(--text-dim);
+  font-size: 13px;
+  font-weight: 600;
+  font-family: var(--font-body);
+  cursor: pointer;
+  padding: 0;
+}
+
+.backIcon {
+  transform: rotate(180deg);
+}
+
 .cardTitle {
   margin: 0 0 6px;
   font-size: 17px;

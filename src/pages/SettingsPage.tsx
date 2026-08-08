@@ -1,6 +1,8 @@
 import { useEffect, useState } from 'react'
+import { useNavigate } from 'react-router-dom'
 import { supabase } from '../lib/supabase'
 import { useAuth } from '../contexts/AuthContext'
+import { ChevronRightIcon } from '../components/icons'
 import styles from './SettingsPage.module.css'
 
 const REMINDER_OPTIONS = [
@@ -20,6 +22,7 @@ function normalizePhone(raw: string): string {
 }
 
 export default function SettingsPage() {
+  const navigate = useNavigate()
   const { profile } = useAuth()
   const isAdmin = profile?.role === 'admin'
 
@@ -95,6 +98,11 @@ export default function SettingsPage() {
 
   return (
     <div className={styles.wrap}>
+      <button type="button" className={styles.backBtn} onClick={() => navigate('/daha-fazla')}>
+        <ChevronRightIcon width={14} height={14} className={styles.backIcon} />
+        Geri
+      </button>
+
       {isAdmin && (
         <div className="card">
           <h2 className={styles.cardTitle}>Randevu hatırlatması</h2>

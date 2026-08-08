@@ -2,7 +2,6 @@ import { useEffect, useMemo, useState } from 'react'
 import { useAuth } from '../contexts/AuthContext'
 import { supabase } from '../lib/supabase'
 import Avatar from '../components/Avatar'
-import Select from '../components/Select'
 import PdfProgressModal from '../components/PdfProgressModal'
 import {
   CalendarIcon,
@@ -226,7 +225,12 @@ export default function PerformanceReportPage() {
         supabase.from('services').select('id, name, price'),
         supabase.from('employee_schedules').select('profile_id, day_of_week, starts_at, ends_at'),
         supabase.from('employee_time_blocks').select('profile_id, day_of_week, block_date, end_date, starts_at, ends_at'),
-        supabase.from('payments').select('amount, paid_at, appointment_id').gte('paid_at', rangeStart).lte('paid_at', rangeEnd),
+        supabase
+          .from('payments')
+          .select('amount, paid_at, appointment_id')
+          .is('voided_at', null)
+          .gte('paid_at', rangeStart)
+          .lte('paid_at', rangeEnd),
         supabase.from('service_categories').select('id, name'),
         supabase.from('employee_categories').select('profile_id, category_id'),
         supabase.from('business_finance_settings').select('commission_pct').maybeSingle(),
@@ -471,7 +475,13 @@ export default function PerformanceReportPage() {
           <div className={styles.controlRow}>
             <div className={styles.sortWrap}>
               <SortIcon width={15} height={15} className={styles.sortIcon} />
-              <Select value={sortKey} onChange={(v) => setSortKey(v as SortKey)} options={SORT_OPTIONS} />
+              <select className={styles.sortSelect} value={sortKey} onChange={(e) => setSortKey(e.target.value as SortKey)}>
+                {SORT_OPTIONS.map((o) => (
+                  <option key={o.value} value={o.value}>
+                    {o.label}
+                  </option>
+                ))}
+              </select>
             </div>
             <div className={styles.searchBox}>
               <SearchIcon width={15} height={15} className={styles.searchIcon} />

@@ -190,46 +190,48 @@ export default function GiderlerPage() {
         Muhasebeye Dön
       </button>
 
-      <h2 className={styles.sectionLabel}>Tarih Aralığı</h2>
-      <div className={styles.filterRow}>
-        {PRESETS.map((p) => (
-          <button
-            key={p.value}
-            type="button"
-            className={preset === p.value ? styles.filterBtnActive : styles.filterBtn}
-            onClick={() => applyPreset(p.value)}
-          >
-            {p.label}
-          </button>
-        ))}
-      </div>
-
-      <div className={`card ${styles.customRangeRow}`}>
-        <div className="field" style={{ marginBottom: 0 }}>
-          <label htmlFor="giderRangeStart">Başlangıç</label>
-          <input
-            id="giderRangeStart"
-            type="date"
-            value={rangeStart}
-            max={rangeEnd}
-            onChange={(e) => {
-              setPreset('ozel')
-              setRangeStart(e.target.value)
-            }}
-          />
+      <div className={styles.stickyFilter}>
+        <h2 className={styles.sectionLabel}>Tarih Aralığı</h2>
+        <div className={styles.filterRow}>
+          {PRESETS.map((p) => (
+            <button
+              key={p.value}
+              type="button"
+              className={preset === p.value ? styles.filterBtnActive : styles.filterBtn}
+              onClick={() => applyPreset(p.value)}
+            >
+              {p.label}
+            </button>
+          ))}
         </div>
-        <div className="field" style={{ marginBottom: 0 }}>
-          <label htmlFor="giderRangeEnd">Bitiş</label>
-          <input
-            id="giderRangeEnd"
-            type="date"
-            value={rangeEnd}
-            min={rangeStart}
-            onChange={(e) => {
-              setPreset('ozel')
-              setRangeEnd(e.target.value)
-            }}
-          />
+
+        <div className={`card ${styles.customRangeRow}`}>
+          <div className="field" style={{ marginBottom: 0 }}>
+            <label htmlFor="giderRangeStart">Başlangıç</label>
+            <input
+              id="giderRangeStart"
+              type="date"
+              value={rangeStart}
+              max={rangeEnd}
+              onChange={(e) => {
+                setPreset('ozel')
+                setRangeStart(e.target.value)
+              }}
+            />
+          </div>
+          <div className="field" style={{ marginBottom: 0 }}>
+            <label htmlFor="giderRangeEnd">Bitiş</label>
+            <input
+              id="giderRangeEnd"
+              type="date"
+              value={rangeEnd}
+              min={rangeStart}
+              onChange={(e) => {
+                setPreset('ozel')
+                setRangeEnd(e.target.value)
+              }}
+            />
+          </div>
         </div>
       </div>
 

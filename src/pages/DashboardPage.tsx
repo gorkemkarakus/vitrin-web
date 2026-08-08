@@ -133,7 +133,7 @@ export default function DashboardPage() {
           supabase.from('customers').select('id, full_name'),
           supabase.from('business_expenses').select('id, description, amount, expense_date, due_date, is_paid'),
           supabase.from('service_packages').select('id, customer_id, service_id, total_sessions, session_offset'),
-          supabase.from('payments').select('id, customer_id, amount, appointment_id, package_id, paid_at'),
+          supabase.from('payments').select('id, customer_id, amount, appointment_id, package_id, paid_at').is('voided_at', null),
         ])
       setAppointments(appts ?? [])
       setServices(svcs ?? [])
@@ -326,7 +326,7 @@ export default function DashboardPage() {
         </div>
         <div className={`card ${styles.summaryTile} ${styles.summaryTileOk}`}>
           <div className={styles.summaryTopRow}>
-            <span className={styles.summaryLabel}>Kazanç</span>
+            <span className={styles.summaryLabel}>Ciro</span>
             <span className={`${styles.summaryIcon} ${styles.summaryIconOk}`}>
               <WalletIcon width={16} height={16} />
             </span>
@@ -342,7 +342,7 @@ export default function DashboardPage() {
         </div>
         <div className={`card ${styles.summaryTile} ${styles.summaryTileSignal}`}>
           <div className={styles.summaryTopRow}>
-            <span className={styles.summaryLabel}>Kalan Bakiye</span>
+            <span className={styles.summaryLabel}>Kazanç</span>
             <span className={`${styles.summaryIcon} ${styles.summaryIconSignal}`}>
               <CashIcon width={16} height={16} />
             </span>

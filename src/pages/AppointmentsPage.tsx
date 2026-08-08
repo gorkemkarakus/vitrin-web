@@ -721,7 +721,7 @@ export default function AppointmentsPage() {
         const standardPrice = pkg?.service_id ? (services.find((s) => s.id === pkg.service_id)?.price ?? 0) : 0
         const [{ data: sessions }, { data: pkgPayments }] = await Promise.all([
           supabase.from('appointments').select('price_override, scheduled_at').eq('package_id', appt.package_id),
-          supabase.from('payments').select('amount').eq('package_id', appt.package_id),
+          supabase.from('payments').select('amount').eq('package_id', appt.package_id).is('voided_at', null),
         ])
         const sortedSessions = (sessions ?? []).slice().sort((a, b) => a.scheduled_at.localeCompare(b.scheduled_at))
         const pkgSessionPrice = sortedSessions[0]?.price_override ?? standardPrice

@@ -5,7 +5,7 @@ import { useAuth } from '../contexts/AuthContext'
 import { formatPersonName } from '../lib/formatName'
 import Avatar from '../components/Avatar'
 import Select from '../components/Select'
-import { ChevronRightIcon, PhoneIcon, MailIcon, WalletIcon, PencilIcon } from '../components/icons'
+import { ChevronRightIcon, PhoneIcon, MailIcon, WalletIcon, PencilIcon, TrashIcon } from '../components/icons'
 import styles from './CustomerDetailPage.module.css'
 
 interface Customer {
@@ -50,6 +50,7 @@ interface Payment {
   package_id: string | null
   note: string | null
   created_by_user_id: string | null
+  voided_at: string | null
 }
 
 const METHOD_LABEL: Record<Payment['method'], string> = {
@@ -103,7 +104,7 @@ export default function CustomerDetailPage() {
 
   const [payModalOpen, setPayModalOpen] = useState(false)
   const [payAmount, setPayAmount] = useState('')
-  const [payMethod, setPayMethod] = useState('nakit')
+  const [payMethod, setPayMethod] = useState('')
   const [payTarget, setPayTarget] = useState('')
   const [payNote, setPayNote] = useState('')
   const [paySubmitting, setPaySubmitting] = useState(false)
@@ -141,7 +142,7 @@ export default function CustomerDetailPage() {
         .eq('customer_id', id),
       supabase
         .from('payments')
-        .select('id, amount, method, paid_at, appointment_id, package_id, note, created_by_user_id')
+        .select('id, amount, method, paid_at, appointment_id, package_id, note, created_by_user_id, voided_at')
         .eq('customer_id', id)
         .order('paid_at', { ascending: false }),
       supabase.from('services').select('id, name, price'),
@@ -160,6 +161,11 @@ export default function CustomerDetailPage() {
   }, [id])
 
   const serviceById = useMemo(() => new Map(services.map((s) => [s.id, s])), [services])
+
+  // Iptal edilen (voided_at dolu) odemeler listede "Silindi" olarak kalir
+  // ama tum mali hesaplardan (kalan odeme, paket ilerlemesi, toplam odenen)
+  // haric tutulur — sanki hic yapilmamis gibi.
+  const activePayments = useMemo(() => payments.filter((p) => !p.voided_at), [payments])
 
   // Paket bazinda: beklenen = ZATEN olusturulmus seanslarin gercek ucretleri
   // (price_override varsa o, yoksa hizmet fiyati) + henuz randevusu
@@ -187,7 +193,7 @@ export default function CustomerDetailPage() {
         const remainingSessionsEstimate =
           Math.max(0, pkg.total_sessions - pkg.session_offset - sessions.length) * sessionPrice
         const expected = knownSessionsTotal + remainingSessionsEstimate
-        const paid = payments.filter((p) => p.package_id === pkg.id).reduce((s, p) => s + p.amount, 0)
+        const paid = activePayments.filter((p) => p.package_id === pkg.id).reduce((s, p) => s + p.amount, 0)
         return {
           pkg,
           svc,
@@ -199,7 +205,7 @@ export default function CustomerDetailPage() {
           remaining: expected - paid,
         }
       }),
-    [packages, appointments, payments, serviceById],
+    [packages, appointments, activePayments, serviceById],
   )
 
   // Pakete bagli olmayan ama tamamlanmis randevular icin de bakiye takibi.
@@ -210,13 +216,13 @@ export default function CustomerDetailPage() {
         .map((a) => {
           const svc = a.service_id ? serviceById.get(a.service_id) : undefined
           const expected = a.price_override ?? svc?.price ?? 0
-          const paid = payments.filter((p) => p.appointment_id === a.id).reduce((s, p) => s + p.amount, 0)
+          const paid = activePayments.filter((p) => p.appointment_id === a.id).reduce((s, p) => s + p.amount, 0)
           return { appt: a, svc, expected, paid, remaining: expected - paid }
         }),
-    [appointments, payments, serviceById],
+    [appointments, activePayments, serviceById],
   )
 
-  const totalPaid = useMemo(() => payments.reduce((s, p) => s + p.amount, 0), [payments])
+  const totalPaid = useMemo(() => activePayments.reduce((s, p) => s + p.amount, 0), [activePayments])
   const totalRemaining = useMemo(
     () =>
       packageStats.reduce((s, p) => s + Math.max(0, p.remaining), 0) +
@@ -225,7 +231,7 @@ export default function CustomerDetailPage() {
   )
 
   const paymentTargetOptions = useMemo(() => {
-    const opts = [{ value: '', label: 'Serbest (belirli bir şeye bağlı değil)' }]
+    const opts: { value: string; label: string }[] = []
     for (const p of packageStats) {
       if (p.remaining > 0) {
         opts.push({
@@ -248,7 +254,7 @@ export default function CustomerDetailPage() {
   async function submitPayment(e: FormEvent) {
     e.preventDefault()
     const amount = Number(payAmount)
-    if (!amount || amount <= 0 || !id) return
+    if (!amount || amount <= 0 || !id || !payMethod) return
     setPaySubmitting(true)
     try {
       const package_id = payTarget.startsWith('pkg:') ? payTarget.slice(4) : null
@@ -265,13 +271,25 @@ export default function CustomerDetailPage() {
       })
       setPayModalOpen(false)
       setPayAmount('')
-      setPayMethod('nakit')
+      setPayMethod('')
       setPayTarget('')
       setPayNote('')
       await loadData()
     } finally {
       setPaySubmitting(false)
     }
+  }
+
+  // Iptal edilen bir odeme hicbir yerde tekrar duzenlenemez/iptal
+  // edilemez — voided_at set edildikten sonra bu satirin tek gorevi
+  // gecmiste var oldugunu gostermek.
+  async function voidPayment(p: Payment) {
+    const ok = window.confirm(
+      `${currency.format(p.amount)} tutarındaki ödemeyi iptal etmek istediğinize emin misiniz?\n\nBu işlem geri alınamaz; ödeme "Silindi" olarak listede kalır ama tüm bakiye hesaplarından düşer.`,
+    )
+    if (!ok) return
+    await supabase.from('payments').update({ voided_at: new Date().toISOString() }).eq('id', p.id)
+    await loadData()
   }
 
   // Admin herhangi bir odemeyi duzenleyebilir; normal kullanici sadece
@@ -375,7 +393,7 @@ export default function CustomerDetailPage() {
           <span className={styles.balanceValueOk}>{currency.format(totalPaid)}</span>
         </div>
         <div className={`card ${styles.balanceCard}`}>
-          <span className={styles.balanceLabel}>Kalan Bakiye</span>
+          <span className={styles.balanceLabel}>Kalan Ödeme</span>
           <span className={totalRemaining > 0 ? styles.balanceValueDanger : styles.balanceValueOk}>
             {totalRemaining > 0 ? currency.format(totalRemaining) : 'Borç yok'}
           </span>
@@ -468,7 +486,7 @@ export default function CustomerDetailPage() {
         ) : (
           <div className={styles.list}>
             {payments.map((p) => (
-              <div key={p.id} className={styles.paymentRow}>
+              <div key={p.id} className={p.voided_at ? `${styles.paymentRow} ${styles.paymentRowVoided}` : styles.paymentRow}>
                 <div className={styles.paymentRowMain}>
                   <span className={styles.paymentRowAmount}>{currency.format(p.amount)}</span>
                   <span className={styles.paymentRowMeta}>
@@ -476,15 +494,29 @@ export default function CustomerDetailPage() {
                     {p.note ? ` · ${p.note}` : ''}
                   </span>
                 </div>
-                {canEditPayment(p) && (
-                  <button
-                    type="button"
-                    className={styles.editPaymentBtn}
-                    onClick={() => openEditPayment(p)}
-                    aria-label="Ödemeyi düzenle"
-                  >
-                    <PencilIcon width={14} height={14} />
-                  </button>
+                {p.voided_at ? (
+                  <span className={styles.voidedBadge}>Silindi</span>
+                ) : (
+                  canEditPayment(p) && (
+                    <div className={styles.paymentRowActions}>
+                      <button
+                        type="button"
+                        className={styles.editPaymentBtn}
+                        onClick={() => openEditPayment(p)}
+                        aria-label="Ödemeyi düzenle"
+                      >
+                        <PencilIcon width={14} height={14} />
+                      </button>
+                      <button
+                        type="button"
+                        className={styles.voidPaymentBtn}
+                        onClick={() => voidPayment(p)}
+                        aria-label="Ödemeyi iptal et"
+                      >
+                        <TrashIcon width={14} height={14} />
+                      </button>
+                    </div>
+                  )
                 )}
               </div>
             ))}
@@ -527,7 +559,7 @@ export default function CustomerDetailPage() {
                 <label htmlFor="payNote">Not (opsiyonel)</label>
                 <input id="payNote" value={payNote} onChange={(e) => setPayNote(e.target.value)} placeholder="ör. indirimli ödendi" />
               </div>
-              <button type="submit" className="btn-primary" disabled={paySubmitting}>
+              <button type="submit" className="btn-primary" disabled={paySubmitting || !payMethod}>
                 {paySubmitting ? 'Kaydediliyor…' : 'Ödemeyi Kaydet'}
               </button>
             </form>

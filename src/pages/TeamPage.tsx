@@ -113,7 +113,7 @@ export default function TeamPage() {
         .order('full_name'),
       supabase.from('employee_time_blocks').select('profile_id, block_date, end_date'),
       supabase.from('appointments').select('id, employee_id, service_id, status, scheduled_at'),
-      supabase.from('payments').select('id, amount, appointment_id').eq('paid_at', todayLocalDateString()),
+      supabase.from('payments').select('id, amount, appointment_id').is('voided_at', null).eq('paid_at', todayLocalDateString()),
     ])
     setEmployees(profs ?? [])
     setTimeBlocks(blocks ?? [])

@@ -384,15 +384,7 @@
 
 .quickRow {
   display: flex;
-  gap: 10px;
-  overflow-x: auto;
-  padding-bottom: 2px;
-  scrollbar-width: none;
-  -ms-overflow-style: none;
-}
-
-.quickRow::-webkit-scrollbar {
-  display: none;
+  gap: 6px;
 }
 
 .quickBtn {
@@ -400,18 +392,21 @@
   display: flex;
   flex-direction: column;
   align-items: center;
-  gap: 8px;
-  flex-shrink: 0;
-  width: 84px;
+  gap: 6px;
+  flex: 1;
+  min-width: 0;
   background: var(--panel);
   border: 1px solid var(--line);
   border-radius: var(--radius-lg);
-  padding: 14px 8px;
-  font-size: 12px;
+  padding: 12px 4px;
+  font-size: 10.5px;
   font-weight: 600;
   color: var(--text);
   font-family: var(--font-body);
   cursor: pointer;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
 }
 
 .quickBtn:disabled {
@@ -420,14 +415,15 @@
 }
 
 .quickIcon {
-  width: 38px;
-  height: 38px;
-  border-radius: 12px;
+  width: 34px;
+  height: 34px;
+  border-radius: 11px;
   background: var(--panel-2);
   color: var(--text-dim);
   display: flex;
   align-items: center;
   justify-content: center;
+  flex-shrink: 0;
 }
 
 .quickBadge {

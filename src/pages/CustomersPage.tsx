@@ -2,20 +2,7 @@ import { useEffect, useMemo, useRef, useState } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { supabase } from '../lib/supabase'
 import Avatar from '../components/Avatar'
-import QuickAddCustomerModal from '../components/QuickAddCustomerModal'
-import {
-  SearchIcon,
-  FilterIcon,
-  CheckCircleIcon,
-  UsersIcon,
-  UserPlusIcon,
-  StarIcon,
-  WalletIcon,
-  ClockIcon,
-  CalendarIcon,
-  DownloadIcon,
-  ChevronRightIcon,
-} from '../components/icons'
+import { SearchIcon, FilterIcon, CheckCircleIcon, UsersIcon, UserPlusIcon, StarIcon, WalletIcon, ChevronRightIcon } from '../components/icons'
 import styles from './CustomersPage.module.css'
 
 interface Customer {
@@ -59,7 +46,7 @@ interface Payment {
   paid_at: string
 }
 
-type Segment = 'sadik' | 'yeni' | 'pasif'
+type Segment = 'sadik' | 'yeni'
 type SegmentFilter = 'tumu' | Segment | 'borclu'
 type SortBy = 'ad' | 'son_randevu' | 'harcama'
 type StatsPeriod = 'tumu' | 'hafta' | 'ay'
@@ -71,10 +58,9 @@ const STATS_PERIODS: { value: StatsPeriod; label: string }[] = [
 ]
 
 const LOYAL_APPT_THRESHOLD = 3
-const INACTIVE_DAYS = 90
-// Yuzlerce musteriyi (ör. "Pasif" segmentinde 600+) tek seferde DOM'a basmak
-// her arama tuş vuruşunda/segment degisiminde gozle gorulur bir gecikmeye
-// (yeniden cizim maliyeti) yol aciyordu — liste bu sayida parca parca aciliyor.
+// Yuzlerce musteriyi tek seferde DOM'a basmak her arama tuş vuruşunda/segment
+// degisiminde gozle gorulur bir gecikmeye (yeniden cizim maliyeti) yol
+// aciyordu — liste bu sayida parca parca aciliyor.
 const PAGE_SIZE = 60
 
 const SEGMENT_TABS: { value: SegmentFilter; label: string }[] = [
@@ -82,7 +68,6 @@ const SEGMENT_TABS: { value: SegmentFilter; label: string }[] = [
   { value: 'borclu', label: 'Borçlu' },
   { value: 'sadik', label: 'Sadık' },
   { value: 'yeni', label: 'Yeni' },
-  { value: 'pasif', label: 'Pasif' },
 ]
 
 const SORT_OPTIONS: { value: SortBy; label: string }[] = [
@@ -94,17 +79,12 @@ const SORT_OPTIONS: { value: SortBy; label: string }[] = [
 const SEGMENT_BADGE: Record<Segment, { label: string; icon: typeof StarIcon; className: string }> = {
   sadik: { label: 'Sadık Müşteri', icon: StarIcon, className: 'badgeSadik' },
   yeni: { label: 'Yeni Müşteri', icon: UserPlusIcon, className: 'badgeYeni' },
-  pasif: { label: 'Pasif Müşteri', icon: ClockIcon, className: 'badgePasif' },
 }
 
 const currency = new Intl.NumberFormat('tr-TR', { style: 'currency', currency: 'TRY', maximumFractionDigits: 0 })
 
 function monthStart(d: Date) {
   return new Date(d.getFullYear(), d.getMonth(), 1)
-}
-
-function csvEscape(v: string) {
-  return `"${v.replace(/"/g, '""')}"`
 }
 
 function toLocalDateString(d: Date) {
@@ -131,7 +111,6 @@ export default function CustomersPage() {
   const [segmentFilter, setSegmentFilter] = useState<SegmentFilter>('tumu')
   const [sortBy, setSortBy] = useState<SortBy>('ad')
   const [sortMenuOpen, setSortMenuOpen] = useState(false)
-  const [quickAddOpen, setQuickAddOpen] = useState(false)
   const [visibleCount, setVisibleCount] = useState(PAGE_SIZE)
 
   const sortMenuRef = useRef<HTMLDivElement>(null)
@@ -157,7 +136,7 @@ export default function CustomersPage() {
           .from('appointments')
           .select('id, customer_id, service_id, status, scheduled_at, package_id, price_override'),
         supabase.from('service_packages').select('id, customer_id, service_id, total_sessions, session_offset'),
-        supabase.from('payments').select('id, customer_id, amount, appointment_id, package_id, paid_at'),
+        supabase.from('payments').select('id, customer_id, amount, appointment_id, package_id, paid_at').is('voided_at', null),
         supabase.from('services').select('id, price'),
       ])
       setCustomers(custs ?? [])
@@ -253,21 +232,19 @@ export default function CustomersPage() {
     return map
   }, [packages, payments, appointments, servicePriceById])
 
-  // Yeni (bu ay eklendi) > Sadik (3+ tamamlanan randevu) > Pasif (90+ gundur
-  // randevusu yok) onceligiyle TEK bir segmente atanir; hicbirine uymayan
-  // musteriler sadece "Tumu" sekmesinde gorunur, satirda rozet tasimaz.
+  // Yeni (bu ay eklendi) > Sadik (3+ tamamlanan randevu) onceligiyle TEK bir
+  // segmente atanir; hicbirine uymayan musteriler sadece "Tumu" sekmesinde
+  // gorunur, satirda rozet tasimaz.
   function segmentFor(customerId: string): Segment | null {
     const s = statsByCustomer.get(customerId)
     if (!s) return null
     if (s.isNewThisMonth) return 'yeni'
     if (s.completedCount >= LOYAL_APPT_THRESHOLD) return 'sadik'
-    const daysSinceLast = s.lastApptAt ? (now.getTime() - s.lastApptAt.getTime()) / 86400000 : Infinity
-    if (daysSinceLast > INACTIVE_DAYS) return 'pasif'
     return null
   }
 
   const counts = useMemo(() => {
-    const c = { tumu: customers.length, sadik: 0, yeni: 0, pasif: 0, borclu: 0 }
+    const c = { tumu: customers.length, sadik: 0, yeni: 0, borclu: 0 }
     for (const cust of customers) {
       const seg = segmentFor(cust.id)
       if (seg) c[seg]++
@@ -327,28 +304,6 @@ export default function CustomersPage() {
   }, [q, segmentFilter, sortBy])
 
   const visibleCustomers = filteredSorted.slice(0, visibleCount)
-
-  function exportCsv() {
-    const header = ['Ad Soyad', 'Telefon', 'E-posta', 'Son Randevu', 'Toplam Harcama']
-    const rows = filteredSorted.map((c) => {
-      const s = statsByCustomer.get(c.id)
-      return [
-        c.full_name,
-        customerPhone(c) ?? '',
-        c.email ?? '',
-        s?.lastApptAt ? s.lastApptAt.toLocaleDateString('tr-TR') : '',
-        s ? String(s.totalSpend) : '0',
-      ]
-    })
-    const csv = [header, ...rows].map((r) => r.map(csvEscape).join(',')).join('\n')
-    const blob = new Blob(['﻿' + csv], { type: 'text/csv;charset=utf-8' })
-    const url = URL.createObjectURL(blob)
-    const a = document.createElement('a')
-    a.href = url
-    a.download = 'musteriler.csv'
-    a.click()
-    URL.revokeObjectURL(url)
-  }
 
   return (
     <div className={styles.wrap}>
@@ -521,56 +476,6 @@ export default function CustomersPage() {
         </div>
       )}
 
-      <div className={styles.quickRow}>
-        <button type="button" className={styles.quickBtn} onClick={() => setQuickAddOpen(true)}>
-          <span className={`${styles.quickIcon} ${styles.quickIconSignal}`}>
-            <UserPlusIcon width={15} height={15} />
-          </span>
-          Yeni Müşteri Ekle
-        </button>
-        <button type="button" className={styles.quickBtn} onClick={() => navigate('/randevular?yeni=1')}>
-          <span className={`${styles.quickIcon} ${styles.quickIconOk}`}>
-            <CalendarIcon width={15} height={15} />
-          </span>
-          Hızlı Randevu Oluştur
-        </button>
-        <button type="button" className={styles.quickBtn} disabled>
-          <span className={styles.quickIcon}>
-            <UsersIcon width={15} height={15} />
-          </span>
-          Müşteri Grupları
-          <span className={styles.quickBadge}>Yakında</span>
-        </button>
-        <button type="button" className={styles.quickBtn} onClick={exportCsv}>
-          <span className={`${styles.quickIcon} ${styles.quickIconInfo}`}>
-            <DownloadIcon width={15} height={15} />
-          </span>
-          Listeyi Dışa Aktar
-        </button>
-      </div>
-
-      {quickAddOpen && (
-        <QuickAddCustomerModal
-          onClose={() => setQuickAddOpen(false)}
-          onCreated={(created) => {
-            setCustomers((prev) =>
-              [
-                ...prev,
-                {
-                  id: created.id,
-                  full_name: created.full_name,
-                  phone: null,
-                  contact_phone: null,
-                  email: null,
-                  created_at: new Date().toISOString(),
-                },
-              ].sort(
-                (a, b) => a.full_name.localeCompare(b.full_name, 'tr'),
-              ),
-            )
-          }}
-        />
-      )}
     </div>
   )
 }
