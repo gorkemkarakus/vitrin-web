@@ -18,6 +18,8 @@ import MorePage from './pages/MorePage'
 import CustomersPage from './pages/CustomersPage'
 import CustomerDetailPage from './pages/CustomerDetailPage'
 import EmployeeDetailPage from './pages/EmployeeDetailPage'
+import EmployeeSchedulePage from './pages/EmployeeSchedulePage'
+import EmployeeLeavesPage from './pages/EmployeeLeavesPage'
 import HolidaysPage from './pages/HolidaysPage'
 import PerformanceReportPage from './pages/PerformanceReportPage'
 import GiderlerPage from './pages/GiderlerPage'
@@ -97,6 +99,14 @@ function AppRoutes() {
             <Route
               path="ekip/:id"
               element={<ProtectedRoute adminOnly><EmployeeDetailPage /></ProtectedRoute>}
+            />
+            <Route
+              path="ekip/:id/saatler"
+              element={<ProtectedRoute adminOnly><EmployeeSchedulePage /></ProtectedRoute>}
+            />
+            <Route
+              path="ekip/:id/izinler"
+              element={<ProtectedRoute adminOnly><EmployeeLeavesPage /></ProtectedRoute>}
             />
             <Route
               path="hizmetler"

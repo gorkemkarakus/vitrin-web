@@ -4,78 +4,160 @@
   gap: 16px;
 }
 
-.backBtn {
+/* ---------- Ust satir: geri + avatar + isim + "..." ---------- */
+
+.topRow {
   display: flex;
   align-items: center;
-  gap: 4px;
-  align-self: flex-start;
-  background: none;
-  border: none;
-  color: var(--text-dim);
-  font-size: 13px;
-  font-weight: 600;
-  font-family: var(--font-body);
+  gap: 12px;
+}
+
+.backBtn {
+  flex-shrink: 0;
+  width: 34px;
+  height: 34px;
+  border-radius: 50%;
+  border: 1px solid var(--line);
+  background: var(--panel);
+  color: var(--text);
   cursor: pointer;
-  padding: 0;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
 }
 
 .backIcon {
   transform: rotate(180deg);
 }
 
-.infoBanner {
-  display: flex;
-  align-items: center;
-  gap: 10px;
-  background: #eaf1fb;
-  border: 1px solid #d3e3f8;
-  border-radius: var(--radius-lg);
-  padding: 12px 14px;
-  font-size: 12.5px;
-  line-height: 1.4;
-  color: var(--signal);
-}
-
-.infoBanner svg {
-  flex-shrink: 0;
-}
-
-/* ---------- Ust bilgi karti ---------- */
-
-.headerCard {
-  display: flex;
-  align-items: center;
-  gap: 14px;
-}
-
-.headerInfo {
+.topInfo {
   display: flex;
   flex-direction: column;
-  gap: 4px;
+  gap: 1px;
   min-width: 0;
   flex: 1;
 }
 
-.headerName {
+.topName {
   font-family: var(--font-heading);
-  font-size: 17px;
+  font-size: 16px;
   font-weight: 600;
   color: var(--text);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
 }
 
-.headerLine {
+.topSpecialty {
+  font-size: 12px;
+  color: var(--text-dim);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.moreBtn {
+  flex-shrink: 0;
+  width: 34px;
+  height: 34px;
+  border-radius: 50%;
+  border: 1px solid var(--line);
+  background: var(--panel);
+  color: var(--text-dim);
+  cursor: pointer;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+}
+
+/* ---------- Sekme cubugu ---------- */
+
+.tabBar {
   display: flex;
   align-items: center;
-  gap: 6px;
-  font-size: 12.5px;
+  gap: 4px;
+  background: var(--panel);
+  border: 1px solid var(--line);
+  border-radius: var(--radius-lg);
+  padding: 4px;
+  overflow-x: auto;
+  scrollbar-width: none;
+}
+
+.tabBar::-webkit-scrollbar {
+  display: none;
+}
+
+.tab,
+.tabActive {
+  flex-shrink: 0;
+  width: auto;
+  border: none;
+  background: none;
+  border-radius: 10px;
+  padding: 9px 11px;
+  font-size: 12px;
+  font-weight: 600;
+  font-family: var(--font-body);
   color: var(--text-dim);
+  cursor: pointer;
+  white-space: nowrap;
+}
+
+.tabActive {
+  background: var(--signal);
+  color: #fff;
+  cursor: default;
+}
+
+/* ---------- Istatistik kartlari ---------- */
+
+.statsRow {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 8px;
+}
+
+.statCard {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  background: var(--panel);
+  border: 1px solid var(--line);
+  border-radius: var(--radius-lg);
+  padding: 12px 10px;
+  min-width: 0;
+}
+
+.statCardHead {
+  display: flex;
+  align-items: center;
+  gap: 5px;
+  color: var(--text-dim);
+  font-size: 10.5px;
+  font-weight: 600;
+}
+
+.statCardValue {
+  font-family: var(--font-heading);
+  font-size: 16px;
+  font-weight: 700;
+  color: var(--text);
+  font-variant-numeric: tabular-nums;
+}
+
+.statCardSub {
+  font-size: 9.5px;
+  color: var(--text-dim);
+  line-height: 1.35;
 }
 
 .statusPill {
+  align-self: flex-start;
   flex-shrink: 0;
-  font-size: 10.5px;
+  font-size: 10px;
   font-weight: 700;
-  padding: 4px 10px;
+  padding: 3px 9px;
   border-radius: 999px;
   white-space: nowrap;
 }
@@ -95,22 +177,386 @@
   background: var(--panel-2);
 }
 
-.activeToggleRow {
+/* ---------- Kart baslik + Duzenle linki ---------- */
+
+.sectionHead {
   display: flex;
   align-items: center;
   justify-content: space-between;
-  gap: 10px;
-  font-size: 13px;
+  gap: 12px;
+  margin-bottom: 14px;
+}
+
+.sectionHead h2 {
+  margin-bottom: 0;
+}
+
+.editLink {
+  flex-shrink: 0;
+  display: flex;
+  align-items: center;
+  gap: 5px;
+  width: auto;
+  background: none;
+  border: none;
+  color: var(--signal);
+  font-size: 12.5px;
+  font-weight: 600;
+  font-family: var(--font-body);
+  padding: 0;
+  cursor: pointer;
+}
+
+.editLink:hover {
+  text-decoration: underline;
+}
+
+/* ---------- Gun pill secici ---------- */
+
+.dayPillRow {
+  display: flex;
+  gap: 6px;
+  overflow-x: auto;
+  margin-bottom: 14px;
+  scrollbar-width: none;
+}
+
+.dayPillRow::-webkit-scrollbar {
+  display: none;
+}
+
+.dayPill,
+.dayPillActive {
+  flex-shrink: 0;
+  width: 42px;
+  height: 36px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: 10px;
+  font-size: 12.5px;
+  font-weight: 600;
+  font-family: var(--font-body);
+  cursor: pointer;
+}
+
+.dayPill {
+  background: var(--panel-2);
+  border: 1px solid var(--line);
   color: var(--text-dim);
 }
 
-.activeToggleRow strong {
+.dayPill:hover {
   color: var(--text);
+  border-color: var(--text-dim);
 }
 
-.activeToggleRow button {
-  width: auto;
-  padding: 7px 14px;
+.dayPillActive {
+  background: var(--signal);
+  border: 1px solid var(--signal);
+  color: #fff;
+}
+
+/* ---------- Secili gunun saat araliklari ---------- */
+
+.rangeList {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  margin-bottom: 14px;
+}
+
+.rangeRow {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  width: 100%;
+  background: var(--panel-2);
+  border: 1px solid var(--line);
+  border-radius: var(--radius-sm);
+  padding: 11px 12px;
+  cursor: pointer;
+  text-align: left;
+  font-family: var(--font-body);
+}
+
+.rangeRow:hover {
+  border-color: var(--text-dim);
+}
+
+.rangeDot {
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  flex-shrink: 0;
+}
+
+.rangeDotWork {
+  background: var(--ok-text);
+}
+
+.rangeDotBreak {
+  background: var(--warn-text);
+}
+
+.rangeText {
+  font-size: 13.5px;
+  font-weight: 600;
+  color: var(--text);
+  font-variant-numeric: tabular-nums;
+}
+
+.rangeTextCol {
+  display: flex;
+  flex-direction: column;
+  gap: 1px;
+  flex: 1;
+  min-width: 0;
+}
+
+.rangeSub {
+  font-size: 11px;
+  color: var(--text-dim);
+}
+
+.rangeRow > .rangeText {
+  flex: 1;
+}
+
+.rangeBadge {
+  flex-shrink: 0;
+  font-size: 10.5px;
+  font-weight: 700;
+  padding: 3px 9px;
+  border-radius: 999px;
+  white-space: nowrap;
+}
+
+.rangeBadgeWork {
+  color: var(--ok-text);
+  background: var(--ok-bg);
+}
+
+.rangeBadgeBreak {
+  color: var(--warn-text);
+  background: var(--warn-bg);
+}
+
+.rangeChevron {
+  flex-shrink: 0;
+  color: var(--text-dim);
+}
+
+.emptyDay {
+  color: var(--text-dim);
+  font-size: 13px;
+  margin-bottom: 14px;
+}
+
+/* ---------- Cerceveli "ekle" butonu ---------- */
+
+.outlineAddBtn {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  width: 100%;
+  background: var(--panel);
+  border: 1px solid var(--signal);
+  color: var(--signal);
+  border-radius: 999px;
+  padding: 12px;
+  font-size: 13.5px;
+  font-weight: 600;
+  font-family: var(--font-body);
+  cursor: pointer;
+  margin-bottom: 14px;
+}
+
+.outlineAddBtn:hover {
+  background: #eaf1fb;
+}
+
+.infoBanner {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  background: #eaf1fb;
+  border: 1px solid #d3e3f8;
+  border-radius: var(--radius-lg);
+  padding: 12px 14px;
+  font-size: 12.5px;
+  line-height: 1.4;
+  color: var(--signal);
+}
+
+.infoBanner svg {
+  flex-shrink: 0;
+}
+
+/* ---------- Izin filtre segmenti ---------- */
+
+.leaveFilterToggle {
+  display: flex;
+  gap: 6px;
+  background: var(--panel-2);
+  border-radius: 10px;
+  padding: 3px;
+  margin-bottom: 14px;
+}
+
+.leaveFilterTab,
+.leaveFilterTabActive {
+  flex: 1;
+  min-width: 0;
+  border: none;
+  background: none;
+  border-radius: 8px;
+  padding: 9px 6px;
+  font-size: 12px;
+  font-weight: 600;
+  font-family: var(--font-body);
+  color: var(--text-dim);
+  cursor: pointer;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.leaveFilterTabActive {
+  background: var(--signal);
+  color: #fff;
+}
+
+/* ---------- Izin ozet listesi ---------- */
+
+.leaveSummaryList {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  margin-bottom: 14px;
+}
+
+.leaveSummaryRow {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  width: 100%;
+  background: var(--panel-2);
+  border: 1px solid var(--line);
+  border-radius: var(--radius-sm);
+  padding: 10px 12px;
+  cursor: pointer;
+  text-align: left;
+  font-family: var(--font-body);
+}
+
+.leaveSummaryRow:hover {
+  border-color: var(--text-dim);
+}
+
+.leaveSummaryIcon {
+  flex-shrink: 0;
+  width: 32px;
+  height: 32px;
+  border-radius: 9px;
+  background: #ede9fe;
+  color: #5b21b6;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.leaveSummaryText {
+  display: flex;
+  flex-direction: column;
+  gap: 1px;
+  flex: 1;
+  min-width: 0;
+}
+
+.leaveSummaryDate {
+  font-size: 13px;
+  font-weight: 700;
+  color: var(--text);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.leaveSummarySub {
+  font-size: 11.5px;
+  color: var(--text-dim);
+}
+
+.leaveSummaryBadge {
+  flex-shrink: 0;
+  font-size: 10.5px;
+  font-weight: 700;
+  padding: 3px 9px;
+  border-radius: 999px;
+  color: #5b21b6;
+  background: #ede9fe;
+  white-space: nowrap;
+}
+
+.leaveSummaryMore {
+  flex-shrink: 0;
+  color: var(--text-dim);
+}
+
+/* ---------- Hizli durum ---------- */
+
+.quickStatusRow {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 8px;
+}
+
+.quickStatusBtn,
+.quickStatusBtnActiveAktif,
+.quickStatusBtnActiveIzinli,
+.quickStatusBtnActivePasif {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+  border-radius: var(--radius-sm);
+  padding: 11px 6px;
+  font-size: 12px;
+  font-weight: 600;
+  font-family: var(--font-body);
+  cursor: pointer;
+  white-space: nowrap;
+}
+
+.quickStatusBtn {
+  background: var(--panel-2);
+  border: 1px solid var(--line);
+  color: var(--text-dim);
+}
+
+.quickStatusBtn:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
+.quickStatusBtnActiveAktif {
+  background: var(--ok-bg);
+  border: 1px solid var(--ok-text);
+  color: var(--ok-text);
+}
+
+.quickStatusBtnActiveIzinli {
+  background: #ede9fe;
+  border: 1px solid #ddd6fe;
+  color: #5b21b6;
+}
+
+.quickStatusBtnActivePasif {
+  background: var(--panel-2);
+  border: 1px solid var(--text-dim);
+  color: var(--text-dim);
 }
 
 /* ---------- Alanlar ---------- */
@@ -177,604 +623,4 @@
 .empty {
   color: var(--text-dim);
   font-size: 13px;
-}
-
-/* ---------- Haftalik program karti: baslik + sutun basliklari ---------- */
-
-.scheduleSubtitle {
-  font-size: 12.5px;
-  color: var(--text-dim);
-  margin-top: 2px;
-}
-
-.scheduleColumnHeader {
-  display: flex;
-  align-items: center;
-  gap: 12px;
-  padding-bottom: 10px;
-  margin-bottom: 6px;
-  border-bottom: 1px solid var(--line);
-}
-
-.scheduleColumnHeader span {
-  font-size: 11px;
-  font-weight: 700;
-  color: var(--text-dim);
-  text-transform: uppercase;
-  letter-spacing: 0.04em;
-}
-
-.scheduleColumnHeaderDay {
-  width: 76px;
-  flex-shrink: 0;
-}
-
-/* ---------- Gun satirlari ---------- */
-
-.dayList {
-  display: flex;
-  flex-direction: column;
-  gap: 20px;
-  margin: 18px 0 16px;
-}
-
-.dayRow {
-  display: flex;
-  flex-direction: column;
-  gap: 8px;
-}
-
-.dayOffRow {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  gap: 12px;
-  opacity: 0.55;
-}
-
-/* Switch'i akistan cikarip sag-usta sabitliyoruz — aksi halde 3 esnek
-   ogenin (gun bilgisi + saat girdileri + switch) toplam genisligi dar
-   telefon ekranlarinda native saat input'unun kucultulemeyen genisligi
-   yuzunden sigmiyip switch'i kendi satirina fircalatiyordu. */
-.dayRowTop {
-  position: relative;
-  display: flex;
-  align-items: flex-start;
-  gap: 10px;
-  padding-right: 42px;
-}
-
-.dayRowTop > .switch {
-  position: absolute;
-  top: 0;
-  right: 0;
-  margin-top: 2px;
-}
-
-.switch {
-  position: relative;
-  display: inline-block;
-  flex-shrink: 0;
-  width: 40px;
-  height: 24px;
-  margin-top: 2px;
-  cursor: pointer;
-}
-
-.switch input {
-  position: absolute;
-  opacity: 0;
-  width: 0;
-  height: 0;
-}
-
-.switchTrack {
-  position: absolute;
-  inset: 0;
-  background: var(--line);
-  border-radius: 999px;
-  transition: background 0.15s;
-}
-
-.switchTrack::before {
-  content: '';
-  position: absolute;
-  left: 3px;
-  top: 3px;
-  width: 18px;
-  height: 18px;
-  background: #fff;
-  border-radius: 50%;
-  box-shadow: 0 1px 3px rgba(31, 41, 55, 0.25);
-  transition: transform 0.15s;
-}
-
-.switch input:checked + .switchTrack {
-  background: var(--signal);
-}
-
-.switch input:checked + .switchTrack::before {
-  transform: translateX(16px);
-}
-
-.dayInfo {
-  display: flex;
-  flex-direction: column;
-  gap: 1px;
-  width: 62px;
-  flex-shrink: 0;
-}
-
-.dayName {
-  font-size: 13px;
-  font-weight: 700;
-  color: var(--text);
-}
-
-.dayStatus {
-  display: flex;
-  align-items: center;
-  gap: 5px;
-  font-size: 11.5px;
-  color: var(--text-dim);
-  font-weight: 500;
-}
-
-.dayStatusDot {
-  width: 6px;
-  height: 6px;
-  border-radius: 50%;
-  flex-shrink: 0;
-}
-
-.dayStatusDot_calisma {
-  background: var(--ok-text);
-}
-
-.dayStatusDot_kisa {
-  background: var(--warn-text);
-}
-
-.dayStatusDot_yok {
-  background: var(--text-dim);
-}
-
-.dayRangesCol {
-  display: flex;
-  flex-direction: column;
-  gap: 10px;
-  flex: 1;
-  min-width: 150px;
-}
-
-.rangeGroup {
-  display: flex;
-  flex-direction: column;
-  gap: 3px;
-}
-
-.rangeLabel {
-  font-size: 10px;
-  font-weight: 700;
-  color: var(--ok-text);
-  text-transform: uppercase;
-  letter-spacing: 0.03em;
-}
-
-.rangeLabelBreak {
-  color: var(--warn-text);
-}
-
-.dayTimesRow {
-  display: flex;
-  align-items: center;
-  gap: 5px;
-  flex-wrap: wrap;
-}
-
-.extraRangeRemove {
-  flex-shrink: 0;
-  width: 26px;
-  height: 26px;
-  border-radius: 50%;
-  border: none;
-  background: var(--danger-bg);
-  color: var(--danger-text);
-  cursor: pointer;
-  display: inline-flex;
-  align-items: center;
-  justify-content: center;
-}
-
-.extraRangeRemove:hover {
-  background: rgba(220, 38, 38, 0.2);
-}
-
-.timeInput {
-  background: var(--panel-2);
-  border: 1px solid var(--line);
-  border-radius: var(--radius-sm);
-  color: var(--text);
-  font-size: 12px;
-  padding: 7px 4px;
-  outline: none;
-  width: 74px;
-  font-family: var(--font-body);
-  transition: border-color 0.15s;
-}
-
-.timeInput:focus {
-  border-color: var(--signal);
-}
-
-.addBreakBtn {
-  width: auto;
-  align-self: flex-start;
-  background: none;
-  border: none;
-  color: var(--signal);
-  font-size: 12.5px;
-  font-weight: 600;
-  font-family: var(--font-body);
-  padding: 0;
-  cursor: pointer;
-}
-
-.addBreakBtn:hover {
-  text-decoration: underline;
-}
-
-/* ---------- Haftalik program alt satiri ---------- */
-
-.scheduleFooter {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  gap: 12px;
-  flex-wrap: wrap;
-  margin-top: 4px;
-  padding-top: 14px;
-  border-top: 1px solid var(--line);
-}
-
-.scheduleFooterSummary {
-  font-size: 12.5px;
-  color: var(--text-dim);
-}
-
-.scheduleFooterActions {
-  display: flex;
-  align-items: center;
-  gap: 16px;
-}
-
-.jsonLink {
-  width: auto;
-  background: none;
-  border: none;
-  color: var(--signal);
-  font-size: 12.5px;
-  font-weight: 600;
-  font-family: var(--font-body);
-  padding: 0;
-  cursor: pointer;
-}
-
-.saveBtn {
-  width: auto;
-  padding: 10px 22px;
-  font-size: 13.5px;
-}
-
-.dayChip,
-.dayChipActive {
-  width: 42px;
-  height: 36px;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  font-size: 12.5px;
-  font-weight: 600;
-  border-radius: 10px;
-  cursor: pointer;
-  text-align: center;
-  transition:
-    background 0.15s,
-    border-color 0.15s,
-    color 0.15s,
-    transform 0.1s;
-}
-
-.dayChip {
-  background: var(--panel-2);
-  border: 1px solid var(--line);
-  color: var(--text-dim);
-}
-
-.dayChip:hover {
-  color: var(--text);
-  border-color: var(--text-dim);
-  background: var(--panel);
-}
-
-.dayChipActive {
-  background: var(--signal);
-  border: 1px solid var(--signal);
-  color: var(--signal-text);
-}
-
-.dayChipActive:active,
-.dayChip:active {
-  transform: scale(0.94);
-}
-
-.timeRow {
-  display: flex;
-  flex-wrap: wrap;
-  gap: 12px;
-  align-items: flex-end;
-}
-
-.timeField {
-  display: flex;
-  flex-direction: column;
-  gap: 6px;
-}
-
-.timeField label {
-  font-size: 11px;
-  color: var(--text-dim);
-  font-weight: 500;
-}
-
-.timeField select,
-.timeField input {
-  background: var(--panel-2);
-  border: 1px solid var(--line);
-  border-radius: var(--radius-sm);
-  color: var(--text);
-  font-size: 13px;
-  padding: 9px 10px;
-  outline: none;
-  min-width: 90px;
-  transition: border-color 0.15s;
-  font-family: var(--font-body);
-}
-
-.timeField select:focus,
-.timeField input:focus {
-  border-color: var(--signal);
-}
-
-.timeSep {
-  color: var(--text-dim);
-  padding-bottom: 9px;
-}
-
-.timeRow button {
-  width: auto;
-  padding: 9px 16px;
-  font-size: 13px;
-  margin-left: auto;
-  align-self: flex-end;
-}
-
-/* ---------- Izinli gunler ---------- */
-
-.leaveModeToggle {
-  display: inline-flex;
-  align-self: flex-start;
-  background: var(--panel-2);
-  border-radius: 10px;
-  padding: 3px;
-  gap: 2px;
-  margin-bottom: 18px;
-}
-
-.leaveModeTab,
-.leaveModeTabActive {
-  width: auto;
-  border: none;
-  background: none;
-  border-radius: 8px;
-  padding: 8px 16px;
-  font-size: 13px;
-  font-weight: 600;
-  font-family: var(--font-body);
-  color: var(--text-dim);
-  cursor: pointer;
-}
-
-.leaveModeTabActive {
-  background: var(--panel);
-  color: var(--text);
-  box-shadow: 0 1px 2px rgba(15, 23, 42, 0.08);
-}
-
-.leaveField {
-  display: flex;
-  flex-direction: column;
-  gap: 8px;
-  margin-bottom: 16px;
-}
-
-.leaveField label {
-  font-size: 13px;
-  font-weight: 600;
-  color: var(--text);
-}
-
-.leaveField input {
-  width: 100%;
-  background: var(--panel);
-  border: 1px solid var(--line);
-  border-radius: var(--radius-sm);
-  padding: 12px 14px;
-  font-size: 14px;
-  font-family: var(--font-body);
-  color: var(--text);
-  outline: none;
-}
-
-.leaveField input:focus {
-  border-color: var(--signal);
-}
-
-.leaveAllDayRow {
-  display: flex;
-  align-items: center;
-  gap: 10px;
-  margin-bottom: 16px;
-}
-
-.leaveAllDayRow span {
-  font-size: 13.5px;
-  font-weight: 600;
-  color: var(--text);
-}
-
-.leaveReasonRow {
-  display: flex;
-  flex-wrap: wrap;
-  gap: 8px;
-  margin-bottom: 16px;
-}
-
-.leaveReasonChip,
-.leaveReasonChipActive {
-  width: auto;
-  border-radius: 999px;
-  padding: 8px 16px;
-  font-size: 13px;
-  font-weight: 600;
-  font-family: var(--font-body);
-  cursor: pointer;
-}
-
-.leaveReasonChip {
-  background: var(--panel);
-  border: 1px solid var(--line);
-  color: var(--text);
-}
-
-.leaveReasonChip:hover {
-  border-color: var(--text-dim);
-}
-
-.leaveReasonChipActive {
-  background: #ede9fe;
-  border: 1px solid #ddd6fe;
-  color: #5b21b6;
-}
-
-.leaveLabelField {
-  display: flex;
-  flex-direction: column;
-  gap: 8px;
-  margin-bottom: 18px;
-}
-
-.leaveLabelField label {
-  font-size: 13px;
-  font-weight: 600;
-  color: var(--text);
-}
-
-.leaveLabelField input {
-  width: 100%;
-  background: var(--panel);
-  border: 1px solid var(--line);
-  border-radius: var(--radius-sm);
-  padding: 12px 14px;
-  font-size: 14px;
-  font-family: var(--font-body);
-  color: var(--text);
-  outline: none;
-}
-
-.leaveLabelField input:focus {
-  border-color: var(--signal);
-}
-
-.addLeaveBtn {
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  gap: 8px;
-  margin: 4px 0 22px;
-}
-
-.leaveListLabel {
-  font-size: 11px;
-  font-weight: 700;
-  color: var(--text-dim);
-  text-transform: uppercase;
-  letter-spacing: 0.06em;
-  margin-bottom: 10px;
-}
-
-.leaveEmpty {
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  justify-content: center;
-  gap: 8px;
-  border: 1px dashed var(--line);
-  border-radius: var(--radius-sm);
-  padding: 28px 16px;
-  color: var(--text-dim);
-  font-size: 13px;
-  text-align: center;
-}
-
-.leaveEmpty svg {
-  opacity: 0.55;
-}
-
-.leaveList {
-  display: flex;
-  flex-direction: column;
-  gap: 8px;
-}
-
-.leaveRow {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  gap: 10px;
-  background: var(--panel-2);
-  border: 1px solid var(--line);
-  border-radius: var(--radius-sm);
-  padding: 10px 12px;
-}
-
-.leaveRowDate {
-  font-size: 13px;
-  font-weight: 700;
-  color: var(--text);
-}
-
-.leaveRowMeta {
-  font-size: 12px;
-  color: var(--text-dim);
-  margin-top: 1px;
-}
-
-.leaveRemoveBtn {
-  flex-shrink: 0;
-  width: 26px;
-  height: 26px;
-  border-radius: 50%;
-  border: none;
-  background: transparent;
-  color: var(--text-dim);
-  cursor: pointer;
-  display: inline-flex;
-  align-items: center;
-  justify-content: center;
-}
-
-.leaveRemoveBtn:hover {
-  background: var(--danger-bg);
-  color: var(--danger-text);
 }
