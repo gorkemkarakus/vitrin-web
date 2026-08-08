@@ -392,7 +392,7 @@ export default function DashboardPage() {
             </span>
             Takvim
           </button>
-          <button type="button" className={styles.quickBtn} onClick={() => navigate('/muhasebe?yeni=1')}>
+          <button type="button" className={styles.quickBtn} onClick={() => navigate('/giderler?yeni=1')}>
             <span className={`${styles.quickIcon} ${styles.quickIconInfo}`}>
               <ReceiptIcon width={19} height={19} />
             </span>
@@ -439,7 +439,7 @@ export default function DashboardPage() {
       <div className="card">
         <div className={styles.sectionHead}>
           <h2>Yaklaşan Ödemeler</h2>
-          <button type="button" className={styles.sectionLink} onClick={() => navigate('/muhasebe')}>
+          <button type="button" className={styles.sectionLink} onClick={() => navigate('/giderler')}>
             Tümü <ChevronRightIcon width={14} height={14} />
           </button>
         </div>
@@ -473,7 +473,7 @@ export default function DashboardPage() {
             })}
           </div>
         )}
-        <button type="button" className={`btn-secondary ${styles.addPaymentBtn}`} onClick={() => navigate('/muhasebe?yeni=1')}>
+        <button type="button" className={`btn-secondary ${styles.addPaymentBtn}`} onClick={() => navigate('/giderler?yeni=1')}>
           + Ödeme Ekle
         </button>
       </div>

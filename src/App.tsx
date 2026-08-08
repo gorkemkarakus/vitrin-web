@@ -18,6 +18,7 @@ import MorePage from './pages/MorePage'
 import CustomersPage from './pages/CustomersPage'
 import CustomerDetailPage from './pages/CustomerDetailPage'
 import PerformanceReportPage from './pages/PerformanceReportPage'
+import GiderlerPage from './pages/GiderlerPage'
 import PublicBookingPage from './public/PublicBookingPage'
 import ResetPasswordPage from './pages/ResetPasswordPage'
 
@@ -102,6 +103,10 @@ function AppRoutes() {
             <Route
               path="performans-raporu"
               element={<ProtectedRoute adminOnly><PerformanceReportPage /></ProtectedRoute>}
+            />
+            <Route
+              path="giderler"
+              element={<ProtectedRoute adminOnly><GiderlerPage /></ProtectedRoute>}
             />
           </Route>
           <Route path="*" element={<Navigate to="/" replace />} />

@@ -278,216 +278,50 @@
   color: var(--text-dim);
 }
 
-.expenseSearchBox {
-  margin: 10px 0 14px;
-}
-
-/* ---------- Gider ekleme formu ---------- */
-
-.expenseForm {
-  display: flex;
-  align-items: flex-end;
-  gap: 12px;
-  flex-wrap: wrap;
-  margin-bottom: 18px;
-}
-
-.expenseField {
-  display: flex;
-  flex-direction: column;
-  gap: 6px;
-  flex: 1;
-  min-width: 160px;
-}
-
-.expenseField label {
-  font-size: 12px;
-  color: var(--text-dim);
-  font-weight: 500;
-}
-
-.expenseField input {
-  width: 100%;
-  background: var(--panel-2);
-  border: 1px solid var(--line);
-  border-radius: var(--radius-sm);
-  padding: 10px 12px;
-  color: var(--text);
-  font-size: 14px;
-  font-family: var(--font-body);
-  outline: none;
-  transition: border-color 0.15s;
-  color-scheme: dark;
-}
-
-.expenseField input:focus {
-  border-color: var(--signal);
-}
-
-.recurringToggle {
-  display: flex;
-  gap: 6px;
-}
-
-.recurringBtn,
-.recurringBtnActive {
-  flex: 1;
-  border: 1px solid var(--line);
-  background: var(--panel-2);
-  color: var(--text-dim);
-  border-radius: var(--radius-sm);
-  padding: 10px 8px;
-  font-size: 12.5px;
-  font-weight: 600;
-  font-family: var(--font-body);
-  cursor: pointer;
-  white-space: nowrap;
-}
-
-.recurringBtnActive {
-  background: var(--signal);
-  border-color: var(--signal);
-  color: #fff;
-}
-
 .empty {
   color: var(--text-dim);
   font-size: 13px;
 }
 
-.unpaidHint {
-  color: var(--danger-text);
-  font-size: 12px;
-  font-weight: 600;
+/* ---------- Giderler ozet karti ---------- */
+
+.giderlerHead {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 14px;
 }
 
-/* ---------- Liste satirlari (giderler / calisan ciro) ---------- */
+.sectionLink {
+  display: flex;
+  align-items: center;
+  gap: 2px;
+  background: none;
+  border: none;
+  color: var(--signal);
+  font-size: 12.5px;
+  font-weight: 600;
+  font-family: var(--font-body);
+  cursor: pointer;
+}
+
+.giderMiniGrid {
+  display: grid;
+  grid-template-columns: repeat(2, 1fr);
+  gap: 10px;
+}
+
+@media (min-width: 480px) {
+  .giderMiniGrid {
+    grid-template-columns: repeat(3, 1fr);
+  }
+}
+
+/* ---------- Liste satirlari (calisan / hizmet ciro) ---------- */
 
 .list {
   display: flex;
   flex-direction: column;
-}
-
-.expenseRow {
-  display: flex;
-  align-items: center;
-  gap: 10px;
-  padding: 12px 2px;
-  border-bottom: 1px solid var(--line);
-}
-
-.expenseRow:last-child {
-  border-bottom: none;
-}
-
-.expenseRowMain {
-  display: flex;
-  flex-direction: column;
-  gap: 2px;
-  min-width: 0;
-  flex: 1;
-}
-
-.expenseDescRow {
-  display: flex;
-  align-items: center;
-  gap: 6px;
-  min-width: 0;
-}
-
-.expenseDesc {
-  font-size: 13.5px;
-  font-weight: 600;
-  color: var(--text);
-  overflow: hidden;
-  text-overflow: ellipsis;
-  white-space: nowrap;
-  min-width: 0;
-}
-
-.recurringBadge {
-  flex-shrink: 0;
-  font-size: 9.5px;
-  font-weight: 700;
-  color: var(--signal);
-  background: #eaf1fb;
-  padding: 2px 7px;
-  border-radius: 999px;
-}
-
-.unpaidBadge {
-  flex-shrink: 0;
-  font-size: 9.5px;
-  font-weight: 700;
-  color: var(--danger-text);
-  background: var(--danger-bg);
-  padding: 2px 7px;
-  border-radius: 999px;
-}
-
-.overdueBadge {
-  flex-shrink: 0;
-  font-size: 9.5px;
-  font-weight: 700;
-  color: #fff;
-  background: var(--danger-text);
-  padding: 2px 7px;
-  border-radius: 999px;
-}
-
-.expenseDate {
-  font-size: 12px;
-  color: var(--text-dim);
-}
-
-.expenseAmount {
-  font-size: 13.5px;
-  font-weight: 700;
-  color: var(--danger-text);
-  flex-shrink: 0;
-  font-variant-numeric: tabular-nums;
-}
-
-.rowDeleteBtn {
-  flex-shrink: 0;
-  width: 28px;
-  height: 28px;
-  border-radius: 50%;
-  border: none;
-  background: transparent;
-  color: var(--text-dim);
-  cursor: pointer;
-  display: inline-flex;
-  align-items: center;
-  justify-content: center;
-}
-
-.rowDeleteBtn:hover {
-  background: var(--danger-bg);
-  color: var(--danger-text);
-}
-
-.paidToggleBtn,
-.paidToggleBtnActive {
-  flex-shrink: 0;
-  width: 28px;
-  height: 28px;
-  border-radius: 50%;
-  border: none;
-  cursor: pointer;
-  display: inline-flex;
-  align-items: center;
-  justify-content: center;
-}
-
-.paidToggleBtn {
-  background: var(--danger-bg);
-  color: var(--danger-text);
-}
-
-.paidToggleBtnActive {
-  background: var(--ok-bg);
-  color: var(--ok-text);
 }
 
 .employeeRow {
