@@ -464,3 +464,25 @@ export function PencilIcon(props: IconProps) {
     </svg>
   )
 }
+
+export function RobotIcon(props: IconProps) {
+  return (
+    <svg {...base} {...props}>
+      <rect x="4" y="9.5" width="16" height="10" rx="3" />
+      <path d="M12 6.5v-2M9.5 4.5h5" />
+      <circle cx="9" cy="14" r="1.1" fill="currentColor" stroke="none" />
+      <circle cx="15" cy="14" r="1.1" fill="currentColor" stroke="none" />
+      <path d="M9.5 17h5" />
+      <path d="M2.5 13v3M21.5 13v3" />
+    </svg>
+  )
+}
+
+export function SortIcon(props: IconProps) {
+  return (
+    <svg {...base} {...props}>
+      <path d="M7 4v16M7 4 3.5 7.5M7 4l3.5 3.5" />
+      <path d="M17 20V4M17 20l3.5-3.5M17 20l-3.5-3.5" />
+    </svg>
+  )
+}

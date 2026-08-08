@@ -42,6 +42,8 @@ interface EmployeeStatRow {
   totalRandevu: number
   completedCount: number
   revenue: number
+  primOrani: number
+  primHakedis: number
   uniqueCustomers: number
   leaveDayCount: number
   utilization: number
@@ -87,12 +89,14 @@ export async function generatePerformanceReportPdf(params: {
   onProgress(16, 'Çalışan özet tablosu hazırlanıyor…')
   report.addSectionTitle('Çalışan Özeti')
   report.addTable({
-    head: ['Çalışan', 'Randevu', 'Tamamlanan', 'Kazanç', 'Tamamlanma', 'Doluluk', 'İzin Günü', 'Müşteri'],
+    head: ['Çalışan', 'Randevu', 'Tamamlanan', 'Tahsilat', 'Prim Oranı', 'Prim Hakediş', 'Tamamlanma', 'Doluluk', 'İzin Günü', 'Müşteri'],
     body: employeeStats.map((e) => [
       e.profile.full_name ?? '—',
       String(e.totalRandevu),
       String(e.completedCount),
       currency.format(e.revenue),
+      `%${e.primOrani}`,
+      currency.format(e.primHakedis),
       `%${e.completionRate.toFixed(0)}`,
       `%${e.utilization.toFixed(0)}`,
       String(e.leaveDayCount),

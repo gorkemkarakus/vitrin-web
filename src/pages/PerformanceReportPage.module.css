@@ -1,7 +1,7 @@
 .wrap {
   display: flex;
   flex-direction: column;
-  gap: 20px;
+  gap: 16px;
 }
 
 /* ---------- Donem filtresi ---------- */
@@ -20,6 +20,9 @@
 
 .presetBtn,
 .presetBtnActive {
+  display: flex;
+  align-items: center;
+  gap: 5px;
   flex-shrink: 0;
   background: var(--panel);
   border: 1px solid var(--line);
@@ -45,21 +48,12 @@
   gap: 12px;
 }
 
-.exportBtn {
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  gap: 7px;
-  margin-top: -12px;
-  font-weight: 600;
-}
-
 /* ---------- KPI kartlari ---------- */
 
 .kpiGrid {
   display: grid;
   grid-template-columns: repeat(2, 1fr);
-  gap: 12px;
+  gap: 10px;
 }
 
 @media (min-width: 640px) {
@@ -69,102 +63,129 @@
 }
 
 .kpiCard {
-  position: relative;
-  overflow: hidden;
   display: flex;
   flex-direction: column;
-  gap: 5px;
-  min-height: 138px;
-  padding: 16px 16px 42px 16px;
+  align-items: center;
+  gap: 6px;
+  padding: 16px 10px;
   background: var(--panel);
   border: 1px solid var(--line);
   border-radius: var(--radius-lg);
   box-shadow: 0 1px 3px rgba(43, 43, 38, 0.06);
+  text-align: center;
 }
 
 .kpiIcon {
-  width: 34px;
-  height: 34px;
-  border-radius: 10px;
+  width: 38px;
+  height: 38px;
+  border-radius: 50%;
   display: flex;
   align-items: center;
   justify-content: center;
   flex-shrink: 0;
-  margin-bottom: 3px;
-}
-
-.kpiLabel {
-  font-size: 12px;
-  font-weight: 600;
-  color: var(--text-dim);
 }
 
 .kpiValue {
   font-family: var(--font-heading);
-  font-size: 22px;
-  font-weight: 600;
-  color: var(--text);
-  line-height: 1.15;
-}
-
-.kpiDeltaUp,
-.kpiDeltaDown,
-.kpiDeltaNeutral {
-  display: flex;
-  flex-direction: column;
-  gap: 1px;
-  font-size: 11.5px;
+  font-size: 17px;
   font-weight: 700;
+  color: var(--text);
+  line-height: 1.2;
 }
 
-.kpiDeltaMain {
-  white-space: nowrap;
-}
-
-.kpiDeltaUp {
-  color: var(--ok-text);
-}
-
-.kpiDeltaDown {
-  color: var(--danger-text);
-}
-
-.kpiDeltaNeutral {
+.kpiLabel {
+  font-size: 11px;
+  font-weight: 600;
   color: var(--text-dim);
 }
 
-.kpiDeltaSub {
-  font-weight: 500;
-  color: var(--text-dim);
-  white-space: nowrap;
+.exportBtn {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 7px;
+  font-weight: 600;
 }
 
-.kpiSparkWrap {
+/* ---------- Siralama + arama ---------- */
+
+.controlRow {
+  display: flex;
+  gap: 10px;
+  align-items: center;
+}
+
+.sortWrap {
+  position: relative;
+  flex: 1;
+  min-width: 0;
+  display: flex;
+  align-items: center;
+}
+
+.sortIcon {
   position: absolute;
-  left: 0;
-  right: 0;
-  bottom: 0;
-  height: 40px;
-  z-index: 0;
+  left: 12px;
+  color: var(--text-dim);
+  pointer-events: none;
+  z-index: 1;
 }
 
-.sparkline {
-  display: block;
+.sortWrap :global(button) {
+  padding-left: 32px;
+}
+
+.searchBox {
+  position: relative;
+  flex: 1;
+  min-width: 0;
+  display: flex;
+  align-items: center;
+}
+
+.searchIcon {
+  position: absolute;
+  left: 12px;
+  color: var(--text-dim);
+}
+
+.searchInput {
   width: 100%;
-  height: 100%;
+  background: var(--panel);
+  border: 1px solid var(--line);
+  border-radius: var(--radius-sm);
+  padding: 10px 12px 10px 34px;
+  font-size: 13px;
+  color: var(--text);
+  font-family: var(--font-body);
+  outline: none;
 }
 
-/* ---------- Bolum etiketi ---------- */
+.searchInput:focus {
+  border-color: var(--signal);
+}
+
+/* ---------- Calisanlar basligi ---------- */
+
+.sectionHead {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+}
 
 .sectionLabel {
-  font-size: 11px;
-  font-weight: 700;
-  color: var(--text-dim);
-  text-transform: uppercase;
-  letter-spacing: 0.07em;
+  font-family: var(--font-heading);
+  font-size: 16px;
+  font-weight: 600;
+  color: var(--text);
 }
 
-/* ---------- Calisan performans listesi ---------- */
+.sectionCount {
+  font-size: 12px;
+  color: var(--text-dim);
+}
+
+/* ---------- Calisan listesi ---------- */
 
 .employeeList {
   display: flex;
@@ -173,17 +194,40 @@
 }
 
 .employeeRow {
-  width: 100%;
   display: flex;
   align-items: center;
-  gap: 12px;
-  background: none;
-  border: none;
-  padding: 0;
-  text-align: left;
-  cursor: pointer;
-  font-family: var(--font-body);
-  color: var(--text);
+  gap: 10px;
+}
+
+.employeeRowFirst {
+  background: #fffbeb;
+  border-color: #f3d98b;
+}
+
+.rankBadge {
+  flex-shrink: 0;
+  width: 24px;
+  height: 24px;
+  border-radius: 50%;
+  background: var(--panel-2);
+  color: var(--text-dim);
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 11.5px;
+  font-weight: 700;
+}
+
+.botAvatar {
+  flex-shrink: 0;
+  width: 44px;
+  height: 44px;
+  border-radius: 50%;
+  background: var(--info-bg);
+  color: var(--signal);
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
 }
 
 .employeeMain {
@@ -191,101 +235,88 @@
   min-width: 0;
   display: flex;
   flex-direction: column;
-  gap: 8px;
+  gap: 6px;
+}
+
+.employeeNameRow {
+  display: flex;
+  align-items: center;
+  gap: 7px;
+  min-width: 0;
 }
 
 .employeeName {
-  font-size: 14.5px;
+  font-size: 14px;
   font-weight: 700;
   color: var(--text);
   overflow: hidden;
   text-overflow: ellipsis;
   white-space: nowrap;
+}
+
+.employeeTag {
+  flex-shrink: 0;
+  font-size: 10px;
+  font-weight: 700;
+  color: var(--signal-2);
+  background: #f2edfd;
+  padding: 2px 8px;
+  border-radius: 999px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  max-width: 130px;
 }
 
 .employeeStatsRow {
   display: flex;
-  gap: 16px;
+  align-items: center;
+  gap: 12px;
+  flex-wrap: wrap;
 }
 
 .employeeStat {
   display: flex;
-  flex-direction: column;
-  gap: 1px;
-  min-width: 0;
-}
-
-.employeeStatValue {
-  font-size: 13px;
-  font-weight: 700;
-  color: var(--text);
-  font-variant-numeric: tabular-nums;
-  overflow: hidden;
-  text-overflow: ellipsis;
+  align-items: center;
+  gap: 4px;
+  font-size: 12px;
+  color: var(--text-dim);
   white-space: nowrap;
 }
 
-.employeeStatLabel {
-  font-size: 10.5px;
-  color: var(--text-dim);
-}
-
-.employeeChevron {
+.primBox {
   flex-shrink: 0;
-  color: var(--text-dim);
-  transition: transform 0.15s;
-}
-
-.employeeChevronOpen {
-  transform: rotate(90deg);
-}
-
-/* ---------- Genisletilmis calisan detayi ---------- */
-
-.employeeDetail {
-  margin-top: 14px;
-  padding-top: 14px;
-  border-top: 1px solid var(--line);
   display: flex;
   flex-direction: column;
-  gap: 9px;
+  align-items: flex-end;
+  gap: 2px;
+  background: var(--ok-bg);
+  border-radius: 10px;
+  padding: 8px 10px;
+  min-width: 100px;
 }
 
-.employeeDetailRow {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  gap: 10px;
-}
-
-.employeeDetailLabel {
-  display: flex;
-  align-items: center;
-  gap: 5px;
-  font-size: 12.5px;
-  color: var(--text-dim);
-}
-
-.employeeDetailValue {
-  font-size: 12.5px;
+.primRate {
+  font-size: 9.5px;
   font-weight: 700;
-  color: var(--text);
-  text-align: right;
+  color: var(--ok-text);
+  white-space: nowrap;
 }
 
-.employeeSourceRow {
+.primAmount {
   display: flex;
-  flex-wrap: wrap;
-  gap: 6px;
+  align-items: center;
+  gap: 4px;
+  font-size: 13px;
+  font-weight: 700;
+  color: var(--ok-text);
+  white-space: nowrap;
 }
 
-.employeeSourceChip {
-  background: var(--panel-2);
-  color: var(--text-dim);
-  font-size: 11px;
-  font-weight: 600;
-  padding: 4px 9px;
-  border-radius: 999px;
+.primAmountLabel {
+  font-size: 9px;
+  color: var(--ok-text);
+  opacity: 0.75;
 }
 
 .empty {
