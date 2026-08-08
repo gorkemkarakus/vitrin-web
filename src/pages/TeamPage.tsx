@@ -1,15 +1,7 @@
 import { useMemo, useRef, useState, useEffect } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { supabase } from '../lib/supabase'
-import {
-  SearchIcon,
-  FilterIcon,
-  CheckCircleIcon,
-  UserPlusIcon,
-  ClockIcon,
-  MailIcon,
-  PhoneIcon,
-} from '../components/icons'
+import { SearchIcon, FilterIcon, CheckCircleIcon, PhoneIcon } from '../components/icons'
 import Avatar from '../components/Avatar'
 import styles from './TeamPage.module.css'
 
@@ -93,7 +85,6 @@ export default function TeamPage() {
   const [sortBy, setSortBy] = useState<SortBy>('ad')
   const [sortMenuOpen, setSortMenuOpen] = useState(false)
   const sortMenuRef = useRef<HTMLDivElement>(null)
-  const teamListRef = useRef<HTMLDivElement>(null)
 
   useEffect(() => {
     if (!sortMenuOpen) return
@@ -245,7 +236,7 @@ export default function TeamPage() {
         ))}
       </div>
 
-      <div className="card" ref={teamListRef}>
+      <div className="card">
         <div className={styles.list}>
           {filteredSorted.length === 0 ? (
             <p style={{ color: 'var(--text-dim)' }}>Ekip üyesi bulunamadı.</p>
@@ -293,32 +284,6 @@ export default function TeamPage() {
             })
           )}
         </div>
-      </div>
-
-      <div className={styles.quickRow}>
-        <button type="button" className={styles.quickBtn} onClick={() => navigate('/kullanicilar')}>
-          <span className={`${styles.quickIcon} ${styles.quickIconSignal}`}>
-            <UserPlusIcon width={15} height={15} />
-          </span>
-          Ekip Üyesi Ekle
-        </button>
-        <button
-          type="button"
-          className={styles.quickBtn}
-          onClick={() => teamListRef.current?.scrollIntoView({ behavior: 'smooth', block: 'start' })}
-        >
-          <span className={`${styles.quickIcon} ${styles.quickIconOk}`}>
-            <ClockIcon width={15} height={15} />
-          </span>
-          İzin / Mola Ekle
-        </button>
-        <button type="button" className={styles.quickBtn} disabled>
-          <span className={styles.quickIcon}>
-            <MailIcon width={15} height={15} />
-          </span>
-          Toplu Mesaj Gönder
-          <span className={styles.quickBadge}>Yakında</span>
-        </button>
       </div>
     </div>
   )
