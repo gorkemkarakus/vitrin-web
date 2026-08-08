@@ -58,6 +58,14 @@
   color-scheme: dark;
 }
 
+.exportBtn {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 7px;
+  font-weight: 600;
+}
+
 /* ---------- Donem ozeti kartlari ---------- */
 
 .statsGrid {

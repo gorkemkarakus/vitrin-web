@@ -45,6 +45,15 @@
   gap: 12px;
 }
 
+.exportBtn {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 7px;
+  margin-top: -12px;
+  font-weight: 600;
+}
+
 /* ---------- KPI kartlari ---------- */
 
 .kpiGrid {

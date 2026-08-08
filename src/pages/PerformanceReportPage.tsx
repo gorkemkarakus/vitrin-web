@@ -1,6 +1,8 @@
 import { useEffect, useMemo, useState, type ReactNode } from 'react'
 import { supabase } from '../lib/supabase'
+import { useAuth } from '../contexts/AuthContext'
 import Avatar from '../components/Avatar'
+import PdfProgressModal from '../components/PdfProgressModal'
 import {
   CalendarIcon,
   WalletIcon,
@@ -8,7 +10,10 @@ import {
   UsersIcon,
   ChevronRightIcon,
   TagIcon,
+  ReceiptIcon,
 } from '../components/icons'
+import { SOURCE_LABEL } from '../lib/sourceLabels'
+import { generatePerformanceReportPdf } from '../lib/pdf/performanceReportPdf'
 import styles from './PerformanceReportPage.module.css'
 
 interface Profile {
@@ -67,16 +72,6 @@ const PRESETS: { value: Preset; label: string }[] = [
   { value: 'gecen_ay', label: 'Geçen Ay' },
   { value: 'ozel', label: 'Özel Tarih' },
 ]
-
-const SOURCE_LABEL: Record<string, string> = {
-  reklam_instagram: 'Instagram Reklamı',
-  reklam_whatsapp: 'WhatsApp Reklamı',
-  kullanici_uzerinden: 'Çalışan Üzerinden',
-  dogrudan_musteri: 'Doğrudan Müşteri',
-  chatbot: 'Chatbot',
-  online_randevu: 'Online Randevu',
-  diger: 'Diğer',
-}
 
 function toLocalDateString(d: Date) {
   return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`
@@ -254,6 +249,7 @@ function KpiCard({
 }
 
 export default function PerformanceReportPage() {
+  const { profile } = useAuth()
   const [preset, setPreset] = useState<Preset>('bu_ay')
   const [customStart, setCustomStart] = useState(() => presetRange('bu_ay').start)
   const [customEnd, setCustomEnd] = useState(() => presetRange('bu_ay').end)
@@ -265,6 +261,7 @@ export default function PerformanceReportPage() {
   const [timeBlocks, setTimeBlocks] = useState<TimeBlock[]>([])
   const [payments, setPayments] = useState<Payment[]>([])
   const [expandedId, setExpandedId] = useState<string | null>(null)
+  const [pdfState, setPdfState] = useState<{ progress: number; step: string; error: string | null } | null>(null)
 
   const { start: rangeStart, end: rangeEnd } = preset === 'ozel' ? { start: customStart, end: customEnd } : presetRange(preset)
 
@@ -432,6 +429,31 @@ export default function PerformanceReportPage() {
   const toplamCalisan = profiles.length
   const prevToplamCalisan = profiles.filter((p) => dateStrOf(p.created_at) <= prevEnd).length
 
+  async function handleExportPdf() {
+    if (!profile?.business_id) return
+    setPdfState({ progress: 0, step: 'Başlatılıyor…', error: null })
+    try {
+      await generatePerformanceReportPdf({
+        businessId: profile.business_id,
+        rangeStart,
+        rangeEnd,
+        kpis: {
+          totalRandevu,
+          kazandirilanTutar,
+          izinGunleri: allLeaveDaySet.size,
+          toplamCalisan,
+        },
+        employeeStats,
+        currentAppts,
+        serviceById,
+        onProgress: (progress, step) => setPdfState({ progress, step, error: null }),
+      })
+      setPdfState(null)
+    } catch (err) {
+      setPdfState({ progress: 0, step: '', error: err instanceof Error ? err.message : 'Bilinmeyen bir hata oluştu.' })
+    }
+  }
+
   return (
     <div className={styles.wrap}>
       <div className={styles.presetRow}>
@@ -446,6 +468,11 @@ export default function PerformanceReportPage() {
           </button>
         ))}
       </div>
+
+      <button type="button" className={`btn-secondary ${styles.exportBtn}`} onClick={handleExportPdf} disabled={loading}>
+        <ReceiptIcon width={15} height={15} />
+        Detaylı Özet (PDF)
+      </button>
 
       {preset === 'ozel' && (
         <div className={`card ${styles.customRangeRow}`}>
@@ -592,6 +619,15 @@ export default function PerformanceReportPage() {
             })}
           </div>
         </>
+      )}
+
+      {pdfState && (
+        <PdfProgressModal
+          progress={pdfState.progress}
+          step={pdfState.step}
+          error={pdfState.error}
+          onClose={() => setPdfState(null)}
+        />
       )}
     </div>
   )

@@ -3,6 +3,7 @@ import { useSearchParams } from 'react-router-dom'
 import { supabase } from '../lib/supabase'
 import { useAuth } from '../contexts/AuthContext'
 import Avatar from '../components/Avatar'
+import PdfProgressModal from '../components/PdfProgressModal'
 import {
   SearchIcon,
   WalletIcon,
@@ -11,6 +12,7 @@ import {
   TrendingUpIcon,
   TrashIcon,
 } from '../components/icons'
+import { generateAccountingReportPdf } from '../lib/pdf/accountingReportPdf'
 import styles from './AccountingPage.module.css'
 
 interface Appointment {
@@ -117,6 +119,7 @@ export default function AccountingPage() {
   const [loading, setLoading] = useState(true)
   const [savedHint, setSavedHint] = useState(false)
   const [search, setSearch] = useState('')
+  const [pdfState, setPdfState] = useState<{ progress: number; step: string; error: string | null } | null>(null)
 
   const [expenseDesc, setExpenseDesc] = useState('')
   const [expenseAmount, setExpenseAmount] = useState('')
@@ -327,6 +330,31 @@ export default function AccountingPage() {
   const totalExpenses = expenses.reduce((sum, e) => sum + e.amount, 0)
   const netProfit = afterCommission - totalExpenses
 
+  async function handleExportPdf() {
+    if (!profile?.business_id) return
+    setPdfState({ progress: 0, step: 'Başlatılıyor…', error: null })
+    try {
+      await generateAccountingReportPdf({
+        businessId: profile.business_id,
+        rangeStart,
+        rangeEnd,
+        kpis: { totalRevenue, completedCount: rangedCompleted.length, totalExpenses, netProfit },
+        waterfall: { totalRevenue, taxPct, taxAmount, afterTax, commissionPct, commissionAmount, afterCommission, totalExpenses, netProfit },
+        employeeStats: allEmployeeStats,
+        serviceStats,
+        expenses,
+        appointmentById,
+        packageServiceById,
+        profileNameById,
+        serviceNameById,
+        onProgress: (progress, step) => setPdfState({ progress, step, error: null }),
+      })
+      setPdfState(null)
+    } catch (err) {
+      setPdfState({ progress: 0, step: '', error: err instanceof Error ? err.message : 'Bilinmeyen bir hata oluştu.' })
+    }
+  }
+
   return (
     <div className={styles.wrap}>
       <h2 className={styles.sectionLabel}>Tarih Aralığı</h2>
@@ -371,6 +399,11 @@ export default function AccountingPage() {
           />
         </div>
       </div>
+
+      <button type="button" className={`btn-secondary ${styles.exportBtn}`} onClick={handleExportPdf}>
+        <ReceiptIcon width={15} height={15} />
+        Detaylı Özet (PDF)
+      </button>
 
       <h2 className={styles.sectionLabel}>Dönem Özeti</h2>
       <div className={styles.statsGrid}>
@@ -629,6 +662,15 @@ export default function AccountingPage() {
           </div>
         )}
       </div>
+
+      {pdfState && (
+        <PdfProgressModal
+          progress={pdfState.progress}
+          step={pdfState.step}
+          error={pdfState.error}
+          onClose={() => setPdfState(null)}
+        />
+      )}
     </div>
   )
 }
