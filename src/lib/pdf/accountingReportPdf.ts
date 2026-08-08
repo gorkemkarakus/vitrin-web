@@ -116,13 +116,32 @@ export async function generateAccountingReportPdf(params: {
   report.addSectionTitle('Bu Dönem Nasıl Hesaplandı')
   report.addWaterfall([
     { label: 'Toplam ciro', value: currency.format(waterfall.totalRevenue) },
-    { label: `− Vergi (%${waterfall.taxPct})`, value: `−${currency.format(waterfall.taxAmount)}`, negative: true },
+    { label: `- Vergi (%${waterfall.taxPct})`, value: `-${currency.format(waterfall.taxAmount)}`, negative: true },
     { label: 'Vergi sonrası kalan', value: currency.format(waterfall.afterTax), strong: true },
-    { label: `− Çalışan primi (%${waterfall.commissionPct})`, value: `−${currency.format(waterfall.commissionAmount)}`, negative: true },
+    { label: `- Çalışan primi (%${waterfall.commissionPct})`, value: `-${currency.format(waterfall.commissionAmount)}`, negative: true },
     { label: 'Prim sonrası kalan', value: currency.format(waterfall.afterCommission), strong: true },
-    { label: '− Salon giderleri', value: `−${currency.format(waterfall.totalExpenses)}`, negative: true },
-    { label: 'Net kâr', value: currency.format(waterfall.netProfit), strong: true },
   ])
+  await yieldToUI()
+
+  // "- Salon giderleri" tek kalem yerine tarih tarih donusuyor, boylece
+  // net kara nasil varildigi hesaplama akisinin icinde okunabiliyor —
+  // ayri "Giderler" bolumune gitmeye gerek kalmiyor.
+  report.addSubText(`Salon giderleri — toplam: -${currency.format(waterfall.totalExpenses)}`)
+  if (expenses.length === 0) {
+    report.addSubText('Bu aralıkta gider kaydı yok.')
+  } else {
+    report.addTable({
+      head: ['Tarih', 'Açıklama', 'Tekrar', 'Tutar'],
+      body: expenses
+        .slice()
+        .sort((a, b) => a.expense_date.localeCompare(b.expense_date))
+        .map((e) => [formatDateLabel(e.expense_date), e.description, e.is_recurring ? 'Aylık' : 'Tek Seferlik', `-${currency.format(e.amount)}`]),
+      rightAlignFrom: 3,
+    })
+  }
+  await yieldToUI()
+
+  report.addWaterfall([{ label: 'Net kâr', value: currency.format(waterfall.netProfit), strong: true }])
   await yieldToUI()
 
   onProgress(32, 'Çalışan bazlı ciro hazırlanıyor…')
@@ -147,22 +166,6 @@ export async function generateAccountingReportPdf(params: {
       head: ['Hizmet', 'Randevu', 'Ciro'],
       body: serviceStats.map((s) => [s.name, String(s.count), currency.format(s.revenue)]),
       rightAlignFrom: 1,
-    })
-  }
-  await yieldToUI()
-
-  onProgress(58, 'Giderler hazırlanıyor…')
-  report.addSectionTitle('Giderler')
-  if (expenses.length === 0) {
-    report.addSubText('Bu aralıkta gider kaydı yok.')
-  } else {
-    report.addTable({
-      head: ['Tarih', 'Açıklama', 'Tekrar', 'Tutar'],
-      body: expenses
-        .slice()
-        .sort((a, b) => a.expense_date.localeCompare(b.expense_date))
-        .map((e) => [formatDateLabel(e.expense_date), e.description, e.is_recurring ? 'Aylık' : 'Tek Seferlik', currency.format(e.amount)]),
-      rightAlignFrom: 3,
     })
   }
   await yieldToUI()
