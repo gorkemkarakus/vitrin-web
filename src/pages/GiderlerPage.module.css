@@ -251,8 +251,8 @@
 }
 
 .recurringBtnActive {
-  background: var(--signal);
-  border-color: var(--signal);
+  background: #475569;
+  border-color: #475569;
   color: #fff;
 }
 
