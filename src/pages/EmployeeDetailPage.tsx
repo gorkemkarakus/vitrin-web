@@ -619,43 +619,10 @@ export default function EmployeeDetailPage() {
                       </div>
                     </div>
 
-                    <button type="button" className={styles.addBreakBtn} onClick={() => addBreak(day)}>
-                      + Öğle molası ekle
-                    </button>
-
-                    <div className={styles.timelineRow}>
-                      <div className={styles.timelineTrackWrap}>
-                        <div className={styles.timelineTrack}>
-                          <div
-                            className={styles.timelineBar}
-                            style={{
-                              left: `${((barStartMin - axisStartMin) / axisSpan) * 100}%`,
-                              width: `${(barSpan / axisSpan) * 100}%`,
-                            }}
-                          >
-                            {draft.breaks.map((b) => {
-                              const bStart = Math.max(barStartMin, timeToMinutes(b.start))
-                              const bEnd = Math.min(barEndMin, timeToMinutes(b.end))
-                              if (bEnd <= bStart) return null
-                              return (
-                                <span
-                                  key={b.id}
-                                  className={styles.timelineBreak}
-                                  style={{
-                                    left: `${((bStart - barStartMin) / barSpan) * 100}%`,
-                                    width: `${((bEnd - bStart) / barSpan) * 100}%`,
-                                  }}
-                                />
-                              )
-                            })}
-                          </div>
-                        </div>
-                        <div className={styles.timelineTicks}>
-                          {axisTicks.map((t, i) => (
-                            <span key={i}>{t}</span>
-                          ))}
-                        </div>
-                      </div>
+                    <div className={styles.scheduleActionsRow}>
+                      <button type="button" className={styles.addBreakBtn} onClick={() => addBreak(day)}>
+                        + Öğle molası ekle
+                      </button>
                       <button
                         type="button"
                         className={copiedDay === day ? styles.copyAllBtnCopied : styles.copyAllBtn}
@@ -663,6 +630,39 @@ export default function EmployeeDetailPage() {
                       >
                         {copiedDay === day ? 'Kopyalandı ✓' : 'Tüm günlere kopyala'}
                       </button>
+                    </div>
+
+                    <div className={styles.timelineTrackWrap}>
+                      <div className={styles.timelineTrack}>
+                        <div
+                          className={styles.timelineBar}
+                          style={{
+                            left: `${((barStartMin - axisStartMin) / axisSpan) * 100}%`,
+                            width: `${(barSpan / axisSpan) * 100}%`,
+                          }}
+                        >
+                          {draft.breaks.map((b) => {
+                            const bStart = Math.max(barStartMin, timeToMinutes(b.start))
+                            const bEnd = Math.min(barEndMin, timeToMinutes(b.end))
+                            if (bEnd <= bStart) return null
+                            return (
+                              <span
+                                key={b.id}
+                                className={styles.timelineBreak}
+                                style={{
+                                  left: `${((bStart - barStartMin) / barSpan) * 100}%`,
+                                  width: `${((bEnd - bStart) / barSpan) * 100}%`,
+                                }}
+                              />
+                            )
+                          })}
+                        </div>
+                      </div>
+                      <div className={styles.timelineTicks}>
+                        {axisTicks.map((t, i) => (
+                          <span key={i}>{t}</span>
+                        ))}
+                      </div>
                     </div>
                   </div>
                 )
