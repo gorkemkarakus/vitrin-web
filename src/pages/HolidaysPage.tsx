@@ -1,7 +1,7 @@
 import { useEffect, useState } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { supabase } from '../lib/supabase'
-import { CalendarIcon, ChevronRightIcon, TrashIcon, UmbrellaIcon } from '../components/icons'
+import { AlertTriangleIcon, CalendarIcon, ChevronRightIcon, TrashIcon, UmbrellaIcon } from '../components/icons'
 import styles from './HolidaysPage.module.css'
 
 // Resmi tatiller ayri bir tablo yerine mevcut employee_time_blocks
@@ -16,6 +16,14 @@ const HOLIDAY_LABEL = 'Resmi Tatil'
 interface Holiday {
   date: string
   endDate: string
+}
+
+interface HolidayConflict {
+  id: string
+  employeeName: string
+  customerName: string
+  serviceName: string
+  scheduled_at: string
 }
 
 function todayLocalDateString() {
@@ -34,6 +42,10 @@ export default function HolidaysPage() {
   const [date, setDate] = useState(todayLocalDateString())
   const [endDate, setEndDate] = useState('')
   const [label, setLabel] = useState(HOLIDAY_LABEL)
+
+  const [checkingConflicts, setCheckingConflicts] = useState(false)
+  const [conflictWarningOpen, setConflictWarningOpen] = useState(false)
+  const [pendingConflicts, setPendingConflicts] = useState<HolidayConflict[]>([])
 
   async function loadData() {
     setLoading(true)
@@ -56,6 +68,69 @@ export default function HolidaysPage() {
   useEffect(() => {
     loadData()
   }, [])
+
+  // Resmi tatil TUM aktif calisana ayni anda uygulandigi icin (satir 64-72)
+  // devredilecek baska bir calisan yok — bu yuzden burada EmployeeLeavesPage
+  // ile ayni "aktar/dagit" akisi yerine sadece bir uyari gosterilir; admin
+  // Randevular ekranindan elle iptal/tasima yapar.
+  async function findHolidayConflicts(): Promise<HolidayConflict[]> {
+    if (!date || employeeIds.length === 0) return []
+    const end = mode === 'range' ? endDate || date : date
+
+    const { data: appts } = await supabase
+      .from('appointments')
+      .select('id, employee_id, customer_id, service_id, scheduled_at, duration_minutes, status')
+      .in('employee_id', employeeIds)
+      .neq('status', 'iptal')
+      .gte('scheduled_at', `${date}T00:00:00`)
+      .lte('scheduled_at', `${end}T23:59:59`)
+
+    const rows = appts ?? []
+    if (rows.length === 0) return []
+
+    const empIds = Array.from(new Set(rows.map((a) => a.employee_id).filter((v): v is string => !!v)))
+    const custIds = Array.from(new Set(rows.map((a) => a.customer_id).filter((v): v is string => !!v)))
+    const svcIds = Array.from(new Set(rows.map((a) => a.service_id).filter((v): v is string => !!v)))
+    const [{ data: profs }, { data: custs }, { data: svcs }] = await Promise.all([
+      empIds.length
+        ? supabase.from('profiles').select('id, full_name').in('id', empIds)
+        : Promise.resolve({ data: [] as { id: string; full_name: string | null }[] }),
+      custIds.length
+        ? supabase.from('customers').select('id, full_name').in('id', custIds)
+        : Promise.resolve({ data: [] as { id: string; full_name: string }[] }),
+      svcIds.length
+        ? supabase.from('services').select('id, name').in('id', svcIds)
+        : Promise.resolve({ data: [] as { id: string; name: string }[] }),
+    ])
+
+    return rows
+      .map((a) => ({
+        id: a.id,
+        employeeName: profs?.find((p) => p.id === a.employee_id)?.full_name ?? 'Çalışan',
+        customerName: custs?.find((c) => c.id === a.customer_id)?.full_name ?? 'Müşteri',
+        serviceName: svcs?.find((s) => s.id === a.service_id)?.name ?? 'Hizmet',
+        scheduled_at: a.scheduled_at,
+      }))
+      .sort((x, y) => x.scheduled_at.localeCompare(y.scheduled_at))
+  }
+
+  async function handleAddClick() {
+    if (!date || employeeIds.length === 0) return
+    setCheckingConflicts(true)
+    const found = await findHolidayConflicts()
+    setCheckingConflicts(false)
+    if (found.length > 0) {
+      setPendingConflicts(found)
+      setConflictWarningOpen(true)
+      return
+    }
+    await addHoliday()
+  }
+
+  async function proceedAnyway() {
+    setConflictWarningOpen(false)
+    await addHoliday()
+  }
 
   async function addHoliday() {
     if (!date || employeeIds.length === 0) return
@@ -130,8 +205,13 @@ export default function HolidaysPage() {
           <input value={label} onChange={(e) => setLabel(e.target.value)} placeholder="ör. Ramazan Bayramı" />
         </div>
 
-        <button type="button" className={`btn-primary ${styles.addBtn}`} onClick={addHoliday} disabled={saving || !date}>
-          {saving ? 'Ekleniyor…' : `+ Tatil Ekle · ${employeeIds.length} çalışan`}
+        <button
+          type="button"
+          className={`btn-primary ${styles.addBtn}`}
+          onClick={handleAddClick}
+          disabled={saving || checkingConflicts || !date}
+        >
+          {checkingConflicts ? 'Kontrol ediliyor…' : saving ? 'Ekleniyor…' : `+ Tatil Ekle · ${employeeIds.length} çalışan`}
         </button>
       </div>
 
@@ -163,6 +243,56 @@ export default function HolidaysPage() {
           </div>
         )}
       </div>
+
+      {conflictWarningOpen && (
+        <div className={styles.conflictBackdrop}>
+          <div className={`card ${styles.conflictCard}`}>
+            <div className={styles.conflictHeader}>
+              <span className={styles.conflictHeaderIcon}>
+                <AlertTriangleIcon width={18} height={18} />
+              </span>
+              <div>
+                <div className={styles.conflictTitle}>{pendingConflicts.length} randevu bu tarihte var</div>
+                <div className={styles.conflictSubtitle}>
+                  Bu randevular otomatik değişmez, Randevular ekranından elle iptal/taşımanız gerekir.
+                </div>
+              </div>
+            </div>
+
+            <div className={styles.conflictList}>
+              {pendingConflicts.map((c) => (
+                <div className={styles.conflictRow} key={c.id}>
+                  <div className={styles.conflictRowMain}>
+                    <span className={styles.conflictRowCustomer}>{c.customerName}</span>
+                    <span className={styles.conflictRowService}>
+                      {c.serviceName} · {c.employeeName}
+                    </span>
+                  </div>
+                  <span className={styles.conflictRowDate}>
+                    {new Date(c.scheduled_at).toLocaleDateString('tr-TR', { day: 'numeric', month: 'short' })}
+                    {' · '}
+                    {new Date(c.scheduled_at).toLocaleTimeString('tr-TR', { hour: '2-digit', minute: '2-digit' })}
+                  </span>
+                </div>
+              ))}
+            </div>
+
+            <div className={styles.conflictFooter}>
+              <button
+                type="button"
+                className={styles.conflictSkipBtn}
+                onClick={() => setConflictWarningOpen(false)}
+                disabled={saving}
+              >
+                Vazgeç
+              </button>
+              <button type="button" className={`btn-primary ${styles.conflictConfirmBtn}`} onClick={proceedAnyway} disabled={saving}>
+                {saving ? 'Ekleniyor…' : 'Yine de Ekle'}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   )
 }

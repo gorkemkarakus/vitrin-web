@@ -1,9 +1,9 @@
-import { useEffect, useState } from 'react'
+import { useEffect, useMemo, useState } from 'react'
 import { useNavigate, useParams } from 'react-router-dom'
 import { supabase } from '../lib/supabase'
 import { TIME_OPTIONS } from '../lib/timeOptions'
 import Avatar from '../components/Avatar'
-import { CalendarIcon, ChevronRightIcon, PlusIcon, TrashIcon } from '../components/icons'
+import { AlertTriangleIcon, CalendarIcon, ChevronRightIcon, PlusIcon, TrashIcon } from '../components/icons'
 import styles from './EmployeeLeavesPage.module.css'
 
 interface Employee {
@@ -20,6 +20,53 @@ interface TimeBlock {
   starts_at: string
   ends_at: string
   label: string | null
+}
+
+// Cakisma cozumu icin: izne cikan calisan disindaki aktif calisanlar +
+// onlarin musaitligini hesaplamaya yarayan veriler ("aktar"/"esit dagit"
+// secenekleri icin ortak aday havuzu — bkz. isCandidateAvailable).
+interface OtherProfile {
+  id: string
+  full_name: string | null
+}
+
+interface EmployeeCategoryRow {
+  profile_id: string
+  category_id: string
+}
+
+interface ScheduleRow {
+  profile_id: string
+  day_of_week: number
+  starts_at: string
+  ends_at: string
+}
+
+interface OtherTimeBlockRow {
+  profile_id: string
+  day_of_week: number | null
+  block_date: string | null
+  end_date: string | null
+  starts_at: string
+  ends_at: string
+}
+
+interface OtherAppointmentRow {
+  id: string
+  employee_id: string | null
+  scheduled_at: string
+  duration_minutes: number | null
+}
+
+interface ConflictAppointment {
+  id: string
+  customer_id: string | null
+  service_id: string | null
+  scheduled_at: string
+  duration_minutes: number | null
+  customerName: string
+  serviceName: string
+  categoryId: string | null
 }
 
 // LeaveDraft'ta "id" sadece istemci tarafinda React key + duzenleme takibi
@@ -49,6 +96,15 @@ function todayLocalDateString() {
   return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`
 }
 
+function toLocalDateString(d: Date) {
+  return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`
+}
+
+function timeStringToMinutes(t: string) {
+  const [h, m] = t.split(':').map(Number)
+  return h * 60 + m
+}
+
 export default function EmployeeLeavesPage() {
   const { id } = useParams<{ id: string }>()
   const navigate = useNavigate()
@@ -72,6 +128,19 @@ export default function EmployeeLeavesPage() {
   const [leaveEnd, setLeaveEnd] = useState('')
   const [leaveReason, setLeaveReason] = useState<'yillik' | 'mazeret'>('yillik')
   const [leaveLabel, setLeaveLabel] = useState('Yıllık İzin')
+
+  // Cakisma kontrolu + cozum modali
+  const [checkingConflicts, setCheckingConflicts] = useState(false)
+  const [conflictModalOpen, setConflictModalOpen] = useState(false)
+  const [conflicts, setConflicts] = useState<ConflictAppointment[]>([])
+  const [conflictAction, setConflictAction] = useState<'transfer' | 'distribute' | null>(null)
+  const [transferTargetId, setTransferTargetId] = useState('')
+  const [resolving, setResolving] = useState(false)
+  const [otherProfiles, setOtherProfiles] = useState<OtherProfile[]>([])
+  const [employeeCategories, setEmployeeCategories] = useState<EmployeeCategoryRow[]>([])
+  const [otherSchedules, setOtherSchedules] = useState<ScheduleRow[]>([])
+  const [otherTimeBlocks, setOtherTimeBlocks] = useState<OtherTimeBlockRow[]>([])
+  const [otherAppointments, setOtherAppointments] = useState<OtherAppointmentRow[]>([])
 
   async function loadData(silent = false) {
     if (!id) return
@@ -189,6 +258,215 @@ export default function EmployeeLeavesPage() {
     setLeaveReady(false)
     await loadData(true)
     setSavingLeaves(false)
+  }
+
+  // Sadece henuz kaydedilmemis (blockId'siz) yeni taslaklarin tarih/saat
+  // araligini kapsayan tek bir pencere dondurur — mevcut/dokunulmayan
+  // izinler icin cakisma tekrar kontrol edilmez.
+  function draftDateRange() {
+    const newDrafts = leaveDrafts.filter((d) => !d.blockId)
+    if (newDrafts.length === 0) return null
+    const dates = newDrafts.flatMap((d) => [d.date, d.endDate || d.date])
+    return { min: dates.reduce((a, b) => (b < a ? b : a)), max: dates.reduce((a, b) => (b > a ? b : a)) }
+  }
+
+  async function findConflicts(range: { min: string; max: string }): Promise<ConflictAppointment[]> {
+    if (!id) return []
+    const newDrafts = leaveDrafts.filter((d) => !d.blockId)
+
+    const { data: appts } = await supabase
+      .from('appointments')
+      .select('id, customer_id, service_id, scheduled_at, duration_minutes, status')
+      .eq('employee_id', id)
+      .neq('status', 'iptal')
+      .gte('scheduled_at', `${range.min}T00:00:00`)
+      .lte('scheduled_at', `${range.max}T23:59:59`)
+
+    const inRange = (appts ?? []).filter((a) => {
+      const start = new Date(a.scheduled_at)
+      const dateStr = toLocalDateString(start)
+      const startMinutes = start.getHours() * 60 + start.getMinutes()
+      const endMinutes = startMinutes + (a.duration_minutes ?? 30)
+      return newDrafts.some((d) => {
+        const dEnd = d.endDate || d.date
+        if (dateStr < d.date || dateStr > dEnd) return false
+        return timeStringToMinutes(d.start) < endMinutes && timeStringToMinutes(d.end) > startMinutes
+      })
+    })
+    if (inRange.length === 0) return []
+
+    const customerIds = Array.from(new Set(inRange.map((a) => a.customer_id).filter((v): v is string => !!v)))
+    const serviceIds = Array.from(new Set(inRange.map((a) => a.service_id).filter((v): v is string => !!v)))
+    const [{ data: custs }, { data: svcs }] = await Promise.all([
+      customerIds.length
+        ? supabase.from('customers').select('id, full_name').in('id', customerIds)
+        : Promise.resolve({ data: [] as { id: string; full_name: string }[] }),
+      serviceIds.length
+        ? supabase.from('services').select('id, name, category_id').in('id', serviceIds)
+        : Promise.resolve({ data: [] as { id: string; name: string; category_id: string | null }[] }),
+    ])
+
+    return inRange
+      .map((a) => ({
+        id: a.id,
+        customer_id: a.customer_id,
+        service_id: a.service_id,
+        scheduled_at: a.scheduled_at,
+        duration_minutes: a.duration_minutes,
+        customerName: custs?.find((c) => c.id === a.customer_id)?.full_name ?? 'Müşteri',
+        serviceName: svcs?.find((s) => s.id === a.service_id)?.name ?? 'Hizmet',
+        categoryId: svcs?.find((s) => s.id === a.service_id)?.category_id ?? null,
+      }))
+      .sort((x, y) => x.scheduled_at.localeCompare(y.scheduled_at))
+  }
+
+  // Aktarma/dagitma secenekleri icin aday havuzu: izne cikan disindaki
+  // aktif calisanlar + onlarin musaitligini hesaplamak icin gereken veriler.
+  // Cakisma yoksa hic cagrilmiyor (gereksiz sorgu yok).
+  async function loadResolutionPool(range: { min: string; max: string }) {
+    const [{ data: profs }, { data: cats }, { data: scheds }, { data: blocks }, { data: appts }] = await Promise.all([
+      supabase.from('profiles').select('id, full_name').eq('is_active', true).neq('id', id ?? ''),
+      supabase.from('employee_categories').select('profile_id, category_id'),
+      supabase.from('employee_schedules').select('profile_id, day_of_week, starts_at, ends_at'),
+      supabase.from('employee_time_blocks').select('profile_id, day_of_week, block_date, end_date, starts_at, ends_at'),
+      supabase
+        .from('appointments')
+        .select('id, employee_id, scheduled_at, duration_minutes, status')
+        .neq('status', 'iptal')
+        .gte('scheduled_at', `${range.min}T00:00:00`)
+        .lte('scheduled_at', `${range.max}T23:59:59`),
+    ])
+    setOtherProfiles(profs ?? [])
+    setEmployeeCategories(cats ?? [])
+    setOtherSchedules(scheds ?? [])
+    setOtherTimeBlocks(blocks ?? [])
+    setOtherAppointments(appts ?? [])
+  }
+
+  // AppointmentsPage.tsx'teki isEmployeeAvailable'in ayni uc kontrolunun
+  // (calisma saati / izin-mola / mevcut randevu cakismasi) bu sayfaya
+  // ozel, salt-okunur bir kopyasi — burada baska bir calisanin belirli bir
+  // randevu saatini devralip devralamayacagini test etmek icin kullanilir.
+  function isCandidateAvailable(profileId: string, scheduledAt: string, durationMinutes: number | null) {
+    const start = new Date(scheduledAt)
+    const dayOfWeek = start.getDay()
+    const startMinutes = start.getHours() * 60 + start.getMinutes()
+    const endMinutes = startMinutes + (durationMinutes ?? 30)
+
+    const worksThen = otherSchedules.some(
+      (s) =>
+        s.profile_id === profileId &&
+        s.day_of_week === dayOfWeek &&
+        timeStringToMinutes(s.starts_at.slice(0, 5)) <= startMinutes &&
+        timeStringToMinutes(s.ends_at.slice(0, 5)) >= endMinutes,
+    )
+    if (!worksThen) return false
+
+    const dateStr = toLocalDateString(start)
+    const isBlocked = otherTimeBlocks.some(
+      (b) =>
+        b.profile_id === profileId &&
+        (b.day_of_week === dayOfWeek ||
+          (b.block_date !== null && b.block_date <= dateStr && dateStr <= (b.end_date ?? b.block_date))) &&
+        timeStringToMinutes(b.starts_at.slice(0, 5)) < endMinutes &&
+        timeStringToMinutes(b.ends_at.slice(0, 5)) > startMinutes,
+    )
+    if (isBlocked) return false
+
+    const end = new Date(start.getTime() + (durationMinutes ?? 30) * 60000)
+    const hasConflict = otherAppointments.some((a) => {
+      if (a.employee_id !== profileId) return false
+      const aStart = new Date(a.scheduled_at)
+      const aEnd = new Date(aStart.getTime() + (a.duration_minutes ?? 30) * 60000)
+      return aStart < end && aEnd > start
+    })
+    return !hasConflict
+  }
+
+  // Randevunun hizmet kategorisiyle eslesen calisanlara daraltir; eslesen
+  // kimse yoksa (veya hizmetin kategorisi yoksa) tum aktif calisanlara
+  // geri duser — AppointmentsPage.tsx'teki eligibleEmployees ile ayni desen.
+  function candidatesFor(conflict: ConflictAppointment) {
+    if (!conflict.categoryId) return otherProfiles
+    const matchIds = new Set(
+      employeeCategories.filter((ec) => ec.category_id === conflict.categoryId).map((ec) => ec.profile_id),
+    )
+    const matched = otherProfiles.filter((p) => matchIds.has(p.id))
+    return matched.length > 0 ? matched : otherProfiles
+  }
+
+  function availableCandidatesFor(conflict: ConflictAppointment) {
+    return candidatesFor(conflict).filter((p) => isCandidateAvailable(p.id, conflict.scheduled_at, conflict.duration_minutes))
+  }
+
+  // Her cakisan randevu icin GERCEKTEN musait aday havuzu uzerinden
+  // round-robin dagitim onerisi — havuz aynı olan randevular kendi
+  // aralarinda sirayla donerken, farkli kategori/havuzdaki randevular
+  // birbirini etkilemez. Musait aday olmayan randevu "atanmadi" kalir.
+  const distributionPlan = useMemo(() => {
+    if (conflictAction !== 'distribute') return []
+    const cursors = new Map<string, number>()
+    return conflicts.map((c) => {
+      const avail = availableCandidatesFor(c)
+      if (avail.length === 0) return { conflict: c, assignedId: null as string | null, assignedName: null as string | null }
+      const key = avail
+        .map((p) => p.id)
+        .sort()
+        .join(',')
+      const idx = cursors.get(key) ?? 0
+      const chosen = avail[idx % avail.length]
+      cursors.set(key, idx + 1)
+      return { conflict: c, assignedId: chosen.id, assignedName: chosen.full_name }
+    })
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [conflictAction, conflicts, otherProfiles, employeeCategories, otherSchedules, otherTimeBlocks, otherAppointments])
+
+  async function handleSaveClick() {
+    const range = draftDateRange()
+    if (!range) {
+      await saveLeaves()
+      return
+    }
+    setCheckingConflicts(true)
+    const found = await findConflicts(range)
+    if (found.length === 0) {
+      setCheckingConflicts(false)
+      await saveLeaves()
+      return
+    }
+    await loadResolutionPool(range)
+    setConflicts(found)
+    setConflictAction(null)
+    setTransferTargetId('')
+    setCheckingConflicts(false)
+    setConflictModalOpen(true)
+  }
+
+  async function confirmResolution() {
+    setResolving(true)
+    if (conflictAction === 'transfer' && transferTargetId) {
+      await supabase
+        .from('appointments')
+        .update({ employee_id: transferTargetId })
+        .in(
+          'id',
+          conflicts.map((c) => c.id),
+        )
+    } else if (conflictAction === 'distribute') {
+      for (const item of distributionPlan) {
+        if (item.assignedId) {
+          await supabase.from('appointments').update({ employee_id: item.assignedId }).eq('id', item.conflict.id)
+        }
+      }
+    }
+    setConflictModalOpen(false)
+    await saveLeaves()
+    setResolving(false)
+  }
+
+  async function skipResolution() {
+    setConflictModalOpen(false)
+    await saveLeaves()
   }
 
   if (loading) return <p style={{ color: 'var(--text-dim)' }}>Yükleniyor…</p>
@@ -354,12 +632,118 @@ export default function EmployeeLeavesPage() {
             <button type="button" className={styles.jsonLink} onClick={copyLeavesJson}>
               {leaveJsonCopied ? 'Kopyalandı ✓' : 'JSON çıktısı'}
             </button>
-            <button type="button" className={`btn-primary ${styles.saveBtn}`} onClick={saveLeaves} disabled={savingLeaves}>
-              {savingLeaves ? 'Kaydediliyor…' : 'Kaydet'}
+            <button
+              type="button"
+              className={`btn-primary ${styles.saveBtn}`}
+              onClick={handleSaveClick}
+              disabled={savingLeaves || checkingConflicts}
+            >
+              {checkingConflicts ? 'Kontrol ediliyor…' : savingLeaves ? 'Kaydediliyor…' : 'Kaydet'}
             </button>
           </div>
         </div>
       </div>
+
+      {conflictModalOpen && (
+        <div className={styles.conflictBackdrop}>
+          <div className={`card ${styles.conflictCard}`}>
+            <div className={styles.conflictHeader}>
+              <span className={styles.conflictHeaderIcon}>
+                <AlertTriangleIcon width={18} height={18} />
+              </span>
+              <div>
+                <div className={styles.conflictTitle}>{conflicts.length} randevu bu izinle çakışıyor</div>
+                <div className={styles.conflictSubtitle}>Bu randevularla ne yapmak istersiniz?</div>
+              </div>
+            </div>
+
+            <div className={styles.conflictList}>
+              {conflicts.map((c) => {
+                const plan = distributionPlan.find((d) => d.conflict.id === c.id)
+                return (
+                  <div className={styles.conflictRow} key={c.id}>
+                    <div className={styles.conflictRowMain}>
+                      <span className={styles.conflictRowCustomer}>{c.customerName}</span>
+                      <span className={styles.conflictRowService}>{c.serviceName}</span>
+                    </div>
+                    <div className={styles.conflictRowRight}>
+                      <span className={styles.conflictRowDate}>
+                        {new Date(c.scheduled_at).toLocaleDateString('tr-TR', { day: 'numeric', month: 'short' })}
+                        {' · '}
+                        {new Date(c.scheduled_at).toLocaleTimeString('tr-TR', { hour: '2-digit', minute: '2-digit' })}
+                      </span>
+                      {conflictAction === 'distribute' && (
+                        <span className={plan?.assignedName ? styles.conflictRowAssign : styles.conflictRowAssignWarn}>
+                          {plan?.assignedName ? `→ ${plan.assignedName}` : '⚠ Uygun çalışan yok'}
+                        </span>
+                      )}
+                    </div>
+                  </div>
+                )
+              })}
+            </div>
+
+            <div className={styles.conflictActions}>
+              <button
+                type="button"
+                className={conflictAction === 'transfer' ? styles.conflictActionBtnActive : styles.conflictActionBtn}
+                onClick={() => setConflictAction('transfer')}
+              >
+                Belirli bir çalışana aktar
+              </button>
+              <button
+                type="button"
+                className={conflictAction === 'distribute' ? styles.conflictActionBtnActive : styles.conflictActionBtn}
+                onClick={() => setConflictAction('distribute')}
+              >
+                Çalışanlar arasında eşit dağıt
+              </button>
+            </div>
+
+            {conflictAction === 'transfer' && (
+              <div className={styles.leaveField}>
+                <label>Aktarılacak çalışan</label>
+                <select
+                  className={styles.conflictSelect}
+                  value={transferTargetId}
+                  onChange={(e) => setTransferTargetId(e.target.value)}
+                >
+                  <option value="">Seçin…</option>
+                  {otherProfiles.map((p) => {
+                    const riskCount = conflicts.filter((c) => !isCandidateAvailable(p.id, c.scheduled_at, c.duration_minutes)).length
+                    return (
+                      <option key={p.id} value={p.id}>
+                        {p.full_name ?? '—'}
+                        {riskCount > 0 ? ` (${riskCount} çakışma riski)` : ''}
+                      </option>
+                    )
+                  })}
+                </select>
+              </div>
+            )}
+
+            <div className={styles.conflictFooter}>
+              <button type="button" className={styles.conflictSkipBtn} onClick={skipResolution} disabled={resolving}>
+                Şimdilik atla
+              </button>
+              <button
+                type="button"
+                className={`btn-primary ${styles.conflictConfirmBtn}`}
+                onClick={confirmResolution}
+                disabled={resolving || !conflictAction || (conflictAction === 'transfer' && !transferTargetId)}
+              >
+                {resolving
+                  ? 'Kaydediliyor…'
+                  : conflictAction === 'transfer'
+                    ? 'Aktar ve İzni Kaydet'
+                    : conflictAction === 'distribute'
+                      ? 'Dağıt ve İzni Kaydet'
+                      : 'Onayla'}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   )
 }
