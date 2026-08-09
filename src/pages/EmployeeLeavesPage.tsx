@@ -30,9 +30,9 @@ interface OtherProfile {
   full_name: string | null
 }
 
-interface EmployeeCategoryRow {
+interface EmployeeServiceRow {
   profile_id: string
-  category_id: string
+  service_id: string
 }
 
 interface ScheduleRow {
@@ -66,7 +66,6 @@ interface ConflictAppointment {
   duration_minutes: number | null
   customerName: string
   serviceName: string
-  categoryId: string | null
 }
 
 // LeaveDraft'ta "id" sadece istemci tarafinda React key + duzenleme takibi
@@ -137,7 +136,7 @@ export default function EmployeeLeavesPage() {
   const [transferTargetId, setTransferTargetId] = useState('')
   const [resolving, setResolving] = useState(false)
   const [otherProfiles, setOtherProfiles] = useState<OtherProfile[]>([])
-  const [employeeCategories, setEmployeeCategories] = useState<EmployeeCategoryRow[]>([])
+  const [employeeServices, setEmployeeServices] = useState<EmployeeServiceRow[]>([])
   const [otherSchedules, setOtherSchedules] = useState<ScheduleRow[]>([])
   const [otherTimeBlocks, setOtherTimeBlocks] = useState<OtherTimeBlockRow[]>([])
   const [otherAppointments, setOtherAppointments] = useState<OtherAppointmentRow[]>([])
@@ -302,8 +301,8 @@ export default function EmployeeLeavesPage() {
         ? supabase.from('customers').select('id, full_name').in('id', customerIds)
         : Promise.resolve({ data: [] as { id: string; full_name: string }[] }),
       serviceIds.length
-        ? supabase.from('services').select('id, name, category_id').in('id', serviceIds)
-        : Promise.resolve({ data: [] as { id: string; name: string; category_id: string | null }[] }),
+        ? supabase.from('services').select('id, name').in('id', serviceIds)
+        : Promise.resolve({ data: [] as { id: string; name: string }[] }),
     ])
 
     return inRange
@@ -315,7 +314,6 @@ export default function EmployeeLeavesPage() {
         duration_minutes: a.duration_minutes,
         customerName: custs?.find((c) => c.id === a.customer_id)?.full_name ?? 'Müşteri',
         serviceName: svcs?.find((s) => s.id === a.service_id)?.name ?? 'Hizmet',
-        categoryId: svcs?.find((s) => s.id === a.service_id)?.category_id ?? null,
       }))
       .sort((x, y) => x.scheduled_at.localeCompare(y.scheduled_at))
   }
@@ -324,9 +322,9 @@ export default function EmployeeLeavesPage() {
   // aktif calisanlar + onlarin musaitligini hesaplamak icin gereken veriler.
   // Cakisma yoksa hic cagrilmiyor (gereksiz sorgu yok).
   async function loadResolutionPool(range: { min: string; max: string }) {
-    const [{ data: profs }, { data: cats }, { data: scheds }, { data: blocks }, { data: appts }] = await Promise.all([
+    const [{ data: profs }, { data: svcAssignments }, { data: scheds }, { data: blocks }, { data: appts }] = await Promise.all([
       supabase.from('profiles').select('id, full_name').eq('is_active', true).neq('id', id ?? ''),
-      supabase.from('employee_categories').select('profile_id, category_id'),
+      supabase.from('employee_services').select('profile_id, service_id'),
       supabase.from('employee_schedules').select('profile_id, day_of_week, starts_at, ends_at'),
       supabase.from('employee_time_blocks').select('profile_id, day_of_week, block_date, end_date, starts_at, ends_at'),
       supabase
@@ -337,7 +335,7 @@ export default function EmployeeLeavesPage() {
         .lte('scheduled_at', `${range.max}T23:59:59`),
     ])
     setOtherProfiles(profs ?? [])
-    setEmployeeCategories(cats ?? [])
+    setEmployeeServices(svcAssignments ?? [])
     setOtherSchedules(scheds ?? [])
     setOtherTimeBlocks(blocks ?? [])
     setOtherAppointments(appts ?? [])
@@ -383,13 +381,14 @@ export default function EmployeeLeavesPage() {
     return !hasConflict
   }
 
-  // Randevunun hizmet kategorisiyle eslesen calisanlara daraltir; eslesen
-  // kimse yoksa (veya hizmetin kategorisi yoksa) tum aktif calisanlara
-  // geri duser — AppointmentsPage.tsx'teki eligibleEmployees ile ayni desen.
+  // Randevunun hizmetine (employee_services) atanmis calisanlara daraltir;
+  // eslesen kimse yoksa (bu hizmete hic kimse atanmamissa) tum aktif
+  // calisanlara geri duser — AppointmentsPage.tsx'teki eligibleEmployees ile
+  // ayni desen.
   function candidatesFor(conflict: ConflictAppointment) {
-    if (!conflict.categoryId) return otherProfiles
+    if (!conflict.service_id) return otherProfiles
     const matchIds = new Set(
-      employeeCategories.filter((ec) => ec.category_id === conflict.categoryId).map((ec) => ec.profile_id),
+      employeeServices.filter((es) => es.service_id === conflict.service_id).map((es) => es.profile_id),
     )
     const matched = otherProfiles.filter((p) => matchIds.has(p.id))
     return matched.length > 0 ? matched : otherProfiles
@@ -419,7 +418,7 @@ export default function EmployeeLeavesPage() {
       return { conflict: c, assignedId: chosen.id, assignedName: chosen.full_name }
     })
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [conflictAction, conflicts, otherProfiles, employeeCategories, otherSchedules, otherTimeBlocks, otherAppointments])
+  }, [conflictAction, conflicts, otherProfiles, employeeServices, otherSchedules, otherTimeBlocks, otherAppointments])
 
   async function handleSaveClick() {
     const range = draftDateRange()

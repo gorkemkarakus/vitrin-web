@@ -32,14 +32,14 @@ interface Employee {
   updated_at: string
 }
 
-interface Category {
+interface ServiceLite {
   id: string
   name: string
 }
 
-interface EmployeeCategory {
+interface EmployeeServiceRow {
   profile_id: string
-  category_id: string
+  service_id: string
 }
 
 interface Schedule {
@@ -138,8 +138,8 @@ export default function EmployeeDetailPage() {
   const { session } = useAuth()
 
   const [employee, setEmployee] = useState<Employee | null>(null)
-  const [categories, setCategories] = useState<Category[]>([])
-  const [employeeCategories, setEmployeeCategories] = useState<EmployeeCategory[]>([])
+  const [services, setServices] = useState<ServiceLite[]>([])
+  const [employeeServices, setEmployeeServices] = useState<EmployeeServiceRow[]>([])
   const [schedules, setSchedules] = useState<Schedule[]>([])
   const [timeBlocks, setTimeBlocks] = useState<TimeBlock[]>([])
   const [appointments, setAppointments] = useState<Appointment[]>([])
@@ -176,14 +176,14 @@ export default function EmployeeDetailPage() {
     const now = new Date()
     const monthStart = new Date(now.getFullYear(), now.getMonth(), 1).toISOString()
     const monthEnd = new Date(now.getFullYear(), now.getMonth() + 1, 0, 23, 59, 59).toISOString()
-    const [{ data: emp }, { data: cats }, { data: empCats }, { data: scheds }, { data: blocks }, { data: appts }] = await Promise.all([
+    const [{ data: emp }, { data: svcs }, { data: empSvcs }, { data: scheds }, { data: blocks }, { data: appts }] = await Promise.all([
       supabase
         .from('profiles')
         .select('id, full_name, role, is_active, whatsapp_phone, gender, updated_at')
         .eq('id', id)
         .maybeSingle(),
-      supabase.from('service_categories').select('id, name').order('name'),
-      supabase.from('employee_categories').select('profile_id, category_id').eq('profile_id', id),
+      supabase.from('services').select('id, name').eq('is_active', true).order('name'),
+      supabase.from('employee_services').select('profile_id, service_id').eq('profile_id', id),
       supabase.from('employee_schedules').select('id, profile_id, day_of_week, starts_at, ends_at').eq('profile_id', id),
       supabase
         .from('employee_time_blocks')
@@ -197,8 +197,8 @@ export default function EmployeeDetailPage() {
         .lte('scheduled_at', monthEnd),
     ])
     setEmployee(emp ?? null)
-    setCategories(cats ?? [])
-    setEmployeeCategories(empCats ?? [])
+    setServices(svcs ?? [])
+    setEmployeeServices(empSvcs ?? [])
     setSchedules(scheds ?? [])
     setTimeBlocks(blocks ?? [])
     setAppointments(appts ?? [])
@@ -274,12 +274,12 @@ export default function EmployeeDetailPage() {
     }
   }
 
-  async function toggleCategory(categoryId: string, checked: boolean) {
+  async function toggleService(serviceId: string, checked: boolean) {
     if (!id) return
     if (checked) {
-      await supabase.from('employee_categories').insert({ profile_id: id, category_id: categoryId })
+      await supabase.from('employee_services').insert({ profile_id: id, service_id: serviceId })
     } else {
-      await supabase.from('employee_categories').delete().eq('profile_id', id).eq('category_id', categoryId)
+      await supabase.from('employee_services').delete().eq('profile_id', id).eq('service_id', serviceId)
     }
     await loadData(true)
   }
@@ -293,9 +293,9 @@ export default function EmployeeDetailPage() {
       ? 'izinli'
       : 'aktif'
 
-  const empCategoryIds = new Set(employeeCategories.map((ec) => ec.category_id))
-  const assignedCategories = categories.filter((c) => empCategoryIds.has(c.id))
-  const specialty = assignedCategories.length > 0 ? assignedCategories.map((c) => c.name).join(' • ') : roleLabel(employee.role)
+  const empServiceIds = new Set(employeeServices.map((es) => es.service_id))
+  const assignedServices = services.filter((s) => empServiceIds.has(s.id))
+  const specialty = assignedServices.length > 0 ? assignedServices.map((s) => s.name).join(' • ') : roleLabel(employee.role)
 
   const selectedDayInfo = computeDayInfo(selectedDay, schedules, timeBlocks)
   const weeklyHours = weeklyPlannedHours(schedules, timeBlocks)
@@ -503,30 +503,30 @@ export default function EmployeeDetailPage() {
       </div>
 
       <div className="card">
-        <h2 style={{ marginBottom: 12 }}>Alanlar</h2>
+        <h2 style={{ marginBottom: 12 }}>Verdiği Hizmetler</h2>
         <div className={styles.categoryCheckboxes}>
-          {categories.map((c) => {
-            const active = empCategoryIds.has(c.id)
+          {services.map((s) => {
+            const active = empServiceIds.has(s.id)
             return (
               <button
                 type="button"
-                key={c.id}
+                key={s.id}
                 className={active ? styles.categoryChipActive : styles.categoryChip}
-                onClick={() => toggleCategory(c.id, !active)}
+                onClick={() => toggleService(s.id, !active)}
               >
                 {active ? '✓ ' : ''}
-                {c.name}
+                {s.name}
               </button>
             )
           })}
-          {categories.length === 0 && <span className={styles.empty}>Önce bir alan ekleyin.</span>}
+          {services.length === 0 && <span className={styles.empty}>Önce bir hizmet ekleyin.</span>}
         </div>
 
-        {assignedCategories.length > 0 && (
+        {assignedServices.length > 0 && (
           <div className={styles.employeeTags}>
-            {assignedCategories.map((c) => (
-              <span key={c.id} className={styles.hashtag} style={{ color: colorForName(c.name) }}>
-                #{c.name.replace(/\s+/g, '')}
+            {assignedServices.map((s) => (
+              <span key={s.id} className={styles.hashtag} style={{ color: colorForName(s.name) }}>
+                #{s.name.replace(/\s+/g, '')}
               </span>
             ))}
           </div>

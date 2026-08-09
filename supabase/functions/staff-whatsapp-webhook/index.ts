@@ -264,7 +264,7 @@ async function handleConfirm(
 
   const { data: service } = await admin
     .from('services')
-    .select('id, name, duration_minutes, category_id')
+    .select('id, name, duration_minutes')
     .eq('business_id', staff.business_id)
     .eq('id', draft.service_id)
     .eq('is_active', true)
@@ -282,10 +282,12 @@ async function handleConfirm(
     .eq('is_active', true)
 
   let eligibleIds = (activeProfiles ?? []).map((p) => p.id)
-  if (service.category_id) {
-    const { data: empCats } = await admin.from('employee_categories').select('profile_id').eq('category_id', service.category_id)
-    const categoryIds = new Set((empCats ?? []).map((e) => e.profile_id))
-    eligibleIds = eligibleIds.filter((id) => categoryIds.has(id))
+  const { data: empSvcs } = await admin.from('employee_services').select('profile_id').eq('service_id', service.id)
+  if (empSvcs && empSvcs.length > 0) {
+    // Bu hizmete hic kimse atanmamissa herkes uygun sayilir (bkz.
+    // EmployeeDetailPage.tsx "Verdigi Hizmetler").
+    const assignedIds = new Set(empSvcs.map((e) => e.profile_id))
+    eligibleIds = eligibleIds.filter((id) => assignedIds.has(id))
   }
   if (draft.employee_id) {
     if (!eligibleIds.includes(draft.employee_id)) {

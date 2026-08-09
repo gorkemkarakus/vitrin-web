@@ -18,19 +18,12 @@ import styles from './ServicesPage.module.css'
 interface Service {
   id: string
   name: string
-  category_id: string | null
   duration_minutes: number
   price: number | null
   is_active: boolean
   description: string | null
 }
 
-interface ServiceCategory {
-  id: string
-  name: string
-}
-
-type CategoryFilter = 'tumu' | 'diger' | string
 type SortBy = 'ad' | 'fiyat' | 'sure'
 
 const SORT_OPTIONS: { value: SortBy; label: string }[] = [
@@ -44,11 +37,9 @@ const currency = new Intl.NumberFormat('tr-TR', { style: 'currency', currency: '
 export default function ServicesPage() {
   const { profile } = useAuth()
   const [services, setServices] = useState<Service[]>([])
-  const [categories, setCategories] = useState<ServiceCategory[]>([])
   const [loading, setLoading] = useState(true)
 
   const [search, setSearch] = useState('')
-  const [categoryFilter, setCategoryFilter] = useState<CategoryFilter>('tumu')
   const [sortBy, setSortBy] = useState<SortBy>('ad')
   const [sortMenuOpen, setSortMenuOpen] = useState(false)
   const [expandedId, setExpandedId] = useState<string | null>(null)
@@ -65,16 +56,12 @@ export default function ServicesPage() {
   // islemden sonra bos "Yükleniyor…" yazisina donup yeniden cizilmiyor.
   async function loadData(silent = false) {
     if (!silent) setLoading(true)
-    const [{ data }, { data: cats }] = await Promise.all([
-      supabase
-        .from('services')
-        .select('id, name, category_id, duration_minutes, price, is_active, description')
-        .order('is_active', { ascending: false })
-        .order('name', { ascending: true }),
-      supabase.from('service_categories').select('id, name').order('name'),
-    ])
+    const { data } = await supabase
+      .from('services')
+      .select('id, name, duration_minutes, price, is_active, description')
+      .order('is_active', { ascending: false })
+      .order('name', { ascending: true })
     setServices(data ?? [])
-    setCategories(cats ?? [])
     setLoading(false)
   }
 
@@ -123,35 +110,16 @@ export default function ServicesPage() {
     await loadData(true)
   }
 
-  const categoryNameById = useMemo(() => new Map(categories.map((c) => [c.id, c.name])), [categories])
-
-  const categoryTabs = useMemo(() => {
-    const counts = new Map<string, number>()
-    let uncategorized = 0
-    for (const s of services) {
-      if (s.category_id) counts.set(s.category_id, (counts.get(s.category_id) ?? 0) + 1)
-      else uncategorized++
-    }
-    const tabs = categories
-      .map((c) => ({ value: c.id as CategoryFilter, label: c.name, count: counts.get(c.id) ?? 0 }))
-      .filter((t) => t.count > 0)
-      .sort((a, b) => b.count - a.count)
-    if (uncategorized > 0) tabs.push({ value: 'diger', label: 'Diğer', count: uncategorized })
-    return [{ value: 'tumu' as CategoryFilter, label: 'Tümü', count: services.length }, ...tabs]
-  }, [categories, services])
-
   const q = search.trim().toLowerCase()
   const filteredSorted = useMemo(() => {
     let list = services.filter((s) => !q || s.name.toLowerCase().includes(q))
-    if (categoryFilter === 'diger') list = list.filter((s) => !s.category_id)
-    else if (categoryFilter !== 'tumu') list = list.filter((s) => s.category_id === categoryFilter)
     list = [...list].sort((a, b) => {
       if (sortBy === 'ad') return a.name.localeCompare(b.name, 'tr')
       if (sortBy === 'fiyat') return (b.price ?? 0) - (a.price ?? 0)
       return b.duration_minutes - a.duration_minutes
     })
     return list
-  }, [services, q, categoryFilter, sortBy])
+  }, [services, q, sortBy])
 
   if (loading) return <p style={{ color: 'var(--text-dim)' }}>Yükleniyor…</p>
 
@@ -211,19 +179,6 @@ export default function ServicesPage() {
         </div>
       </div>
 
-      <div className={styles.categoryRow}>
-        {categoryTabs.map((tab) => (
-          <button
-            type="button"
-            key={tab.value}
-            className={categoryFilter === tab.value ? styles.categoryBtnActive : styles.categoryBtn}
-            onClick={() => setCategoryFilter(tab.value)}
-          >
-            {tab.label} ({tab.count})
-          </button>
-        ))}
-      </div>
-
       <div className={styles.statsGrid}>
         <div className={`${styles.statCard} ${styles.statCardSignal}`}>
           <span className={`${styles.statIcon} ${styles.statIconSignal}`}>
@@ -257,7 +212,7 @@ export default function ServicesPage() {
 
       <div className="card">
         {filteredSorted.length === 0 ? (
-          <p className={styles.empty}>{q || categoryFilter !== 'tumu' ? 'Eşleşen hizmet yok.' : 'Henüz hizmet eklenmedi.'}</p>
+          <p className={styles.empty}>{q ? 'Eşleşen hizmet yok.' : 'Henüz hizmet eklenmedi.'}</p>
         ) : (
           <div className={styles.list}>
             {filteredSorted.map((s) => {
@@ -270,9 +225,6 @@ export default function ServicesPage() {
                     </span>
                     <div className={styles.rowMain}>
                       <span className={styles.rowName}>{s.name}</span>
-                      <span className={styles.rowCategory}>
-                        {s.category_id ? (categoryNameById.get(s.category_id) ?? 'Kategori yok') : 'Kategori yok'}
-                      </span>
                     </div>
                     <span className={styles.rowDuration}>
                       <ClockIcon width={12} height={12} />
@@ -306,20 +258,6 @@ export default function ServicesPage() {
                               else e.target.value = s.name
                             }}
                           />
-                        </div>
-                        <div className={styles.editField}>
-                          <label>Kategori</label>
-                          <select
-                            value={s.category_id ?? ''}
-                            onChange={(e) => updateService(s, { category_id: e.target.value || null })}
-                          >
-                            <option value="">Alan seçilmedi</option>
-                            {categories.map((c) => (
-                              <option key={c.id} value={c.id}>
-                                {c.name}
-                              </option>
-                            ))}
-                          </select>
                         </div>
                         <div className={styles.editField}>
                           <label>Süre (dk)</label>

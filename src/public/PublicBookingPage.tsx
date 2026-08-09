@@ -6,13 +6,7 @@ import DateStrip from './components/DateStrip'
 import SlotGrid from './components/SlotGrid'
 import CustomerForm from './components/CustomerForm'
 import BookingConfirmation from './components/BookingConfirmation'
-import {
-  fetchBookingInfo,
-  submitBooking,
-  type PublicService,
-  type PublicCategory,
-  type PublicEmployee,
-} from './lib/publicBookingApi'
+import { fetchBookingInfo, submitBooking, type PublicService, type PublicEmployee } from './lib/publicBookingApi'
 import styles from './PublicBookingPage.module.css'
 
 type Step = 'loading' | 'not_found' | 'service' | 'employee' | 'datetime' | 'details' | 'confirmed'
@@ -37,7 +31,6 @@ export default function PublicBookingPage() {
   const [step, setStep] = useState<Step>('loading')
   const [businessName, setBusinessName] = useState('')
   const [services, setServices] = useState<PublicService[]>([])
-  const [categories, setCategories] = useState<PublicCategory[]>([])
   const [selectedService, setSelectedService] = useState<PublicService | null>(null)
   const [employees, setEmployees] = useState<PublicEmployee[]>([])
   const [selectedEmployeeId, setSelectedEmployeeId] = useState<string | null>(null)
@@ -59,7 +52,6 @@ export default function PublicBookingPage() {
         }
         setBusinessName(info.business.name)
         setServices(info.services)
-        setCategories(info.categories)
         setStep('service')
       })
       .catch(() => setStep('not_found'))
@@ -194,12 +186,7 @@ export default function PublicBookingPage() {
 
         {step === 'service' && (
           <>
-            <ServicePicker
-              services={services}
-              categories={categories}
-              selectedId={selectedService?.id ?? null}
-              onSelect={handleSelectService}
-            />
+            <ServicePicker services={services} selectedId={selectedService?.id ?? null} onSelect={handleSelectService} />
             <div className={styles.continueBar}>
               <span className={styles.continueBarText}>
                 {selectedService ? selectedService.name : 'Henüz seçim yapılmadı'}

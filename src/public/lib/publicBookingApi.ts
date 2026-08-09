@@ -6,12 +6,6 @@ export interface PublicService {
   price: number | null
   duration_minutes: number
   description: string | null
-  category_id: string | null
-}
-
-export interface PublicCategory {
-  id: string
-  name: string
 }
 
 export interface PublicEmployee {
@@ -23,7 +17,6 @@ export interface PublicEmployee {
 export interface BookingInfoResponse {
   business: { name: string }
   services: PublicService[]
-  categories: PublicCategory[]
   employees?: PublicEmployee[]
   date?: string
   slots?: string[]

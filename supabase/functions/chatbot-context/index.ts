@@ -30,49 +30,45 @@ Deno.serve(async (req) => {
   const { customer_phone } = body
   if (!customer_phone) return json({ error: 'customer_phone zorunlu' }, 400)
 
-  const [{ data: services }, { data: categories }, { data: customer }, { data: history }, { data: profiles }] =
-    await Promise.all([
-      admin
-        .from('services')
-        .select('id, name, price, duration_minutes, category_id, description')
-        .eq('business_id', business.id)
-        .eq('is_active', true),
-      admin.from('service_categories').select('id, name').eq('business_id', business.id),
-      admin
-        .from('customers')
-        .select('id, full_name, contact_phone, bot_paused_until')
-        .eq('business_id', business.id)
-        .eq('phone', customer_phone)
-        .maybeSingle(),
-      admin
-        .from('chatbot_messages')
-        .select('role, content, created_at')
-        .eq('business_id', business.id)
-        .eq('customer_phone', customer_phone)
-        .order('created_at', { ascending: false })
-        .limit(HISTORY_LIMIT),
-      admin.from('profiles').select('id, full_name, gender').eq('business_id', business.id).eq('is_active', true),
-    ])
+  const [{ data: services }, { data: customer }, { data: history }, { data: profiles }] = await Promise.all([
+    admin
+      .from('services')
+      .select('id, name, price, duration_minutes, description')
+      .eq('business_id', business.id)
+      .eq('is_active', true),
+    admin
+      .from('customers')
+      .select('id, full_name, contact_phone, bot_paused_until')
+      .eq('business_id', business.id)
+      .eq('phone', customer_phone)
+      .maybeSingle(),
+    admin
+      .from('chatbot_messages')
+      .select('role, content, created_at')
+      .eq('business_id', business.id)
+      .eq('customer_phone', customer_phone)
+      .order('created_at', { ascending: false })
+      .limit(HISTORY_LIMIT),
+    admin.from('profiles').select('id, full_name, gender').eq('business_id', business.id).eq('is_active', true),
+  ])
 
-  const categoryName = (id: string | null) =>
-    id ? categories?.find((c) => c.id === id)?.name ?? null : null
-
+  const serviceNameById = new Map((services ?? []).map((s) => [s.id, s.name]))
   const profileIds = (profiles ?? []).map((p) => p.id)
 
-  let employees: { id: string; name: string; categories: string[]; gender: string | null }[] = []
+  let employees: { id: string; name: string; services: string[]; gender: string | null }[] = []
   if (profileIds.length > 0) {
-    const { data: empCats } = await admin
-      .from('employee_categories')
-      .select('profile_id, category_id')
+    const { data: empSvcs } = await admin
+      .from('employee_services')
+      .select('profile_id, service_id')
       .in('profile_id', profileIds)
 
     employees = (profiles ?? []).map((p) => ({
       id: p.id,
       name: p.full_name ?? 'İsimsiz',
-      categories: (empCats ?? [])
-        .filter((ec) => ec.profile_id === p.id)
-        .map((ec) => categoryName(ec.category_id))
-        .filter((c): c is string => !!c),
+      services: (empSvcs ?? [])
+        .filter((es) => es.profile_id === p.id)
+        .map((es) => serviceNameById.get(es.service_id))
+        .filter((s): s is string => !!s),
       // Calisanin kendi profilinde belirttigi GERCEK cinsiyet (kadin/erkek)
       // - NULL ise chatbot bunu "belirtilmemis" olarak gorup isim/unvana
       // bakip tahmin etme + kesin bilmiyorum uyarisi verme davranisina duser.
@@ -324,7 +320,6 @@ Deno.serve(async (req) => {
         name: s.name,
         price: s.price,
         duration_minutes: s.duration_minutes,
-        category: categoryName(s.category_id),
         description: s.description ?? null,
       })),
       employees,

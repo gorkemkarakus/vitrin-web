@@ -62,7 +62,7 @@ Deno.serve(async (req) => {
   }
 
   // profiles.id -> auth.users(id) ON DELETE CASCADE: kullanicinin auth
-  // hesabini silmek profiles satirini (ve employee_categories/schedules/
+  // hesabini silmek profiles satirini (ve employee_services/schedules/
   // time_blocks/commission_rates gibi ona bagli her seyi) otomatik temizler.
   // appointments.employee_id ON DELETE SET NULL oldugu icin gecmis
   // randevular silinmez, sadece calisan baglantisi bosa duser.

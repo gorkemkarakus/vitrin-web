@@ -61,14 +61,9 @@ interface Payment {
   appointment_id: string | null
 }
 
-interface ServiceCategory {
-  id: string
-  name: string
-}
-
-interface EmployeeCategory {
+interface EmployeeServiceRow {
   profile_id: string
-  category_id: string
+  service_id: string
 }
 
 const currency = new Intl.NumberFormat('tr-TR', { style: 'currency', currency: 'TRY', maximumFractionDigits: 0 })
@@ -192,8 +187,7 @@ export default function PerformanceReportPage() {
   const [schedules, setSchedules] = useState<Schedule[]>([])
   const [timeBlocks, setTimeBlocks] = useState<TimeBlock[]>([])
   const [payments, setPayments] = useState<Payment[]>([])
-  const [categories, setCategories] = useState<ServiceCategory[]>([])
-  const [employeeCategories, setEmployeeCategories] = useState<EmployeeCategory[]>([])
+  const [employeeServices, setEmployeeServices] = useState<EmployeeServiceRow[]>([])
   const [commissionPct, setCommissionPct] = useState(0)
   const [sortKey, setSortKey] = useState<SortKey>('prim')
   const [search, setSearch] = useState('')
@@ -212,8 +206,7 @@ export default function PerformanceReportPage() {
         { data: scheds },
         { data: blocks },
         { data: pays },
-        { data: cats },
-        { data: empCats },
+        { data: empSvcs },
         { data: settings },
       ] = await Promise.all([
         supabase.from('profiles').select('id, full_name').order('full_name'),
@@ -231,8 +224,7 @@ export default function PerformanceReportPage() {
           .is('voided_at', null)
           .gte('paid_at', rangeStart)
           .lte('paid_at', rangeEnd),
-        supabase.from('service_categories').select('id, name'),
-        supabase.from('employee_categories').select('profile_id, category_id'),
+        supabase.from('employee_services').select('profile_id, service_id'),
         supabase.from('business_finance_settings').select('commission_pct').maybeSingle(),
       ])
       if (cancelled) return
@@ -242,8 +234,7 @@ export default function PerformanceReportPage() {
       setSchedules(scheds ?? [])
       setTimeBlocks(blocks ?? [])
       setPayments(pays ?? [])
-      setCategories(cats ?? [])
-      setEmployeeCategories(empCats ?? [])
+      setEmployeeServices(empSvcs ?? [])
       setCommissionPct(settings?.commission_pct ?? 0)
       setLoading(false)
     }
@@ -255,7 +246,6 @@ export default function PerformanceReportPage() {
   }, [rangeStart, rangeEnd])
 
   const serviceById = useMemo(() => new Map(services.map((s) => [s.id, s])), [services])
-  const categoryNameById = useMemo(() => new Map(categories.map((c) => [c.id, c.name])), [categories])
   const appointmentById = useMemo(() => new Map(appointments.map((a) => [a.id, a])), [appointments])
 
   // Tahsilat, o odemenin bagli oldugu randevunun employee_id'sine gore
@@ -287,13 +277,19 @@ export default function PerformanceReportPage() {
       for (const a of empAppts) {
         sourceCounts.set(a.source, (sourceCounts.get(a.source) ?? 0) + 1)
       }
-      const myCategoryId = employeeCategories.find((ec) => ec.profile_id === p.id)?.category_id
-      const categoryName = myCategoryId ? (categoryNameById.get(myCategoryId) ?? null) : null
+      const myServiceNames = employeeServices
+        .filter((es) => es.profile_id === p.id)
+        .map((es) => serviceById.get(es.service_id)?.name)
+        .filter((n): n is string => !!n)
+      const serviceTag =
+        myServiceNames.length > 0
+          ? myServiceNames.slice(0, 2).join(' • ') + (myServiceNames.length > 2 ? ` +${myServiceNames.length - 2}` : '')
+          : null
 
       return {
         profile: p,
         isBot: false as const,
-        categoryName,
+        serviceTag,
         totalRandevu: empAppts.length,
         completedCount: completed.length,
         revenue: tahsilat,
@@ -314,8 +310,7 @@ export default function PerformanceReportPage() {
     payments,
     appointmentById,
     serviceById,
-    categoryNameById,
-    employeeCategories,
+    employeeServices,
     commissionPct,
     timeBlocks,
     schedules,
@@ -513,7 +508,7 @@ export default function PerformanceReportPage() {
                   <div className={styles.employeeMain}>
                     <span className={styles.employeeNameRow}>
                       <span className={styles.employeeName}>{e.profile.full_name ?? '—'}</span>
-                      {e.categoryName && <span className={styles.employeeTag}>{e.categoryName}</span>}
+                      {e.serviceTag && <span className={styles.employeeTag}>{e.serviceTag}</span>}
                     </span>
                     <div className={styles.employeeStatsRow}>
                       <span className={styles.employeeStat}>

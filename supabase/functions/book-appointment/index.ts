@@ -128,9 +128,8 @@ Deno.serve(async (req) => {
 
   const requestedStart = new Date(scheduled_at)
 
-  const serviceCols = 'id, name, duration_minutes, category_id'
-  let service: { id: string; name: string; duration_minutes: number | null; category_id: string | null } | null =
-    null
+  const serviceCols = 'id, name, duration_minutes'
+  let service: { id: string; name: string; duration_minutes: number | null } | null = null
 
   if (service_id) {
     const { data } = await admin
@@ -173,13 +172,12 @@ Deno.serve(async (req) => {
     business.id,
   )
   let eligibleIds: string[]
-  if (service.category_id) {
-    const { data: empCats } = await admin
-      .from('employee_categories')
-      .select('profile_id')
-      .eq('category_id', service.category_id)
-    eligibleIds = (empCats ?? []).map((e) => e.profile_id)
+  const { data: empSvcs } = await admin.from('employee_services').select('profile_id').eq('service_id', service.id)
+  if (empSvcs && empSvcs.length > 0) {
+    eligibleIds = empSvcs.map((e) => e.profile_id)
   } else {
+    // Bu hizmete hic kimse atanmamissa herkes uygun sayilir (bkz.
+    // EmployeeDetailPage.tsx "Verdigi Hizmetler").
     eligibleIds = (allProfiles ?? []).map((p) => p.id)
   }
 

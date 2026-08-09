@@ -42,7 +42,6 @@ interface Service {
   name: string
   duration_minutes: number
   price: number | null
-  category_id: string | null
 }
 
 interface Profile {
@@ -50,9 +49,9 @@ interface Profile {
   full_name: string | null
 }
 
-interface EmployeeCategory {
+interface EmployeeServiceRow {
   profile_id: string
-  category_id: string
+  service_id: string
 }
 
 interface Schedule {
@@ -212,7 +211,7 @@ export default function AppointmentsPage() {
   const [servicePackages, setServicePackages] = useState<ServicePackage[]>([])
   const [services, setServices] = useState<Service[]>([])
   const [profiles, setProfiles] = useState<Profile[]>([])
-  const [employeeCategories, setEmployeeCategories] = useState<EmployeeCategory[]>([])
+  const [employeeServices, setEmployeeServices] = useState<EmployeeServiceRow[]>([])
   const [schedules, setSchedules] = useState<Schedule[]>([])
   const [timeBlocks, setTimeBlocks] = useState<TimeBlock[]>([])
   const [loading, setLoading] = useState(true)
@@ -361,7 +360,7 @@ export default function AppointmentsPage() {
       { data: pkgs },
       { data: svcs },
       { data: profs },
-      { data: empCats },
+      { data: empSvcs },
       { data: scheds },
       { data: blocks },
     ] = await Promise.all([
@@ -375,11 +374,11 @@ export default function AppointmentsPage() {
       supabase.from('service_packages').select('id, customer_id, service_id, total_sessions, session_offset, status'),
       supabase
         .from('services')
-        .select('id, name, duration_minutes, price, category_id')
+        .select('id, name, duration_minutes, price')
         .eq('is_active', true)
         .order('name'),
       supabase.from('profiles').select('id, full_name'),
-      supabase.from('employee_categories').select('profile_id, category_id'),
+      supabase.from('employee_services').select('profile_id, service_id'),
       supabase.from('employee_schedules').select('profile_id, day_of_week, starts_at, ends_at'),
       supabase.from('employee_time_blocks').select('profile_id, day_of_week, block_date, end_date, starts_at, ends_at'),
     ])
@@ -388,7 +387,7 @@ export default function AppointmentsPage() {
     setServicePackages(pkgs ?? [])
     setServices(svcs ?? [])
     setProfiles(profs ?? [])
-    setEmployeeCategories(empCats ?? [])
+    setEmployeeServices(empSvcs ?? [])
     setSchedules(scheds ?? [])
     setTimeBlocks(blocks ?? [])
     setLoading(false)
@@ -512,12 +511,16 @@ export default function AppointmentsPage() {
   const selectedService = services.find((s) => s.id === serviceId) ?? null
 
   const eligibleEmployees = useMemo(() => {
-    if (!selectedService?.category_id) return profiles
+    if (!selectedService) return profiles
     const ids = new Set(
-      employeeCategories.filter((ec) => ec.category_id === selectedService.category_id).map((ec) => ec.profile_id),
+      employeeServices.filter((es) => es.service_id === selectedService.id).map((es) => es.profile_id),
     )
+    // Bu hizmete hic kimse atanmamissa (bkz. EmployeeDetailPage.tsx "Verdigi
+    // Hizmetler") herkes uygun sayilir — yeni eklenen bir hizmetin, admin
+    // henuz kimseye atamadan hic booking yapilamaz hale gelmesini onler.
+    if (ids.size === 0) return profiles
     return profiles.filter((p) => ids.has(p.id))
-  }, [selectedService, employeeCategories, profiles])
+  }, [selectedService, employeeServices, profiles])
 
   function isEmployeeAvailable(employeeId: string, start: Date, durationMinutes: number, excludeApptId?: string) {
     const dayOfWeek = start.getDay()
