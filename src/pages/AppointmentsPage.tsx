@@ -510,15 +510,13 @@ export default function AppointmentsPage() {
 
   const selectedService = services.find((s) => s.id === serviceId) ?? null
 
+  // Bir hizmete hic kimse atanmamissa (bkz. EmployeeDetailPage.tsx "Verdigi
+  // Hizmetler") o hizmete kimse randevu alamaz — kasitli, fallback yok.
   const eligibleEmployees = useMemo(() => {
     if (!selectedService) return profiles
     const ids = new Set(
       employeeServices.filter((es) => es.service_id === selectedService.id).map((es) => es.profile_id),
     )
-    // Bu hizmete hic kimse atanmamissa (bkz. EmployeeDetailPage.tsx "Verdigi
-    // Hizmetler") herkes uygun sayilir — yeni eklenen bir hizmetin, admin
-    // henuz kimseye atamadan hic booking yapilamaz hale gelmesini onler.
-    if (ids.size === 0) return profiles
     return profiles.filter((p) => ids.has(p.id))
   }, [selectedService, employeeServices, profiles])
 
@@ -611,6 +609,10 @@ export default function AppointmentsPage() {
         return
       }
     } else {
+      if (eligibleEmployees.length === 0) {
+        setError('Bu hizmete atanmış çalışan yok. Önce Ekip sayfasından bir çalışana bu hizmeti atayın.')
+        return
+      }
       const candidates = eligibleEmployees.filter((p) => isEmployeeAvailable(p.id, start, duration))
       if (candidates.length === 0) {
         setError('Bu saatte bu hizmet için uygun çalışan yok. Başka bir saat deneyin.')

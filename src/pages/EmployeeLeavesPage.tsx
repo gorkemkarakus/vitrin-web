@@ -381,17 +381,15 @@ export default function EmployeeLeavesPage() {
     return !hasConflict
   }
 
-  // Randevunun hizmetine (employee_services) atanmis calisanlara daraltir;
-  // eslesen kimse yoksa (bu hizmete hic kimse atanmamissa) tum aktif
-  // calisanlara geri duser — AppointmentsPage.tsx'teki eligibleEmployees ile
-  // ayni desen.
+  // Randevunun hizmetine (employee_services) atanmis calisanlara daraltir —
+  // AppointmentsPage.tsx'teki eligibleEmployees ile ayni desen: bu hizmete
+  // hic kimse atanmamissa aday havuzu bos kalir (fallback yok, kasitli).
   function candidatesFor(conflict: ConflictAppointment) {
     if (!conflict.service_id) return otherProfiles
     const matchIds = new Set(
       employeeServices.filter((es) => es.service_id === conflict.service_id).map((es) => es.profile_id),
     )
-    const matched = otherProfiles.filter((p) => matchIds.has(p.id))
-    return matched.length > 0 ? matched : otherProfiles
+    return otherProfiles.filter((p) => matchIds.has(p.id))
   }
 
   function availableCandidatesFor(conflict: ConflictAppointment) {
