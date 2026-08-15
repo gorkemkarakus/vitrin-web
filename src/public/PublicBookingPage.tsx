@@ -7,6 +7,7 @@ import SlotGrid from './components/SlotGrid'
 import CustomerForm from './components/CustomerForm'
 import BookingConfirmation from './components/BookingConfirmation'
 import { fetchBookingInfo, submitBooking, type PublicService, type PublicEmployee } from './lib/publicBookingApi'
+import { toLocalDateString } from '../lib/date'
 import styles from './PublicBookingPage.module.css'
 
 type Step = 'loading' | 'not_found' | 'service' | 'employee' | 'datetime' | 'details' | 'confirmed'
@@ -18,12 +19,11 @@ const STEP_TITLES: Record<Step, string> = {
   employee: 'Uzman Seçin',
   datetime: 'Tarih & Saat',
   details: 'Bilgileriniz',
-  confirmed: 'Vitrin',
+  confirmed: 'Adapptiv',
 }
 
 function todayLocalDateString() {
-  const d = new Date()
-  return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`
+  return toLocalDateString(new Date())
 }
 
 export default function PublicBookingPage() {

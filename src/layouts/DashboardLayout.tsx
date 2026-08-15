@@ -4,6 +4,7 @@ import { Capacitor } from '@capacitor/core'
 import { useAuth } from '../contexts/AuthContext'
 import { supabase } from '../lib/supabase'
 import QuickAddCustomerModal from '../components/QuickAddCustomerModal'
+import logoMark from '../assets/brand/logo-mark.png'
 import {
   HomeIcon,
   AppointmentsIcon,
@@ -12,8 +13,8 @@ import {
   BellIcon,
   PlusIcon,
   UserPlusIcon,
-  ReceiptIcon,
-  CashIcon,
+  AccountingIcon,
+  MessagesIcon,
   SettingsIcon,
   LogOutIcon,
 } from '../components/icons'
@@ -38,6 +39,7 @@ const PAGE_TITLES: Record<string, string> = {
   '/hizmetler': 'Hizmetler',
   '/ayarlar': 'Ayarlar',
   '/mesajlar': 'Mesajlar',
+  '/ai-analiz': 'AI İş Analizi',
 }
 
 function pageTitleFor(pathname: string) {
@@ -193,6 +195,7 @@ export default function DashboardLayout() {
   return (
     <div className={styles.shell}>
       <header className={styles.topbar}>
+        <img src={logoMark} alt="" className={styles.topbarMark} />
         {isHome ? (
           <div className={styles.greeting}>
             <h1>
@@ -375,16 +378,22 @@ export default function DashboardLayout() {
                 }}
               >
                 <span className={`${styles.sheetItemIcon} ${styles.sheetItemIconOk}`}>
-                  <ReceiptIcon width={20} height={20} />
+                  <AccountingIcon width={20} height={20} />
                 </span>
-                Yeni Ödeme
+                Muhasebe
               </button>
-              <button type="button" className={styles.sheetItem} disabled>
+              <button
+                type="button"
+                className={styles.sheetItem}
+                onClick={() => {
+                  setActionSheetOpen(false)
+                  navigate('/mesajlar')
+                }}
+              >
                 <span className={styles.sheetItemIcon}>
-                  <CashIcon width={20} height={20} />
+                  <MessagesIcon width={20} height={20} />
                 </span>
-                Kasa İşlemi
-                <span className={styles.sheetItemBadge}>Yakında</span>
+                Mesajlar
               </button>
             </div>
           </div>

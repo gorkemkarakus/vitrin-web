@@ -269,6 +269,11 @@
   color: var(--danger-text);
 }
 
+.apptStatus_gelmedi {
+  background: var(--panel-2);
+  color: var(--text-dim);
+}
+
 /* ---------- Yaklasan odemeler ---------- */
 
 .paymentList {

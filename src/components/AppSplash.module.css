@@ -22,19 +22,10 @@
 .mark {
   width: 84px;
   height: 84px;
-  border-radius: 20px;
-  background: var(--signal);
-  position: relative;
+  object-fit: contain;
   animation:
     markIn 0.55s cubic-bezier(0.34, 1.56, 0.64, 1) both,
     markPulse 2.2s ease-in-out 0.6s infinite;
-}
-
-.markInner {
-  position: absolute;
-  inset: 24px;
-  background: var(--bg);
-  border-radius: 7px;
 }
 
 @keyframes markIn {

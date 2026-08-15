@@ -1,10 +1,10 @@
 apply plugin: 'com.android.application'
 
 android {
-    namespace = "com.vitrin.panel"
+    namespace = "com.adapptiv.panel"
     compileSdk = rootProject.ext.compileSdkVersion
     defaultConfig {
-        applicationId "com.vitrin.panel"
+        applicationId "com.adapptiv.panel"
         minSdkVersion rootProject.ext.minSdkVersion
         targetSdkVersion rootProject.ext.targetSdkVersion
         versionCode 1
@@ -20,6 +20,14 @@ android {
         release {
             minifyEnabled false
             proguardFiles getDefaultProguardFile('proguard-android.txt'), 'proguard-rules.pro'
+        }
+    }
+    // Uretilen .apk dosyasinin adi varsayilan olarak "app-debug.apk" gibi jenerik
+    // kalir (applicationId/app_name'den bagimsiz) — burada marka adini yansitacak
+    // sekilde "Adapptiv-debug.apk" / "Adapptiv-release.apk" yapiliyor.
+    applicationVariants.all { variant ->
+        variant.outputs.all { output ->
+            outputFileName = "Adapptiv-${variant.buildType.name}.apk"
         }
     }
 }

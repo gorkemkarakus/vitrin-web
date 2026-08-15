@@ -1,11 +1,8 @@
+import { toLocalDateString } from '../../lib/date'
 import styles from '../PublicBookingPage.module.css'
 
 const SEARCH_DAYS = 14
 const WEEKDAY_SHORT = ['Paz', 'Pzt', 'Sal', 'Çar', 'Per', 'Cum', 'Cmt']
-
-function toLocalDateString(d: Date) {
-  return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`
-}
 
 export default function DateStrip({
   selectedDate,

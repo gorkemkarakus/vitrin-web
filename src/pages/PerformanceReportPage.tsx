@@ -7,13 +7,13 @@ import {
   CalendarIcon,
   UsersIcon,
   WalletIcon,
-  TrophyIcon,
   SearchIcon,
-  SortIcon,
   RobotIcon,
   ReceiptIcon,
 } from '../components/icons'
 import { generatePerformanceReportPdf } from '../lib/pdf/performanceReportPdf'
+import { currencyWhole as currency } from '../lib/currency'
+import { toLocalDateString, presetDateRange } from '../lib/date'
 import styles from './PerformanceReportPage.module.css'
 
 interface Profile {
@@ -26,7 +26,7 @@ interface Appointment {
   employee_id: string | null
   customer_id: string | null
   service_id: string | null
-  status: 'bekliyor' | 'onaylandi' | 'tamamlandi' | 'iptal'
+  status: 'bekliyor' | 'onaylandi' | 'tamamlandi' | 'iptal' | 'gelmedi'
   scheduled_at: string
   duration_minutes: number | null
   price_override: number | null
@@ -66,51 +66,14 @@ interface EmployeeServiceRow {
   service_id: string
 }
 
-const currency = new Intl.NumberFormat('tr-TR', { style: 'currency', currency: 'TRY', maximumFractionDigits: 0 })
-
 type Preset = 'bugun' | 'bu_hafta' | 'bu_ay' | 'ozel'
+const presetRange = presetDateRange
 
 const PRESETS: { value: Preset; label: string }[] = [
   { value: 'bugun', label: 'Bugün' },
   { value: 'bu_hafta', label: 'Bu Hafta' },
   { value: 'bu_ay', label: 'Bu Ay' },
 ]
-
-type SortKey = 'prim' | 'tahsilat' | 'randevu' | 'isim'
-
-const SORT_OPTIONS: { value: SortKey; label: string }[] = [
-  { value: 'prim', label: 'Prim Hakedişine Göre' },
-  { value: 'tahsilat', label: 'Tahsilata Göre' },
-  { value: 'randevu', label: 'Randevuya Göre' },
-  { value: 'isim', label: 'İsme Göre' },
-]
-
-function toLocalDateString(d: Date) {
-  return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`
-}
-
-function firstOfMonth(d: Date) {
-  return new Date(d.getFullYear(), d.getMonth(), 1)
-}
-
-function presetRange(preset: Preset): { start: string; end: string } {
-  const today = new Date()
-  switch (preset) {
-    case 'bugun':
-      return { start: toLocalDateString(today), end: toLocalDateString(today) }
-    case 'bu_hafta': {
-      const day = today.getDay()
-      const diffToMonday = day === 0 ? -6 : 1 - day
-      const monday = new Date(today)
-      monday.setDate(today.getDate() + diffToMonday)
-      return { start: toLocalDateString(monday), end: toLocalDateString(today) }
-    }
-    case 'bu_ay':
-      return { start: toLocalDateString(firstOfMonth(today)), end: toLocalDateString(today) }
-    default:
-      return { start: toLocalDateString(today), end: toLocalDateString(today) }
-  }
-}
 
 function timeStringToMinutes(t: string) {
   const [h, m] = t.split(':').map(Number)
@@ -172,8 +135,6 @@ function scheduledMinutesInRange(profileId: string, schedules: Schedule[], block
   return total
 }
 
-const RANK_TIER = ['#c9971c', '#94a3b8', '#b8703f'] as const // altin, gumus, bronz
-
 export default function PerformanceReportPage() {
   const { profile } = useAuth()
   const [preset, setPreset] = useState<Preset>('bugun')
@@ -189,7 +150,6 @@ export default function PerformanceReportPage() {
   const [payments, setPayments] = useState<Payment[]>([])
   const [employeeServices, setEmployeeServices] = useState<EmployeeServiceRow[]>([])
   const [commissionPct, setCommissionPct] = useState(0)
-  const [sortKey, setSortKey] = useState<SortKey>('prim')
   const [search, setSearch] = useState('')
   const [pdfState, setPdfState] = useState<{ progress: number; step: string; error: string | null } | null>(null)
 
@@ -335,17 +295,14 @@ export default function PerformanceReportPage() {
   const toplamTahsilat = payments.reduce((s, p) => s + p.amount, 0)
   const toplamPrimHakedis = employeeStats.reduce((s, e) => s + e.primHakedis, 0)
 
+  // Calisanlar birbiriyle kiyaslanmiyor/siralanmiyor — liste her zaman
+  // isme gore (alfabetik) gosterilir, secilebilir bir "puana gore sirala"
+  // seceneği yok.
   const visibleRows = useMemo(() => {
     const q = search.trim().toLocaleLowerCase('tr-TR')
     const filtered = q ? employeeStats.filter((e) => (e.profile.full_name ?? '').toLocaleLowerCase('tr-TR').includes(q)) : employeeStats
-    const sorted = filtered.slice().sort((a, b) => {
-      if (sortKey === 'isim') return (a.profile.full_name ?? '').localeCompare(b.profile.full_name ?? '', 'tr-TR')
-      if (sortKey === 'tahsilat') return b.revenue - a.revenue
-      if (sortKey === 'randevu') return b.completedCount - a.completedCount
-      return b.primHakedis - a.primHakedis
-    })
-    return sorted
-  }, [employeeStats, search, sortKey])
+    return filtered.slice().sort((a, b) => (a.profile.full_name ?? '').localeCompare(b.profile.full_name ?? '', 'tr-TR'))
+  }, [employeeStats, search])
 
   const showBotRow =
     botStats.completedCount > 0 &&
@@ -455,7 +412,7 @@ export default function PerformanceReportPage() {
             </div>
             <div className={styles.kpiCard}>
               <span className={styles.kpiIcon} style={{ background: '#fef3c7', color: '#c9971c' }}>
-                <TrophyIcon width={17} height={17} />
+                <WalletIcon width={17} height={17} />
               </span>
               <span className={styles.kpiValue}>{currency.format(toplamPrimHakedis)}</span>
               <span className={styles.kpiLabel}>Toplam Prim Hakediş</span>
@@ -468,16 +425,6 @@ export default function PerformanceReportPage() {
           </button>
 
           <div className={styles.controlRow}>
-            <div className={styles.sortWrap}>
-              <SortIcon width={15} height={15} className={styles.sortIcon} />
-              <select className={styles.sortSelect} value={sortKey} onChange={(e) => setSortKey(e.target.value as SortKey)}>
-                {SORT_OPTIONS.map((o) => (
-                  <option key={o.value} value={o.value}>
-                    {o.label}
-                  </option>
-                ))}
-              </select>
-            </div>
             <div className={styles.searchBox}>
               <SearchIcon width={15} height={15} className={styles.searchIcon} />
               <input
@@ -496,43 +443,35 @@ export default function PerformanceReportPage() {
 
           <div className={styles.employeeList}>
             {visibleRows.length === 0 && !showBotRow && <p className={styles.empty}>Sonuç bulunamadı.</p>}
-            {visibleRows.map((e, i) => {
-              const rank = i + 1
-              const tierColor = rank <= 3 ? RANK_TIER[rank - 1] : undefined
-              return (
-                <div key={e.profile.id} className={`card ${styles.employeeRow} ${rank === 1 ? styles.employeeRowFirst : ''}`}>
-                  <span className={styles.rankBadge} style={tierColor ? { background: tierColor, color: '#fff' } : undefined}>
-                    {rank === 1 ? <TrophyIcon width={15} height={15} /> : rank}
+            {visibleRows.map((e) => (
+              <div key={e.profile.id} className={`card ${styles.employeeRow}`}>
+                <Avatar name={e.profile.full_name ?? '—'} size={44} />
+                <div className={styles.employeeMain}>
+                  <span className={styles.employeeNameRow}>
+                    <span className={styles.employeeName}>{e.profile.full_name ?? '—'}</span>
+                    {e.serviceTag && <span className={styles.employeeTag}>{e.serviceTag}</span>}
                   </span>
-                  <Avatar name={e.profile.full_name ?? '—'} size={44} />
-                  <div className={styles.employeeMain}>
-                    <span className={styles.employeeNameRow}>
-                      <span className={styles.employeeName}>{e.profile.full_name ?? '—'}</span>
-                      {e.serviceTag && <span className={styles.employeeTag}>{e.serviceTag}</span>}
+                  <div className={styles.employeeStatsRow}>
+                    <span className={styles.employeeStat}>
+                      <CalendarIcon width={12} height={12} />
+                      {e.completedCount} Randevu
                     </span>
-                    <div className={styles.employeeStatsRow}>
-                      <span className={styles.employeeStat}>
-                        <CalendarIcon width={12} height={12} />
-                        {e.completedCount} Randevu
-                      </span>
-                      <span className={styles.employeeStat}>{currency.format(e.revenue)} Tahsilat</span>
-                    </div>
-                  </div>
-                  <div className={styles.primBox}>
-                    <span className={styles.primRate}>%{e.primOrani} Prim Oranı</span>
-                    <span className={styles.primAmount}>
-                      <TrophyIcon width={13} height={13} />
-                      {currency.format(e.primHakedis)}
-                    </span>
-                    <span className={styles.primAmountLabel}>Prim Hakediş</span>
+                    <span className={styles.employeeStat}>{currency.format(e.revenue)} Tahsilat</span>
                   </div>
                 </div>
-              )
-            })}
+                <div className={styles.primBox}>
+                  <span className={styles.primRate}>%{e.primOrani} Prim Oranı</span>
+                  <span className={styles.primAmount}>
+                    <WalletIcon width={13} height={13} />
+                    {currency.format(e.primHakedis)}
+                  </span>
+                  <span className={styles.primAmountLabel}>Prim Hakediş</span>
+                </div>
+              </div>
+            ))}
 
             {showBotRow && (
               <div className={styles.employeeRow + ' card'}>
-                <span className={styles.rankBadge}>{visibleRows.length + 1}</span>
                 <span className={styles.botAvatar}>
                   <RobotIcon width={20} height={20} />
                 </span>
@@ -552,7 +491,7 @@ export default function PerformanceReportPage() {
                 <div className={styles.primBox}>
                   <span className={styles.primRate}>%0 Prim Oranı</span>
                   <span className={styles.primAmount}>
-                    <TrophyIcon width={13} height={13} />
+                    <WalletIcon width={13} height={13} />
                     {currency.format(0)}
                   </span>
                   <span className={styles.primAmountLabel}>Prim Hakediş</span>

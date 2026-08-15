@@ -2,18 +2,20 @@ import { useEffect, useMemo, useState } from 'react'
 import { useNavigate, useParams } from 'react-router-dom'
 import { supabase } from '../lib/supabase'
 import { useAuth } from '../contexts/AuthContext'
-import Avatar, { colorForName } from '../components/Avatar'
+import Avatar from '../components/Avatar'
+import { colorForName } from '../lib/avatarColor'
 import Select from '../components/Select'
 import {
   CalendarIcon,
+  CheckCircleIcon,
   ChevronRightIcon,
   ClockIcon,
   InfoIcon,
   MoreHorizontalIcon,
   PencilIcon,
   PlusIcon,
-  TrophyIcon,
 } from '../components/icons'
+import { toLocalDateString } from '../lib/date'
 import styles from './EmployeeDetailPage.module.css'
 
 const GENDER_OPTIONS = [
@@ -63,7 +65,7 @@ interface TimeBlock {
 
 interface Appointment {
   id: string
-  status: 'bekliyor' | 'onaylandi' | 'tamamlandi' | 'iptal'
+  status: 'bekliyor' | 'onaylandi' | 'tamamlandi' | 'iptal' | 'gelmedi'
   scheduled_at: string
 }
 
@@ -77,8 +79,7 @@ const STATUS_LABEL: Record<'aktif' | 'izinli' | 'pasif', string> = {
 }
 
 function todayLocalDateString() {
-  const d = new Date()
-  return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`
+  return toLocalDateString(new Date())
 }
 
 function roleLabel(role: Employee['role']) {
@@ -300,10 +301,11 @@ export default function EmployeeDetailPage() {
   const selectedDayInfo = computeDayInfo(selectedDay, schedules, timeBlocks)
   const weeklyHours = weeklyPlannedHours(schedules, timeBlocks)
 
+  // Tek bir "performans puanı"na indirgemek yerine ayrı ayrı sayılar
+  // gösteriliyor — çalışanlar birbiriyle sıralanmıyor/puanlanmıyor.
   const completedThisMonth = appointments.filter((a) => a.status === 'tamamlandi').length
   const cancelledThisMonth = appointments.filter((a) => a.status === 'iptal').length
-  const performanceDenominator = completedThisMonth + cancelledThisMonth
-  const performancePct = performanceDenominator > 0 ? Math.round((completedThisMonth / performanceDenominator) * 100) : null
+  const noShowThisMonth = appointments.filter((a) => a.status === 'gelmedi').length
 
   const leaves: LeaveSummary[] = timeBlocks
     .filter((b) => b.day_of_week === null && b.block_date)
@@ -367,11 +369,23 @@ export default function EmployeeDetailPage() {
 
         <div className={styles.statCard}>
           <div className={styles.statCardHead}>
-            <TrophyIcon width={14} height={14} />
-            <span>Performans</span>
+            <CheckCircleIcon width={14} height={14} />
+            <span>Bu Ay</span>
           </div>
-          <span className={styles.statCardValue}>{performancePct !== null ? `%${performancePct}` : '—'}</span>
-          <span className={styles.statCardSub}>Bu Ay</span>
+          <div className={styles.statCardMiniRow}>
+            <div className={styles.statCardMiniItem}>
+              <span className={styles.statCardMiniValue}>{completedThisMonth}</span>
+              <span className={styles.statCardMiniLabel}>Tamamlandı</span>
+            </div>
+            <div className={styles.statCardMiniItem}>
+              <span className={styles.statCardMiniValue}>{cancelledThisMonth}</span>
+              <span className={styles.statCardMiniLabel}>İptal</span>
+            </div>
+            <div className={styles.statCardMiniItem}>
+              <span className={styles.statCardMiniValue}>{noShowThisMonth}</span>
+              <span className={styles.statCardMiniLabel}>Gelmedi</span>
+            </div>
+          </div>
         </div>
       </div>
 

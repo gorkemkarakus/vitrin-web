@@ -1,9 +1,9 @@
-import { useEffect, useState } from 'react'
+import { useEffect, useMemo, useState } from 'react'
 import { useOutletContext } from 'react-router-dom'
 import { supabase } from '../lib/supabase'
 import { useAuth } from '../contexts/AuthContext'
 import Avatar from '../components/Avatar'
-import { MessagesIcon } from '../components/icons'
+import { MessagesIcon, ClockIcon } from '../components/icons'
 import type { LayoutOutletContext } from '../layouts/DashboardLayout'
 import styles from './MessagesPage.module.css'
 
@@ -143,6 +143,14 @@ export default function MessagesPage() {
 
   const selectedConversation = conversations.find((c) => c.phone === selectedPhone) ?? null
 
+  const todayConversationCount = useMemo(() => {
+    const todayStart = new Date()
+    todayStart.setHours(0, 0, 0, 0)
+    return conversations.filter((c) => new Date(c.lastMessageAt) >= todayStart).length
+  }, [conversations])
+
+  const pausedCount = useMemo(() => conversations.filter((c) => isPaused(c.customer)).length, [conversations])
+
   const q = searchQuery.trim().toLowerCase()
   const visibleConversations = q
     ? conversations.filter(
@@ -167,7 +175,29 @@ export default function MessagesPage() {
   }
 
   return (
-    <div className={styles.wrap} data-selected={selectedPhone ? 'true' : 'false'}>
+    <div className={styles.page}>
+      <div className={styles.statsRow}>
+        <div className={`card ${styles.statTile}`}>
+          <span className={styles.statIcon}>
+            <MessagesIcon width={16} height={16} />
+          </span>
+          <div>
+            <div className={styles.statValue}>{todayConversationCount}</div>
+            <div className={styles.statLabel}>Bugün Konuşma</div>
+          </div>
+        </div>
+        <div className={`card ${styles.statTile}`}>
+          <span className={`${styles.statIcon} ${styles.statIconWarn}`}>
+            <ClockIcon width={16} height={16} />
+          </span>
+          <div>
+            <div className={styles.statValue}>{pausedCount}</div>
+            <div className={styles.statLabel}>Şu An Duraklatılmış</div>
+          </div>
+        </div>
+      </div>
+
+      <div className={styles.wrap} data-selected={selectedPhone ? 'true' : 'false'}>
       <div className={`card ${styles.convList}`}>
         {visibleConversations.length === 0 && (
           <p className={styles.sub} style={{ padding: '8px 4px' }}>
@@ -266,6 +296,7 @@ export default function MessagesPage() {
             </div>
           </>
         )}
+      </div>
       </div>
     </div>
   )

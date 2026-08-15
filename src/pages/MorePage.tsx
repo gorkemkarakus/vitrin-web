@@ -8,14 +8,22 @@ import {
   LogOutIcon,
   ChevronRightIcon,
   TrophyIcon,
+  MegaphoneIcon,
+  MessagesIcon,
+  SparkleIcon,
+  SendIcon,
 } from '../components/icons'
 import styles from './MorePage.module.css'
 
 const MENU_ITEMS = [
+  { path: '/mesajlar', label: 'Mesajlar', sub: 'Chatbot konuşmaları ve devral', adminOnly: false, icon: MessagesIcon },
+  { path: '/toplu-mesaj', label: 'Toplu Mesaj', sub: 'Müşteri gruplarına kampanya mesajı gönderin', adminOnly: true, icon: SendIcon },
   { path: '/muhasebe', label: 'Muhasebe', sub: 'Gelir, gider ve kasa durumu', adminOnly: true, icon: AccountingIcon },
   { path: '/ekip', label: 'Ekip', sub: 'Personel, programlar ve izinler', adminOnly: true, icon: TeamIcon },
   { path: '/performans-raporu', label: 'Performans Raporu', sub: 'Çalışan bazlı randevu, kazanç ve izin özeti', adminOnly: true, icon: TrophyIcon },
   { path: '/hizmetler', label: 'Hizmetler', sub: 'Hizmet listesi ve fiyatlar', adminOnly: true, icon: ServicesIcon },
+  { path: '/reklam', label: 'Reklam Performansı', sub: 'Facebook reklam hesabı harcama ve dönüşüm verileri', adminOnly: true, icon: MegaphoneIcon },
+  { path: '/ai-analiz', label: 'AI İş Analizi', sub: 'Yapay zeka destekli işletme özeti ve öneriler', adminOnly: true, icon: SparkleIcon },
   { path: '/ayarlar', label: 'Ayarlar', sub: 'Hesap ve işletme ayarları', adminOnly: false, icon: SettingsIcon },
 ]
 

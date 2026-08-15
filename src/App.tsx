@@ -23,6 +23,10 @@ import EmployeeLeavesPage from './pages/EmployeeLeavesPage'
 import HolidaysPage from './pages/HolidaysPage'
 import PerformanceReportPage from './pages/PerformanceReportPage'
 import GiderlerPage from './pages/GiderlerPage'
+import AdInsightsPage from './pages/AdInsightsPage'
+import AiInsightsPage from './pages/AiInsightsPage'
+import AdOAuthCallbackPage from './pages/AdOAuthCallbackPage'
+import TopluMesajPage from './pages/TopluMesajPage'
 import PublicBookingPage from './public/PublicBookingPage'
 import ResetPasswordPage from './pages/ResetPasswordPage'
 
@@ -127,6 +131,22 @@ function AppRoutes() {
             <Route
               path="giderler"
               element={<ProtectedRoute adminOnly><GiderlerPage /></ProtectedRoute>}
+            />
+            <Route
+              path="reklam"
+              element={<ProtectedRoute adminOnly><AdInsightsPage /></ProtectedRoute>}
+            />
+            <Route
+              path="reklam-callback"
+              element={<ProtectedRoute adminOnly><AdOAuthCallbackPage /></ProtectedRoute>}
+            />
+            <Route
+              path="ai-analiz"
+              element={<ProtectedRoute adminOnly><AiInsightsPage /></ProtectedRoute>}
+            />
+            <Route
+              path="toplu-mesaj"
+              element={<ProtectedRoute adminOnly><TopluMesajPage /></ProtectedRoute>}
             />
           </Route>
           <Route path="*" element={<Navigate to="/" replace />} />

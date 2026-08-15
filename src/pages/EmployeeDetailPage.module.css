@@ -207,6 +207,31 @@
   line-height: 1.35;
 }
 
+.statCardMiniRow {
+  display: flex;
+  gap: 8px;
+}
+
+.statCardMiniItem {
+  display: flex;
+  flex-direction: column;
+  gap: 1px;
+}
+
+.statCardMiniValue {
+  font-family: var(--font-heading);
+  font-size: 14px;
+  font-weight: 700;
+  color: var(--text);
+  font-variant-numeric: tabular-nums;
+}
+
+.statCardMiniLabel {
+  font-size: 8.5px;
+  color: var(--text-dim);
+  white-space: nowrap;
+}
+
 .statusPill {
   align-self: flex-start;
   flex-shrink: 0;

@@ -3,6 +3,9 @@ import { useNavigate } from 'react-router-dom'
 import { supabase } from '../lib/supabase'
 import Avatar from '../components/Avatar'
 import { SearchIcon, FilterIcon, CheckCircleIcon, UsersIcon, UserPlusIcon, StarIcon, WalletIcon, ChevronRightIcon } from '../components/icons'
+import { currencyWhole as currency } from '../lib/currency'
+import { toLocalDateString } from '../lib/date'
+import { segmentForStats, type CustomerSegment } from '../lib/customerSegments'
 import styles from './CustomersPage.module.css'
 
 interface Customer {
@@ -18,7 +21,7 @@ interface Appointment {
   id: string
   customer_id: string | null
   service_id: string | null
-  status: 'bekliyor' | 'onaylandi' | 'tamamlandi' | 'iptal'
+  status: 'bekliyor' | 'onaylandi' | 'tamamlandi' | 'iptal' | 'gelmedi'
   scheduled_at: string
   package_id: string | null
   price_override: number | null
@@ -46,7 +49,7 @@ interface Payment {
   paid_at: string
 }
 
-type Segment = 'sadik' | 'yeni'
+type Segment = CustomerSegment
 type SegmentFilter = 'tumu' | Segment | 'borclu'
 type SortBy = 'ad' | 'son_randevu' | 'harcama'
 type StatsPeriod = 'tumu' | 'hafta' | 'ay'
@@ -57,7 +60,6 @@ const STATS_PERIODS: { value: StatsPeriod; label: string }[] = [
   { value: 'ay', label: 'Son Ay' },
 ]
 
-const LOYAL_APPT_THRESHOLD = 3
 // Yuzlerce musteriyi tek seferde DOM'a basmak her arama tuş vuruşunda/segment
 // degisiminde gozle gorulur bir gecikmeye (yeniden cizim maliyeti) yol
 // aciyordu — liste bu sayida parca parca aciliyor.
@@ -81,14 +83,8 @@ const SEGMENT_BADGE: Record<Segment, { label: string; icon: typeof StarIcon; cla
   yeni: { label: 'Yeni Müşteri', icon: UserPlusIcon, className: 'badgeYeni' },
 }
 
-const currency = new Intl.NumberFormat('tr-TR', { style: 'currency', currency: 'TRY', maximumFractionDigits: 0 })
-
 function monthStart(d: Date) {
   return new Date(d.getFullYear(), d.getMonth(), 1)
-}
-
-function toLocalDateString(d: Date) {
-  return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`
 }
 
 // "phone" bazen chatbot kanal kimligi olabilir (ör. Instagram IGSID) —
@@ -182,18 +178,28 @@ export default function CustomersPage() {
   const statsByCustomer = useMemo(() => {
     const map = new Map<
       string,
-      { totalSpend: number; completedCount: number; lastApptAt: Date | null; isNewThisMonth: boolean }
+      {
+        totalSpend: number
+        completedCount: number
+        lastApptAt: Date | null
+        isNewThisMonth: boolean
+      }
     >()
     for (const c of customers) {
       const appts = apptsByCustomer.get(c.id) ?? []
       const completed = appts.filter((a) => a.status === 'tamamlandi')
       const totalSpend = (paymentsByCustomer.get(c.id) ?? []).reduce((sum, p) => sum + p.amount, 0)
-      const relevant = appts.filter((a) => a.status !== 'iptal')
+      const relevant = appts.filter((a) => a.status !== 'iptal' && a.status !== 'gelmedi')
       const lastApptAt = relevant.length
         ? new Date(Math.max(...relevant.map((a) => new Date(a.scheduled_at).getTime())))
         : null
       const isNewThisMonth = new Date(c.created_at) >= currentMonthStart
-      map.set(c.id, { totalSpend, completedCount: completed.length, lastApptAt, isNewThisMonth })
+      map.set(c.id, {
+        totalSpend,
+        completedCount: completed.length,
+        lastApptAt,
+        isNewThisMonth,
+      })
     }
     return map
   }, [customers, apptsByCustomer, paymentsByCustomer, currentMonthStart])
@@ -238,9 +244,7 @@ export default function CustomersPage() {
   function segmentFor(customerId: string): Segment | null {
     const s = statsByCustomer.get(customerId)
     if (!s) return null
-    if (s.isNewThisMonth) return 'yeni'
-    if (s.completedCount >= LOYAL_APPT_THRESHOLD) return 'sadik'
-    return null
+    return segmentForStats(s)
   }
 
   const counts = useMemo(() => {

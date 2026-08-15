@@ -11,6 +11,8 @@ import {
   TrashIcon,
   ChevronRightIcon,
 } from '../components/icons'
+import { currency } from '../lib/currency'
+import { toLocalDateString, presetDateRange, type DateRangePreset } from '../lib/date'
 import styles from './GiderlerPage.module.css'
 
 interface Expense {
@@ -23,41 +25,8 @@ interface Expense {
   is_paid: boolean
 }
 
-const currency = new Intl.NumberFormat('tr-TR', { style: 'currency', currency: 'TRY' })
-
-function toLocalDateString(d: Date) {
-  return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`
-}
-
-function firstOfMonth(d: Date) {
-  return new Date(d.getFullYear(), d.getMonth(), 1)
-}
-
-type Preset = 'bugun' | 'bu_hafta' | 'bu_ay' | 'gecen_ay' | 'ozel'
-
-function presetRange(preset: Preset): { start: string; end: string } {
-  const today = new Date()
-  switch (preset) {
-    case 'bugun':
-      return { start: toLocalDateString(today), end: toLocalDateString(today) }
-    case 'bu_hafta': {
-      const day = today.getDay()
-      const diffToMonday = day === 0 ? -6 : 1 - day
-      const monday = new Date(today)
-      monday.setDate(today.getDate() + diffToMonday)
-      return { start: toLocalDateString(monday), end: toLocalDateString(today) }
-    }
-    case 'bu_ay':
-      return { start: toLocalDateString(firstOfMonth(today)), end: toLocalDateString(today) }
-    case 'gecen_ay': {
-      const lastMonthEnd = new Date(today.getFullYear(), today.getMonth(), 0)
-      const lastMonthStart = firstOfMonth(lastMonthEnd)
-      return { start: toLocalDateString(lastMonthStart), end: toLocalDateString(lastMonthEnd) }
-    }
-    default:
-      return { start: toLocalDateString(firstOfMonth(today)), end: toLocalDateString(today) }
-  }
-}
+type Preset = DateRangePreset
+const presetRange = presetDateRange
 
 const PRESETS: { value: Preset; label: string }[] = [
   { value: 'bugun', label: 'Bugün' },
@@ -84,6 +53,7 @@ export default function GiderlerPage() {
   const [loading, setLoading] = useState(true)
   const [expenseSearch, setExpenseSearch] = useState('')
   const [paidConfirm, setPaidConfirm] = useState<{ id: string; description: string; next: boolean } | null>(null)
+  const [deleteConfirm, setDeleteConfirm] = useState<{ id: string; description: string } | null>(null)
 
   const [expenseDesc, setExpenseDesc] = useState('')
   const [expenseAmount, setExpenseAmount] = useState('')
@@ -153,8 +123,14 @@ export default function GiderlerPage() {
     setAddingExpense(false)
   }
 
-  async function deleteExpense(id: string) {
-    await supabase.from('business_expenses').delete().eq('id', id)
+  function requestDeleteExpense(id: string, description: string) {
+    setDeleteConfirm({ id, description })
+  }
+
+  async function confirmDeleteExpense() {
+    if (!deleteConfirm) return
+    await supabase.from('business_expenses').delete().eq('id', deleteConfirm.id)
+    setDeleteConfirm(null)
     await loadAll()
   }
 
@@ -418,7 +394,7 @@ export default function GiderlerPage() {
                   <button
                     type="button"
                     className={styles.rowDeleteBtn}
-                    onClick={() => deleteExpense(e.id)}
+                    onClick={() => requestDeleteExpense(e.id, e.description)}
                     aria-label={`${e.description} giderini sil`}
                   >
                     <TrashIcon width={14} height={14} />
@@ -445,6 +421,21 @@ export default function GiderlerPage() {
           confirmLabel="Evet, İşaretle"
           onConfirm={confirmToggleExpensePaid}
           onCancel={() => setPaidConfirm(null)}
+        />
+      )}
+
+      {deleteConfirm && (
+        <ConfirmModal
+          title="Gideri Sil"
+          message={
+            <>
+              "{deleteConfirm.description}" giderini silmek istediğinize emin misiniz? Bu işlem geri alınamaz.
+            </>
+          }
+          confirmLabel="Evet, Sil"
+          danger
+          onConfirm={confirmDeleteExpense}
+          onCancel={() => setDeleteConfirm(null)}
         />
       )}
     </div>

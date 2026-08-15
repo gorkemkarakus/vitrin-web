@@ -13,17 +13,6 @@ const base = {
   strokeLinejoin: 'round' as const,
 }
 
-export function DashboardIcon(props: IconProps) {
-  return (
-    <svg {...base} {...props}>
-      <rect x="3" y="3" width="7" height="9" rx="1.5" />
-      <rect x="14" y="3" width="7" height="5" rx="1.5" />
-      <rect x="14" y="12" width="7" height="9" rx="1.5" />
-      <rect x="3" y="16" width="7" height="5" rx="1.5" />
-    </svg>
-  )
-}
-
 export function AppointmentsIcon(props: IconProps) {
   return (
     <svg {...base} {...props}>
@@ -152,14 +141,6 @@ export function AlertTriangleIcon(props: IconProps) {
       <path d="M12 3.5 21.5 20h-19L12 3.5Z" />
       <path d="M12 10v4" />
       <circle cx="12" cy="17.3" r="0.6" fill="currentColor" stroke="none" />
-    </svg>
-  )
-}
-
-export function MenuIcon(props: IconProps) {
-  return (
-    <svg {...base} {...props}>
-      <path d="M3.5 6.5h17M3.5 12h17M3.5 17.5h17" />
     </svg>
   )
 }
@@ -310,16 +291,6 @@ export function TrendingUpIcon(props: IconProps) {
   )
 }
 
-export function UserCheckIcon(props: IconProps) {
-  return (
-    <svg {...base} {...props}>
-      <circle cx="9" cy="8" r="3.5" />
-      <path d="M2.5 20c0-3.6 2.9-6.5 6.5-6.5s6.5 2.9 6.5 6.5" />
-      <path d="m15.5 8.5 2 2 3.5-4" />
-    </svg>
-  )
-}
-
 export function MailIcon(props: IconProps) {
   return (
     <svg {...base} {...props}>
@@ -427,14 +398,6 @@ export function TrophyIcon(props: IconProps) {
   )
 }
 
-export function FireIcon(props: IconProps) {
-  return (
-    <svg {...base} {...props}>
-      <path d="M12 2.5c1 3-2.5 4-2.5 7a2.5 2.5 0 0 0 5 0c1 0 1.5 1.3 1.5 2.5a4.5 4.5 0 0 1-9 0c0-4.5 4-5.5 5-9.5Z" />
-    </svg>
-  )
-}
-
 export function UmbrellaIcon(props: IconProps) {
   return (
     <svg {...base} {...props}>
@@ -478,20 +441,20 @@ export function RobotIcon(props: IconProps) {
   )
 }
 
-export function SortIcon(props: IconProps) {
+export function MegaphoneIcon(props: IconProps) {
   return (
     <svg {...base} {...props}>
-      <path d="M7 4v16M7 4 3.5 7.5M7 4l3.5 3.5" />
-      <path d="M17 20V4M17 20l3.5-3.5M17 20l-3.5-3.5" />
+      <path d="M3 11v2a2 2 0 0 0 2 2h1l1 5h2l-1-5h2l9 4V6l-9 4H6a2 2 0 0 0-2 2Z" />
+      <path d="M17 9.5v5" />
     </svg>
   )
 }
 
-export function CopyIcon(props: IconProps) {
+export function SendIcon(props: IconProps) {
   return (
     <svg {...base} {...props}>
-      <rect x="8" y="8" width="12" height="12" rx="2" />
-      <path d="M16 8V6a2 2 0 0 0-2-2H6a2 2 0 0 0-2 2v8a2 2 0 0 0 2 2h2" />
+      <line x1="22" y1="2" x2="11" y2="13" />
+      <polygon points="22 2 15 22 11 13 2 9 22 2" />
     </svg>
   )
 }

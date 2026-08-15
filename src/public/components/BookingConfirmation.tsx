@@ -1,6 +1,5 @@
+import { currency } from '../../lib/currency'
 import styles from '../PublicBookingPage.module.css'
-
-const currency = new Intl.NumberFormat('tr-TR', { style: 'currency', currency: 'TRY' })
 
 function toGCalDate(d: Date) {
   return d.toISOString().replace(/[-:]/g, '').split('.')[0] + 'Z'

@@ -4,19 +4,10 @@
   gap: 16px;
 }
 
-/* Ustteki topbar'in hemen altinda sabit kalir — kaydirinca kaybolmasin diye
-   (bildirildi). Kart ozetleri ekranin cok altina inebiliyor, tarih araligini
-   her seferinde basa donmeden degistirebilmek icin gerekli. */
 .stickyFilter {
-  position: sticky;
-  top: 0;
-  z-index: 5;
   display: flex;
   flex-direction: column;
   gap: 16px;
-  background: var(--bg);
-  padding-top: 2px;
-  padding-bottom: 6px;
 }
 
 .sectionLabel {
@@ -382,6 +373,14 @@
   flex-direction: column;
   align-items: flex-end;
   gap: 1px;
+}
+
+/* Tutar (Ciro/Kazanc) her zaman son blok — degeri satirdan satira genislik
+   olarak cok degisebildigi (7 TL / 546.265 TL) icin sabit bir min-width
+   verilmezse "Randevu" blogu her satirda farkli bir yatay konuma kayardi
+   (sutun hizasi bozuluyordu, bildirildi). */
+.employeeStatBlock:last-child {
+  min-width: 84px;
 }
 
 .employeeStatLabel {

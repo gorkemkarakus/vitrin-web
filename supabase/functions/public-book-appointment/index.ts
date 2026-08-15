@@ -129,7 +129,7 @@ Deno.serve(async (req) => {
     .eq('business_id', business.id)
     .eq('is_active', true)
 
-  // Bir hizmete hic kimse atanmamissa (bkz. EmployeeDetailPage.tsx "Verdigi
+  // Bir hizmete hic kimse atanmamissa (bkz. Ekip sayfasi "Verebildigi
   // Hizmetler") o hizmete kimse randevu alamaz — kasitli, fallback yok.
   const { data: empSvcs } = await admin.from('employee_services').select('profile_id').eq('service_id', service.id)
   const assignedIds = new Set((empSvcs ?? []).map((e) => e.profile_id))
@@ -243,6 +243,9 @@ Deno.serve(async (req) => {
     if (/exclusion|duplicate key|deadlock|mesaide değil/i.test(msg)) {
       return json({ status: 'conflict' }, 200)
     }
-    return json({ error: msg }, 500)
+    // Ham Postgres hatasi kimlik dogrulamasi olmayan bir internet
+    // kullanicisina hic sizmasin — teshis icin sunucu logunda kalir.
+    console.error('public-book-appointment insert error:', msg)
+    return json({ error: 'Randevu oluşturulamadı, lütfen tekrar deneyin.' }, 500)
   }
 })

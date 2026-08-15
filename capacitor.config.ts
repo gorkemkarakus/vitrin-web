@@ -1,8 +1,8 @@
 import type { CapacitorConfig } from '@capacitor/cli';
 
 const config: CapacitorConfig = {
-  appId: 'com.vitrin.panel',
-  appName: 'Vitrin',
+  appId: 'com.adapptiv.panel',
+  appName: 'Adapptiv',
   webDir: 'dist',
   plugins: {
     SplashScreen: {

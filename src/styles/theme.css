@@ -112,6 +112,28 @@ a {
   color: #b0a996;
 }
 
+.field textarea {
+  width: 100%;
+  background: var(--panel-2);
+  border: 1px solid var(--line);
+  border-radius: var(--radius-sm);
+  padding: 11px 13px;
+  color: var(--text);
+  font-size: 14px;
+  outline: none;
+  font-family: var(--font-body);
+  transition: border-color 0.15s;
+  resize: vertical;
+}
+
+.field textarea:focus {
+  border-color: var(--signal);
+}
+
+.field textarea::placeholder {
+  color: #b0a996;
+}
+
 /* --- Butonlar --- */
 .btn-primary,
 .btn-secondary {

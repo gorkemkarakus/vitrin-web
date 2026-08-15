@@ -1,41 +1,50 @@
 const sharp = require('sharp')
 const path = require('path')
 
+// Kaynak: src/assets/brand/logo-mark.png (yaziyi olmayan, seffaf zeminli
+// marka ikonu). Buradan capacitor-assets'in bekledigi 5 dosya uretilir
+// (bkz. node_modules/@capacitor/assets README'deki "Custom Mode").
+const MARK = path.join(__dirname, '..', 'src', 'assets', 'brand', 'logo-mark.png')
+
 async function run() {
   const dir = __dirname
+  const mark = () => sharp(MARK)
 
-  await sharp(path.join(dir, 'icon-source.svg')).resize(1024, 1024).png().toFile(path.join(dir, 'icon.png'))
+  // icon.png: legacy/iOS ikonu icin duz beyaz zeminde, buyukce
+  const markLegacy = await mark().resize({ width: 760, height: 760, fit: 'inside' }).toBuffer()
+  await sharp({ create: { width: 1024, height: 1024, channels: 4, background: '#ffffff' } })
+    .composite([{ input: markLegacy, gravity: 'center' }])
+    .flatten({ background: '#ffffff' })
+    .png()
+    .toFile(path.join(dir, 'icon.png'))
   console.log('icon.png yazildi')
 
-  // Android adaptive icon foreground: mark ortada, guvenli alan icin daha kucuk
-  await sharp(Buffer.from(`
-    <svg width="1024" height="1024" viewBox="0 0 1024 1024" xmlns="http://www.w3.org/2000/svg">
-      <rect x="362" y="362" width="300" height="300" rx="66" fill="#f4f1ea"/>
-    </svg>
-  `))
-    .resize(1024, 1024)
+  // icon-foreground.png: Android adaptive-icon guvenli alani icin kucultulmus, SEFFAF
+  const markForeground = await mark().resize({ width: 620, height: 620, fit: 'inside' }).toBuffer()
+  await sharp({ create: { width: 1024, height: 1024, channels: 4, background: { r: 0, g: 0, b: 0, alpha: 0 } } })
+    .composite([{ input: markForeground, gravity: 'center' }])
     .png()
     .toFile(path.join(dir, 'icon-foreground.png'))
   console.log('icon-foreground.png yazildi')
 
-  await sharp({
-    create: { width: 1024, height: 1024, channels: 4, background: '#3d4632' },
-  })
+  // icon-background.png: duz beyaz zemin
+  await sharp({ create: { width: 1024, height: 1024, channels: 4, background: '#ffffff' } })
     .png()
     .toFile(path.join(dir, 'icon-background.png'))
   console.log('icon-background.png yazildi')
 
-  await sharp(path.join(dir, 'splash-source.svg'))
-    .resize(2732, 2732)
-    .png()
-    .toFile(path.join(dir, 'splash.png'))
-  console.log('splash.png yazildi')
-
-  await sharp(path.join(dir, 'splash-source.svg'))
-    .resize(2732, 2732)
-    .png()
-    .toFile(path.join(dir, 'splash-dark.png'))
-  console.log('splash-dark.png yazildi')
+  // splash.png / splash-dark.png: uygulamanin acik-tema arka plan tonu (#f4f1ea)
+  // uzerinde ortalanmis marka (splash ekraninda ayri bir koyu-tema tasarimi yok,
+  // ayni goruntu kullaniliyor — capacitor.config.ts'teki SplashScreen ayarlariyla tutarli)
+  const markSplash = await mark().resize({ width: 760, height: 760, fit: 'inside' }).toBuffer()
+  for (const name of ['splash.png', 'splash-dark.png']) {
+    await sharp({ create: { width: 2732, height: 2732, channels: 4, background: '#f4f1ea' } })
+      .composite([{ input: markSplash, gravity: 'center' }])
+      .flatten({ background: '#f4f1ea' })
+      .png()
+      .toFile(path.join(dir, name))
+  }
+  console.log('splash.png / splash-dark.png yazildi')
 }
 
 run().catch((e) => {

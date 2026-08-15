@@ -1,5 +1,5 @@
-import { createClient } from 'https://esm.sh/@supabase/supabase-js@2'
 import { corsHeaders, json } from '../_shared/http.ts'
+import { requireAdmin } from '../_shared/requireAdmin.ts'
 
 Deno.serve(async (req) => {
   if (req.method === 'OPTIONS') {
@@ -9,32 +9,9 @@ Deno.serve(async (req) => {
     return json({ error: 'Method not allowed' }, 405)
   }
 
-  const authHeader = req.headers.get('Authorization')
-  if (!authHeader) return json({ error: 'Yetkilendirme başlığı eksik' }, 401)
-
-  const supabaseUrl = Deno.env.get('SUPABASE_URL')!
-  const anonKey = Deno.env.get('SUPABASE_ANON_KEY')!
-  const serviceKey = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!
-
-  // Çağıranın kimliğini kendi JWT'siyle doğrula (RLS'e tabi, düşük yetkili client)
-  const callerClient = createClient(supabaseUrl, anonKey, {
-    global: { headers: { Authorization: authHeader } },
-  })
-  const { data: userData, error: userErr } = await callerClient.auth.getUser()
-  if (userErr || !userData.user) return json({ error: 'Geçersiz oturum' }, 401)
-
-  // Buradan sonrası service_role ile — RLS'i bilerek atlıyoruz (admin işlemi)
-  const admin = createClient(supabaseUrl, serviceKey)
-
-  const { data: callerProfile, error: profileErr } = await admin
-    .from('profiles')
-    .select('business_id, role, is_active')
-    .eq('id', userData.user.id)
-    .maybeSingle()
-
-  if (profileErr || !callerProfile || !callerProfile.is_active || callerProfile.role !== 'admin') {
-    return json({ error: 'Bu işlemi sadece işletme yöneticisi yapabilir' }, 403)
-  }
+  const auth = await requireAdmin(req)
+  if (!auth.ok) return auth.response
+  const { businessId, admin } = auth
 
   let body: { email?: string; password?: string; full_name?: string; gender?: string; phone?: string }
   try {
@@ -64,7 +41,7 @@ Deno.serve(async (req) => {
   const { data: business, error: bizErr } = await admin
     .from('businesses')
     .select('max_users')
-    .eq('id', callerProfile.business_id)
+    .eq('id', businessId)
     .maybeSingle()
 
   if (bizErr || !business) return json({ error: 'İşletme bulunamadı' }, 404)
@@ -72,7 +49,7 @@ Deno.serve(async (req) => {
   const { count, error: countErr } = await admin
     .from('profiles')
     .select('id', { count: 'exact', head: true })
-    .eq('business_id', callerProfile.business_id)
+    .eq('business_id', businessId)
     .eq('role', 'user')
     .eq('is_active', true)
 
@@ -104,7 +81,7 @@ Deno.serve(async (req) => {
 
   const { error: insertErr } = await admin.from('profiles').insert({
     id: created.user.id,
-    business_id: callerProfile.business_id,
+    business_id: businessId,
     role: 'user',
     full_name,
     is_active: true,

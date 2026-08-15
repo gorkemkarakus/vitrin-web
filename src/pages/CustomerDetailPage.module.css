@@ -23,6 +23,57 @@
   transform: rotate(180deg);
 }
 
+.insightsGrid {
+  display: grid;
+  grid-template-columns: repeat(2, 1fr);
+  gap: 10px;
+}
+
+.insightTile {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  min-width: 0;
+  background: var(--panel-2);
+  border-radius: var(--radius-sm);
+  padding: 12px;
+}
+
+.insightIcon {
+  width: 24px;
+  height: 24px;
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: var(--info-bg);
+  color: var(--info-text);
+}
+
+.insightValue {
+  font-family: var(--font-heading);
+  font-size: 14px;
+  font-weight: 700;
+  color: var(--text);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.insightSub {
+  font-size: 11px;
+  color: var(--text-dim);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.insightLabel {
+  font-size: 10.5px;
+  font-weight: 600;
+  color: var(--text-dim);
+}
+
 .headerCard {
   display: flex;
   align-items: center;
@@ -252,6 +303,11 @@
   color: var(--danger-text);
 }
 
+.sessionRowStatus_gelmedi {
+  background: var(--panel-2);
+  color: var(--text-dim);
+}
+
 .packageRowMain {
   display: flex;
   flex-direction: column;
@@ -440,4 +496,10 @@
 
 .modalClose:hover {
   color: var(--text);
+}
+
+.error {
+  color: var(--danger-text);
+  font-size: 13px;
+  margin-bottom: 16px;
 }

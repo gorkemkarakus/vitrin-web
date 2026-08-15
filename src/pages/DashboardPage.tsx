@@ -14,6 +14,8 @@ import {
   UserPlusIcon,
   ChevronRightIcon,
 } from '../components/icons'
+import { currency } from '../lib/currency'
+import { toLocalDateString } from '../lib/date'
 import styles from './DashboardPage.module.css'
 
 interface Appointment {
@@ -22,7 +24,7 @@ interface Appointment {
   service_id: string | null
   employee_id: string | null
   created_by_user_id: string | null
-  status: 'bekliyor' | 'onaylandi' | 'tamamlandi' | 'iptal'
+  status: 'bekliyor' | 'onaylandi' | 'tamamlandi' | 'iptal' | 'gelmedi'
   source: string
   scheduled_at: string
   duration_minutes: number | null
@@ -77,15 +79,10 @@ const STATUS_LABEL: Record<Appointment['status'], string> = {
   onaylandi: 'Onaylandı',
   tamamlandi: 'Tamamlandı',
   iptal: 'İptal',
+  gelmedi: 'Gelmedi',
 }
 
 type DateFilter = 'bugun' | 'hafta' | 'ay' | 'ozel'
-
-const currency = new Intl.NumberFormat('tr-TR', { style: 'currency', currency: 'TRY' })
-
-function toLocalDateString(d: Date) {
-  return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`
-}
 
 function startOfWeekMonday(d: Date) {
   const day = d.getDay()

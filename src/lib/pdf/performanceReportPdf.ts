@@ -1,16 +1,16 @@
 import { supabase } from '../supabase'
 import { SOURCE_LABEL } from '../sourceLabels'
+import { currencyWhole as currency } from '../currency'
 import { PdfReport } from './pdfDoc'
 import { saveAndSharePdf } from './savePdf'
 import { yieldToUI } from './yieldToUI'
-
-const currency = new Intl.NumberFormat('tr-TR', { style: 'currency', currency: 'TRY', maximumFractionDigits: 0 })
 
 const STATUS_LABEL: Record<string, string> = {
   bekliyor: 'Bekliyor',
   onaylandi: 'Onaylandı',
   tamamlandi: 'Tamamlandı',
   iptal: 'İptal',
+  gelmedi: 'Gelmedi',
 }
 
 function formatDateLabel(d: string) {
@@ -31,7 +31,7 @@ interface AppointmentRow {
   employee_id: string | null
   customer_id: string | null
   service_id: string | null
-  status: 'bekliyor' | 'onaylandi' | 'tamamlandi' | 'iptal'
+  status: 'bekliyor' | 'onaylandi' | 'tamamlandi' | 'iptal' | 'gelmedi'
   scheduled_at: string
   price_override: number | null
   source: string

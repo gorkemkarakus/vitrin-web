@@ -1,4 +1,4 @@
-package com.vitrin.panel;
+package com.adapptiv.panel;
 
 import com.getcapacitor.BridgeActivity;
 

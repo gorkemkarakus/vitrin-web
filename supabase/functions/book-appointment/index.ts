@@ -1,6 +1,6 @@
 import { createClient } from 'https://esm.sh/@supabase/supabase-js@2'
 import { corsHeaders, json } from '../_shared/http.ts'
-import { sha256Hex } from '../_shared/crypto.ts'
+import { resolveBusiness } from '../_shared/resolveBusiness.ts'
 import {
   SLOT_MINUTES,
   toMinutes,
@@ -18,21 +18,9 @@ Deno.serve(async (req) => {
   if (req.method === 'OPTIONS') return new Response('ok', { headers: corsHeaders })
   if (req.method !== 'POST') return json({ error: 'Method not allowed' }, 405)
 
-  const apiKey = req.headers.get('x-api-key')
-  if (!apiKey) return json({ error: 'x-api-key başlığı eksik' }, 401)
-
   const supabaseUrl = Deno.env.get('SUPABASE_URL')!
   const serviceKey = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!
   const admin = createClient(supabaseUrl, serviceKey)
-
-  const keyHash = await sha256Hex(apiKey)
-  const { data: business, error: bizErr } = await admin
-    .from('businesses')
-    .select('id')
-    .eq('api_key_hash', keyHash)
-    .maybeSingle()
-
-  if (bizErr || !business) return json({ error: 'Geçersiz API anahtarı' }, 401)
 
   let body: {
     customer_name?: string
@@ -45,12 +33,16 @@ Deno.serve(async (req) => {
     scheduled_at?: string
     source_note?: string
     date_warning?: string | null
+    phone_number_id?: string
   }
   try {
     body = await req.json()
   } catch {
     return json({ error: 'Geçersiz istek gövdesi' }, 400)
   }
+
+  const business = await resolveBusiness(admin, req, body.phone_number_id)
+  if (!business) return json({ error: 'Geçersiz API anahtarı' }, 401)
 
   const {
     customer_name,
@@ -171,7 +163,7 @@ Deno.serve(async (req) => {
     'business_id',
     business.id,
   )
-  // Bir hizmete hic kimse atanmamissa (bkz. EmployeeDetailPage.tsx "Verdigi
+  // Bir hizmete hic kimse atanmamissa (bkz. Ekip sayfasi "Verebildigi
   // Hizmetler") o hizmete kimse randevu alamaz — kasitli, fallback yok.
   const { data: empSvcs } = await admin.from('employee_services').select('profile_id').eq('service_id', service.id)
   let eligibleIds: string[] = (empSvcs ?? []).map((e) => e.profile_id)
@@ -372,7 +364,11 @@ Deno.serve(async (req) => {
       if (/exclusion|duplicate key|deadlock/i.test(msg)) {
         return findNextAvailable(requestedStart)
       }
-      return json({ error: msg }, 500)
+      // Ham Postgres hatasi n8n uzerinden dogrudan musteriye WhatsApp/
+      // Instagram mesaji olarak gidiyordu (Build Reply From Booking, ham
+      // errMsg'i sorgusuzca gosteriyor) — artik burada temizleniyor.
+      console.error('book-appointment insert error:', msg)
+      return json({ error: 'Randevu oluşturulamadı, lütfen tekrar deneyin.' }, 500)
     }
   }
 

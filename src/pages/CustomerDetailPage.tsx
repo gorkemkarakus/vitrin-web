@@ -3,9 +3,10 @@ import { useNavigate, useParams } from 'react-router-dom'
 import { supabase } from '../lib/supabase'
 import { useAuth } from '../contexts/AuthContext'
 import { formatPersonName } from '../lib/formatName'
+import { currency } from '../lib/currency'
 import Avatar from '../components/Avatar'
 import Select from '../components/Select'
-import { ChevronRightIcon, PhoneIcon, MailIcon, WalletIcon, PencilIcon, TrashIcon } from '../components/icons'
+import { ChevronRightIcon, PhoneIcon, MailIcon, WalletIcon, PencilIcon, TrashIcon, ClockIcon, ServicesIcon, TrendingUpIcon, CalendarIcon } from '../components/icons'
 import styles from './CustomerDetailPage.module.css'
 
 interface Customer {
@@ -26,10 +27,16 @@ interface Service {
 interface Appointment {
   id: string
   service_id: string | null
+  employee_id: string | null
   scheduled_at: string
-  status: 'bekliyor' | 'onaylandi' | 'tamamlandi' | 'iptal'
+  status: 'bekliyor' | 'onaylandi' | 'tamamlandi' | 'iptal' | 'gelmedi'
   package_id: string | null
   price_override: number | null
+}
+
+interface Employee {
+  id: string
+  full_name: string | null
 }
 
 interface ServicePackage {
@@ -65,6 +72,7 @@ const SESSION_STATUS_LABEL: Record<Appointment['status'], string> = {
   onaylandi: 'Onaylandı',
   tamamlandi: 'Tamamlandı',
   iptal: 'İptal',
+  gelmedi: 'Gelmedi',
 }
 const PAYMENT_METHOD_OPTIONS = [
   { value: 'nakit', label: 'Nakit' },
@@ -72,8 +80,6 @@ const PAYMENT_METHOD_OPTIONS = [
   { value: 'havale', label: 'Havale / EFT' },
   { value: 'diger', label: 'Diğer' },
 ]
-
-const currency = new Intl.NumberFormat('tr-TR', { style: 'currency', currency: 'TRY' })
 
 // "phone" bazen chatbot kanal kimligi olabilir — gercek numara varsa
 // (contact_phone) her zaman ona oncelik ver.
@@ -90,6 +96,15 @@ function remainingLabel(remaining: number): { text: string; positive: boolean } 
   return { text: 'Ödendi', positive: true }
 }
 
+function humanizeDuration(days: number): string {
+  if (days < 1) return 'Bugün'
+  if (days < 30) return `${Math.round(days)} gün`
+  if (days < 365) return `${Math.round(days / 30)} ay`
+  const years = Math.floor(days / 365)
+  const months = Math.round((days % 365) / 30)
+  return months > 0 ? `${years} yıl ${months} ay` : `${years} yıl`
+}
+
 export default function CustomerDetailPage() {
   const { id } = useParams<{ id: string }>()
   const navigate = useNavigate()
@@ -100,6 +115,7 @@ export default function CustomerDetailPage() {
   const [packages, setPackages] = useState<ServicePackage[]>([])
   const [payments, setPayments] = useState<Payment[]>([])
   const [services, setServices] = useState<Service[]>([])
+  const [employees, setEmployees] = useState<Employee[]>([])
   const [loading, setLoading] = useState(true)
 
   const [payModalOpen, setPayModalOpen] = useState(false)
@@ -121,11 +137,12 @@ export default function CustomerDetailPage() {
   const [editPhone, setEditPhone] = useState('')
   const [editEmail, setEditEmail] = useState('')
   const [editCustomerSubmitting, setEditCustomerSubmitting] = useState(false)
+  const [error, setError] = useState<string | null>(null)
 
   async function loadData() {
     if (!id) return
     setLoading(true)
-    const [{ data: cust }, { data: appts }, { data: pkgs }, { data: pays }, { data: svcs }] = await Promise.all([
+    const [{ data: cust }, { data: appts }, { data: pkgs }, { data: pays }, { data: svcs }, { data: emps }] = await Promise.all([
       supabase
         .from('customers')
         .select('id, full_name, phone, contact_phone, email, created_at')
@@ -133,7 +150,7 @@ export default function CustomerDetailPage() {
         .maybeSingle(),
       supabase
         .from('appointments')
-        .select('id, service_id, scheduled_at, status, package_id, price_override')
+        .select('id, service_id, employee_id, scheduled_at, status, package_id, price_override')
         .eq('customer_id', id)
         .order('scheduled_at', { ascending: false }),
       supabase
@@ -146,12 +163,14 @@ export default function CustomerDetailPage() {
         .eq('customer_id', id)
         .order('paid_at', { ascending: false }),
       supabase.from('services').select('id, name, price'),
+      supabase.from('profiles').select('id, full_name'),
     ])
     setCustomer(cust ?? null)
     setAppointments(appts ?? [])
     setPackages(pkgs ?? [])
     setPayments(pays ?? [])
     setServices(svcs ?? [])
+    setEmployees(emps ?? [])
     setLoading(false)
   }
 
@@ -161,6 +180,8 @@ export default function CustomerDetailPage() {
   }, [id])
 
   const serviceById = useMemo(() => new Map(services.map((s) => [s.id, s])), [services])
+  const employeeById = useMemo(() => new Map(employees.map((e) => [e.id, e])), [employees])
+  const now = useMemo(() => new Date(), [])
 
   // Iptal edilen (voided_at dolu) odemeler listede "Silindi" olarak kalir
   // ama tum mali hesaplardan (kalan odeme, paket ilerlemesi, toplam odenen)
@@ -251,15 +272,77 @@ export default function CustomerDetailPage() {
     return opts
   }, [packageStats, standaloneAppts])
 
+  const insights = useMemo(() => {
+    // appointments sorgusu scheduled_at'e gore azalan sirali geliyor, yani
+    // index 0 = en yeni
+    const completedAppts = appointments.filter((a) => a.status === 'tamamlandi')
+    const totalVisits = completedAppts.length
+
+    let avgIntervalDays: number | null = null
+    if (completedAppts.length >= 2) {
+      const mostRecent = new Date(completedAppts[0].scheduled_at).getTime()
+      const oldest = new Date(completedAppts[completedAppts.length - 1].scheduled_at).getTime()
+      avgIntervalDays = (mostRecent - oldest) / (completedAppts.length - 1) / 86400000
+    }
+
+    function pickFavorite(getKey: (a: Appointment) => string | null): string | null {
+      const tally = new Map<string, { count: number; mostRecentIndex: number }>()
+      completedAppts.forEach((a, i) => {
+        const key = getKey(a)
+        if (!key) return
+        const cur = tally.get(key)
+        if (cur) cur.count++
+        else tally.set(key, { count: 1, mostRecentIndex: i })
+      })
+      let bestId: string | null = null
+      let best: { count: number; mostRecentIndex: number } | null = null
+      for (const [key, v] of tally) {
+        if (!best || v.count > best.count || (v.count === best.count && v.mostRecentIndex < best.mostRecentIndex)) {
+          best = v
+          bestId = key
+        }
+      }
+      return bestId
+    }
+
+    const favoriteServiceId = pickFavorite((a) => a.service_id)
+    const favoriteEmployeeId = pickFavorite((a) => a.employee_id)
+    const favoriteServiceName = favoriteServiceId ? serviceById.get(favoriteServiceId)?.name ?? null : null
+    const favoriteEmployeeName = favoriteEmployeeId ? employeeById.get(favoriteEmployeeId)?.full_name ?? null : null
+
+    const lastRelevantAppt = appointments.find((a) => a.status !== 'iptal' && a.status !== 'gelmedi') ?? null
+    let lastVisitLabel = '—'
+    if (lastRelevantAppt) {
+      const t = new Date(lastRelevantAppt.scheduled_at).getTime()
+      if (t > now.getTime()) lastVisitLabel = 'Yaklaşan randevu var'
+      else {
+        const daysAgo = (now.getTime() - t) / 86400000
+        lastVisitLabel = daysAgo < 1 ? 'Bugün' : `${humanizeDuration(daysAgo)} önce`
+      }
+    }
+
+    const tenureLabel = customer ? humanizeDuration((now.getTime() - new Date(customer.created_at).getTime()) / 86400000) : '—'
+
+    return {
+      lastVisitLabel,
+      favoriteServiceName,
+      favoriteEmployeeName,
+      avgIntervalLabel: avgIntervalDays !== null ? `${Math.round(avgIntervalDays)} gün` : '—',
+      totalVisits,
+      tenureLabel,
+    }
+  }, [appointments, customer, serviceById, employeeById, now])
+
   async function submitPayment(e: FormEvent) {
     e.preventDefault()
     const amount = Number(payAmount)
     if (!amount || amount <= 0 || !id || !payMethod) return
+    setError(null)
     setPaySubmitting(true)
     try {
       const package_id = payTarget.startsWith('pkg:') ? payTarget.slice(4) : null
       const appointment_id = payTarget.startsWith('appt:') ? payTarget.slice(5) : null
-      await supabase.from('payments').insert({
+      const { error: insertErr } = await supabase.from('payments').insert({
         business_id: profile?.business_id,
         customer_id: id,
         appointment_id,
@@ -269,12 +352,18 @@ export default function CustomerDetailPage() {
         note: payNote.trim() || null,
         created_by_user_id: profile?.id,
       })
+      if (insertErr) {
+        setError('Ödeme kaydedilemedi, tekrar deneyin.')
+        return
+      }
       setPayModalOpen(false)
       setPayAmount('')
       setPayMethod('')
       setPayTarget('')
       setPayNote('')
       await loadData()
+    } catch {
+      setError('Sunucuya ulaşılamadı, tekrar deneyin.')
     } finally {
       setPaySubmitting(false)
     }
@@ -288,8 +377,19 @@ export default function CustomerDetailPage() {
       `${currency.format(p.amount)} tutarındaki ödemeyi iptal etmek istediğinize emin misiniz?\n\nBu işlem geri alınamaz; ödeme "Silindi" olarak listede kalır ama tüm bakiye hesaplarından düşer.`,
     )
     if (!ok) return
-    await supabase.from('payments').update({ voided_at: new Date().toISOString() }).eq('id', p.id)
-    await loadData()
+    try {
+      const { error: updateErr } = await supabase
+        .from('payments')
+        .update({ voided_at: new Date().toISOString() })
+        .eq('id', p.id)
+      if (updateErr) {
+        window.alert('Ödeme iptal edilemedi, tekrar deneyin.')
+        return
+      }
+      await loadData()
+    } catch {
+      window.alert('Sunucuya ulaşılamadı, tekrar deneyin.')
+    }
   }
 
   // Admin herhangi bir odemeyi duzenleyebilir; normal kullanici sadece
@@ -302,6 +402,7 @@ export default function CustomerDetailPage() {
   }
 
   function openEditPayment(p: Payment) {
+    setError(null)
     setEditingPayment(p)
     setEditAmount(String(p.amount))
     setEditMethod(p.method === 'bakiye' ? 'nakit' : p.method)
@@ -314,14 +415,21 @@ export default function CustomerDetailPage() {
     if (!editingPayment) return
     const amount = Number(editAmount)
     if (!amount || amount <= 0) return
+    setError(null)
     setEditSubmitting(true)
     try {
-      await supabase
+      const { error: updateErr } = await supabase
         .from('payments')
         .update({ amount, method: editMethod, paid_at: editDate, note: editNote.trim() || null })
         .eq('id', editingPayment.id)
+      if (updateErr) {
+        setError('Ödeme güncellenemedi, tekrar deneyin.')
+        return
+      }
       setEditingPayment(null)
       await loadData()
+    } catch {
+      setError('Sunucuya ulaşılamadı, tekrar deneyin.')
     } finally {
       setEditSubmitting(false)
     }
@@ -329,6 +437,7 @@ export default function CustomerDetailPage() {
 
   function openEditCustomer() {
     if (!customer) return
+    setError(null)
     setEditName(customer.full_name)
     setEditPhone(customerPhone(customer) ?? '')
     setEditEmail(customer.email ?? '')
@@ -338,9 +447,10 @@ export default function CustomerDetailPage() {
   async function submitEditCustomer(e: FormEvent) {
     e.preventDefault()
     if (!editName.trim() || !id) return
+    setError(null)
     setEditCustomerSubmitting(true)
     try {
-      await supabase
+      const { error: updateErr } = await supabase
         .from('customers')
         .update({
           full_name: formatPersonName(editName),
@@ -348,8 +458,14 @@ export default function CustomerDetailPage() {
           email: editEmail.trim() || null,
         })
         .eq('id', id)
+      if (updateErr) {
+        setError('Müşteri güncellenemedi, tekrar deneyin.')
+        return
+      }
       setEditCustomerOpen(false)
       await loadData()
+    } catch {
+      setError('Sunucuya ulaşılamadı, tekrar deneyin.')
     } finally {
       setEditCustomerSubmitting(false)
     }
@@ -400,10 +516,55 @@ export default function CustomerDetailPage() {
         </div>
       </div>
 
-      <button type="button" className={styles.payBtn} onClick={() => setPayModalOpen(true)}>
+      <button
+        type="button"
+        className={styles.payBtn}
+        onClick={() => {
+          setError(null)
+          setPayModalOpen(true)
+        }}
+      >
         <WalletIcon width={16} height={16} />
         Ödeme Al
       </button>
+
+      <div className="card">
+        <h2 style={{ marginBottom: 14 }}>İçgörüler</h2>
+        <div className={styles.insightsGrid}>
+          <div className={styles.insightTile}>
+            <span className={styles.insightIcon}>
+              <ClockIcon width={13} height={13} />
+            </span>
+            <span className={styles.insightValue}>{insights.lastVisitLabel}</span>
+            <span className={styles.insightLabel}>Son Ziyaret</span>
+          </div>
+          <div className={styles.insightTile}>
+            <span className={styles.insightIcon}>
+              <ServicesIcon width={13} height={13} />
+            </span>
+            <span className={styles.insightValue}>{insights.favoriteServiceName ?? '—'}</span>
+            {insights.favoriteEmployeeName && (
+              <span className={styles.insightSub}>Çalışan: {insights.favoriteEmployeeName}</span>
+            )}
+            <span className={styles.insightLabel}>Favori Hizmet</span>
+          </div>
+          <div className={styles.insightTile}>
+            <span className={styles.insightIcon}>
+              <TrendingUpIcon width={13} height={13} />
+            </span>
+            <span className={styles.insightValue}>{insights.avgIntervalLabel}</span>
+            <span className={styles.insightLabel}>Ortalama Ziyaret Aralığı</span>
+          </div>
+          <div className={styles.insightTile}>
+            <span className={styles.insightIcon}>
+              <CalendarIcon width={13} height={13} />
+            </span>
+            <span className={styles.insightValue}>{insights.totalVisits} ziyaret</span>
+            <span className={styles.insightSub}>{insights.tenureLabel} müşterimiz</span>
+            <span className={styles.insightLabel}>Toplam Ziyaret</span>
+          </div>
+        </div>
+      </div>
 
       {packageStats.length > 0 && (
         <div className="card">
@@ -559,6 +720,7 @@ export default function CustomerDetailPage() {
                 <label htmlFor="payNote">Not (opsiyonel)</label>
                 <input id="payNote" value={payNote} onChange={(e) => setPayNote(e.target.value)} placeholder="ör. indirimli ödendi" />
               </div>
+              {error && <p className={styles.error}>{error}</p>}
               <button type="submit" className="btn-primary" disabled={paySubmitting || !payMethod}>
                 {paySubmitting ? 'Kaydediliyor…' : 'Ödemeyi Kaydet'}
               </button>
@@ -602,6 +764,7 @@ export default function CustomerDetailPage() {
                 <label htmlFor="editNote">Not (opsiyonel)</label>
                 <input id="editNote" value={editNote} onChange={(e) => setEditNote(e.target.value)} placeholder="ör. indirimli ödendi" />
               </div>
+              {error && <p className={styles.error}>{error}</p>}
               <button type="submit" className="btn-primary" disabled={editSubmitting}>
                 {editSubmitting ? 'Kaydediliyor…' : 'Değişiklikleri Kaydet'}
               </button>
@@ -651,6 +814,7 @@ export default function CustomerDetailPage() {
                   placeholder="ornek@eposta.com"
                 />
               </div>
+              {error && <p className={styles.error}>{error}</p>}
               <button type="submit" className="btn-primary" disabled={editCustomerSubmitting}>
                 {editCustomerSubmitting ? 'Kaydediliyor…' : 'Değişiklikleri Kaydet'}
               </button>

@@ -11,6 +11,7 @@ import {
   UserPlusIcon,
 } from '../components/icons'
 import Avatar from '../components/Avatar'
+import { toLocalDateString } from '../lib/date'
 import styles from './TeamPage.module.css'
 
 interface Employee {
@@ -31,7 +32,7 @@ interface Appointment {
   id: string
   employee_id: string | null
   service_id: string | null
-  status: 'bekliyor' | 'onaylandi' | 'tamamlandi' | 'iptal'
+  status: 'bekliyor' | 'onaylandi' | 'tamamlandi' | 'iptal' | 'gelmedi'
   scheduled_at: string
 }
 
@@ -58,12 +59,7 @@ const SORT_OPTIONS: { value: SortBy; label: string }[] = [
 ]
 
 function todayLocalDateString() {
-  const d = new Date()
-  return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`
-}
-
-function toLocalDateString(d: Date) {
-  return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`
+  return toLocalDateString(new Date())
 }
 
 function roleLabel(role: Employee['role']) {

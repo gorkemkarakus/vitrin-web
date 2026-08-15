@@ -2,6 +2,8 @@ import { createClient } from 'https://esm.sh/@supabase/supabase-js@2'
 import { corsHeaders, json } from '../_shared/http.ts'
 import { buildExtractionSystemPrompt, extractAppointmentCommand, istanbulDateString } from '../_shared/appointmentExtraction.ts'
 
+const RATE_LIMIT_MAX_PER_HOUR = 30
+
 // Personelin serbest metinle yazdigi randevu komutunu ("yarına 15'te
 // manikür randevusu yaz, müşteri Ayşe") yapılandırılmış alanlara ayırır.
 // Gerçek randevu KAYDI burada olusturulmuyor — sonuc panelde zaten var olan
@@ -35,6 +37,23 @@ Deno.serve(async (req) => {
 
   const openaiKey = Deno.env.get('OPENAI_API_KEY')
   if (!openaiKey) return json({ error: 'Yapay zeka servisi yapılandırılmamış' }, 500)
+
+  // Ucretli bir OpenAI cagrisi tetikliyor — gecerli bir oturum yeterli
+  // korumayi saglamiyordu (bkz. migration 20260725000009), bu yuzden
+  // kullanici basina saatlik ust sinir eklendi.
+  const serviceKey = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!
+  const admin = createClient(supabaseUrl, serviceKey)
+  const oneHourAgo = new Date(Date.now() - 60 * 60 * 1000).toISOString()
+  await admin.from('parse_command_attempts').delete().lt('created_at', new Date(Date.now() - 24 * 60 * 60 * 1000).toISOString())
+  const { count: recentAttempts } = await admin
+    .from('parse_command_attempts')
+    .select('id', { count: 'exact', head: true })
+    .eq('user_id', userData.user.id)
+    .gte('created_at', oneHourAgo)
+  if ((recentAttempts ?? 0) >= RATE_LIMIT_MAX_PER_HOUR) {
+    return json({ error: 'Çok fazla deneme yapıldı, lütfen daha sonra tekrar deneyin.' }, 429)
+  }
+  await admin.from('parse_command_attempts').insert({ user_id: userData.user.id })
 
   let body: RequestBody
   try {

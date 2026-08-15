@@ -2,6 +2,7 @@ import { useEffect, useMemo, useState } from 'react'
 import { useNavigate, useParams } from 'react-router-dom'
 import { supabase } from '../lib/supabase'
 import { TIME_OPTIONS } from '../lib/timeOptions'
+import { toLocalDateString } from '../lib/date'
 import Avatar from '../components/Avatar'
 import { AlertTriangleIcon, CalendarIcon, ChevronRightIcon, PlusIcon, TrashIcon } from '../components/icons'
 import styles from './EmployeeLeavesPage.module.css'
@@ -91,12 +92,7 @@ const LEAVE_REASON_OPTIONS: { value: 'yillik' | 'mazeret'; label: string }[] = [
 ]
 
 function todayLocalDateString() {
-  const d = new Date()
-  return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`
-}
-
-function toLocalDateString(d: Date) {
-  return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`
+  return toLocalDateString(new Date())
 }
 
 function timeStringToMinutes(t: string) {

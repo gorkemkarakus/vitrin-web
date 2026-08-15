@@ -1311,6 +1311,11 @@
   background: var(--danger-bg);
 }
 
+.statusGelmedi {
+  color: var(--text-dim);
+  background: var(--panel-2);
+}
+
 .overdueHint {
   font-size: 10.5px;
   font-weight: 600;
@@ -1831,7 +1836,7 @@
   top: 0;
   z-index: 15;
   display: grid;
-  grid-template-columns: repeat(5, 1fr);
+  grid-template-columns: repeat(6, 1fr);
   gap: 2px;
   padding: 10px 8px;
   background: var(--panel);
@@ -1851,7 +1856,8 @@
 .statBarIconOk,
 .statBarIconWarn,
 .statBarIconInfo,
-.statBarIconDanger {
+.statBarIconDanger,
+.statBarIconNeutral {
   margin-bottom: 2px;
 }
 
@@ -1873,6 +1879,10 @@
 
 .statBarIconDanger {
   color: var(--danger-text);
+}
+
+.statBarIconNeutral {
+  color: var(--text-dim);
 }
 
 .statBarValue {
@@ -1897,6 +1907,10 @@
 
 .statBarValueDanger {
   color: var(--danger-text);
+}
+
+.statBarValueNeutral {
+  color: var(--text-dim);
 }
 
 .statBarLabel {

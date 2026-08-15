@@ -2,7 +2,7 @@ import { useEffect, useMemo, useRef, useState, type FormEvent } from 'react'
 import { Link } from 'react-router-dom'
 import { supabase } from '../lib/supabase'
 import { useAuth } from '../contexts/AuthContext'
-import { colorForName } from '../components/Avatar'
+import { colorForName } from '../lib/avatarColor'
 import {
   SearchIcon,
   FilterIcon,
@@ -13,6 +13,7 @@ import {
   MoreHorizontalIcon,
   CloseIcon,
 } from '../components/icons'
+import { currencyWhole as currency } from '../lib/currency'
 import styles from './ServicesPage.module.css'
 
 interface Service {
@@ -32,7 +33,6 @@ const SORT_OPTIONS: { value: SortBy; label: string }[] = [
   { value: 'sure', label: 'Süreye Göre (Uzundan)' },
 ]
 
-const currency = new Intl.NumberFormat('tr-TR', { style: 'currency', currency: 'TRY', maximumFractionDigits: 0 })
 
 export default function ServicesPage() {
   const { profile } = useAuth()

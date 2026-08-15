@@ -58,7 +58,7 @@ Deno.serve(async (req) => {
     .eq('business_id', business.id)
     .eq('is_active', true)
 
-  // Bir hizmete hic kimse atanmamissa (bkz. EmployeeDetailPage.tsx "Verdigi
+  // Bir hizmete hic kimse atanmamissa (bkz. Ekip sayfasi "Verebildigi
   // Hizmetler") o hizmete kimse randevu alamaz — kasitli, fallback yok.
   const { data: empSvcs } = await admin.from('employee_services').select('profile_id').eq('service_id', service.id)
   const assignedIds = new Set((empSvcs ?? []).map((e) => e.profile_id))

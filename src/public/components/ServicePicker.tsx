@@ -1,7 +1,6 @@
 import type { PublicService } from '../lib/publicBookingApi'
+import { currency } from '../../lib/currency'
 import styles from '../PublicBookingPage.module.css'
-
-const currency = new Intl.NumberFormat('tr-TR', { style: 'currency', currency: 'TRY' })
 
 export default function ServicePicker({
   services,

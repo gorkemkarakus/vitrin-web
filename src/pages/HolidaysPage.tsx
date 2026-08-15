@@ -2,6 +2,7 @@ import { useEffect, useState } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { supabase } from '../lib/supabase'
 import { AlertTriangleIcon, CalendarIcon, ChevronRightIcon, TrashIcon, UmbrellaIcon } from '../components/icons'
+import { toLocalDateString } from '../lib/date'
 import styles from './HolidaysPage.module.css'
 
 // Resmi tatiller ayri bir tablo yerine mevcut employee_time_blocks
@@ -27,8 +28,7 @@ interface HolidayConflict {
 }
 
 function todayLocalDateString() {
-  const d = new Date()
-  return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`
+  return toLocalDateString(new Date())
 }
 
 export default function HolidaysPage() {

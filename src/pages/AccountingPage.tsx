@@ -12,6 +12,8 @@ import {
   ChevronRightIcon,
 } from '../components/icons'
 import { generateAccountingReportPdf } from '../lib/pdf/accountingReportPdf'
+import { currency } from '../lib/currency'
+import { toLocalDateString, presetDateRange, type DateRangePreset } from '../lib/date'
 import styles from './AccountingPage.module.css'
 
 interface Appointment {
@@ -19,7 +21,7 @@ interface Appointment {
   service_id: string | null
   employee_id: string | null
   scheduled_at: string
-  status: 'bekliyor' | 'onaylandi' | 'tamamlandi' | 'iptal'
+  status: 'bekliyor' | 'onaylandi' | 'tamamlandi' | 'iptal' | 'gelmedi'
 }
 
 interface Service {
@@ -55,43 +57,8 @@ interface Payment {
   package_id: string | null
 }
 
-const currency = new Intl.NumberFormat('tr-TR', { style: 'currency', currency: 'TRY' })
-
-function toLocalDateString(d: Date) {
-  return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`
-}
-
-function firstOfMonth(d: Date) {
-  return new Date(d.getFullYear(), d.getMonth(), 1)
-}
-
-type Preset = 'bugun' | 'bu_hafta' | 'bu_ay' | 'gecen_ay' | 'ozel'
-
-function presetRange(preset: Preset): { start: string; end: string } {
-  const today = new Date()
-  switch (preset) {
-    case 'bugun':
-      return { start: toLocalDateString(today), end: toLocalDateString(today) }
-    case 'bu_hafta': {
-      // Pazartesiden bugune kadar — tam takvim haftasi degil, "bu hafta simdiye
-      // kadar kac gun gectiyse" (ör. sali ise Pazartesi+Sali).
-      const day = today.getDay()
-      const diffToMonday = day === 0 ? -6 : 1 - day
-      const monday = new Date(today)
-      monday.setDate(today.getDate() + diffToMonday)
-      return { start: toLocalDateString(monday), end: toLocalDateString(today) }
-    }
-    case 'bu_ay':
-      return { start: toLocalDateString(firstOfMonth(today)), end: toLocalDateString(today) }
-    case 'gecen_ay': {
-      const lastMonthEnd = new Date(today.getFullYear(), today.getMonth(), 0)
-      const lastMonthStart = firstOfMonth(lastMonthEnd)
-      return { start: toLocalDateString(lastMonthStart), end: toLocalDateString(lastMonthEnd) }
-    }
-    default:
-      return { start: toLocalDateString(firstOfMonth(today)), end: toLocalDateString(today) }
-  }
-}
+type Preset = DateRangePreset
+const presetRange = presetDateRange
 
 const PRESETS: { value: Preset; label: string }[] = [
   { value: 'bugun', label: 'Bugün' },

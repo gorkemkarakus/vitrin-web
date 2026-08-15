@@ -1,6 +1,8 @@
 import { createClient, type SupabaseClient } from 'https://esm.sh/@supabase/supabase-js@2'
 import { corsHeaders, json } from '../_shared/http.ts'
+import { resolveBusiness } from '../_shared/resolveBusiness.ts'
 import { SLOT_MINUTES, isAvailable, rankEligibleByFairness } from '../_shared/availability.ts'
+import { validateScheduledAt } from '../_shared/validation.ts'
 import {
   buildExtractionSystemPrompt,
   extractAppointmentCommand,
@@ -12,10 +14,14 @@ import {
 // yazdığı doğal dil komutlarıyla randevu oluşturmasını sağlayan, ÇOK TURLU
 // (parse → özet göster → "evet"/düzeltme bekle → oluştur) uç nokta.
 //
-// Gerçek bir Supabase kullanıcı OTURUMU yok — kimlik SADECE gönderen telefon
+// Gerçek bir Supabase kullanıcı OTURUMU yok — kimlik gönderen telefon
 // numarasından (profiles.whatsapp_phone) çözülüyor, tıpkı müşteri
 // chatbot'unun customer_phone'a güvenmesi gibi (book-appointment). Bu yüzden
-// --no-verify-jwt İLE deploy edilir.
+// --no-verify-jwt İLE deploy edilir. Bunu, sadece TELEFON NUMARASINI bilen
+// herkesin (numara taranabilir/tahmin edilebilir) bu uc noktayi cagirip o
+// personel adina randevu olusturmasina/numara enumerate etmesine acmamak
+// icin, book-appointment ile AYNI x-api-key/resolveBusiness sarti burada da
+// zorunlu — sadece n8n'in bildigi gizli anahtari bilen cagirabilir.
 //
 // Simülatörden gerçek WhatsApp'a geçişte DEĞİŞMESİ GEREKEN TEK ŞEY: bu
 // fonksiyonu {phone, message} ile çağıran taraf (şimdi statik HTML sayfası,
@@ -135,15 +141,26 @@ Deno.serve(async (req) => {
   const serviceKey = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!
   const admin = createClient(supabaseUrl, serviceKey)
 
+  const business = await resolveBusiness(admin, req)
+  if (!business) return json({ error: 'Geçersiz API anahtarı' }, 401)
+
   const { data: staff } = await admin
     .from('profiles')
     .select('id, business_id, full_name')
     .eq('whatsapp_phone', phone)
+    .eq('business_id', business.id)
     .eq('is_active', true)
     .maybeSingle()
 
   if (!staff) {
-    return json({ reply: 'Bu numara sistemde tanımlı değil. İşletme yöneticinizle iletişime geçin.' }, 200)
+    // handled:false — n8n'deki tek-numaralı WhatsApp yonlendirmesi bu
+    // isareti gorunce musteri botuna (01-akilli-chatbot.json) devrediyor;
+    // buradaki "reply" SADECE bu fonksiyonun dogrudan cagrildigi bagimsiz
+    // test sayfasinda (test-whatsapp-staff.html) kullaniliyor.
+    return json(
+      { handled: false, reply: 'Bu numara sistemde tanımlı değil. İşletme yöneticinizle iletişime geçin.' },
+      200,
+    )
   }
 
   // Kayitli bir numarayi ogrenen biri sinirsiz istek atip her seferinde
@@ -158,12 +175,12 @@ Deno.serve(async (req) => {
     .eq('phone', phone)
     .gte('created_at', oneHourAgo)
   if ((recentAttempts ?? 0) >= 20) {
-    return json({ reply: 'Çok fazla mesaj gönderildi, lütfen bir süre sonra tekrar deneyin.' }, 200)
+    return json({ handled: true, reply: 'Çok fazla mesaj gönderildi, lütfen bir süre sonra tekrar deneyin.' }, 200)
   }
   await admin.from('staff_whatsapp_attempts').insert({ phone })
 
-  const { data: business } = await admin.from('businesses').select('name').eq('id', staff.business_id).maybeSingle()
-  const businessName = business?.name ?? 'işletmeniz'
+  const { data: businessRow } = await admin.from('businesses').select('name').eq('id', staff.business_id).maybeSingle()
+  const businessName = businessRow?.name ?? 'işletmeniz'
 
   const { data: session } = await admin
     .from('staff_command_sessions')
@@ -174,7 +191,7 @@ Deno.serve(async (req) => {
 
   if (existingDraft && matchesIntent(message, CANCEL_WORDS)) {
     await admin.from('staff_command_sessions').delete().eq('phone', phone)
-    return json({ reply: 'İptal edildi. Yeni bir randevu için tekrar yazabilirsin.' }, 200)
+    return json({ handled: true, reply: 'İptal edildi. Yeni bir randevu için tekrar yazabilirsin.' }, 200)
   }
 
   if (existingDraft && matchesIntent(message, CONFIRM_WORDS)) {
@@ -203,7 +220,7 @@ Deno.serve(async (req) => {
   })
 
   const result = await extractAppointmentCommand(openaiKey, systemPrompt, message)
-  if (!result.ok) return json({ reply: result.error }, 200)
+  if (!result.ok) return json({ handled: true, reply: result.error }, 200)
 
   if (!result.draft.is_appointment_request) {
     if (existingDraft) {
@@ -211,6 +228,7 @@ Deno.serve(async (req) => {
       const oldEmployeeName = (employees ?? []).find((e) => e.id === existingDraft.employee_id)?.full_name ?? null
       return json(
         {
+          handled: true,
           reply: `Anlayamadım. Az önce üzerinde durduğumuz taslak hâlâ duruyor:\n${draftSummaryText(existingDraft, oldServiceName, oldEmployeeName)}\n\nOnaylamak için "evet", vazgeçmek için "iptal" yazabilirsin.`,
         },
         200,
@@ -218,6 +236,7 @@ Deno.serve(async (req) => {
     }
     return json(
       {
+        handled: true,
         reply: `Merhaba! Buradan sadece ${businessName} için randevu oluşturabilirsiniz. Randevu bilgisini yazarsanız yardımcı olurum (ör. "yarın 15:00 manikür, müşteri Ayşe").`,
       },
       200,
@@ -236,7 +255,7 @@ Deno.serve(async (req) => {
 
   if (missing.length > 0) {
     const hints = missing.map((f) => missingFieldHint(f, services ?? [], employees ?? []))
-    return json({ reply: `Şunu anladım:\n${summary}\n\n${hints.join('\n')}` }, 200)
+    return json({ handled: true, reply: `Şunu anladım:\n${summary}\n\n${hints.join('\n')}` }, 200)
   }
 
   // service_id/date/time/customer_name tamam ama belirtilen çalışan
@@ -246,6 +265,7 @@ Deno.serve(async (req) => {
 
   return json(
     {
+      handled: true,
       reply: `Şunu anladım:\n${summary}${employeeNote}\n\nOnaylıyor musun? "Evet" yaz, ya da neyin değişmesini istediğini söyle.`,
     },
     200,
@@ -259,7 +279,18 @@ async function handleConfirm(
   draft: ExtractedDraft,
 ): Promise<Response> {
   if (!draft.service_id || !draft.date || !draft.time || !draft.customer_name) {
-    return json({ reply: 'Eksik bilgiler var, önce onları tamamlamamız lazım.' }, 200)
+    return json({ handled: true, reply: 'Eksik bilgiler var, önce onları tamamlamamız lazım.' }, 200)
+  }
+
+  // book-appointment/public-book-appointment gecmis/gecersiz tarihi burada
+  // reddediyor, bu uc nokta etmiyordu — LLM'in yanlislikla gecmis bir tarihi
+  // "anladigi" durumlarda randevu sessizce olusuyordu.
+  const scheduledAtError = validateScheduledAt(`${draft.date}T${draft.time}:00+03:00`)
+  if (scheduledAtError) {
+    return json(
+      { handled: true, reply: 'Bu tarih/saat geçerli değil (geçmiş bir zaman olabilir), doğru tarih ve saati tekrar yazar mısın?' },
+      200,
+    )
   }
 
   const { data: service } = await admin
@@ -271,7 +302,7 @@ async function handleConfirm(
     .maybeSingle()
   if (!service) {
     await admin.from('staff_command_sessions').delete().eq('phone', phone)
-    return json({ reply: 'Bu hizmet artık bulunamadı, lütfen komutu tekrar yaz.' }, 200)
+    return json({ handled: true, reply: 'Bu hizmet artık bulunamadı, lütfen komutu tekrar yaz.' }, 200)
   }
   const duration = service.duration_minutes ?? SLOT_MINUTES
 
@@ -281,19 +312,22 @@ async function handleConfirm(
     .eq('business_id', staff.business_id)
     .eq('is_active', true)
 
-  // Bir hizmete hic kimse atanmamissa (bkz. EmployeeDetailPage.tsx "Verdigi
+  // Bir hizmete hic kimse atanmamissa (bkz. Ekip sayfasi "Verebildigi
   // Hizmetler") o hizmete kimse randevu alamaz — kasitli, fallback yok.
   const { data: empSvcs } = await admin.from('employee_services').select('profile_id').eq('service_id', service.id)
   const assignedIds = new Set((empSvcs ?? []).map((e) => e.profile_id))
   let eligibleIds = (activeProfiles ?? []).map((p) => p.id).filter((id) => assignedIds.has(id))
   if (draft.employee_id) {
     if (!eligibleIds.includes(draft.employee_id)) {
-      return json({ reply: 'Belirttiğin çalışan bu hizmeti verebilecek alanda değil, başka biri veya "fark etmez" der misin?' }, 200)
+      return json(
+        { handled: true, reply: 'Belirttiğin çalışan bu hizmeti verebilecek alanda değil, başka biri veya "fark etmez" der misin?' },
+        200,
+      )
     }
     eligibleIds = [draft.employee_id]
   }
   if (eligibleIds.length === 0) {
-    return json({ reply: 'Bu hizmeti verebilecek çalışan tanımlı değil.' }, 200)
+    return json({ handled: true, reply: 'Bu hizmeti verebilecek çalışan tanımlı değil.' }, 200)
   }
 
   const { data: schedules } = await admin
@@ -317,7 +351,7 @@ async function handleConfirm(
     isAvailable(id, requestedStart, duration, schedules ?? [], appointments ?? [], timeBlocks ?? []),
   )
   if (!chosenEmployee) {
-    return json({ reply: 'Bu saatte uygun çalışan yok. Başka bir saat der misin?' }, 200)
+    return json({ handled: true, reply: 'Bu saatte uygun çalışan yok. Başka bir saat der misin?' }, 200)
   }
 
   try {
@@ -368,13 +402,16 @@ async function handleConfirm(
     await admin.from('staff_command_sessions').delete().eq('phone', phone)
 
     const employeeName = (activeProfiles ?? []).find((p) => p.id === chosenEmployee)?.full_name ?? 'atanan çalışan'
-    return json({ reply: `Randevu oluşturuldu ✅ ${service.name}, ${draft.date} ${draft.time} — ${employeeName}.` }, 200)
+    return json(
+      { handled: true, reply: `Randevu oluşturuldu ✅ ${service.name}, ${draft.date} ${draft.time} — ${employeeName}.` },
+      200,
+    )
   } catch (e) {
     const msg = String(e instanceof Error ? e.message : e)
     if (/exclusion|duplicate key|deadlock|mesaide değil/i.test(msg)) {
-      return json({ reply: 'Az önce bu saat başka bir randevuyla doldu. Başka bir saat der misin?' }, 200)
+      return json({ handled: true, reply: 'Az önce bu saat başka bir randevuyla doldu. Başka bir saat der misin?' }, 200)
     }
     console.error('staff-whatsapp-webhook randevu hatası:', msg)
-    return json({ reply: 'Randevu oluşturulamadı, lütfen tekrar dene.' }, 200)
+    return json({ handled: true, reply: 'Randevu oluşturulamadı, lütfen tekrar dene.' }, 200)
   }
 }

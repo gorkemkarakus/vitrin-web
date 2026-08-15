@@ -1,9 +1,8 @@
 import { supabase } from '../supabase'
+import { currency } from '../currency'
 import { PdfReport } from './pdfDoc'
 import { saveAndSharePdf } from './savePdf'
 import { yieldToUI } from './yieldToUI'
-
-const currency = new Intl.NumberFormat('tr-TR', { style: 'currency', currency: 'TRY' })
 
 const METHOD_LABEL: Record<string, string> = {
   nakit: 'Nakit',
