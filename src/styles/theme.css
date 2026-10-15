@@ -1,31 +1,46 @@
 :root {
-  --bg: #f1f5f9;
+  --bg: #f5f6f8;
   --panel: #ffffff;
-  --panel-2: #f8fafc;
-  --line: #e2e8f0;
-  --text: #1f2937;
-  --text-dim: #64748b;
-  --signal: #004aad;
-  --signal-2: #8b5cf6;
+  --panel-2: #f1f2f5;
+  --line: #e7e9ee;
+  --text: #111827;
+  --text-dim: #5b6373;
+  --signal: #13284f;
+  --signal-2: #1e3561;
   --signal-text: #ffffff;
-  --teal: #004aad;
-  --accent-pink: #ec4899;
-  --accent-pink-bg: #fce7f3;
+  --teal: #13284f;
+  --accent-pink: #b4470a;
+  --accent-pink-bg: #fff4ec;
 
-  --ok-bg: #d1fae5;
-  --ok-text: #0e9668;
-  --warn-bg: #fef3c7;
-  --warn-text: #d97706;
-  --danger-bg: #fee2e2;
-  --danger-text: #dc2626;
-  --info-bg: #dbeafe;
-  --info-text: #2563eb;
+  /* Turuncu vurgu: + dugmesi, "siradaki", dikkat ceken rakamlar */
+  --accent: #ff6a13;
+  --accent-text: #b4470a;
+  --accent-bg: #fff4ec;
+  --accent-bg-2: #ffe2ce;
 
-  --radius-sm: 8px;
-  --radius-lg: 16px;
+  /* Lacivert blok uzerindeki ikincil yuzey / cizgi / soluk yazi */
+  --navy-2: #1e3561;
+  --navy-line: #2d4370;
+  --navy-dim: #a8b4ca;
 
-  --font-heading: "Space Grotesk", sans-serif;
-  --font-body: "Inter", sans-serif;
+  --seg-bg: #e9ebef;
+  --tint: #e7ecf5;
+
+  --ok-bg: #e3f4ec;
+  --ok-text: #0b7a4b;
+  --warn-bg: #fff4ec;
+  --warn-text: #b4470a;
+  --danger-bg: #fee4e2;
+  --danger-text: #b42318;
+  --info-bg: #e7ecf5;
+  --info-text: #13284f;
+
+  --radius-sm: 12px;
+  --radius-md: 16px;
+  --radius-lg: 20px;
+
+  --font-heading: "Outfit", sans-serif;
+  --font-body: "DM Sans", sans-serif;
 }
 
 * {
@@ -61,7 +76,8 @@ h2,
 h3,
 h4 {
   font-family: var(--font-heading);
-  font-weight: 500;
+  font-weight: 600;
+  letter-spacing: -0.01em;
 }
 
 a {
@@ -72,10 +88,9 @@ a {
 /* --- Kart --- */
 .card {
   background: var(--panel);
-  border: 1px solid var(--line);
+  border: 1px solid transparent;
   border-radius: var(--radius-lg);
   padding: 16px;
-  box-shadow: 0 1px 3px rgba(43, 43, 38, 0.06);
 }
 
 /* --- Form alanları --- */
@@ -88,17 +103,17 @@ a {
   font-size: 12px;
   color: var(--text-dim);
   margin-bottom: 6px;
-  font-weight: 500;
+  font-weight: 700;
 }
 
 .field input {
   width: 100%;
   background: var(--panel-2);
-  border: 1px solid var(--line);
-  border-radius: var(--radius-sm);
-  padding: 11px 13px;
+  border: 1px solid transparent;
+  border-radius: 14px;
+  padding: 13px 14px;
   color: var(--text);
-  font-size: 14px;
+  font-size: 15px;
   outline: none;
   font-family: var(--font-body);
   transition: border-color 0.15s;
@@ -109,17 +124,17 @@ a {
 }
 
 .field input::placeholder {
-  color: #b0a996;
+  color: #9ca3af;
 }
 
 .field textarea {
   width: 100%;
   background: var(--panel-2);
-  border: 1px solid var(--line);
-  border-radius: var(--radius-sm);
-  padding: 11px 13px;
+  border: 1px solid transparent;
+  border-radius: 14px;
+  padding: 13px 14px;
   color: var(--text);
-  font-size: 14px;
+  font-size: 15px;
   outline: none;
   font-family: var(--font-body);
   transition: border-color 0.15s;
@@ -131,45 +146,45 @@ a {
 }
 
 .field textarea::placeholder {
-  color: #b0a996;
+  color: #9ca3af;
 }
 
 /* --- Butonlar --- */
 .btn-primary,
 .btn-secondary {
   width: 100%;
-  padding: 13px;
-  font-size: 14px;
+  padding: 14px;
+  font-size: 15px;
+  font-weight: 700;
   font-family: var(--font-body);
   cursor: pointer;
-  transition: opacity 0.15s, border-color 0.15s;
+  transition: opacity 0.15s;
 }
 
 .btn-secondary {
-  border-radius: var(--radius-sm);
+  border-radius: 14px;
 }
 
 .btn-primary {
   background: var(--signal);
   color: var(--signal-text);
   border: none;
-  border-radius: 999px;
-  font-weight: 600;
+  border-radius: 16px;
 }
 
 .btn-primary:hover {
-  opacity: 0.88;
+  opacity: 0.9;
 }
 
 .btn-secondary {
-  background: transparent;
-  border: 1px solid var(--line);
+  background: var(--panel-2);
+  border: none;
   color: var(--text);
-  font-size: 13px;
+  font-size: 14px;
 }
 
 .btn-secondary:hover {
-  border-color: var(--text-dim);
+  opacity: 0.85;
 }
 
 /* --- Sohbet önizleme balonları --- */

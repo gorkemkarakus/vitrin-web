@@ -4,9 +4,10 @@ import { supabase } from '../lib/supabase'
 import { useAuth } from '../contexts/AuthContext'
 import { formatPersonName } from '../lib/formatName'
 import { currency } from '../lib/currency'
-import Avatar from '../components/Avatar'
 import Select from '../components/Select'
-import { ChevronRightIcon, PhoneIcon, MailIcon, WalletIcon, PencilIcon, TrashIcon, ClockIcon, ServicesIcon, TrendingUpIcon, CalendarIcon } from '../components/icons'
+import { ChevronRightIcon, PhoneIcon, WalletIcon, PencilIcon, TrashIcon, CalendarIcon, MessagesIcon } from '../components/icons'
+import { segmentForStats } from '../lib/customerSegments'
+import { toLocalDateString } from '../lib/date'
 import styles from './CustomerDetailPage.module.css'
 
 interface Customer {
@@ -15,6 +16,7 @@ interface Customer {
   phone: string | null
   contact_phone: string | null
   email: string | null
+  notes: string | null
   created_at: string
 }
 
@@ -81,6 +83,26 @@ const PAYMENT_METHOD_OPTIONS = [
   { value: 'diger', label: 'Diğer' },
 ]
 
+type DetailTab = 'ozet' | 'randevular' | 'odemeler' | 'paket'
+
+const DETAIL_TABS: { value: DetailTab; label: string }[] = [
+  { value: 'ozet', label: 'Özet' },
+  { value: 'randevular', label: 'Randevular' },
+  { value: 'odemeler', label: 'Ödemeler' },
+  { value: 'paket', label: 'Paket' },
+]
+
+function initials(name: string) {
+  return (
+    name
+      .trim()
+      .split(/\s+/)
+      .slice(0, 2)
+      .map((w) => w[0]?.toLocaleUpperCase('tr') ?? '')
+      .join('') || '?'
+  )
+}
+
 // "phone" bazen chatbot kanal kimligi olabilir — gercek numara varsa
 // (contact_phone) her zaman ona oncelik ver.
 function customerPhone(c: Customer) {
@@ -136,8 +158,10 @@ export default function CustomerDetailPage() {
   const [editName, setEditName] = useState('')
   const [editPhone, setEditPhone] = useState('')
   const [editEmail, setEditEmail] = useState('')
+  const [editNotes, setEditNotes] = useState('')
   const [editCustomerSubmitting, setEditCustomerSubmitting] = useState(false)
   const [error, setError] = useState<string | null>(null)
+  const [tab, setTab] = useState<DetailTab>('ozet')
 
   async function loadData() {
     if (!id) return
@@ -145,7 +169,7 @@ export default function CustomerDetailPage() {
     const [{ data: cust }, { data: appts }, { data: pkgs }, { data: pays }, { data: svcs }, { data: emps }] = await Promise.all([
       supabase
         .from('customers')
-        .select('id, full_name, phone, contact_phone, email, created_at')
+        .select('id, full_name, phone, contact_phone, email, notes, created_at')
         .eq('id', id)
         .maybeSingle(),
       supabase
@@ -343,6 +367,9 @@ export default function CustomerDetailPage() {
       const package_id = payTarget.startsWith('pkg:') ? payTarget.slice(4) : null
       const appointment_id = payTarget.startsWith('appt:') ? payTarget.slice(5) : null
       const { error: insertErr } = await supabase.from('payments').insert({
+        // paid_at bir date kolonu; varsayilani sunucunun (UTC) CURRENT_DATE'i —
+        // Turkiye'de 00:00-03:00 arasi alinan odeme bir onceki gune yazilirdi.
+        paid_at: toLocalDateString(new Date()),
         business_id: profile?.business_id,
         customer_id: id,
         appointment_id,
@@ -441,6 +468,7 @@ export default function CustomerDetailPage() {
     setEditName(customer.full_name)
     setEditPhone(customerPhone(customer) ?? '')
     setEditEmail(customer.email ?? '')
+    setEditNotes(customer.notes ?? '')
     setEditCustomerOpen(true)
   }
 
@@ -456,6 +484,7 @@ export default function CustomerDetailPage() {
           full_name: formatPersonName(editName),
           contact_phone: editPhone.trim() || null,
           email: editEmail.trim() || null,
+          notes: editNotes.trim() || null,
         })
         .eq('id', id)
       if (updateErr) {
@@ -471,186 +500,282 @@ export default function CustomerDetailPage() {
     }
   }
 
-  if (loading) return <p style={{ color: 'var(--text-dim)' }}>Yükleniyor…</p>
-  if (!customer) return <p style={{ color: 'var(--text-dim)' }}>Müşteri bulunamadı.</p>
+  // KVKK silme talebi: kayit silinmez (odeme/paket gecmisi CASCADE ile
+  // giderdi), ad/telefon/e-posta/not temizlenir; randevu ve odemeler isimsiz
+  // kalir. Tek islemde anonymize_customer RPC'siyle.
+  async function anonymizeCustomer() {
+    if (!id || !customer) return
+    const ok = window.confirm(
+      `${customer.full_name} adlı müşterinin kişisel verileri (ad, telefon, e-posta, not) silinsin mi?\n\n` +
+        'Randevu ve ödeme kayıtları kasa geçmişi bozulmasın diye isimsiz olarak kalır. Bu işlem geri alınamaz.',
+    )
+    if (!ok) return
+    setEditCustomerSubmitting(true)
+    setError(null)
+    const { error: rpcErr } = await supabase.rpc('anonymize_customer', { p_customer_id: id })
+    setEditCustomerSubmitting(false)
+    if (rpcErr) {
+      const missing = /could not find|does not exist/i.test(rpcErr.message)
+      setError(missing ? 'Bu özellik için veritabanı güncellemesi bekleniyor.' : 'Silinemedi: ' + rpcErr.message)
+      return
+    }
+    setEditCustomerOpen(false)
+    await loadData()
+  }
+
+  if (loading) return <p className={styles.empty}>Yükleniyor…</p>
+  if (!customer) return <p className={styles.empty}>Müşteri bulunamadı.</p>
+
+  const phone = customerPhone(customer)
+  const activePackages = packageStats.filter((p) => p.pkg.status !== 'tamamlandi')
+
+  function renderPackage(p: (typeof packageStats)[number], withSessions: boolean) {
+    const total = Math.max(1, p.pkg.total_sessions)
+    const rem = remainingLabel(Math.max(0, p.remaining))
+    return (
+      <div key={p.pkg.id} className={styles.packageCard}>
+        <div className={styles.packageTop}>
+          <span className={styles.packageName}>
+            {p.svc?.name ?? 'Hizmet'}
+            {p.pkg.status === 'tamamlandi' && <span className={styles.packageDoneBadge}>Bitti</span>}
+          </span>
+          <span className={styles.packageCount}>
+            {p.completed}/{p.pkg.total_sessions} seans
+          </span>
+        </div>
+        <div className={styles.packageBar}>
+          <span style={{ width: `${Math.min(100, (p.completed / total) * 100)}%` }} />
+        </div>
+        <div className={styles.packageBottom}>
+          <span>Toplam {currency.format(p.expected)}</span>
+          <span className={rem.positive ? styles.textOk : styles.textWarm}>{rem.text}</span>
+        </div>
+        {withSessions && p.sessions.length > 0 && (
+          <div className={styles.sessionList}>
+            {p.sessions.map((s, i) => (
+              <div key={s.id} className={styles.sessionRow}>
+                <span className={styles.sessionRowLabel}>{i + 1 + p.pkg.session_offset}. seans</span>
+                <span className={styles.sessionRowDate}>
+                  {new Date(s.scheduled_at).toLocaleDateString('tr-TR', {
+                    day: 'numeric',
+                    month: 'short',
+                    year: 'numeric',
+                  })}
+                </span>
+                <span className={`${styles.statusPill} ${styles[`status_${s.status}`]}`}>
+                  {SESSION_STATUS_LABEL[s.status]}
+                </span>
+              </div>
+            ))}
+          </div>
+        )}
+      </div>
+    )
+  }
+
+  const monthStart = new Date(now.getFullYear(), now.getMonth(), 1)
+  const segment = segmentForStats({
+    isNewThisMonth: new Date(customer.created_at) >= monthStart,
+    completedCount: insights.totalVisits,
+  })
+  const rawPhone = customer.phone
 
   return (
     <div className={styles.wrap}>
-      <button type="button" className={styles.backBtn} onClick={() => navigate('/musteriler')}>
-        <ChevronRightIcon width={14} height={14} className={styles.backIcon} />
-        Müşterilere Dön
-      </button>
-
-      <div className={`card ${styles.headerCard}`}>
-        <Avatar name={customer.full_name} size={56} />
-        <div className={styles.headerInfo}>
-          <span className={styles.headerName}>{customer.full_name}</span>
-          {customerPhone(customer) && (
-            <span className={styles.headerLine}>
-              <PhoneIcon width={12} height={12} />
-              {customerPhone(customer)}
-            </span>
-          )}
-          {customer.email && (
-            <span className={styles.headerLine}>
-              <MailIcon width={12} height={12} />
-              {customer.email}
-            </span>
-          )}
-        </div>
-        <button type="button" className={styles.editCustomerBtn} onClick={openEditCustomer} aria-label="Müşteri bilgilerini düzenle">
-          <PencilIcon width={15} height={15} />
+      <div className={styles.topRow}>
+        <button type="button" className={styles.backLink} onClick={() => navigate('/musteriler')}>
+          <ChevronRightIcon width={16} height={16} className={styles.backIcon} />
+          Müşteriler
+        </button>
+        <button type="button" className="hdr-pill" onClick={openEditCustomer}>
+          Düzenle
         </button>
       </div>
 
-      <div className={styles.balanceRow}>
-        <div className={`card ${styles.balanceCard}`}>
-          <span className={styles.balanceLabel}>Toplam Ödenen</span>
-          <span className={styles.balanceValueOk}>{currency.format(totalPaid)}</span>
-        </div>
-        <div className={`card ${styles.balanceCard}`}>
-          <span className={styles.balanceLabel}>Kalan Ödeme</span>
-          <span className={totalRemaining > 0 ? styles.balanceValueDanger : styles.balanceValueOk}>
-            {totalRemaining > 0 ? currency.format(totalRemaining) : 'Borç yok'}
-          </span>
-        </div>
+      <div className={styles.hero}>
+        <span className={styles.heroAvatar}>{initials(customer.full_name)}</span>
+        <span className={styles.heroName}>{customer.full_name}</span>
+        <span className={styles.heroSub}>
+          {[phone, customer.email].filter(Boolean).join(' · ') || 'İletişim bilgisi yok'}
+        </span>
+        {segment && (
+          <span className={styles.heroBadge}>{segment === 'sadik' ? 'Sadık müşteri' : 'Yeni müşteri'}</span>
+        )}
       </div>
 
-      <button
-        type="button"
-        className={styles.payBtn}
-        onClick={() => {
-          setError(null)
-          setPayModalOpen(true)
-        }}
-      >
-        <WalletIcon width={16} height={16} />
-        Ödeme Al
-      </button>
+      <div className={styles.actions}>
+        {phone ? (
+          <a className={styles.actionBtn} href={`tel:${phone}`}>
+            <PhoneIcon width={18} height={18} />
+            Ara
+          </a>
+        ) : (
+          <button type="button" className={styles.actionBtn} onClick={openEditCustomer}>
+            <PhoneIcon width={18} height={18} />
+            Ara
+          </button>
+        )}
+        <button
+          type="button"
+          className={styles.actionBtn}
+          disabled={!rawPhone}
+          onClick={() => navigate(`/mesajlar?telefon=${encodeURIComponent(rawPhone ?? '')}`)}
+        >
+          <MessagesIcon width={18} height={18} />
+          Mesaj
+        </button>
+        <button type="button" className={styles.actionBtn} onClick={() => navigate('/randevular?yeni=1')}>
+          <CalendarIcon width={18} height={18} />
+          Randevu
+        </button>
+        <button
+          type="button"
+          className={`${styles.actionBtn} ${styles.actionBtnPrimary}`}
+          onClick={() => {
+            setError(null)
+            setPayModalOpen(true)
+          }}
+        >
+          <WalletIcon width={18} height={18} />
+          Ödeme
+        </button>
+      </div>
 
-      <div className="card">
-        <h2 style={{ marginBottom: 14 }}>İçgörüler</h2>
-        <div className={styles.insightsGrid}>
-          <div className={styles.insightTile}>
-            <span className={styles.insightIcon}>
-              <ClockIcon width={13} height={13} />
-            </span>
-            <span className={styles.insightValue}>{insights.lastVisitLabel}</span>
-            <span className={styles.insightLabel}>Son Ziyaret</span>
-          </div>
-          <div className={styles.insightTile}>
-            <span className={styles.insightIcon}>
-              <ServicesIcon width={13} height={13} />
-            </span>
-            <span className={styles.insightValue}>{insights.favoriteServiceName ?? '—'}</span>
-            {insights.favoriteEmployeeName && (
-              <span className={styles.insightSub}>Çalışan: {insights.favoriteEmployeeName}</span>
+      <div className={styles.tabs}>
+        {DETAIL_TABS.map((t) => (
+          <button
+            type="button"
+            key={t.value}
+            className={tab === t.value ? styles.tabActive : styles.tab}
+            onClick={() => setTab(t.value)}
+          >
+            {t.label}
+            {t.value === 'randevular' && appointments.length > 0 && (
+              <span className={styles.tabCount}> {appointments.length}</span>
             )}
-            <span className={styles.insightLabel}>Favori Hizmet</span>
-          </div>
-          <div className={styles.insightTile}>
-            <span className={styles.insightIcon}>
-              <TrendingUpIcon width={13} height={13} />
-            </span>
-            <span className={styles.insightValue}>{insights.avgIntervalLabel}</span>
-            <span className={styles.insightLabel}>Ortalama Ziyaret Aralığı</span>
-          </div>
-          <div className={styles.insightTile}>
-            <span className={styles.insightIcon}>
-              <CalendarIcon width={13} height={13} />
-            </span>
-            <span className={styles.insightValue}>{insights.totalVisits} ziyaret</span>
-            <span className={styles.insightSub}>{insights.tenureLabel} müşterimiz</span>
-            <span className={styles.insightLabel}>Toplam Ziyaret</span>
-          </div>
-        </div>
+          </button>
+        ))}
       </div>
 
-      {packageStats.length > 0 && (
-        <div className="card">
-          <h2 style={{ marginBottom: 14 }}>Paketler</h2>
-          <div className={styles.list}>
-            {packageStats.map((p) => (
-              <div key={p.pkg.id} className={styles.packageRow}>
-                <div className={styles.packageRowTop}>
-                  <div className={styles.packageRowMain}>
-                    <span className={styles.packageRowName}>
-                      {p.svc?.name ?? 'Hizmet'}
-                      {p.pkg.status === 'tamamlandi' && (
-                        <span className={styles.packageDoneBadge}>Tamamlandı</span>
-                      )}
-                    </span>
-                    <span className={styles.packageRowProgress}>
-                      {p.completed}/{p.pkg.total_sessions} seans tamamlandı
-                    </span>
-                  </div>
-                  <div className={styles.packageRowStats}>
-                    <span className={styles.packageRowExpected}>{currency.format(p.expected)}</span>
-                    <span className={remainingLabel(Math.max(0, p.remaining)).positive ? styles.packageRowRemainingOk : styles.packageRowRemainingDanger}>
-                      {remainingLabel(Math.max(0, p.remaining)).text}
-                    </span>
-                  </div>
-                </div>
-                {p.sessions.length > 0 && (
-                  <div className={styles.sessionList}>
-                    {p.sessions.map((s, i) => (
-                      <div key={s.id} className={styles.sessionRow}>
-                        <span className={styles.sessionRowLabel}>{i + 1 + p.pkg.session_offset}. Seans</span>
-                        <span className={styles.sessionRowDate}>
-                          {new Date(s.scheduled_at).toLocaleDateString('tr-TR', {
-                            day: 'numeric',
-                            month: 'long',
-                            year: 'numeric',
-                          })}
-                        </span>
-                        <span className={`${styles.sessionRowStatus} ${styles[`sessionRowStatus_${s.status}`]}`}>
-                          {SESSION_STATUS_LABEL[s.status]}
-                        </span>
-                      </div>
-                    ))}
-                  </div>
-                )}
-              </div>
-            ))}
+      {tab === 'ozet' && (
+        <>
+          <div className={styles.balanceCard}>
+            <div className={styles.balanceCol}>
+              <span className={styles.balanceLabel}>Toplam ödenen</span>
+              <span className={styles.balanceValue}>{currency.format(totalPaid)}</span>
+            </div>
+            <div className={`${styles.balanceCol} ${styles.balanceColDivided}`}>
+              <span className={styles.balanceLabel}>Kalan ödeme</span>
+              <span className={totalRemaining > 0 ? `${styles.balanceValue} ${styles.textWarm}` : `${styles.balanceValue} ${styles.textOk}`}>
+                {totalRemaining > 0 ? currency.format(totalRemaining) : 'Borç yok'}
+              </span>
+            </div>
           </div>
-        </div>
+
+          <div className={styles.listCard}>
+            <div className={styles.insightRow}>
+              <span className={styles.insightLabel}>Son ziyaret</span>
+              <span className={styles.insightValue}>{insights.lastVisitLabel}</span>
+            </div>
+            <div className={styles.insightRow}>
+              <span className={styles.insightLabel}>Favori hizmet</span>
+              <span className={styles.insightValue}>{insights.favoriteServiceName ?? '—'}</span>
+            </div>
+            <div className={styles.insightRow}>
+              <span className={styles.insightLabel}>Favori çalışan</span>
+              <span className={styles.insightValue}>
+                {insights.favoriteEmployeeName ? insights.favoriteEmployeeName.split(' ')[0] : '—'}
+              </span>
+            </div>
+            <div className={styles.insightRow}>
+              <span className={styles.insightLabel}>Ziyaret sıklığı</span>
+              <span className={styles.insightValue}>
+                {insights.avgIntervalLabel === '—' ? '—' : `${insights.avgIntervalLabel.replace(' gün', '')} günde bir`}
+              </span>
+            </div>
+            <div className={styles.insightRow}>
+              <span className={styles.insightLabel}>Toplam ziyaret</span>
+              <span className={styles.insightValue}>{insights.totalVisits}</span>
+            </div>
+          </div>
+
+          {activePackages.map((p) => (
+            <button type="button" key={p.pkg.id} className={styles.pkgMini} onClick={() => setTab('paket')}>
+              <span className={styles.pkgMiniTile}>
+                {p.completed}/{p.pkg.total_sessions}
+              </span>
+              <span className={styles.pkgMiniText}>
+                <span className={styles.pkgMiniName}>{p.svc?.name ?? 'Hizmet'} paketi</span>
+                <span className={styles.pkgMiniSub}>
+                  {Math.max(0, p.pkg.total_sessions - p.completed)} seans kaldı ·{' '}
+                  {new Date(p.pkg.created_at).toLocaleDateString('tr-TR', { day: 'numeric', month: 'short' })}’da alındı
+                </span>
+              </span>
+            </button>
+          ))}
+
+          <button type="button" className={customer.notes ? styles.noteCard : styles.noteCardEmpty} onClick={openEditCustomer}>
+            <span className={styles.noteLabel}>Müşteri notu</span>
+            <span className={styles.noteText}>
+              {customer.notes || 'Alerji, boya formülü, tercihler… Not eklemek için dokun.'}
+            </span>
+          </button>
+        </>
       )}
 
-      {standaloneAppts.length > 0 && (
-        <div className="card">
-          <h2 style={{ marginBottom: 14 }}>Tamamlanan Randevular</h2>
-          <div className={styles.list}>
-            {standaloneAppts.map((a) => (
-              <div key={a.appt.id} className={styles.packageRow}>
-                <div className={styles.packageRowMain}>
-                  <span className={styles.packageRowName}>{a.svc?.name ?? 'Hizmet'}</span>
-                  <span className={styles.packageRowProgress}>
-                    {new Date(a.appt.scheduled_at).toLocaleDateString('tr-TR', { day: 'numeric', month: 'long', year: 'numeric' })}
-                  </span>
+      {tab === 'randevular' &&
+        (appointments.length === 0 ? (
+          <p className={styles.empty}>Henüz randevu yok.</p>
+        ) : (
+          <div className={styles.listCard}>
+            {appointments.map((a) => {
+              const standalone = standaloneAppts.find((s) => s.appt.id === a.id)
+              return (
+                <div key={a.id} className={styles.apptRow}>
+                  <div className={styles.rowMain}>
+                    <span className={styles.rowTitle}>
+                      {(a.service_id ? serviceById.get(a.service_id)?.name : null) ?? 'Hizmet'}
+                    </span>
+                    <span className={styles.rowMeta}>
+                      {new Date(a.scheduled_at).toLocaleDateString('tr-TR', {
+                        day: 'numeric',
+                        month: 'short',
+                        year: 'numeric',
+                      })}
+                      {' · '}
+                      {new Date(a.scheduled_at).toLocaleTimeString('tr-TR', { hour: '2-digit', minute: '2-digit' })}
+                      {a.employee_id && employeeById.get(a.employee_id)?.full_name
+                        ? ` · ${employeeById.get(a.employee_id)!.full_name}`
+                        : ''}
+                    </span>
+                  </div>
+                  <div className={styles.rowSide}>
+                    <span className={`${styles.statusPill} ${styles[`status_${a.status}`]}`}>
+                      {SESSION_STATUS_LABEL[a.status]}
+                    </span>
+                    {standalone && (
+                      <span className={remainingLabel(standalone.remaining).positive ? styles.textOk : styles.textWarm}>
+                        {remainingLabel(standalone.remaining).text}
+                      </span>
+                    )}
+                    {a.package_id && <span className={styles.rowMeta}>Paket seansı</span>}
+                  </div>
                 </div>
-                <div className={styles.packageRowStats}>
-                  <span className={styles.packageRowExpected}>{currency.format(a.expected)}</span>
-                  <span className={remainingLabel(a.remaining).positive ? styles.packageRowRemainingOk : styles.packageRowRemainingDanger}>
-                    {remainingLabel(a.remaining).text}
-                  </span>
-                </div>
-              </div>
-            ))}
+              )
+            })}
           </div>
-        </div>
-      )}
+        ))}
 
-      <div className="card">
-        <h2 style={{ marginBottom: 14 }}>Ödeme Geçmişi</h2>
-        {payments.length === 0 ? (
+      {tab === 'odemeler' &&
+        (payments.length === 0 ? (
           <p className={styles.empty}>Henüz ödeme kaydı yok.</p>
         ) : (
-          <div className={styles.list}>
+          <div className={styles.listCard}>
             {payments.map((p) => (
               <div key={p.id} className={p.voided_at ? `${styles.paymentRow} ${styles.paymentRowVoided}` : styles.paymentRow}>
-                <div className={styles.paymentRowMain}>
-                  <span className={styles.paymentRowAmount}>{currency.format(p.amount)}</span>
-                  <span className={styles.paymentRowMeta}>
+                <div className={styles.rowMain}>
+                  <span className={styles.paymentAmount}>{currency.format(p.amount)}</span>
+                  <span className={styles.rowMeta}>
                     {METHOD_LABEL[p.method]} · {new Date(p.paid_at).toLocaleDateString('tr-TR')}
                     {p.note ? ` · ${p.note}` : ''}
                   </span>
@@ -662,7 +787,7 @@ export default function CustomerDetailPage() {
                     <div className={styles.paymentRowActions}>
                       <button
                         type="button"
-                        className={styles.editPaymentBtn}
+                        className={styles.iconBtn}
                         onClick={() => openEditPayment(p)}
                         aria-label="Ödemeyi düzenle"
                       >
@@ -670,7 +795,7 @@ export default function CustomerDetailPage() {
                       </button>
                       <button
                         type="button"
-                        className={styles.voidPaymentBtn}
+                        className={`${styles.iconBtn} ${styles.iconBtnDanger}`}
                         onClick={() => voidPayment(p)}
                         aria-label="Ödemeyi iptal et"
                       >
@@ -682,14 +807,20 @@ export default function CustomerDetailPage() {
               </div>
             ))}
           </div>
-        )}
-      </div>
+        ))}
+
+      {tab === 'paket' &&
+        (packageStats.length === 0 ? (
+          <p className={styles.empty}>Bu müşterinin paketi yok.</p>
+        ) : (
+          <div className={styles.block}>{packageStats.map((p) => renderPackage(p, true))}</div>
+        ))}
 
       {payModalOpen && (
         <div className={styles.modalBackdrop} onClick={() => setPayModalOpen(false)}>
           <div className={`card ${styles.modalCard}`} onClick={(e) => e.stopPropagation()}>
             <div className={styles.modalHead}>
-              <h2>Ödeme Al</h2>
+              <h2>Ödeme al</h2>
               <button type="button" className={styles.modalClose} onClick={() => setPayModalOpen(false)}>
                 ✕
               </button>
@@ -722,7 +853,7 @@ export default function CustomerDetailPage() {
               </div>
               {error && <p className={styles.error}>{error}</p>}
               <button type="submit" className="btn-primary" disabled={paySubmitting || !payMethod}>
-                {paySubmitting ? 'Kaydediliyor…' : 'Ödemeyi Kaydet'}
+                {paySubmitting ? 'Kaydediliyor…' : 'Ödemeyi kaydet'}
               </button>
             </form>
           </div>
@@ -733,7 +864,7 @@ export default function CustomerDetailPage() {
         <div className={styles.modalBackdrop} onClick={() => setEditingPayment(null)}>
           <div className={`card ${styles.modalCard}`} onClick={(e) => e.stopPropagation()}>
             <div className={styles.modalHead}>
-              <h2>Ödemeyi Düzenle</h2>
+              <h2>Ödemeyi düzenle</h2>
               <button type="button" className={styles.modalClose} onClick={() => setEditingPayment(null)}>
                 ✕
               </button>
@@ -766,7 +897,7 @@ export default function CustomerDetailPage() {
               </div>
               {error && <p className={styles.error}>{error}</p>}
               <button type="submit" className="btn-primary" disabled={editSubmitting}>
-                {editSubmitting ? 'Kaydediliyor…' : 'Değişiklikleri Kaydet'}
+                {editSubmitting ? 'Kaydediliyor…' : 'Değişiklikleri kaydet'}
               </button>
             </form>
           </div>
@@ -777,7 +908,7 @@ export default function CustomerDetailPage() {
         <div className={styles.modalBackdrop} onClick={() => setEditCustomerOpen(false)}>
           <div className={`card ${styles.modalCard}`} onClick={(e) => e.stopPropagation()}>
             <div className={styles.modalHead}>
-              <h2>Müşteriyi Düzenle</h2>
+              <h2>Müşteriyi düzenle</h2>
               <button type="button" className={styles.modalClose} onClick={() => setEditCustomerOpen(false)}>
                 ✕
               </button>
@@ -814,10 +945,30 @@ export default function CustomerDetailPage() {
                   placeholder="ornek@eposta.com"
                 />
               </div>
+              <div className="field">
+                <label htmlFor="editCustomerNotes">Müşteri notu</label>
+                <textarea
+                  id="editCustomerNotes"
+                  rows={3}
+                  value={editNotes}
+                  onChange={(e) => setEditNotes(e.target.value)}
+                  placeholder="ör. Amonyak alerjisi var · boya 7.1 + %6 · kısa sohbet sever"
+                />
+              </div>
               {error && <p className={styles.error}>{error}</p>}
               <button type="submit" className="btn-primary" disabled={editCustomerSubmitting}>
-                {editCustomerSubmitting ? 'Kaydediliyor…' : 'Değişiklikleri Kaydet'}
+                {editCustomerSubmitting ? 'Kaydediliyor…' : 'Değişiklikleri kaydet'}
               </button>
+              {profile?.role === 'admin' && (
+                <button
+                  type="button"
+                  className={styles.anonymizeBtn}
+                  onClick={anonymizeCustomer}
+                  disabled={editCustomerSubmitting}
+                >
+                  Kişisel verilerini sil (KVKK)
+                </button>
+              )}
             </form>
           </div>
         </div>

@@ -1,463 +1,551 @@
 .wrap {
   display: flex;
   flex-direction: column;
-  gap: 20px;
 }
 
-/* ---------- Bolum etiketleri ---------- */
+/* ---------- Lacivert ozet blogu ---------- */
 
-.sectionLabel {
-  font-size: 11px;
-  font-weight: 700;
-  color: var(--text-dim);
-  text-transform: uppercase;
-  letter-spacing: 0.07em;
-  margin-bottom: -10px;
-}
-
-/* ---------- Tarih filtresi ---------- */
-
-.filterRow {
-  display: flex;
-  gap: 6px;
-}
-
-.filterBtn,
-.filterBtnActive {
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  gap: 5px;
-  flex: 1;
-  min-width: 0;
-  background: var(--panel);
-  border: 1px solid var(--line);
-  color: var(--text-dim);
-  border-radius: 999px;
-  padding: 9px 8px;
-  font-size: 12.5px;
-  font-weight: 600;
-  font-family: var(--font-body);
-  cursor: pointer;
-  overflow: hidden;
-  text-overflow: ellipsis;
-  white-space: nowrap;
-}
-
-.filterBtnActive {
-  background: #004aad;
-  border-color: #004aad;
+/* DashboardLayout .content 16px ic bosluk verir; blok kenardan kenara
+   uzansin ve ust bardaki lacivertle birlessin diye o bosluk negatif margin
+   ile geri aliniyor. Alttaki fazladan bosluk, uzerine binen .sheet'in
+   yuvarlak kosesi icin. */
+.hero {
+  margin: -16px -16px 0;
+  padding: 4px 20px 56px;
+  background: var(--signal);
   color: #fff;
+  display: flex;
+  flex-direction: column;
+  gap: 18px;
+}
+
+.heroRow {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-end;
+  gap: 12px;
+}
+
+.heroMain,
+.heroSide {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  min-width: 0;
+}
+
+.heroSide {
+  align-items: flex-end;
+  padding-bottom: 6px;
+  flex-shrink: 0;
+}
+
+.heroLabel {
+  font-size: 13px;
+  color: var(--navy-dim);
+}
+
+.heroValue {
+  font-family: var(--font-heading);
+  font-size: 42px;
+  font-weight: 600;
+  letter-spacing: -0.03em;
+  line-height: 1.05;
+  font-variant-numeric: tabular-nums;
+}
+
+.heroCount {
+  font-family: var(--font-heading);
+  font-size: 20px;
+  font-weight: 600;
+  font-variant-numeric: tabular-nums;
+}
+
+.heroCountTotal {
+  color: #7787a6;
+}
+
+.heroSegs {
+  display: flex;
+  gap: 4px;
+}
+
+.heroSeg,
+.heroSegDone {
+  flex: 1;
+  height: 6px;
+  border-radius: 3px;
+  background: #33476e;
+}
+
+.heroSegDone {
+  background: var(--accent);
+}
+
+.heroBar {
+  height: 6px;
+  border-radius: 3px;
+  background: #33476e;
+  overflow: hidden;
+}
+
+.heroBar span {
+  display: block;
+  height: 100%;
+  border-radius: 3px;
+  background: var(--accent);
+}
+
+.heroHint {
+  font-size: 12px;
+  color: var(--navy-dim);
+  margin-top: -6px;
+}
+
+/* ---------- Bloga binen acik zemin ---------- */
+
+.sheet {
+  position: relative;
+  margin: -30px -16px 0;
+  padding: 18px 16px 8px;
+  background: var(--bg);
+  border-radius: 28px 28px 0 0;
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+}
+
+/* ---------- Donem secimi ---------- */
+
+.segmented {
+  display: grid;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  background: var(--seg-bg);
+  border-radius: 14px;
+  padding: 4px;
+}
+
+.segment,
+.segmentActive {
+  border: none;
+  background: transparent;
+  color: var(--text-dim);
+  font-family: var(--font-body);
+  font-size: 13px;
+  font-weight: 500;
+  padding: 9px 0;
+  border-radius: 11px;
+  cursor: pointer;
+}
+
+.segmentActive {
+  background: var(--panel);
+  color: var(--text);
+  font-weight: 700;
+  box-shadow: 0 1px 2px rgba(17, 24, 39, 0.08);
 }
 
 .customRangeRow {
   display: grid;
-  grid-template-columns: 1fr 1fr;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
   gap: 12px;
 }
 
-/* ---------- Ozet kartlari ---------- */
+/* ---------- Siradaki randevu ---------- */
 
-.summaryRow {
-  display: grid;
-  grid-template-columns: repeat(2, 1fr);
-  gap: 12px;
-}
-
-@media (min-width: 640px) {
-  .summaryRow {
-    grid-template-columns: repeat(4, 1fr);
-  }
-}
-
-.summaryTile {
+.nextCard,
+.nextEmpty {
+  background: var(--panel);
+  border-radius: 24px;
+  padding: 18px;
   display: flex;
   flex-direction: column;
-  gap: 3px;
-  border: none;
+  gap: 14px;
+  box-shadow: 0 8px 24px rgba(17, 24, 39, 0.07);
 }
 
-.summaryTileSignal {
-  background: #eaf1fb;
-}
-
-.summaryTileOk {
-  background: #eafaf3;
-}
-
-.summaryTileDanger {
-  background: #fdefee;
-}
-
-.summaryTopRow {
+.nextTop {
   display: flex;
-  align-items: flex-start;
   justify-content: space-between;
-  gap: 8px;
-  margin-bottom: 6px;
+  align-items: center;
+  gap: 12px;
 }
 
-.summaryIcon {
-  width: 30px;
-  height: 30px;
-  border-radius: 9px;
+.nextEyebrow {
+  font-size: 12px;
+  font-weight: 700;
+  color: var(--accent-text);
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+}
+
+.nextTime {
+  font-family: var(--font-heading);
+  font-size: 18px;
+  font-weight: 600;
+  font-variant-numeric: tabular-nums;
+}
+
+.nextWho {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+
+.nextAvatar {
+  width: 46px;
+  height: 46px;
+  border-radius: 50%;
+  background: var(--panel-2);
+  color: var(--text);
+  font-weight: 700;
+  font-size: 15px;
   display: flex;
   align-items: center;
   justify-content: center;
   flex-shrink: 0;
 }
 
-.summaryIconSignal {
-  background: #dbe7f8;
-  color: #004aad;
+.nextText {
+  flex: 1;
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
 }
 
-.summaryIconOk {
-  background: #d1f2e3;
-  color: var(--ok-text);
+.nextName {
+  font-size: 17px;
+  font-weight: 700;
 }
 
-.summaryIconDanger {
-  background: #fbdedc;
-  color: var(--danger-text);
+.nextSub {
+  font-size: 13px;
+  color: var(--text-dim);
 }
 
-.summaryValue {
-  font-family: var(--font-heading);
-  font-size: 21px;
-  font-weight: 600;
+.nextActions {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 8px;
+}
+
+.nextBtn,
+.nextBtnPrimary {
+  border: none;
+  border-radius: 14px;
+  padding: 12px 0;
+  text-decoration: none;
+  font-family: var(--font-body);
+  font-size: 13px;
+  font-weight: 700;
+  text-align: center;
+  cursor: pointer;
+  background: var(--panel-2);
   color: var(--text);
 }
 
-.summaryValueOk {
-  color: var(--ok-text);
+.nextBtnPrimary {
+  background: var(--signal);
+  color: #fff;
 }
 
-.summaryValueDanger {
-  color: var(--danger-text);
+.nextBtn:disabled {
+  opacity: 0.45;
+  cursor: default;
 }
 
-.summaryLabel {
-  font-size: 12.5px;
-  font-weight: 600;
-  color: var(--text-dim);
-}
+/* ---------- Bekleyen tahsilat seridi ---------- */
 
-.summaryHint {
-  font-size: 11px;
-  color: var(--text-dim);
-}
-
-/* ---------- Bolum basliklari ---------- */
-
-.sectionHead {
+.debtBanner {
   display: flex;
   align-items: center;
-  justify-content: space-between;
-  margin-bottom: 14px;
-}
-
-.sectionHead h2 {
-  font-size: 15px;
-}
-
-.sectionLink {
-  display: flex;
-  align-items: center;
-  gap: 2px;
-  background: none;
+  gap: 12px;
+  width: 100%;
   border: none;
-  color: #004aad;
-  font-size: 12.5px;
-  font-weight: 600;
+  background: var(--accent-bg);
+  color: var(--accent-text);
+  border-radius: 18px;
+  padding: 14px 16px;
   font-family: var(--font-body);
+  text-align: left;
   cursor: pointer;
 }
 
-/* ---------- Bugunku randevular ---------- */
-
-.apptList {
-  display: flex;
-  flex-direction: column;
-  gap: 4px;
-}
-
-.apptRow {
+.debtIcon {
+  width: 36px;
+  height: 36px;
+  border-radius: 12px;
+  background: var(--accent-bg-2);
   display: flex;
   align-items: center;
-  gap: 10px;
-  padding: 9px 4px;
-  border-bottom: 1px solid var(--line);
-}
-
-.apptRow:last-child {
-  border-bottom: none;
-}
-
-.apptTime {
-  font-size: 13px;
-  font-weight: 700;
-  color: #004aad;
-  width: 42px;
+  justify-content: center;
   flex-shrink: 0;
-  font-variant-numeric: tabular-nums;
 }
 
-.apptText {
+.debtText {
+  flex: 1;
+  min-width: 0;
   display: flex;
   flex-direction: column;
-  min-width: 0;
-  flex: 1;
   gap: 1px;
 }
 
-.apptCustomer {
-  font-size: 13.5px;
-  font-weight: 600;
-  color: var(--text);
-  overflow: hidden;
-  text-overflow: ellipsis;
-  white-space: nowrap;
-}
-
-.apptService {
-  font-size: 12px;
-  color: var(--text-dim);
-  overflow: hidden;
-  text-overflow: ellipsis;
-  white-space: nowrap;
-}
-
-.apptEmployee {
-  font-size: 12px;
-  color: var(--text-dim);
-  flex-shrink: 0;
-  display: none;
-}
-
-@media (min-width: 420px) {
-  .apptEmployee {
-    display: block;
-  }
-}
-
-.apptStatus {
-  flex-shrink: 0;
-  font-size: 10.5px;
+.debtMain {
+  font-size: 14px;
   font-weight: 700;
-  padding: 4px 9px;
-  border-radius: 999px;
+  color: var(--text);
 }
 
-.apptStatus_bekliyor {
-  background: var(--warn-bg);
-  color: var(--warn-text);
+.debtSub {
+  font-size: 12px;
+  color: #6b5545;
 }
 
-.apptStatus_onaylandi {
-  background: var(--ok-bg);
-  color: var(--ok-text);
+/* ---------- Baslikli bloklar ---------- */
+
+.block {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
 }
 
-.apptStatus_tamamlandi {
-  background: var(--info-bg);
-  color: var(--info-text);
+.blockHead {
+  display: flex;
+  justify-content: space-between;
+  align-items: baseline;
+  gap: 12px;
 }
 
-.apptStatus_iptal {
-  background: var(--danger-bg);
-  color: var(--danger-text);
+.blockHead h2 {
+  font-size: 17px;
+  font-weight: 600;
 }
 
-.apptStatus_gelmedi {
-  background: var(--panel-2);
+.blockLink {
+  border: none;
+  background: transparent;
+  color: var(--signal);
+  font-family: var(--font-body);
+  font-size: 13px;
+  font-weight: 700;
+  padding: 4px 0;
+  cursor: pointer;
+}
+
+.laterGrid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 10px;
+}
+
+.laterCard {
+  border: none;
+  background: var(--panel);
+  border-radius: 18px;
+  padding: 12px 14px;
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  font-family: var(--font-body);
+  color: var(--text);
+  text-align: left;
+  cursor: pointer;
+  min-width: 0;
+}
+
+.laterTime {
+  font-family: var(--font-heading);
+  font-size: 15px;
+  font-weight: 600;
+  font-variant-numeric: tabular-nums;
+}
+
+.laterName {
+  font-size: 13px;
+  font-weight: 700;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.laterService {
+  font-size: 12px;
+  color: var(--text-dim);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+/* ---------- Kazanc / odenmemis gider kutulari ---------- */
+
+.tiles {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 10px;
+}
+
+.tile {
+  border: none;
+  background: var(--panel);
+  border-radius: 20px;
+  padding: 14px;
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  font-family: var(--font-body);
+  color: var(--text);
+  text-align: left;
+  min-width: 0;
+}
+
+button.tile {
+  cursor: pointer;
+}
+
+.tileLabel {
+  font-size: 12px;
   color: var(--text-dim);
 }
 
-/* ---------- Yaklasan odemeler ---------- */
+.tileValue {
+  font-family: var(--font-heading);
+  font-size: 22px;
+  font-weight: 600;
+  font-variant-numeric: tabular-nums;
+}
+
+.tileValueWarm {
+  color: var(--accent-text);
+}
+
+.tileHint {
+  font-size: 12px;
+  color: var(--text-dim);
+}
+
+/* ---------- Liste kartlari ---------- */
+
+.listCard {
+  background: var(--panel);
+  border-radius: 22px;
+  padding: 16px;
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.empty {
+  font-size: 13px;
+  color: var(--text-dim);
+  padding: 8px 0;
+}
 
 .paymentList {
   display: flex;
   flex-direction: column;
-  gap: 4px;
-  margin-bottom: 14px;
 }
 
 .paymentRow {
   display: flex;
   align-items: center;
-  gap: 10px;
-  padding: 9px 4px;
+  gap: 12px;
+  width: 100%;
+  padding: 11px 0;
+  border: none;
   border-bottom: 1px solid var(--line);
+  background: transparent;
+  font-family: var(--font-body);
+  color: var(--text);
+  text-align: left;
 }
 
 .paymentRow:last-child {
   border-bottom: none;
 }
 
-.paymentIcon {
-  width: 34px;
-  height: 34px;
-  border-radius: 10px;
-  background: var(--warn-bg);
-  color: var(--warn-text);
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  flex-shrink: 0;
-}
-
-.paymentIconDanger {
-  background: var(--danger-bg);
-  color: var(--danger-text);
-}
-
-.paymentText {
-  display: flex;
-  flex-direction: column;
-  min-width: 0;
-  flex: 1;
-  gap: 1px;
-}
-
-.paymentDesc {
-  font-size: 13.5px;
-  font-weight: 600;
-  color: var(--text);
-  overflow: hidden;
-  text-overflow: ellipsis;
-  white-space: nowrap;
-}
-
-.paymentDate {
-  font-size: 12px;
-  color: var(--text-dim);
-}
-
-.paymentAmount {
-  font-size: 13px;
-  font-weight: 700;
-  color: var(--text);
-  flex-shrink: 0;
-  font-variant-numeric: tabular-nums;
-}
-
-.paymentAmountDanger {
-  font-size: 13px;
-  font-weight: 700;
-  color: var(--danger-text);
-  flex-shrink: 0;
-  font-variant-numeric: tabular-nums;
-}
-
-.debtTotalHint {
-  margin-top: 10px;
-  font-size: 12.5px;
-  color: var(--text-dim);
-}
-
-.debtTotalHint strong {
-  color: var(--danger-text);
-}
-
-.paymentDays,
-.paymentDaysUrgent {
-  flex-shrink: 0;
-  font-size: 10.5px;
-  font-weight: 700;
-  padding: 4px 9px;
-  border-radius: 999px;
-  background: var(--ok-bg);
-  color: var(--ok-text);
-}
-
-.paymentDaysUrgent {
-  background: var(--danger-bg);
-  color: var(--danger-text);
-}
-
-.addPaymentBtn {
-  width: auto;
-}
-
-/* ---------- Hizli islemler ---------- */
-
-.quickTitle {
-  font-size: 15px;
-  margin-bottom: 12px;
-}
-
-.quickRow {
-  display: flex;
-  gap: 6px;
-}
-
-.quickBtn {
-  position: relative;
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  gap: 6px;
-  flex: 1;
-  min-width: 0;
-  background: var(--panel);
-  border: 1px solid var(--line);
-  border-radius: var(--radius-lg);
-  padding: 12px 4px;
-  font-size: 10.5px;
-  font-weight: 600;
-  color: var(--text);
-  font-family: var(--font-body);
+button.paymentRow {
   cursor: pointer;
-  overflow: hidden;
-  text-overflow: ellipsis;
-  white-space: nowrap;
 }
 
-.quickBtn:disabled {
-  opacity: 0.55;
-  cursor: not-allowed;
-}
-
-.quickIcon {
+.paymentIcon {
   width: 34px;
   height: 34px;
   border-radius: 11px;
   background: var(--panel-2);
-  color: var(--text-dim);
+  color: var(--signal);
   display: flex;
   align-items: center;
   justify-content: center;
   flex-shrink: 0;
 }
 
-.quickBadge {
-  position: absolute;
-  top: 6px;
-  right: 6px;
-  font-size: 8.5px;
-  font-weight: 700;
-  background: var(--warn-bg);
-  color: var(--warn-text);
-  padding: 2px 5px;
-  border-radius: 999px;
+.paymentIconWarm {
+  background: var(--accent-bg);
+  color: var(--accent-text);
 }
 
-/* ---------- Randevu linki karti ---------- */
-
-.linkCard {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  gap: 12px;
-  flex-wrap: wrap;
-}
-
-.linkCardText {
+.paymentText {
+  flex: 1;
+  min-width: 0;
   display: flex;
   flex-direction: column;
   gap: 2px;
+}
+
+.paymentDesc {
+  font-size: 14px;
+  font-weight: 700;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.paymentDays,
+.paymentDaysUrgent {
+  font-size: 12px;
+  color: var(--text-dim);
+}
+
+.paymentDaysUrgent {
+  color: var(--accent-text);
+  font-weight: 700;
+}
+
+.paymentAmount,
+.paymentAmountWarm {
+  font-family: var(--font-heading);
+  font-size: 15px;
+  font-weight: 600;
+  font-variant-numeric: tabular-nums;
+  flex-shrink: 0;
+}
+
+.paymentAmountWarm {
+  color: var(--accent-text);
+}
+
+.addPaymentBtn {
+  margin-top: 6px;
+}
+
+/* ---------- Randevu linki ---------- */
+
+.linkCard {
+  background: var(--panel);
+  border-radius: 20px;
+  padding: 14px 16px;
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+
+.linkCardText {
+  flex: 1;
   min-width: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
 }
 
 .linkCardLabel {
@@ -467,15 +555,23 @@
 
 .linkCardUrl {
   font-size: 13px;
-  color: var(--text);
-  font-weight: 600;
+  font-weight: 700;
+  white-space: nowrap;
   overflow: hidden;
   text-overflow: ellipsis;
-  white-space: nowrap;
+  user-select: text;
+  -webkit-user-select: text;
 }
 
-.empty {
-  color: var(--text-dim);
+.linkCardBtn {
+  border: none;
+  background: var(--panel-2);
+  color: var(--text);
+  border-radius: 12px;
+  padding: 10px 14px;
+  font-family: var(--font-body);
   font-size: 13px;
+  font-weight: 700;
+  cursor: pointer;
+  flex-shrink: 0;
 }
-

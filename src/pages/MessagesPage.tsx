@@ -1,9 +1,10 @@
-import { useEffect, useMemo, useState } from 'react'
-import { useOutletContext } from 'react-router-dom'
+import { Fragment, useEffect, useMemo, useRef, useState } from 'react'
+import { useNavigate, useOutletContext, useSearchParams } from 'react-router-dom'
 import { supabase } from '../lib/supabase'
+import { fetchAll } from '../lib/fetchAll'
 import { useAuth } from '../contexts/AuthContext'
-import Avatar from '../components/Avatar'
-import { MessagesIcon, ClockIcon } from '../components/icons'
+import { MessagesIcon, ChevronRightIcon, SendIcon } from '../components/icons'
+import PageHeader from '../components/PageHeader'
 import type { LayoutOutletContext } from '../layouts/DashboardLayout'
 import styles from './MessagesPage.module.css'
 
@@ -26,7 +27,16 @@ interface Conversation {
   customer: Customer | null
   lastMessage: string
   lastMessageAt: string
+  lastRole: 'user' | 'assistant'
 }
+
+type ListFilter = 'tumu' | 'sende' | 'bot'
+
+const LIST_FILTERS: { value: ListFilter; label: string }[] = [
+  { value: 'tumu', label: 'Tümü' },
+  { value: 'sende', label: 'Seni bekliyor' },
+  { value: 'bot', label: 'Bot' },
+]
 
 const RECENT_MESSAGES_LIMIT = 500
 const PAUSE_PRESETS = [
@@ -44,34 +54,102 @@ function isPaused(customer: Customer | null): boolean {
 function pausedUntilLabel(customer: Customer | null): string | null {
   if (!isPaused(customer)) return null
   const d = new Date(customer!.bot_paused_until!)
-  return d.toLocaleString('tr-TR', { day: '2-digit', month: '2-digit', hour: '2-digit', minute: '2-digit' })
+  const sameDay = d.toDateString() === new Date().toDateString()
+  return sameDay
+    ? d.toLocaleTimeString('tr-TR', { hour: '2-digit', minute: '2-digit' })
+    : d.toLocaleString('tr-TR', { day: '2-digit', month: '2-digit', hour: '2-digit', minute: '2-digit' })
+}
+
+function displayName(c: Conversation) {
+  return c.customer?.full_name && c.customer.full_name !== 'Müşteri' ? c.customer.full_name : c.phone
+}
+
+function initials(name: string) {
+  const parts = name.trim().split(/\s+/)
+  // Kayitli olmayan numaralarda isim yerine telefon gosterilir; rakamdan
+  // bas harf cikarmak yerine son iki haneyi kullan.
+  if (/^[+\d]/.test(name)) return name.replace(/\D/g, '').slice(-2) || '?'
+  return (
+    parts
+      .slice(0, 2)
+      .map((w) => w[0]?.toLocaleUpperCase('tr') ?? '')
+      .join('') || '?'
+  )
+}
+
+function shortTime(iso: string) {
+  const d = new Date(iso)
+  const now = new Date()
+  if (d.toDateString() === now.toDateString()) {
+    return d.toLocaleTimeString('tr-TR', { hour: '2-digit', minute: '2-digit' })
+  }
+  const yesterday = new Date(now)
+  yesterday.setDate(now.getDate() - 1)
+  if (d.toDateString() === yesterday.toDateString()) return 'Dün'
+  return d.toLocaleDateString('tr-TR', { day: 'numeric', month: 'short' })
+}
+
+function dayLabel(iso: string) {
+  const d = new Date(iso)
+  const now = new Date()
+  if (d.toDateString() === now.toDateString()) return 'Bugün'
+  const y = new Date(now)
+  y.setDate(now.getDate() - 1)
+  if (d.toDateString() === y.toDateString()) return 'Dün'
+  return d.toLocaleDateString('tr-TR', { day: 'numeric', month: 'long' })
 }
 
 export default function MessagesPage() {
   const { profile } = useAuth()
-  const { searchQuery, setSearchPlaceholder } = useOutletContext<LayoutOutletContext>()
+  const { searchQuery } = useOutletContext<LayoutOutletContext>()
 
   const [conversations, setConversations] = useState<Conversation[]>([])
+  const [botBookingsToday, setBotBookingsToday] = useState(0)
   const [loading, setLoading] = useState(true)
   const [selectedPhone, setSelectedPhone] = useState<string | null>(null)
   const [thread, setThread] = useState<RawMessage[]>([])
   const [threadLoading, setThreadLoading] = useState(false)
   const [pauseMenuOpen, setPauseMenuOpen] = useState(false)
-
+  const [listFilter, setListFilter] = useState<ListFilter>('tumu')
+  const threadEndRef = useRef<HTMLDivElement>(null)
+  const navigate = useNavigate()
+  const [searchParams, setSearchParams] = useSearchParams()
+  // Isletmenin WhatsApp numarasi bagliysa bot calisiyor demektir.
+  // whatsapp_phone_number_id sutunu istemciye kapali; evet/hayir RPC'den
+  // gelir. RPC yoksa/hata verirse (null) etiket hic gosterilmez.
+  const [botLive, setBotLive] = useState<boolean | null>(null)
   useEffect(() => {
-    setSearchPlaceholder('Müşteri ara…')
+    if (!profile?.business_id) return
+    supabase.rpc('my_business_bot_connected').then(({ data, error }) => setBotLive(error ? null : !!data))
+  }, [profile?.business_id])
+
+  // Baska ekrandan (?telefon=...) gelindiyse o konusmayi dogrudan ac.
+  useEffect(() => {
+    const tel = searchParams.get('telefon')
+    if (!tel) return
+    openConversation(tel)
+    searchParams.delete('telefon')
+    setSearchParams(searchParams, { replace: true })
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [])
+  }, [searchParams])
 
   async function loadConversations(silent = false) {
     if (!silent) setLoading(true)
-    const [{ data: messages }, { data: customers }] = await Promise.all([
+    const todayStart = new Date()
+    todayStart.setHours(0, 0, 0, 0)
+    const [{ data: messages }, { data: customers }, { count: botBookings }] = await Promise.all([
       supabase
         .from('chatbot_messages')
         .select('role, content, customer_phone, created_at')
         .order('created_at', { ascending: false })
         .limit(RECENT_MESSAGES_LIMIT),
-      supabase.from('customers').select('id, full_name, phone, bot_paused_until'),
+      fetchAll(() => supabase.from('customers').select('id, full_name, phone, bot_paused_until').order('id')),
+      // Botun bugun actigi randevular — "randevuya dondu" kutusu icin.
+      supabase
+        .from('appointments')
+        .select('id', { count: 'exact', head: true })
+        .eq('source', 'chatbot')
+        .gte('created_at', todayStart.toISOString()),
     ])
 
     const customerByPhone = new Map((customers ?? []).filter((c) => c.phone).map((c) => [c.phone as string, c]))
@@ -84,9 +162,11 @@ export default function MessagesPage() {
         customer: customerByPhone.get(m.customer_phone) ?? null,
         lastMessage: m.content,
         lastMessageAt: m.created_at,
+        lastRole: m.role,
       })
     }
     setConversations(Array.from(byPhone.values()).sort((a, b) => (a.lastMessageAt < b.lastMessageAt ? 1 : -1)))
+    setBotBookingsToday(botBookings ?? 0)
     setLoading(false)
   }
 
@@ -107,6 +187,11 @@ export default function MessagesPage() {
     setThread((data ?? []) as RawMessage[])
     setThreadLoading(false)
   }
+
+  // Konusma acilinca en son mesaja in.
+  useEffect(() => {
+    if (!threadLoading && selectedPhone) threadEndRef.current?.scrollIntoView({ block: 'end' })
+  }, [threadLoading, selectedPhone])
 
   async function setPause(phone: string, minutes: number | null) {
     const existing = conversations.find((c) => c.phone === phone)?.customer
@@ -152,152 +237,217 @@ export default function MessagesPage() {
   const pausedCount = useMemo(() => conversations.filter((c) => isPaused(c.customer)).length, [conversations])
 
   const q = searchQuery.trim().toLowerCase()
-  const visibleConversations = q
-    ? conversations.filter(
-        (c) => (c.customer?.full_name ?? '').toLowerCase().includes(q) || c.phone.toLowerCase().includes(q),
-      )
-    : conversations
+  const visibleConversations = conversations.filter((c) => {
+    if (q && !(c.customer?.full_name ?? '').toLowerCase().includes(q) && !c.phone.toLowerCase().includes(q)) return false
+    if (listFilter === 'sende') return isPaused(c.customer)
+    if (listFilter === 'bot') return !isPaused(c.customer)
+    return true
+  })
 
-  if (loading) return <p style={{ color: 'var(--text-dim)' }}>Yükleniyor…</p>
+  if (loading) return <p className={styles.note}>Yükleniyor…</p>
 
-  if (conversations.length === 0) {
+  if (selectedConversation) {
+    const paused = isPaused(selectedConversation.customer)
+    const name = displayName(selectedConversation)
+    const isKnown = name !== selectedConversation.phone
+    // Mesajlari gun gun gruplayip "Bugun / Dun / 12 Eki" ayiraclari ekle.
+    let lastDay = ''
     return (
-      <div className={`card ${styles.empty}`}>
-        <div className={styles.iconWrap}>
-          <MessagesIcon width={28} height={28} />
+      <div className={styles.thread}>
+        <div className={styles.threadHead}>
+          <button
+            type="button"
+            className={styles.threadBack}
+            onClick={() => setSelectedPhone(null)}
+            aria-label="Konuşmalara dön"
+          >
+            <ChevronRightIcon width={16} height={16} className={styles.backIcon} />
+          </button>
+          <span className={`${styles.avatar} ${styles.avatarSmall} ${paused ? styles.avatarWarm : isKnown ? '' : styles.avatarGray}`}>
+            {initials(name)}
+          </span>
+          <div className={styles.threadWho}>
+            <span className={styles.threadName}>{name}</span>
+            <span className={styles.threadPhone}>{selectedConversation.phone} · WhatsApp</span>
+          </div>
+          {selectedConversation.customer && selectedConversation.customer.full_name !== 'Müşteri' && (
+            <button
+              type="button"
+              className="hdr-link"
+              onClick={() => navigate(`/musteriler/${selectedConversation.customer!.id}`)}
+            >
+              Profil
+            </button>
+          )}
         </div>
-        <h2 className={styles.title}>Henüz konuşma yok</h2>
-        <p className={styles.sub}>
-          Instagram ve WhatsApp bağlantıları kurulduğunda, gelen ve giden müşteri mesajları burada listelenecek.
-        </p>
+
+        <div className={styles.band}>
+          <div className={styles.bandText}>
+            <span className={styles.bandMain}>{paused ? 'Bu konuşma sende' : 'Bot bu konuşmayı yanıtlıyor'}</span>
+            <span className={styles.bandSub}>
+              {paused
+                ? `Bot ${pausedUntilLabel(selectedConversation.customer)}’e kadar yanıt vermeyecek`
+                : 'Kendin yazacaksan önce devral'}
+            </span>
+          </div>
+          {paused ? (
+            <button type="button" className={styles.bandBtn} onClick={() => resumeBot(selectedConversation.phone)}>
+              Bota bırak
+            </button>
+          ) : (
+            <div className={styles.pauseMenuWrap}>
+              <button type="button" className={styles.bandBtn} onClick={() => setPauseMenuOpen((v) => !v)}>
+                Devral
+              </button>
+              {pauseMenuOpen && (
+                <div className={styles.pauseMenu}>
+                  <span className={styles.pauseMenuTitle}>Bot ne kadar sussun?</span>
+                  {PAUSE_PRESETS.map((p) => (
+                    <button
+                      key={p.label}
+                      type="button"
+                      className={styles.pauseMenuItem}
+                      onClick={() => setPause(selectedConversation.phone, p.minutes)}
+                    >
+                      {p.label}
+                    </button>
+                  ))}
+                </div>
+              )}
+            </div>
+          )}
+        </div>
+
+        <div className={styles.threadBody}>
+          {threadLoading ? (
+            <p className={styles.note}>Yükleniyor…</p>
+          ) : (
+            thread.map((m, i) => {
+              const day = dayLabel(m.created_at)
+              const showDay = day !== lastDay
+              lastDay = day
+              return (
+                <Fragment key={i}>
+                  {showDay && <span className={styles.dayChip}>{day}</span>}
+                  <div className={m.role === 'user' ? styles.bubbleIn : styles.bubbleOut}>
+                    {m.role !== 'user' && <span className={styles.bubbleWho}>Bot</span>}
+                    {m.content}
+                    <span className={styles.bubbleTime}>
+                      {new Date(m.created_at).toLocaleTimeString('tr-TR', { hour: '2-digit', minute: '2-digit' })}
+                    </span>
+                  </div>
+                </Fragment>
+              )
+            })
+          )}
+          <div ref={threadEndRef} />
+        </div>
+
+        <div className={styles.composer}>
+          <span className={styles.composerField}>
+            {paused ? 'Yanıtını WhatsApp Business’tan yaz' : 'Yazmak için önce devral'}
+          </span>
+          <span className={styles.composerSend} aria-hidden="true">
+            <SendIcon width={18} height={18} />
+          </span>
+        </div>
       </div>
     )
   }
 
   return (
     <div className={styles.page}>
-      <div className={styles.statsRow}>
-        <div className={`card ${styles.statTile}`}>
-          <span className={styles.statIcon}>
-            <MessagesIcon width={16} height={16} />
-          </span>
-          <div>
-            <div className={styles.statValue}>{todayConversationCount}</div>
-            <div className={styles.statLabel}>Bugün Konuşma</div>
-          </div>
-        </div>
-        <div className={`card ${styles.statTile}`}>
-          <span className={`${styles.statIcon} ${styles.statIconWarn}`}>
-            <ClockIcon width={16} height={16} />
-          </span>
-          <div>
-            <div className={styles.statValue}>{pausedCount}</div>
-            <div className={styles.statLabel}>Şu An Duraklatılmış</div>
-          </div>
-        </div>
-      </div>
-
-      <div className={styles.wrap} data-selected={selectedPhone ? 'true' : 'false'}>
-      <div className={`card ${styles.convList}`}>
-        {visibleConversations.length === 0 && (
-          <p className={styles.sub} style={{ padding: '8px 4px' }}>
-            "{searchQuery}" ile eşleşen konuşma yok.
-          </p>
-        )}
-        {visibleConversations.map((c) => {
-          const paused = isPaused(c.customer)
-          return (
-            <button
-              key={c.phone}
-              type="button"
-              className={`${styles.convRow} ${selectedPhone === c.phone ? styles.convRowActive : ''}`}
-              onClick={() => openConversation(c.phone)}
-            >
-              <Avatar name={c.customer?.full_name ?? c.phone} size={36} />
-              <div className={styles.convText}>
-                <span className={styles.convName}>
-                  {c.customer?.full_name && c.customer.full_name !== 'Müşteri' ? c.customer.full_name : c.phone}
-                </span>
-                <span className={styles.convPreview}>{c.lastMessage}</span>
-              </div>
-              {paused && <span className={styles.pausedDot} title="Bot duraklatıldı" />}
-            </button>
+      <PageHeader
+        back="/daha-fazla"
+        title="Mesajlar"
+        action={
+          botLive !== null && (
+            <span className={botLive ? styles.botPill : `${styles.botPill} ${styles.botPillOff}`}>
+              <span className={styles.botDot} />
+              {botLive ? 'Bot açık' : 'Bot bağlı değil'}
+            </span>
           )
-        })}
+        }
+      />
+
+      <div className={styles.statsRow}>
+        <div className={styles.statTile}>
+          <span className={styles.statValue}>{todayConversationCount}</span>
+          <span className={styles.statLabel}>bugün konuşma</span>
+        </div>
+        <div className={styles.statTile}>
+          <span className={`${styles.statValue} ${styles.statValueOk}`}>{botBookingsToday}</span>
+          <span className={styles.statLabel}>randevuya döndü</span>
+        </div>
+        <button type="button" className={`${styles.statTile} ${styles.statTileWarm}`} onClick={() => setListFilter('sende')}>
+          <span className={styles.statValue}>{pausedCount}</span>
+          <span className={styles.statLabel}>seni bekliyor</span>
+        </button>
       </div>
 
-      <div className={`card ${styles.threadCard}`}>
-        {!selectedConversation ? (
-          <p className={styles.sub}>Soldan bir konuşma seç.</p>
-        ) : (
-          <>
-            <div className={styles.threadHead}>
-              <button type="button" className={styles.backBtn} onClick={() => setSelectedPhone(null)}>
-                ← Geri
-              </button>
-              <div>
-                <div className={styles.convName}>
-                  {selectedConversation.customer?.full_name && selectedConversation.customer.full_name !== 'Müşteri'
-                    ? selectedConversation.customer.full_name
-                    : selectedConversation.phone}
-                </div>
-                <div className={styles.sub}>{selectedConversation.phone}</div>
-              </div>
+      <div className={styles.segmented}>
+        {LIST_FILTERS.map((f) => (
+          <button
+            type="button"
+            key={f.value}
+            className={listFilter === f.value ? styles.segmentActive : styles.segment}
+            onClick={() => setListFilter(f.value)}
+          >
+            {f.label}
+            {f.value === 'sende' && pausedCount > 0 ? ` · ${pausedCount}` : ''}
+          </button>
+        ))}
+      </div>
 
-              <div className={styles.pauseWrap}>
-                {isPaused(selectedConversation.customer) ? (
-                  <>
-                    <span className={styles.pausedBadge}>
-                      Bot duraklatıldı · {pausedUntilLabel(selectedConversation.customer)}'e kadar
+      {conversations.length === 0 ? (
+        <div className={styles.empty}>
+          <span className={styles.emptyIcon}>
+            <MessagesIcon width={26} height={26} />
+          </span>
+          <h2 className={styles.emptyTitle}>Henüz konuşma yok</h2>
+          <p className={styles.note}>
+            WhatsApp ve Instagram bağlandığında müşterilerle yapılan yazışmalar burada listelenir.
+          </p>
+        </div>
+      ) : visibleConversations.length === 0 ? (
+        <p className={styles.note}>
+          {listFilter === 'sende' ? 'Devraldığın konuşma yok; hepsini bot yanıtlıyor.' : 'Bu listede konuşma yok.'}
+        </p>
+      ) : (
+        <div className={styles.convList}>
+          {visibleConversations.map((c) => {
+            const paused = isPaused(c.customer)
+            const name = displayName(c)
+            const isKnown = name !== c.phone
+            return (
+              <button key={c.phone} type="button" className={styles.convRow} onClick={() => openConversation(c.phone)}>
+                <span className={`${styles.avatar} ${paused ? styles.avatarWarm : isKnown ? '' : styles.avatarGray}`}>
+                  {isKnown ? initials(name) : '+90'}
+                </span>
+                <span className={styles.convText}>
+                  <span className={styles.convTop}>
+                    <span className={styles.convName}>{name}</span>
+                    <span className={paused ? `${styles.convTime} ${styles.convTimeWarm}` : styles.convTime}>
+                      {shortTime(c.lastMessageAt)}
                     </span>
-                    <button type="button" className="btn-secondary" style={{ width: 'auto' }} onClick={() => resumeBot(selectedConversation.phone)}>
-                      Botu geri aç
-                    </button>
-                  </>
-                ) : (
-                  <div className={styles.pauseMenuWrap}>
-                    <button
-                      type="button"
-                      className="btn-secondary"
-                      style={{ width: 'auto' }}
-                      onClick={() => setPauseMenuOpen((v) => !v)}
-                    >
-                      Devral
-                    </button>
-                    {pauseMenuOpen && (
-                      <div className={styles.pauseMenu}>
-                        {PAUSE_PRESETS.map((p) => (
-                          <button
-                            key={p.label}
-                            type="button"
-                            className={styles.pauseMenuItem}
-                            onClick={() => setPause(selectedConversation.phone, p.minutes)}
-                          >
-                            {p.label}
-                          </button>
-                        ))}
-                      </div>
-                    )}
-                  </div>
-                )}
-              </div>
-            </div>
-
-            <div className={styles.threadBody}>
-              {threadLoading ? (
-                <p className={styles.sub}>Yükleniyor…</p>
-              ) : (
-                thread.map((m, i) => (
-                  <div key={i} className={`bubble ${m.role === 'user' ? 'in' : 'out'}`}>
-                    {m.content}
-                  </div>
-                ))
-              )}
-            </div>
-          </>
-        )}
-      </div>
-      </div>
+                  </span>
+                  <span className={styles.convPreview}>
+                    {c.lastRole === 'assistant' ? 'Bot: ' : ''}
+                    {c.lastMessage}
+                  </span>
+                  {paused ? (
+                    <span className={styles.convStatusWarm}>Bot devretti · yanıt bekliyor</span>
+                  ) : isKnown ? (
+                    <span className={styles.convStatus}>Bot yanıtlıyor</span>
+                  ) : (
+                    <span className={styles.convStatus}>Yeni kişi</span>
+                  )}
+                </span>
+              </button>
+            )
+          })}
+        </div>
+      )}
     </div>
   )
 }

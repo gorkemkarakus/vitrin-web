@@ -1,280 +1,171 @@
 .wrap {
   display: flex;
   flex-direction: column;
-  gap: 16px;
+  gap: 12px;
 }
 
-.backBtn {
-  display: flex;
-  align-items: center;
-  gap: 4px;
-  align-self: flex-start;
-  background: none;
-  border: none;
-  color: var(--text-dim);
+.capitalize {
+  text-transform: capitalize;
+}
+
+.empty {
   font-size: 13px;
-  font-weight: 600;
-  font-family: var(--font-body);
-  cursor: pointer;
-  padding: 0;
-}
-
-.backIcon {
-  transform: rotate(180deg);
-}
-
-.sectionLabel {
-  font-size: 11px;
-  font-weight: 700;
   color: var(--text-dim);
-  text-transform: uppercase;
-  letter-spacing: 0.07em;
-  margin-bottom: -10px;
 }
 
-.stickyFilter {
+.error {
+  font-size: 13px;
+  color: var(--danger-text);
+  background: var(--danger-bg);
+  border-radius: 12px;
+  padding: 10px 12px;
+}
+
+.periodPanel {
+  background: var(--panel);
+  border-radius: 20px;
+  padding: 14px;
   display: flex;
   flex-direction: column;
-  gap: 16px;
+  gap: 12px;
 }
 
-/* ---------- Tarih filtresi ---------- */
-
-.filterRow {
-  display: flex;
-  gap: 6px;
+.periodPanel :global(.field) input {
+  background: var(--panel-2);
 }
 
-.filterBtn,
-.filterBtnActive {
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  gap: 6px;
-  flex: 1;
-  min-width: 0;
-  background: var(--panel);
-  border: 1px solid var(--line);
+.panelLabel {
+  font-size: 12px;
+  font-weight: 700;
   color: var(--text-dim);
-  border-radius: 999px;
-  padding: 9px 8px;
-  font-size: 12.5px;
-  font-weight: 600;
-  font-family: var(--font-body);
-  cursor: pointer;
-  overflow: hidden;
-  text-overflow: ellipsis;
-  white-space: nowrap;
-}
-
-.filterBtnActive {
-  background: var(--signal);
-  border-color: var(--signal);
-  color: #fff;
 }
 
 .customRangeRow {
   display: grid;
-  grid-template-columns: 1fr 1fr;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
   gap: 12px;
 }
 
-.customRangeRow input {
-  color-scheme: dark;
-}
+/* ---------- Toplam ---------- */
 
-/* ---------- Ozet kartlari ---------- */
-
-.statsGrid {
-  display: grid;
-  grid-template-columns: repeat(2, 1fr);
-  gap: 10px;
-}
-
-@media (min-width: 640px) {
-  .statsGrid {
-    grid-template-columns: repeat(4, 1fr);
-  }
-}
-
-.statCard {
+.totalRow {
   display: flex;
-  flex-direction: column;
-  align-items: flex-start;
-  gap: 8px;
-  border-radius: var(--radius-lg);
-  padding: 14px;
-  min-width: 0;
-}
-
-.statCardSignal {
-  background: #eaf1fb;
-}
-
-.statCardOk {
-  background: #eafaf3;
-}
-
-.statCardDanger {
-  background: #fdefee;
-}
-
-.statIcon {
-  width: 30px;
-  height: 30px;
-  border-radius: 9px;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  flex-shrink: 0;
-}
-
-.statIconSignal {
-  background: #dbe7f8;
-  color: var(--signal);
-}
-
-.statIconOk {
-  background: #d1f2e3;
-  color: var(--ok-text);
-}
-
-.statIconDanger {
-  background: #fbdedc;
-  color: var(--danger-text);
-}
-
-.statValue {
-  font-family: var(--font-heading);
-  font-size: 17px;
-  font-weight: 600;
-  color: var(--text);
-  font-variant-numeric: tabular-nums;
-  overflow: hidden;
-  text-overflow: ellipsis;
-  white-space: nowrap;
-  max-width: 100%;
-}
-
-.statLabel {
-  font-size: 11.5px;
-  font-weight: 600;
-  color: var(--text-dim);
-}
-
-/* ---------- Arama ---------- */
-
-.searchBox {
-  display: flex;
-  align-items: center;
-  gap: 8px;
-  background: var(--panel);
-  border: 1px solid var(--line);
-  border-radius: var(--radius-sm);
-  padding: 0 12px;
-}
-
-.searchIcon {
-  color: var(--text-dim);
-  flex-shrink: 0;
-}
-
-.searchInput {
-  flex: 1;
-  min-width: 0;
-  border: none;
-  background: none;
-  outline: none;
-  padding: 11px 0;
-  font-size: 14px;
-  font-family: var(--font-body);
-  color: var(--text);
-}
-
-.searchInput::placeholder {
-  color: var(--text-dim);
-}
-
-/* ---------- Gider ekleme formu ---------- */
-
-.expenseForm {
-  display: flex;
+  justify-content: space-between;
   align-items: flex-end;
   gap: 12px;
-  flex-wrap: wrap;
+  padding: 0 4px;
 }
 
-.expenseField {
+.totalText {
   display: flex;
   flex-direction: column;
-  gap: 6px;
-  flex: 1;
-  min-width: 160px;
+  gap: 2px;
 }
 
-.expenseField label {
-  font-size: 12px;
+.totalLabel {
+  font-size: 13px;
   color: var(--text-dim);
-  font-weight: 500;
 }
 
-.expenseField input {
-  width: 100%;
-  background: var(--panel-2);
-  border: 1px solid var(--line);
-  border-radius: var(--radius-sm);
-  padding: 10px 12px;
-  color: var(--text);
-  font-size: 14px;
-  font-family: var(--font-body);
-  outline: none;
-  transition: border-color 0.15s;
-  color-scheme: dark;
+.totalLabel::first-letter {
+  text-transform: uppercase;
 }
 
-.expenseField input:focus {
-  border-color: var(--signal);
-}
-
-.recurringToggle {
-  display: flex;
-  gap: 6px;
-}
-
-.recurringBtn,
-.recurringBtnActive {
-  flex: 1;
-  border: 1px solid var(--line);
-  background: var(--panel-2);
-  color: var(--text-dim);
-  border-radius: var(--radius-sm);
-  padding: 10px 8px;
-  font-size: 12.5px;
+.totalValue {
+  font-family: var(--font-heading);
+  font-size: 34px;
   font-weight: 600;
+  letter-spacing: -0.02em;
+  font-variant-numeric: tabular-nums;
+  color: var(--text);
+}
+
+.diffOk,
+.diffWarm {
+  font-size: 12px;
+  font-weight: 700;
+  color: var(--ok-text);
+  padding-bottom: 6px;
+  text-align: right;
+}
+
+.diffWarm {
+  color: var(--accent-text);
+}
+
+/* ---------- Cipler ---------- */
+
+.chips {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+
+.chipScroll {
+  display: flex;
+  gap: 8px;
+  overflow-x: auto;
+  scrollbar-width: none;
+}
+
+.chipScroll::-webkit-scrollbar {
+  display: none;
+}
+
+.chip,
+.chipActive {
+  border: 1px solid #e2e5ea;
+  background: var(--panel);
+  color: var(--text);
+  border-radius: 999px;
+  padding: 8px 12px;
   font-family: var(--font-body);
+  font-size: 13px;
+  font-weight: 600;
+  cursor: pointer;
+}
+
+.chipActive {
+  border-color: var(--signal);
+  background: var(--signal);
+  color: #fff;
+  font-weight: 700;
+}
+
+.catChip,
+.catChipActive,
+.catChipWarm {
+  flex-shrink: 0;
+  border: none;
+  background: var(--panel);
+  color: var(--text);
+  border-radius: 999px;
+  padding: 8px 12px;
+  font-family: var(--font-body);
+  font-size: 13px;
+  font-weight: 600;
   cursor: pointer;
   white-space: nowrap;
 }
 
-.recurringBtnActive {
-  background: #475569;
-  border-color: #475569;
+.catChipActive {
+  background: var(--signal);
   color: #fff;
+  font-weight: 700;
 }
 
-.saveBtn {
-  width: auto;
-  padding: 10px 16px;
+.catChipWarm {
+  background: var(--accent-bg);
+  color: var(--accent-text);
+  font-weight: 700;
 }
 
-.empty {
-  color: var(--text-dim);
-  font-size: 13px;
-}
+/* ---------- Liste ---------- */
 
-/* ---------- Gider listesi ---------- */
-
-.list {
+.listCard {
+  background: var(--panel);
+  border-radius: 22px;
+  padding: 2px 14px;
   display: flex;
   flex-direction: column;
 }
@@ -282,127 +173,386 @@
 .expenseRow {
   display: flex;
   align-items: center;
-  gap: 10px;
-  padding: 12px 2px;
-  border-bottom: 1px solid var(--line);
+  gap: 12px;
+  width: 100%;
+  border: none;
+  border-bottom: 1px solid #eef0f3;
+  background: none;
+  padding: 12px 0;
+  font-family: var(--font-body);
+  color: var(--text);
+  text-align: left;
+  cursor: pointer;
 }
 
 .expenseRow:last-child {
   border-bottom: none;
 }
 
-.expenseRowMain {
+.expenseText {
+  flex: 1;
+  min-width: 0;
   display: flex;
   flex-direction: column;
   gap: 2px;
-  min-width: 0;
-  flex: 1;
-}
-
-.expenseDescRow {
-  display: flex;
-  align-items: center;
-  gap: 6px;
-  min-width: 0;
 }
 
 .expenseDesc {
-  font-size: 13.5px;
-  font-weight: 600;
-  color: var(--text);
+  font-size: 15px;
+  font-weight: 700;
+  white-space: nowrap;
   overflow: hidden;
   text-overflow: ellipsis;
-  white-space: nowrap;
-  min-width: 0;
 }
 
-.recurringBadge {
-  flex-shrink: 0;
-  font-size: 9.5px;
-  font-weight: 700;
-  color: var(--signal);
-  background: #eaf1fb;
-  padding: 2px 7px;
-  border-radius: 999px;
-}
-
-.unpaidBadge {
-  flex-shrink: 0;
-  font-size: 9.5px;
-  font-weight: 700;
-  color: var(--danger-text);
-  background: var(--danger-bg);
-  padding: 2px 7px;
-  border-radius: 999px;
-}
-
-.overdueBadge {
-  flex-shrink: 0;
-  font-size: 9.5px;
-  font-weight: 700;
-  color: #fff;
-  background: var(--danger-text);
-  padding: 2px 7px;
-  border-radius: 999px;
-}
-
-.expenseDate {
+.expenseMeta {
   font-size: 12px;
   color: var(--text-dim);
 }
 
-.expenseAmount {
-  font-size: 13.5px;
+.metaWarm {
+  color: var(--accent-text);
   font-weight: 700;
-  color: var(--danger-text);
-  flex-shrink: 0;
-  font-variant-numeric: tabular-nums;
 }
 
-.rowDeleteBtn {
+.metaDanger {
+  color: var(--danger-text);
+  font-weight: 700;
+}
+
+.expenseAmount {
+  font-family: var(--font-heading);
+  font-size: 16px;
+  font-weight: 600;
+  font-variant-numeric: tabular-nums;
   flex-shrink: 0;
-  width: 28px;
-  height: 28px;
-  border-radius: 50%;
+}
+
+.amountWarm {
+  color: var(--accent-text);
+}
+
+.countNote {
+  font-size: 12px;
+  color: #6b7280;
+  text-align: center;
+}
+
+/* ---------- Alttaki Gider ekle ---------- */
+
+.addBar {
+  position: sticky;
+  bottom: -16px;
+  margin: auto -16px -16px;
+  padding: 12px 16px;
+  background: var(--bg);
+  z-index: 5;
+}
+
+.addBtn {
+  width: 100%;
   border: none;
-  background: transparent;
+  background: var(--signal);
+  color: #fff;
+  border-radius: 16px;
+  padding: 15px 0;
+  font-family: var(--font-body);
+  font-size: 15px;
+  font-weight: 700;
+  cursor: pointer;
+}
+
+/* ---------- Alt pencereler ---------- */
+
+.sheetBackdrop {
+  position: fixed;
+  inset: 0;
+  z-index: 70;
+  background: rgba(17, 24, 39, 0.6);
+  display: flex;
+  flex-direction: column;
+  justify-content: flex-end;
+}
+
+.sheet {
+  margin-top: 60px;
+  max-height: calc(100dvh - 60px);
+  overflow-y: auto;
+  background: var(--panel);
+  border-radius: 28px 28px 0 0;
+  padding: 10px 18px calc(26px + env(safe-area-inset-bottom, 0px));
+  display: flex;
+  flex-direction: column;
+  gap: 18px;
+}
+
+.sheetHandle {
+  align-self: center;
+  width: 40px;
+  height: 5px;
+  border-radius: 999px;
+  background: #d7dae0;
+}
+
+.sheetHead {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+}
+
+.sheetTitle {
+  margin: 0;
+  font-family: var(--font-heading);
+  font-size: 22px;
+  font-weight: 600;
+}
+
+.sheetCancel {
+  border: none;
+  background: none;
+  padding: 6px 0;
+  font-family: var(--font-body);
+  font-size: 14px;
+  font-weight: 700;
   color: var(--text-dim);
   cursor: pointer;
-  display: inline-flex;
+}
+
+.amountField {
+  display: flex;
+  flex-direction: column;
   align-items: center;
-  justify-content: center;
+  gap: 4px;
+  padding: 6px 0;
 }
 
-.rowDeleteBtn:hover {
-  background: var(--danger-bg);
-  color: var(--danger-text);
+.amountLabel {
+  font-size: 13px;
+  color: var(--text-dim);
 }
 
-.paidToggleBtn,
-.paidToggleBtnActive {
-  flex-shrink: 0;
-  width: 28px;
-  height: 28px;
-  border-radius: 50%;
+.amountLine {
+  display: flex;
+  align-items: baseline;
+  gap: 4px;
+}
+
+.amountPrefix {
+  font-family: var(--font-heading);
+  font-size: 30px;
+  font-weight: 600;
+  color: var(--text-dim);
+}
+
+.amountField input {
+  width: 170px;
   border: none;
-  cursor: pointer;
-  display: inline-flex;
-  align-items: center;
-  justify-content: center;
+  outline: none;
+  background: transparent;
+  font-family: var(--font-heading);
+  font-size: 48px;
+  font-weight: 600;
+  letter-spacing: -0.03em;
+  color: var(--text);
+  -moz-appearance: textfield;
 }
 
-.paidToggleBtn {
-  background: var(--danger-bg);
+.amountField input::-webkit-outer-spin-button,
+.amountField input::-webkit-inner-spin-button {
+  -webkit-appearance: none;
+  margin: 0;
+}
+
+.amountField input::placeholder {
+  color: #c5cad3;
+}
+
+.fGroup {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.fLabel {
+  font-size: 13px;
+  font-weight: 700;
+  color: var(--text);
+}
+
+.fInput {
+  width: 100%;
+  border: none;
+  outline: none;
+  background: var(--bg);
+  border-radius: 14px;
+  padding: 13px 14px;
+  font-family: var(--font-body);
+  font-size: 15px;
+  color: var(--text);
+}
+
+.formChip,
+.formChipActive {
+  border: 1px solid #e2e5ea;
+  background: var(--panel);
+  color: var(--text);
+  border-radius: 12px;
+  padding: 9px 13px;
+  font-family: var(--font-body);
+  font-size: 13px;
+  font-weight: 600;
+  cursor: pointer;
+}
+
+.formChipActive {
+  border-color: var(--signal);
+  background: var(--signal);
+  color: #fff;
+  font-weight: 700;
+}
+
+.rowsCard {
+  background: var(--bg);
+  border-radius: 16px;
+  padding: 2px 14px;
+  display: flex;
+  flex-direction: column;
+}
+
+.formRow {
+  position: relative;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 12px;
+  padding: 12px 0;
+  border-bottom: 1px solid #e2e5ea;
+  font-size: 14px;
+}
+
+.formRow:last-child {
+  border-bottom: none;
+}
+
+.formRowLabel {
+  color: var(--text-dim);
+}
+
+.formRowValue {
+  font-weight: 700;
+  color: var(--text);
+}
+
+.formRowInput {
+  position: absolute;
+  inset: 0;
+  opacity: 0;
+  cursor: pointer;
+}
+
+.switch {
+  position: relative;
+  width: 44px;
+  height: 26px;
+  flex-shrink: 0;
+  cursor: pointer;
+}
+
+.switch input {
+  position: absolute;
+  opacity: 0;
+  width: 100%;
+  height: 100%;
+  margin: 0;
+  cursor: pointer;
+}
+
+.switchTrack {
+  position: absolute;
+  inset: 0;
+  border-radius: 999px;
+  background: #d7dae0;
+  transition: background 0.15s;
+  pointer-events: none;
+}
+
+.switchTrack::after {
+  content: '';
+  position: absolute;
+  top: 3px;
+  left: 3px;
+  width: 20px;
+  height: 20px;
+  border-radius: 50%;
+  background: #fff;
+  transition: transform 0.15s;
+}
+
+.switch input:checked + .switchTrack {
+  background: var(--signal);
+}
+
+.switch input:checked + .switchTrack::after {
+  transform: translateX(18px);
+}
+
+.sheetSubmit {
+  border: none;
+  background: var(--signal);
+  color: #fff;
+  border-radius: 16px;
+  padding: 16px 0;
+  font-family: var(--font-body);
+  font-size: 15px;
+  font-weight: 700;
+  cursor: pointer;
+}
+
+.sheetSubmit:disabled {
+  opacity: 0.6;
+}
+
+.menuSheet {
+  background: var(--panel);
+  border-radius: 28px 28px 0 0;
+  padding: 20px 16px calc(20px + env(safe-area-inset-bottom, 0px));
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.menuTitle {
+  font-size: 16px;
+  font-weight: 700;
+  color: var(--text);
+}
+
+.menuSub {
+  font-size: 13px;
+  color: var(--text-dim);
+  margin-bottom: 6px;
+}
+
+.menuItem,
+.menuCancel {
+  border: none;
+  background: var(--bg);
+  color: var(--text);
+  border-radius: 14px;
+  padding: 14px;
+  font-family: var(--font-body);
+  font-size: 15px;
+  font-weight: 700;
+  text-align: left;
+  cursor: pointer;
+}
+
+.menuItemDanger {
   color: var(--danger-text);
 }
 
-.paidToggleBtnActive {
-  background: var(--ok-bg);
-  color: var(--ok-text);
-}
-
-@media (max-width: 480px) {
-  .customRangeRow {
-    width: 100%;
-  }
+.menuCancel {
+  background: none;
+  text-align: center;
+  color: var(--text-dim);
 }

@@ -29,6 +29,8 @@ function todayLocalDateString() {
 export default function PublicBookingPage() {
   const { slug } = useParams<{ slug: string }>()
   const [step, setStep] = useState<Step>('loading')
+  // Salon online randevuyu Ayarlar'dan kapattiysa (fonksiyon 403 + closed).
+  const [bookingClosed, setBookingClosed] = useState(false)
   const [businessName, setBusinessName] = useState('')
   const [services, setServices] = useState<PublicService[]>([])
   const [selectedService, setSelectedService] = useState<PublicService | null>(null)
@@ -54,7 +56,15 @@ export default function PublicBookingPage() {
         setServices(info.services)
         setStep('service')
       })
-      .catch(() => setStep('not_found'))
+      .catch(async (err) => {
+        try {
+          const body = await err?.context?.json()
+          if (body?.closed) setBookingClosed(true)
+        } catch {
+          // Govde okunamadiysa genel "bulunamadi" mesaji kalir.
+        }
+        setStep('not_found')
+      })
   }, [slug])
 
   async function loadEmployees(service: PublicService) {
@@ -179,8 +189,17 @@ export default function PublicBookingPage() {
 
         {step === 'not_found' && (
           <div className={styles.notFound}>
-            <h1>İşletme bulunamadı</h1>
-            <p>Bu randevu linki geçersiz olabilir. Lütfen linki gönderen işletmeyle iletişime geçin.</p>
+            {bookingClosed ? (
+              <>
+                <h1>Online randevu şu an kapalı</h1>
+                <p>Bu salon şu anda internetten randevu almıyor. Randevu için salonu arayabilir ya da mesaj atabilirsiniz.</p>
+              </>
+            ) : (
+              <>
+                <h1>İşletme bulunamadı</h1>
+                <p>Bu randevu linki geçersiz olabilir. Lütfen linki gönderen işletmeyle iletişime geçin.</p>
+              </>
+            )}
           </div>
         )}
 

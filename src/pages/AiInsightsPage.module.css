@@ -1,227 +1,248 @@
 .wrap {
   display: flex;
   flex-direction: column;
-  gap: 16px;
+  gap: 14px;
 }
 
 .hint {
+  font-size: 13px;
   color: var(--text-dim);
-  font-size: 13px;
 }
 
-.errorText {
+.error {
+  font-size: 13px;
   color: var(--danger-text);
-  font-size: 13px;
+  background: var(--danger-bg);
+  border-radius: 12px;
+  padding: 10px 12px;
 }
 
-.list {
+/* ---------- Donem secimi ---------- */
+
+.periodWrap {
+  position: relative;
+  flex-shrink: 0;
+}
+
+.periodBtn {
+  border: none;
+  background: var(--panel);
+  color: var(--text);
+  border-radius: 12px;
+  padding: 9px 12px;
+  font-family: var(--font-body);
+  font-size: 13px;
+  font-weight: 700;
+  white-space: nowrap;
+  cursor: pointer;
+}
+
+.menuScrim {
+  position: fixed;
+  inset: 0;
+  z-index: 19;
+}
+
+.periodMenu {
+  position: absolute;
+  top: calc(100% + 8px);
+  right: 0;
+  min-width: 180px;
+  background: var(--panel);
+  border-radius: 16px;
+  box-shadow: 0 12px 32px rgba(17, 24, 39, 0.16);
+  padding: 6px;
   display: flex;
   flex-direction: column;
-  gap: 10px;
-  list-style: none;
+  z-index: 20;
 }
 
-.listItem {
-  display: flex;
-  align-items: flex-start;
-  gap: 10px;
-  font-size: 13.5px;
-  color: var(--text);
-  line-height: 1.5;
-}
-
-.listIcon {
-  width: 22px;
-  height: 22px;
-  border-radius: 50%;
+.periodMenuItem {
   display: flex;
   align-items: center;
-  justify-content: center;
-  flex-shrink: 0;
-  margin-top: 1px;
+  justify-content: space-between;
+  gap: 12px;
+  border: none;
+  background: none;
+  border-radius: 11px;
+  padding: 11px 12px;
+  font-family: var(--font-body);
+  font-size: 14px;
+  color: var(--text);
+  text-align: left;
+  cursor: pointer;
 }
 
-.listIconInfo {
-  background: var(--info-bg);
-  color: var(--info-text);
+.periodMenuItem svg {
+  color: var(--signal);
 }
 
-.listIconDanger {
-  background: var(--danger-bg);
-  color: var(--danger-text);
+/* ---------- Sohbet ---------- */
+
+.exchange {
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
 }
 
-.listIconOk {
-  background: var(--ok-bg);
-  color: var(--ok-text);
+.userBubble {
+  align-self: flex-end;
+  max-width: 82%;
+  background: var(--signal);
+  color: #fff;
+  border-radius: 18px 18px 6px 18px;
+  padding: 10px 14px;
+  font-size: 14px;
+  line-height: 1.45;
 }
 
-.riskCard {
-  border-left: 3px solid var(--danger-text);
-}
-
-.recCard {
-  border-left: 3px solid var(--ok-text);
-}
-
-/* ---------- Başlık + tarih aralığı ---------- */
-
-.pageHead {
+.aiBubble {
+  background: var(--panel);
+  border-radius: 20px 20px 20px 6px;
+  padding: 14px;
   display: flex;
   flex-direction: column;
   gap: 12px;
+  min-width: 0;
 }
 
-.pageTitle {
-  font-size: 18px;
-  margin-bottom: 2px;
+.answerText {
+  font-size: 14px;
+  line-height: 1.5;
 }
 
-.pageSub {
-  font-size: 12.5px;
-  color: var(--text-dim);
-}
-
-.filterRow {
-  display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(76px, 1fr));
-  gap: 6px;
-}
-
-.filterBtn,
-.filterBtnActive {
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  background: var(--panel);
-  border: 1px solid var(--line);
-  color: var(--text-dim);
-  border-radius: 999px;
-  padding: 7px 10px;
+.source {
   font-size: 12px;
-  font-weight: 600;
+  color: #6b7280;
+}
+
+.bubbleList {
+  margin: 0;
+  padding-left: 18px;
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  font-size: 14px;
+  line-height: 1.5;
+}
+
+.actionChip {
+  align-self: flex-start;
+  border: none;
+  background: #f1eafd;
+  color: #4c1d95;
+  border-radius: 12px;
+  padding: 8px 12px;
   font-family: var(--font-body);
+  font-size: 13px;
+  font-weight: 700;
   cursor: pointer;
+}
+
+.actionChip:disabled {
+  opacity: 0.6;
+}
+
+.barGrid {
+  background: var(--bg);
+  border-radius: 14px;
+  padding: 12px;
+  display: flex;
+  flex-direction: column;
+  gap: 7px;
+}
+
+.barGridRow {
+  display: grid;
+  grid-template-columns: 104px minmax(0, 1fr) 64px;
+  gap: 10px;
+  align-items: center;
+  font-size: 13px;
+}
+
+.barName {
+  font-weight: 700;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.barTrack {
+  height: 10px;
+}
+
+.barFill {
+  display: block;
+  height: 100%;
+  background: var(--signal);
+  border-radius: 0 4px 4px 0;
+}
+
+.barAmount {
+  font-family: var(--font-heading);
+  font-weight: 600;
+  text-align: right;
   white-space: nowrap;
 }
 
-.filterBtnActive {
-  background: var(--signal);
-  border-color: var(--signal);
-  color: #fff;
-}
-
-/* ---------- Hero kart: sağlık skoru + AI özeti ---------- */
-
-.heroCard {
+.miniList {
+  background: var(--bg);
+  border-radius: 14px;
+  padding: 2px 12px;
   display: flex;
   flex-direction: column;
-  align-items: flex-start;
-  gap: 16px;
-  padding: 22px 20px;
-  border-radius: var(--radius-lg, 16px);
-  background: rgba(255, 255, 255, 0.6);
-  backdrop-filter: blur(20px);
-  -webkit-backdrop-filter: blur(20px);
-  border: 1px solid rgba(255, 255, 255, 0.8);
-  color: var(--text);
-  box-shadow: 0 8px 28px rgba(31, 41, 55, 0.08);
 }
 
-.heroText {
-  display: flex;
-  flex-direction: column;
-  gap: 8px;
-  width: 100%;
-}
-
-.heroEyebrow {
+.miniRow {
   display: flex;
   align-items: center;
-  gap: 6px;
-  font-size: 11.5px;
-  color: var(--text-dim);
-}
-
-.heroStatus {
-  font-family: var(--font-heading);
-  font-size: 19px;
-  font-weight: 600;
-  color: var(--text);
-}
-
-.heroSummary {
-  font-size: 13px;
-  line-height: 1.6;
-  color: var(--text);
-}
-
-.heroBtn {
-  align-self: flex-start;
-  margin-top: 4px;
-  background: var(--signal);
-  color: #fff;
+  justify-content: space-between;
+  gap: 10px;
   border: none;
-  border-radius: 999px;
-  padding: 9px 18px;
-  font-size: 13px;
-  font-weight: 700;
+  border-bottom: 1px solid #e2e5ea;
+  background: none;
+  padding: 10px 0;
   font-family: var(--font-body);
+  color: var(--text);
+  text-align: left;
   cursor: pointer;
 }
 
-.heroBtn:disabled {
-  opacity: 0.7;
-  cursor: default;
+.miniRow:last-child {
+  border-bottom: none;
 }
 
-.heroError {
-  font-size: 12px;
-  color: var(--danger-text);
-  background: var(--danger-bg);
-  border-radius: 8px;
-  padding: 6px 10px;
+.miniName {
+  font-size: 13px;
+  font-weight: 700;
+  min-width: 0;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
 }
 
-.heroGauge {
-  align-self: center;
+.miniAmount {
+  font-family: var(--font-heading);
+  font-size: 14px;
+  font-weight: 600;
+  color: var(--warn-text);
+  white-space: nowrap;
 }
 
-/* ---------- KPI şeridi ---------- */
-
-.kpiRow {
+.kpiGrid {
   display: grid;
-  grid-template-columns: repeat(2, 1fr);
-  gap: 10px;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 8px;
 }
 
 .kpiTile {
+  background: var(--bg);
+  border-radius: 14px;
+  padding: 10px 12px;
   display: flex;
   flex-direction: column;
-  gap: 5px;
-  background: var(--panel);
-  border: 1px solid var(--line);
-  border-radius: var(--radius-lg, 14px);
-  padding: 14px;
-}
-
-.kpiIcon {
-  width: 28px;
-  height: 28px;
-  border-radius: 8px;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  background: var(--info-bg);
-  color: var(--info-text);
-  margin-bottom: 2px;
-}
-
-.kpiValue {
-  font-family: var(--font-heading);
-  font-size: 17px;
-  font-weight: 600;
-  font-variant-numeric: tabular-nums;
+  gap: 2px;
+  min-width: 0;
 }
 
 .kpiLabel {
@@ -229,14 +250,19 @@
   color: var(--text-dim);
 }
 
-.kpiDeltaUp,
-.kpiDeltaDown {
-  font-size: 10.5px;
+.kpiValue {
+  font-family: var(--font-heading);
+  font-size: 18px;
   font-weight: 600;
-  margin-top: 2px;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
 }
 
-.kpiDeltaUp {
+.kpiDeltaUp,
+.kpiDeltaDown {
+  font-size: 11px;
+  font-weight: 700;
   color: var(--ok-text);
 }
 
@@ -244,46 +270,130 @@
   color: var(--danger-text);
 }
 
-/* ---------- Grafik satırı ---------- */
-
-.chartsRow {
+.legend {
   display: flex;
-  flex-direction: column;
-  gap: 16px;
+  gap: 14px;
 }
 
-/* ---------- Müşteri Segmentleri: donut ---------- */
-
-.donutRow {
-  display: flex;
-  align-items: center;
-  gap: 20px;
-  flex-wrap: wrap;
-}
-
-.donutLegend {
+.legendCol {
   display: flex;
   flex-direction: column;
-  gap: 12px;
+  gap: 8px;
 }
 
 .legendRow {
   display: flex;
   align-items: center;
-  gap: 10px;
+  gap: 7px;
   font-size: 13px;
   color: var(--text-dim);
 }
 
 .legendRow strong {
   color: var(--text);
-  margin-left: auto;
-  font-variant-numeric: tabular-nums;
+  margin-left: 2px;
 }
 
 .legendDot {
-  width: 10px;
-  height: 10px;
+  width: 9px;
+  height: 9px;
   border-radius: 50%;
   flex-shrink: 0;
+}
+
+.donutRow {
+  display: flex;
+  align-items: center;
+  gap: 18px;
+}
+
+.inlineChips {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+
+/* ---------- Alttaki yazma alani ---------- */
+
+.composer {
+  position: sticky;
+  bottom: -16px;
+  margin: auto -16px -16px;
+  padding: 10px 16px 16px;
+  background: var(--bg);
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  z-index: 5;
+}
+
+.suggestRow {
+  display: flex;
+  gap: 8px;
+  overflow-x: auto;
+  scrollbar-width: none;
+}
+
+.suggestRow::-webkit-scrollbar {
+  display: none;
+}
+
+.suggestChip {
+  flex-shrink: 0;
+  border: none;
+  background: var(--panel);
+  color: var(--text);
+  border-radius: 999px;
+  padding: 9px 12px;
+  font-family: var(--font-body);
+  font-size: 13px;
+  font-weight: 600;
+  white-space: nowrap;
+  cursor: pointer;
+}
+
+.inlineChips .suggestChip {
+  background: var(--bg);
+}
+
+.inputPill {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  background: var(--panel);
+  border-radius: 999px;
+  padding: 6px 6px 6px 16px;
+}
+
+.input {
+  flex: 1;
+  min-width: 0;
+  border: none;
+  outline: none;
+  background: transparent;
+  font-family: var(--font-body);
+  font-size: 14px;
+  color: var(--text);
+}
+
+.input::placeholder {
+  color: #9ca3af;
+}
+
+.sendBtn {
+  width: 42px;
+  height: 42px;
+  border: none;
+  border-radius: 50%;
+  background: var(--signal);
+  color: #fff;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+  cursor: pointer;
+}
+
+.sendBtn:disabled {
+  opacity: 0.5;
 }

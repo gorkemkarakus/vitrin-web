@@ -1,16 +1,7 @@
-import { useMemo, useRef, useState, useEffect } from 'react'
+import { useEffect, useMemo, useState } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { supabase } from '../lib/supabase'
-import {
-  SearchIcon,
-  FilterIcon,
-  CheckCircleIcon,
-  PhoneIcon,
-  UmbrellaIcon,
-  ChevronRightIcon,
-  UserPlusIcon,
-} from '../components/icons'
-import Avatar from '../components/Avatar'
+import PageHeader from '../components/PageHeader'
 import { toLocalDateString } from '../lib/date'
 import styles from './TeamPage.module.css'
 
@@ -19,289 +10,219 @@ interface Employee {
   full_name: string | null
   role: 'admin' | 'user'
   is_active: boolean
-  whatsapp_phone: string | null
 }
 
 interface TimeBlock {
   profile_id: string
+  day_of_week: number | null
   block_date: string | null
   end_date: string | null
+  label: string | null
+}
+
+interface Schedule {
+  profile_id: string
+  day_of_week: number
+  starts_at: string
+  ends_at: string
 }
 
 interface Appointment {
   id: string
   employee_id: string | null
-  service_id: string | null
+  customer_id: string | null
   status: 'bekliyor' | 'onaylandi' | 'tamamlandi' | 'iptal' | 'gelmedi'
   scheduled_at: string
+  duration_minutes: number | null
 }
 
-interface Payment {
-  id: string
-  amount: number
-  appointment_id: string | null
-}
+const HOLIDAY_LABEL = 'Resmi Tatil'
+const AVATAR_TONES = ['toneNavy', 'tonePurple', 'toneGreen'] as const
 
-type StatusFilter = 'tumu' | 'aktif' | 'izinli' | 'pasif'
-type SortBy = 'ad' | 'randevu' | 'kazanc'
-
-const STATUS_TABS: { value: StatusFilter; label: string }[] = [
-  { value: 'tumu', label: 'Tümü' },
-  { value: 'aktif', label: 'Aktif' },
-  { value: 'izinli', label: 'İzinli' },
-  { value: 'pasif', label: 'Pasif' },
-]
-
-const SORT_OPTIONS: { value: SortBy; label: string }[] = [
-  { value: 'ad', label: 'Ada Göre (A-Z)' },
-  { value: 'randevu', label: 'Bugünkü Randevuya Göre' },
-  { value: 'kazanc', label: 'Bugünkü Kazanca Göre' },
-]
-
-function todayLocalDateString() {
-  return toLocalDateString(new Date())
-}
-
-function roleLabel(role: Employee['role']) {
-  return role === 'admin' ? 'Yönetici' : 'Çalışan'
-}
-
-// whatsapp_phone ham rakam dizisi olarak saklaniyor (ör. "905413402738")
-// — satirda okunakli olmasi icin standart TR cep telefonu bicimine ceviriyor.
-function formatPhone(raw: string) {
-  let digits = raw.replace(/\D/g, '')
-  if (digits.startsWith('90') && digits.length === 12) digits = digits.slice(2)
-  if (digits.startsWith('0') && digits.length === 11) digits = digits.slice(1)
-  if (digits.length !== 10) return raw
-  return `0${digits.slice(0, 3)} ${digits.slice(3, 6)} ${digits.slice(6, 8)} ${digits.slice(8, 10)}`
+function timeOf(iso: string) {
+  return new Date(iso).toLocaleTimeString('tr-TR', { hour: '2-digit', minute: '2-digit' })
 }
 
 export default function TeamPage() {
   const navigate = useNavigate()
   const [employees, setEmployees] = useState<Employee[]>([])
   const [timeBlocks, setTimeBlocks] = useState<TimeBlock[]>([])
+  const [schedules, setSchedules] = useState<Schedule[]>([])
   const [appointments, setAppointments] = useState<Appointment[]>([])
-  const [payments, setPayments] = useState<Payment[]>([])
+  const [serviceNamesByEmployee, setServiceNamesByEmployee] = useState<Map<string, string[]>>(new Map())
+  const [customerNames, setCustomerNames] = useState<Map<string, string>>(new Map())
   const [loading, setLoading] = useState(true)
 
-  const [search, setSearch] = useState('')
-  const [statusFilter, setStatusFilter] = useState<StatusFilter>('tumu')
-  const [sortBy, setSortBy] = useState<SortBy>('ad')
-  const [sortMenuOpen, setSortMenuOpen] = useState(false)
-  const sortMenuRef = useRef<HTMLDivElement>(null)
+  const today = useMemo(() => toLocalDateString(new Date()), [])
 
   useEffect(() => {
-    if (!sortMenuOpen) return
-    function handleClick(e: MouseEvent) {
-      if (sortMenuRef.current && !sortMenuRef.current.contains(e.target as Node)) setSortMenuOpen(false)
+    async function loadData() {
+      const start = new Date()
+      start.setHours(0, 0, 0, 0)
+      const end = new Date(start)
+      end.setDate(end.getDate() + 1)
+      const [{ data: profs }, { data: blocks }, { data: scheds }, { data: appts }, { data: empSvcs }, { data: svcs }] =
+        await Promise.all([
+          supabase.from('profiles').select('id, full_name, role, is_active').order('full_name'),
+          supabase.from('employee_time_blocks').select('profile_id, day_of_week, block_date, end_date, label'),
+          supabase.from('employee_schedules').select('profile_id, day_of_week, starts_at, ends_at'),
+          // Sadece bugunun randevulari — kartlardaki "su an / siradaki" icin.
+          supabase
+            .from('appointments')
+            .select('id, employee_id, customer_id, status, scheduled_at, duration_minutes')
+            .gte('scheduled_at', start.toISOString())
+            .lt('scheduled_at', end.toISOString())
+            .order('scheduled_at'),
+          supabase.from('employee_services').select('profile_id, service_id'),
+          supabase.from('services').select('id, name'),
+        ])
+      const svcName = new Map((svcs ?? []).map((s) => [s.id, s.name as string]))
+      const byEmp = new Map<string, string[]>()
+      for (const es of empSvcs ?? []) {
+        const n = svcName.get(es.service_id)
+        if (!n) continue
+        byEmp.set(es.profile_id, [...(byEmp.get(es.profile_id) ?? []), n])
+      }
+      const custIds = [...new Set((appts ?? []).map((a) => a.customer_id).filter(Boolean))] as string[]
+      const { data: custs } = custIds.length
+        ? await supabase.from('customers').select('id, full_name').in('id', custIds)
+        : { data: [] as { id: string; full_name: string }[] }
+      setEmployees(profs ?? [])
+      setTimeBlocks(blocks ?? [])
+      setSchedules(scheds ?? [])
+      setAppointments((appts ?? []) as Appointment[])
+      setServiceNamesByEmployee(byEmp)
+      setCustomerNames(new Map((custs ?? []).map((c) => [c.id, c.full_name])))
+      setLoading(false)
     }
-    document.addEventListener('mousedown', handleClick)
-    return () => document.removeEventListener('mousedown', handleClick)
-  }, [sortMenuOpen])
-
-  async function loadData() {
-    setLoading(true)
-    const [{ data: profs }, { data: blocks }, { data: appts }, { data: pays }] = await Promise.all([
-      supabase
-        .from('profiles')
-        .select('id, full_name, role, is_active, whatsapp_phone')
-        .order('role', { ascending: false })
-        .order('full_name'),
-      supabase.from('employee_time_blocks').select('profile_id, block_date, end_date'),
-      supabase.from('appointments').select('id, employee_id, service_id, status, scheduled_at'),
-      supabase.from('payments').select('id, amount, appointment_id').is('voided_at', null).eq('paid_at', todayLocalDateString()),
-    ])
-    setEmployees(profs ?? [])
-    setTimeBlocks(blocks ?? [])
-    setAppointments(appts ?? [])
-    setPayments(pays ?? [])
-    setLoading(false)
-  }
-
-  useEffect(() => {
     loadData()
   }, [])
 
-  const today = useMemo(() => todayLocalDateString(), [])
-  const appointmentById = useMemo(() => new Map(appointments.map((a) => [a.id, a])), [appointments])
-
-  const apptsByEmployeeToday = useMemo(() => {
-    const map = new Map<string, Appointment[]>()
-    for (const a of appointments) {
-      if (!a.employee_id) continue
-      if (toLocalDateString(new Date(a.scheduled_at)) !== today) continue
-      const list = map.get(a.employee_id) ?? []
-      list.push(a)
-      map.set(a.employee_id, list)
+  // Calisanin "su an" durumu: pasif, izinli, bugun calismiyor, mesai
+  // baslamadi, musteride (devam eden randevu) ya da bos.
+  function liveFor(emp: Employee) {
+    const nowMs = Date.now()
+    const nowDow = new Date().getDay()
+    const mine = appointments.filter((a) => a.employee_id === emp.id && a.status !== 'iptal')
+    const count = mine.length
+    if (!emp.is_active) return { pill: 'Pasif', tone: 'muted', info: 'Hesabı kapalı', count }
+    const onLeave = timeBlocks.find(
+      (b) =>
+        b.profile_id === emp.id &&
+        b.day_of_week === null &&
+        b.block_date !== null &&
+        b.block_date <= today &&
+        today <= (b.end_date ?? b.block_date),
+    )
+    if (onLeave) {
+      const isHoliday = onLeave.label === HOLIDAY_LABEL
+      return { pill: isHoliday ? 'Tatil' : 'İzinli', tone: 'muted', info: isHoliday ? 'Resmî tatil' : 'Bugün izinli', count }
     }
-    return map
-  }, [appointments, today])
-
-  // Kazanc artik gercek odemelerden (payments, paid_at = bugun) hesaplaniyor —
-  // randevu tamamlandi diye ucretin tamami o an alinmis olmayabiliyor (paket/
-  // taksit/gecikmeli odeme). Randevu sayisi ise is yuku gostergesi oldugu icin
-  // hala randevu tablosundan (durum bazli) geliyor.
-  function todayStatsFor(profileId: string) {
-    const list = apptsByEmployeeToday.get(profileId) ?? []
-    const count = list.filter((a) => a.status !== 'iptal').length
-    const earnings = payments
-      .filter((p) => p.appointment_id && appointmentById.get(p.appointment_id)?.employee_id === profileId)
-      .reduce((sum, p) => sum + p.amount, 0)
-    return { count, earnings }
-  }
-
-  function statusFor(emp: Employee): 'aktif' | 'izinli' | 'pasif' {
-    if (!emp.is_active) return 'pasif'
-    const onLeaveToday = timeBlocks.some(
-      (b) => b.profile_id === emp.id && b.block_date !== null && b.block_date <= today && today <= (b.end_date ?? b.block_date),
-    )
-    return onLeaveToday ? 'izinli' : 'aktif'
-  }
-
-  const counts = useMemo(() => {
-    const c = { tumu: employees.length, aktif: 0, izinli: 0, pasif: 0 }
-    for (const emp of employees) c[statusFor(emp)]++
-    return c
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [employees, timeBlocks, today])
-
-  const q = search.trim().toLowerCase()
-  const filteredSorted = useMemo(() => {
-    let list = employees.filter(
-      (e) => !q || (e.full_name ?? '').toLowerCase().includes(q) || (e.whatsapp_phone ?? '').toLowerCase().includes(q),
-    )
-    if (statusFilter !== 'tumu') list = list.filter((e) => statusFor(e) === statusFilter)
-    list = [...list].sort((a, b) => {
-      if (sortBy === 'ad') return (a.full_name ?? '').localeCompare(b.full_name ?? '', 'tr')
-      const sa = todayStatsFor(a.id)
-      const sb = todayStatsFor(b.id)
-      return sortBy === 'randevu' ? sb.count - sa.count : sb.earnings - sa.earnings
+    const sched = schedules.find((s) => s.profile_id === emp.id && s.day_of_week === nowDow)
+    if (!sched) return { pill: 'Çalışmıyor', tone: 'muted', info: 'Bugün mesaisi yok', count }
+    const open = mine.filter((a) => a.status === 'bekliyor' || a.status === 'onaylandi')
+    const current = open.find((a) => {
+      const s = new Date(a.scheduled_at).getTime()
+      return s <= nowMs && nowMs < s + (a.duration_minutes ?? 30) * 60000
     })
-    return list
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [employees, q, statusFilter, sortBy, apptsByEmployeeToday])
+    if (current) {
+      const endAt = new Date(new Date(current.scheduled_at).getTime() + (current.duration_minutes ?? 30) * 60000)
+      return {
+        pill: 'Müşteride',
+        tone: 'warm',
+        info: `${customerNames.get(current.customer_id ?? '') ?? 'Müşteri'} · ${endAt.toLocaleTimeString('tr-TR', { hour: '2-digit', minute: '2-digit' })}'a kadar`,
+        count,
+      }
+    }
+    const next = open.find((a) => new Date(a.scheduled_at).getTime() > nowMs)
+    const nextInfo = next
+      ? `Sıradaki ${timeOf(next.scheduled_at)} · ${customerNames.get(next.customer_id ?? '') ?? 'Müşteri'}`
+      : 'Bugün başka randevu yok'
+    const [sh, sm] = sched.starts_at.split(':').map(Number)
+    const [eh, em] = sched.ends_at.split(':').map(Number)
+    const nowMin = new Date().getHours() * 60 + new Date().getMinutes()
+    if (nowMin < sh * 60 + sm) return { pill: `${sched.starts_at.slice(0, 5)}'te başlıyor`, tone: 'muted', info: nextInfo, count }
+    if (nowMin >= eh * 60 + em) return { pill: 'Mesai bitti', tone: 'muted', info: nextInfo, count }
+    return { pill: 'Boş', tone: 'ok', info: nextInfo, count }
+  }
 
-  if (loading) return <p style={{ color: 'var(--text-dim)' }}>Yükleniyor…</p>
+  const nextHoliday = timeBlocks
+    .filter((b) => b.label === HOLIDAY_LABEL && b.block_date && b.block_date >= today)
+    .map((b) => b.block_date as string)
+    .sort()[0]
+
+  const ordered = [...employees].sort((a, b) => Number(b.is_active) - Number(a.is_active))
+  const nowLabel = new Date().toLocaleString('tr-TR', { weekday: 'long', hour: '2-digit', minute: '2-digit' })
 
   return (
     <div className={styles.wrap}>
-      <div className={styles.searchRow}>
-        <div className={styles.searchBox}>
-          <SearchIcon width={16} height={16} className={styles.searchIcon} />
-          <input
-            className={styles.searchInput}
-            placeholder="Ekip üyesi ara…"
-            value={search}
-            onChange={(e) => setSearch(e.target.value)}
-          />
-        </div>
-        <button type="button" className={styles.addBtn} onClick={() => navigate('/ekip/yeni')} aria-label="Yeni çalışan ekle">
-          <UserPlusIcon width={17} height={17} />
+      <PageHeader
+        back="/daha-fazla"
+        title="Ekip"
+        action={
+          <button type="button" className="hdr-btn-navy" onClick={() => navigate('/ekip/yeni')}>
+            + Çalışan
+          </button>
+        }
+      />
+      <span className={styles.nowLine}>Şu an · {nowLabel.charAt(0).toLocaleUpperCase('tr') + nowLabel.slice(1)}</span>
+
+      {loading ? (
+        <p className={styles.empty}>Yükleniyor…</p>
+      ) : ordered.length === 0 ? (
+        <p className={styles.empty}>Henüz ekip üyesi yok. “+ Çalışan” ile ekle.</p>
+      ) : (
+        ordered.map((emp, i) => {
+          const live = liveFor(emp)
+          const svc = serviceNamesByEmployee.get(emp.id) ?? []
+          return (
+            <button
+              type="button"
+              key={emp.id}
+              className={emp.is_active ? styles.card : `${styles.card} ${styles.cardMuted}`}
+              onClick={() => navigate(`/ekip/${emp.id}`)}
+            >
+              <span className={styles.cardTop}>
+                <span className={`${styles.avatar} ${styles[AVATAR_TONES[i % AVATAR_TONES.length]]}`}>
+                  {(emp.full_name ?? '?').trim().charAt(0).toLocaleUpperCase('tr')}
+                </span>
+                <span className={styles.cardWho}>
+                  <span className={styles.cardName}>{emp.full_name ?? '—'}</span>
+                  <span className={styles.cardRole}>
+                    {svc.length > 0
+                      ? svc.slice(0, 3).join(', ').toLocaleLowerCase('tr').replace(/^./, (c) => c.toLocaleUpperCase('tr')) +
+                        (svc.length > 3 ? ` +${svc.length - 3}` : '')
+                      : emp.role === 'admin'
+                        ? 'Yönetici'
+                        : 'Hizmet seçilmemiş'}
+                  </span>
+                </span>
+                <span className={`${styles.pill} ${styles[`pill_${live.tone}`]}`}>{live.pill}</span>
+              </span>
+              <span className={styles.infoStrip}>
+                <span className={styles.infoText}>{live.info}</span>
+                <span className={styles.infoCount}>Bugün {live.count} randevu</span>
+              </span>
+            </button>
+          )
+        })
+      )}
+
+      <div className={styles.linkGrid}>
+        <button type="button" className={styles.linkCard} onClick={() => navigate('/ekip/tatiller')}>
+          <span className={styles.linkTitle}>Tatil günleri</span>
+          <span className={styles.linkSub}>
+            {nextHoliday
+              ? `Sıradaki: ${new Date(`${nextHoliday}T00:00:00`).toLocaleDateString('tr-TR', { day: 'numeric', month: 'long' })}`
+              : 'Kapalı gün yok'}
+          </span>
         </button>
-        <div className={styles.filterWrap} ref={sortMenuRef}>
-          <button
-            type="button"
-            className={styles.filterBtn}
-            onClick={() => setSortMenuOpen((v) => !v)}
-            aria-haspopup="listbox"
-            aria-expanded={sortMenuOpen}
-          >
-            <FilterIcon width={15} height={15} />
-            Filtrele
-          </button>
-          {sortMenuOpen && (
-            <div className={styles.filterMenu} role="listbox">
-              {SORT_OPTIONS.map((opt) => (
-                <button
-                  type="button"
-                  key={opt.value}
-                  className={styles.filterMenuItem}
-                  onClick={() => {
-                    setSortBy(opt.value)
-                    setSortMenuOpen(false)
-                  }}
-                >
-                  {opt.label}
-                  {sortBy === opt.value && <CheckCircleIcon width={14} height={14} />}
-                </button>
-              ))}
-            </div>
-          )}
-        </div>
-      </div>
-
-      <div className={styles.segmentRow}>
-        {STATUS_TABS.map((tab) => (
-          <button
-            type="button"
-            key={tab.value}
-            className={statusFilter === tab.value ? styles.segmentBtnActive : styles.segmentBtn}
-            onClick={() => setStatusFilter(tab.value)}
-          >
-            {tab.label} ({counts[tab.value]})
-          </button>
-        ))}
-      </div>
-
-      <button type="button" className={styles.holidayRow} onClick={() => navigate('/ekip/tatiller')}>
-        <span className={styles.holidayRowIcon}>
-          <UmbrellaIcon width={18} height={18} />
-        </span>
-        <span className={styles.holidayRowText}>
-          <span className={styles.holidayRowLabel}>Resmî Tatiller</span>
-          <span className={styles.holidayRowSub}>Tüm ekip için toplu izin günü tanımla</span>
-        </span>
-        <ChevronRightIcon width={16} height={16} className={styles.holidayRowChevron} />
-      </button>
-
-      <div className="card">
-        <div className={styles.list}>
-          {filteredSorted.length === 0 ? (
-            <p style={{ color: 'var(--text-dim)' }}>Ekip üyesi bulunamadı.</p>
-          ) : (
-            filteredSorted.map((emp) => {
-              const status = statusFor(emp)
-              const stats = todayStatsFor(emp.id)
-
-              return (
-                <div key={emp.id} className={styles.rowWrap}>
-                  <div
-                    className={styles.row}
-                    role="button"
-                    tabIndex={0}
-                    onClick={() => navigate(`/ekip/${emp.id}`)}
-                    onKeyDown={(e) => {
-                      if (e.key === 'Enter') navigate(`/ekip/${emp.id}`)
-                    }}
-                  >
-                    <div className={styles.avatarWrap}>
-                      <Avatar name={emp.full_name ?? '?'} size={38} />
-                      <span className={`${styles.statusDot} ${styles[`statusDot_${status}`]}`} />
-                    </div>
-                    <div className={styles.rowMain}>
-                      <span className={styles.rowName}>{emp.full_name ?? '—'}</span>
-                      <span className={styles.rowRole}>{roleLabel(emp.role)}</span>
-                      {emp.whatsapp_phone && (
-                        <span className={styles.rowPhone}>
-                          <PhoneIcon width={11} height={11} />
-                          <span className={styles.rowPhoneText}>{formatPhone(emp.whatsapp_phone)}</span>
-                        </span>
-                      )}
-                    </div>
-                    <div className={styles.rowStatBlock}>
-                      <span className={styles.rowStatLabel}>Randevu</span>
-                      <span className={styles.rowStatValue}>{stats.count}</span>
-                    </div>
-                    <span className={`${styles.statusPill} ${styles[`statusPill_${status}`]}`}>
-                      {STATUS_TABS.find((t) => t.value === status)?.label}
-                    </span>
-                    <span className={styles.editLabel}>Düzenle</span>
-                  </div>
-                </div>
-              )
-            })
-          )}
-        </div>
+        <button type="button" className={styles.linkCard} onClick={() => navigate('/performans-raporu')}>
+          <span className={styles.linkTitle}>Performans raporu</span>
+          <span className={styles.linkSub}>
+            {new Date().toLocaleDateString('tr-TR', { month: 'long' }).replace(/^./, (c) => c.toLocaleUpperCase('tr'))} özeti
+          </span>
+        </button>
       </div>
     </div>
   )

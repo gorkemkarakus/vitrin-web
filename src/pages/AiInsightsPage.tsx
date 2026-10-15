@@ -1,15 +1,12 @@
 import { useEffect, useMemo, useRef, useState } from 'react'
+import { useNavigate } from 'react-router-dom'
 import { useAuth } from '../contexts/AuthContext'
 import { supabase } from '../lib/supabase'
-import {
-  SparkleIcon,
-  TrendingUpIcon,
-  AlertTriangleIcon,
-  CheckCircleIcon,
-  WalletIcon,
-  PieChartIcon,
-  UsersIcon,
-} from '../components/icons'
+import { fetchAll } from '../lib/fetchAll'
+import { CheckCircleIcon, SendIcon } from '../components/icons'
+import PageHeader from '../components/PageHeader'
+import { computeCustomerDebts } from '../lib/customerDebts'
+import { SOURCE_LABEL } from '../lib/sourceLabels'
 import DonutChart from '../components/DonutChart'
 import LineChart from '../components/LineChart'
 import { currencyWhole as currency } from '../lib/currency'
@@ -28,6 +25,10 @@ interface Insight {
 interface Appointment {
   id: string
   customer_id: string | null
+  service_id: string | null
+  package_id: string | null
+  price_override: number | null
+  source: string
   status: 'bekliyor' | 'onaylandi' | 'tamamlandi' | 'iptal' | 'gelmedi'
   scheduled_at: string
 }
@@ -36,10 +37,25 @@ interface Payment {
   amount: number
   paid_at: string
   voided_at: string | null
+  appointment_id: string | null
+  package_id: string | null
 }
 interface Customer {
   id: string
+  full_name: string
   created_at: string
+}
+interface ServiceLite {
+  id: string
+  name: string
+  price: number | null
+}
+interface PackageLite {
+  id: string
+  customer_id: string
+  service_id: string | null
+  total_sessions: number
+  session_offset: number
 }
 interface Expense {
   amount: number
@@ -77,12 +93,63 @@ function presetRange(preset: Preset): { start: string; end: string } {
   }
 }
 
-const PRESETS: { value: Preset; label: string }[] = [
-  { value: 'bu_ay', label: 'Bu Ay' },
-  { value: 'son_3_ay', label: 'Son 3 Ay' },
-  { value: 'son_yil', label: 'Son Yıl' },
-  { value: 'tum_zamanlar', label: 'Tüm Zamanlar' },
+const PRESETS: { value: Preset; label: string; long: string }[] = [
+  { value: 'bu_ay', label: 'Bu ay', long: 'Bu ay' },
+  { value: 'son_3_ay', label: '3 ay', long: 'Son 3 ay' },
+  { value: 'son_yil', label: '1 yıl', long: 'Son 1 yıl' },
+  { value: 'tum_zamanlar', label: 'Tümü', long: 'Tüm zamanlar' },
 ]
+
+const PERIOD_PHRASE: Partial<Record<Preset, string>> = {
+  bu_ay: 'Bu ay',
+  son_3_ay: 'Son 3 ayda',
+  son_yil: 'Son 1 yılda',
+  tum_zamanlar: 'Bugüne kadar',
+}
+
+const DAY_LONG = ['Pazar', 'Pazartesi', 'Salı', 'Çarşamba', 'Perşembe', 'Cuma', 'Cumartesi']
+
+// Sohbette sorulabilen hazir sorular. Cevaplar kayitlardan yerel olarak
+// hesaplanir; yeni bir yapay zeka cagrisi YAPMAZ. 'iyi' / 'risk' / 'oneri'
+// mevcut yazili analizin (generate-ai-insights) ilgili bolumunu acar.
+type AskKey = 'hizmet' | 'gun' | 'borc' | 'reklam' | 'kar' | 'musteri' | 'iyi' | 'risk' | 'oneri' | 'bilinmiyor'
+
+const ASK_ORDER: Exclude<AskKey, 'bilinmiyor'>[] = ['hizmet', 'gun', 'borc', 'reklam', 'kar', 'musteri', 'iyi', 'risk', 'oneri']
+
+const ASK_TEXT: Record<AskKey, string> = {
+  hizmet: 'En çok hangi hizmetten kazandım?',
+  gun: 'En çok hangi gün boş kalıyorum?',
+  borc: 'Kimler borçlu?',
+  reklam: 'Reklam işe yarıyor mu?',
+  kar: 'Kârım nasıl gidiyor?',
+  musteri: 'Müşterilerim nasıl?',
+  iyi: 'Neler iyi gidiyor?',
+  risk: 'Nerede risk var?',
+  oneri: 'Ne yapmalıyım?',
+  bilinmiyor: '',
+}
+
+// Serbest yazilan soruyu anahtar kelimeyle hazir sorulardan birine esler.
+function matchQuestion(text: string): AskKey {
+  const t = text.toLocaleLowerCase('tr')
+  if (/borç|borcl|alacak|ödemedi/.test(t)) return 'borc'
+  if (/reklam|instagram|kaynak|nereden/.test(t)) return 'reklam'
+  if (/hizmet|işlem/.test(t)) return 'hizmet'
+  if (/gün|boş|yoğun|dolu/.test(t)) return 'gun'
+  if (/müşteri|iptal|gelme/.test(t)) return 'musteri'
+  if (/kâr|kar\b|gelir|kazanç|ciro|tahsilat|gider/.test(t)) return 'kar'
+  if (/risk|sorun|kötü/.test(t)) return 'risk'
+  if (/ne yap|öneri|tavsiye|nasıl artır/.test(t)) return 'oneri'
+  if (/iyi gid|güzel/.test(t)) return 'iyi'
+  return 'bilinmiyor'
+}
+
+const PERIOD_LABEL_FOR_AI: Partial<Record<Preset, string>> = {
+  bu_ay: 'Bu Ay',
+  son_3_ay: 'Son 3 Ay',
+  son_yil: 'Son Yıl',
+  tum_zamanlar: 'Tüm Zamanlar',
+}
 
 function daysBetween(start: string, end: string) {
   return Math.round((new Date(`${end}T00:00:00`).getTime() - new Date(`${start}T00:00:00`).getTime()) / 86400000) + 1
@@ -111,6 +178,12 @@ export default function AiInsightsPage() {
   const [loading, setLoading] = useState(true)
   const [generating, setGenerating] = useState(false)
   const [error, setError] = useState<string | null>(null)
+  const navigate = useNavigate()
+  const [thread, setThread] = useState<{ id: number; key: AskKey; text: string }[]>([])
+  const [draft, setDraft] = useState('')
+  const [periodMenuOpen, setPeriodMenuOpen] = useState(false)
+  const [services, setServices] = useState<ServiceLite[]>([])
+  const [packages, setPackages] = useState<PackageLite[]>([])
 
   const [preset, setPreset] = useState<Preset>('bu_ay')
   const [rangeStart, setRangeStart] = useState(() => presetRange('bu_ay').start)
@@ -147,12 +220,19 @@ export default function AiInsightsPage() {
   useEffect(() => {
     async function loadLiveData() {
       setDataLoading(true)
-      const [{ data: appts }, { data: pays }, { data: custs }, { data: exps }, { data: settings }] = await Promise.all([
-        supabase.from('appointments').select('id, customer_id, status, scheduled_at'),
-        supabase.from('payments').select('customer_id, amount, paid_at, voided_at'),
-        supabase.from('customers').select('id, created_at'),
-        supabase.from('business_expenses').select('amount, expense_date, is_paid'),
+      const [{ data: appts }, { data: pays }, { data: custs }, { data: exps }, { data: settings }, { data: svcs }, { data: pkgs }] = await Promise.all([
+        fetchAll(() =>
+          supabase
+            .from('appointments')
+            .select('id, customer_id, service_id, package_id, price_override, source, status, scheduled_at')
+            .order('id'),
+        ),
+        fetchAll(() => supabase.from('payments').select('customer_id, amount, paid_at, voided_at, appointment_id, package_id').order('id')),
+        fetchAll(() => supabase.from('customers').select('id, full_name, created_at').order('id')),
+        fetchAll(() => supabase.from('business_expenses').select('amount, expense_date, is_paid').order('id')),
         supabase.from('business_finance_settings').select('commission_pct, tax_pct').maybeSingle(),
+        supabase.from('services').select('id, name, price'),
+        fetchAll(() => supabase.from('service_packages').select('id, customer_id, service_id, total_sessions, session_offset').order('id')),
       ])
       setAppointments(appts ?? [])
       setPayments(pays ?? [])
@@ -160,6 +240,8 @@ export default function AiInsightsPage() {
       setExpenses(exps ?? [])
       setTaxPct(settings?.tax_pct ?? 0)
       setCommissionPct(settings?.commission_pct ?? 0)
+      setServices(svcs ?? [])
+      setPackages(pkgs ?? [])
       setDataLoading(false)
     }
     loadLiveData()
@@ -170,7 +252,7 @@ export default function AiInsightsPage() {
     setGenerating(true)
     setError(null)
     try {
-      const periodLabel = PRESETS.find((p) => p.value === preset)?.label ?? 'Bu Dönem'
+      const periodLabel = PERIOD_LABEL_FOR_AI[preset] ?? 'Bu Dönem'
       const res = await fetch(`${import.meta.env.VITE_SUPABASE_URL}/functions/v1/generate-ai-insights`, {
         method: 'POST',
         headers: {
@@ -387,228 +469,431 @@ export default function AiInsightsPage() {
   const growthScore = clamp(50 + growthDeltaPct, 0, 100)
   const healthScore = Math.round(0.4 * profitScore + 0.35 * reliabilityScore + 0.25 * growthScore)
   const healthLabel = healthScore >= 70 ? 'İyi' : healthScore >= 40 ? 'Orta' : 'Geliştirilmeli'
-  // Turuncu marka rengi mavi gradyanla catisiyordu (neredeyse tamamlayici
-  // renkler yuksek doygunlukta yan yana "titresim" yaratir) — halka rengi
-  // artik durum anlamina gore (ok/warn/danger), "Genel Durum" etiketiyle
-  // de gorsel olarak tutarli.
-  const gaugeColor = healthScore >= 70 ? 'var(--ok-text)' : healthScore >= 40 ? 'var(--warn-text)' : 'var(--danger-text)'
 
-  if (loading) return <p style={{ color: 'var(--text-dim)' }}>Yükleniyor…</p>
+  // ---------- Hazir sorularin cevaplari (kendi kayitlarindan, AI cagrisi YOK) ----------
+
+  const serviceRevenue = useMemo(() => {
+    const apptById = new Map(appointments.map((a) => [a.id, a]))
+    const nameById = new Map(services.map((s) => [s.id, s.name]))
+    const byService = new Map<string, { revenue: number; appts: Set<string> }>()
+    let paymentCount = 0
+    for (const p of payments) {
+      if (p.voided_at || !p.appointment_id || !inRange(p.paid_at, rangeStart, rangeEnd)) continue
+      const sid = apptById.get(p.appointment_id)?.service_id
+      if (!sid) continue
+      paymentCount++
+      const cur = byService.get(sid) ?? { revenue: 0, appts: new Set<string>() }
+      cur.revenue += p.amount
+      cur.appts.add(p.appointment_id)
+      byService.set(sid, cur)
+    }
+    const rows = Array.from(byService.entries())
+      .map(([id, v]) => ({ name: nameById.get(id) ?? 'Silinmiş hizmet', revenue: v.revenue, count: v.appts.size }))
+      .sort((a, b) => b.revenue - a.revenue)
+    return { rows, paymentCount }
+  }, [appointments, payments, services, rangeStart, rangeEnd])
+
+  // Son 6 haftada haftanin gunlerine gore ortalama randevu (iptal/gelmedi haric).
+  const weekdayLoad = useMemo(() => {
+    const end = toLocalDateString(new Date())
+    const startD = new Date()
+    startD.setDate(startD.getDate() - 41)
+    const start = toLocalDateString(startD)
+    const counts = new Map<number, number>()
+    for (const a of appointments) {
+      if (a.status === 'iptal' || a.status === 'gelmedi' || !inRange(a.scheduled_at, start, end)) continue
+      const dow = new Date(a.scheduled_at).getDay()
+      counts.set(dow, (counts.get(dow) ?? 0) + 1)
+    }
+    const days = Array.from(counts.entries()).map(([dow, n]) => ({ dow, avg: n / 6 }))
+    if (days.length === 0) return null
+    const best = days.reduce((m, d) => (d.avg > m.avg ? d : m))
+    const worst = days.reduce((m, d) => (d.avg < m.avg ? d : m))
+    return { best, worst, dayCount: days.length }
+  }, [appointments])
+
+  const debts = useMemo(() => {
+    const priceById = new Map(services.map((s) => [s.id, s.price ?? 0]))
+    const map = computeCustomerDebts(
+      packages,
+      appointments,
+      payments.filter((p) => !p.voided_at),
+      priceById,
+    )
+    const nameById = new Map(customers.map((c) => [c.id, c.full_name]))
+    const rows = Array.from(map.entries())
+      .map(([id, amount]) => ({ id, name: nameById.get(id) ?? 'Müşteri', amount }))
+      .sort((a, b) => b.amount - a.amount)
+    return { rows, total: rows.reduce((s, r) => s + r.amount, 0) }
+  }, [packages, appointments, payments, services, customers])
+
+  const sourceStats = useMemo(() => {
+    const counts = new Map<string, number>()
+    for (const a of apptsInRange) counts.set(a.source, (counts.get(a.source) ?? 0) + 1)
+    const adAppts = apptsInRange.filter((a) => a.source.startsWith('reklam_'))
+    const adIds = new Set(adAppts.map((a) => a.id))
+    const adRevenue = payments
+      .filter((p) => !p.voided_at && p.appointment_id && adIds.has(p.appointment_id))
+      .reduce((s, p) => s + p.amount, 0)
+    return {
+      rows: Array.from(counts.entries()).sort((a, b) => b[1] - a[1]),
+      adCount: adAppts.length,
+      adCompleted: adAppts.filter((a) => a.status === 'tamamlandi').length,
+      adRevenue,
+    }
+  }, [apptsInRange, payments])
+
+  const threadEndRef = useRef<HTMLDivElement>(null)
+  useEffect(() => {
+    if (thread.length) threadEndRef.current?.scrollIntoView({ behavior: 'smooth', block: 'end' })
+  }, [thread.length])
+
+  if (loading) return <p className={styles.hint}>Yükleniyor…</p>
 
   const kpis = [
-    {
-      icon: WalletIcon,
-      label: 'Tahsilat',
-      value: currency.format(current.revenue),
-      delta: pctDelta(current.revenue, previous?.revenue ?? 0),
-    },
-    {
-      icon: TrendingUpIcon,
-      label: 'Net Kâr',
-      value: currency.format(current.netProfit),
-      delta: pctDelta(current.netProfit, previous?.netProfit ?? 0),
-    },
-    {
-      icon: PieChartIcon,
-      label: 'Kâr Marjı',
-      value: `%${profitMarginPct.toFixed(1)}`,
-      delta: pctDelta(profitMarginPct, prevProfitMarginPct),
-    },
-    {
-      icon: UsersIcon,
-      label: 'Toplam Müşteri',
-      value: `${totalCustomers}`,
-      delta: pctDelta(totalCustomers, prevTotalCustomers),
-    },
+    { label: 'Tahsilat', value: currency.format(current.revenue), delta: pctDelta(current.revenue, previous?.revenue ?? 0) },
+    { label: 'Net kâr', value: currency.format(current.netProfit), delta: pctDelta(current.netProfit, previous?.netProfit ?? 0) },
+    { label: 'Kâr marjı', value: `%${profitMarginPct.toFixed(1)}`, delta: pctDelta(profitMarginPct, prevProfitMarginPct) },
+    { label: 'Müşteri', value: `${totalCustomers}`, delta: pctDelta(totalCustomers, prevTotalCustomers) },
   ]
 
-  return (
-    <div className={styles.wrap}>
-      <div className={styles.pageHead}>
-        <div>
-          <h1 className={styles.pageTitle}>AI İş Analizi</h1>
-          <p className={styles.pageSub}>İşletmenizin güncel durumu</p>
-        </div>
-        <div className={styles.filterRow}>
-          {PRESETS.map((p) => (
-            <button
-              key={p.value}
-              type="button"
-              className={preset === p.value ? styles.filterBtnActive : styles.filterBtn}
-              onClick={() => applyPreset(p.value)}
-            >
-              {p.label}
-            </button>
-          ))}
-        </div>
-      </div>
+  const periodPhrase = PERIOD_PHRASE[preset] ?? 'Bu dönemde'
+  const remaining = ASK_ORDER.filter((k) => !thread.some((t) => t.key === k))
 
-      <div className={styles.heroCard}>
-        <div className={styles.heroText}>
-          <span className={styles.heroEyebrow}>
-            <SparkleIcon width={14} height={14} />
-            {insight ? `Son analiz: ${new Date(insight.generated_at).toLocaleString('tr-TR')}` : 'Henüz analiz oluşturulmadı'}
-          </span>
-          <div className={styles.heroStatus}>Genel Durum: {healthLabel}</div>
-          {insight ? (
-            <p className={styles.heroSummary}>{insight.summary}</p>
-          ) : (
-            <p className={styles.heroSummary}>
-              Aşağıdaki KPI'lar ve grafikler canlı verinizden hesaplanıyor. Yapay zekadan yazılı bir değerlendirme almak için
-              analiz oluşturun.
-            </p>
-          )}
-          <button type="button" className={styles.heroBtn} onClick={handleGenerate} disabled={generating}>
-            {generating ? 'Oluşturuluyor…' : insight ? 'Yenile' : 'Analiz Oluştur'}
-          </button>
-          {error && <p className={styles.heroError}>{error}</p>}
-        </div>
-        <div className={styles.heroGauge}>
-          <DonutChart
-            segments={[
-              { value: healthScore, color: gaugeColor },
-              { value: 100 - healthScore, color: 'var(--line)' },
-            ]}
-            size={108}
-            strokeWidth={11}
-            centerLabel={`${healthScore}`}
-            centerSubLabel="/100"
-          />
-        </div>
-      </div>
+  function ask(key: AskKey, text?: string) {
+    setThread((prev) => [...prev, { id: Date.now() + prev.length, key, text: text ?? ASK_TEXT[key] }])
+  }
 
-      {dataLoading ? (
-        <p className={styles.hint}>Grafikler yükleniyor…</p>
-      ) : (
-        <>
-          <div className={styles.kpiRow}>
-            {kpis.map((k) => {
-              const Icon = k.icon
-              return (
-                <div className={styles.kpiTile} key={k.label}>
-                  <span className={styles.kpiIcon}>
-                    <Icon width={16} height={16} />
+  function submitDraft() {
+    const text = draft.trim()
+    if (!text) return
+    ask(matchQuestion(text), text)
+    setDraft('')
+  }
+
+  const generateChip = (
+    <button type="button" className={styles.actionChip} onClick={handleGenerate} disabled={generating}>
+      {generating ? 'Hazırlanıyor…' : insight ? 'Yazılı analizi yenile' : 'Yazılı analizi hazırla'}
+    </button>
+  )
+
+  function renderAnswer(key: AskKey) {
+    if (dataLoading) return <span className={styles.answerText}>Kayıtlara bakıyorum…</span>
+    switch (key) {
+      case 'hizmet': {
+        const [top, second] = serviceRevenue.rows
+        if (!top) return <span className={styles.answerText}>{periodPhrase} hizmete bağlı bir tahsilat görünmüyor.</span>
+        const max = top.revenue || 1
+        return (
+          <>
+            <span className={styles.answerText}>
+              {periodPhrase} en çok <b>{top.name}</b> kazandırdı: {top.count} randevu, {currency.format(top.revenue)}.
+              {second && ` İkinci sırada ${second.name} var.`}
+            </span>
+            <div className={styles.barGrid}>
+              {serviceRevenue.rows.slice(0, 3).map((r) => (
+                <div className={styles.barGridRow} key={r.name}>
+                  <span className={styles.barName}>{r.name}</span>
+                  <span className={styles.barTrack}>
+                    <span className={styles.barFill} style={{ width: `${Math.max(4, (r.revenue / max) * 100)}%` }} />
                   </span>
-                  <span className={styles.kpiValue}>{k.value}</span>
+                  <span className={styles.barAmount}>{currency.format(r.revenue)}</span>
+                </div>
+              ))}
+            </div>
+            <span className={styles.source}>Kaynak: {periodPhrase.toLocaleLowerCase('tr')} randevuya bağlı {serviceRevenue.paymentCount} tahsilat</span>
+          </>
+        )
+      }
+      case 'gun': {
+        if (!weekdayLoad) return <span className={styles.answerText}>Son 6 haftada randevu görünmüyor.</span>
+        const { best, worst } = weekdayLoad
+        return (
+          <>
+            <span className={styles.answerText}>
+              <b>{DAY_LONG[worst.dow]}.</b> Son 6 haftada {DAY_LONG[worst.dow]} günleri ortalama {worst.avg.toFixed(1)} randevu var.
+              En yoğun gün {DAY_LONG[best.dow]} (ortalama {best.avg.toFixed(1)}).
+            </span>
+            {best.dow !== worst.dow && (
+              <button type="button" className={styles.actionChip} onClick={() => navigate('/toplu-mesaj')}>
+                {DAY_LONG[worst.dow]} için kampanya gönder
+              </button>
+            )}
+          </>
+        )
+      }
+      case 'borc': {
+        if (debts.rows.length === 0) return <span className={styles.answerText}>Şu an borçlu müşterin yok.</span>
+        return (
+          <>
+            <span className={styles.answerText}>
+              <b>{debts.rows.length} müşteri</b> toplam <b>{currency.format(debts.total)}</b> borçlu.
+            </span>
+            <div className={styles.miniList}>
+              {debts.rows.slice(0, 5).map((r) => (
+                <button type="button" key={r.id} className={styles.miniRow} onClick={() => navigate(`/musteriler/${r.id}`)}>
+                  <span className={styles.miniName}>{r.name}</span>
+                  <span className={styles.miniAmount}>{currency.format(r.amount)}</span>
+                </button>
+              ))}
+            </div>
+            <button type="button" className={styles.actionChip} onClick={() => navigate('/musteriler?sekme=borclu')}>
+              Borçluların hepsini aç
+            </button>
+          </>
+        )
+      }
+      case 'reklam': {
+        const total = apptsInRange.length
+        const max = Math.max(1, ...sourceStats.rows.map(([, n]) => n))
+        return (
+          <>
+            <span className={styles.answerText}>
+              {sourceStats.adCount === 0 ? (
+                `${periodPhrase} reklamdan gelen randevu görünmüyor.`
+              ) : (
+                <>
+                  {periodPhrase} reklamdan <b>{sourceStats.adCount} randevu</b> geldi (tümünün %{Math.round((sourceStats.adCount / Math.max(1, total)) * 100)}
+                  ’i). {sourceStats.adCompleted} tanesi tamamlandı, {currency.format(sourceStats.adRevenue)} tahsil edildi.
+                </>
+              )}
+            </span>
+            {sourceStats.rows.length > 0 && (
+              <div className={styles.barGrid}>
+                {sourceStats.rows.slice(0, 4).map(([src, n]) => (
+                  <div className={styles.barGridRow} key={src}>
+                    <span className={styles.barName}>{SOURCE_LABEL[src] ?? src}</span>
+                    <span className={styles.barTrack}>
+                      <span className={styles.barFill} style={{ width: `${Math.max(4, (n / max) * 100)}%` }} />
+                    </span>
+                    <span className={styles.barAmount}>{n}</span>
+                  </div>
+                ))}
+              </div>
+            )}
+            <button type="button" className={styles.actionChip} onClick={() => navigate('/reklam')}>
+              Reklam sonuçlarını aç
+            </button>
+          </>
+        )
+      }
+      case 'kar':
+        return (
+          <>
+            <span className={styles.answerText}>
+              {periodPhrase} {currency.format(current.revenue)} tahsil ettin; giderler ve kesintiler sonrası net kâr{' '}
+              <b>{currency.format(current.netProfit)}</b>.
+            </span>
+            <div className={styles.kpiGrid}>
+              {kpis.map((k) => (
+                <div className={styles.kpiTile} key={k.label}>
                   <span className={styles.kpiLabel}>{k.label}</span>
+                  <span className={styles.kpiValue}>{k.value}</span>
                   {k.delta !== null && (
                     <span className={k.delta >= 0 ? styles.kpiDeltaUp : styles.kpiDeltaDown}>
-                      {k.delta >= 0 ? '↑' : '↓'} %{Math.abs(k.delta).toFixed(1)} vs önceki dönem
+                      {k.delta >= 0 ? '↑' : '↓'} %{Math.abs(k.delta).toFixed(0)}
                     </span>
                   )}
                 </div>
-              )
-            })}
-          </div>
-
-          <div className={styles.chartsRow}>
-            <div className="card">
-              <h2 style={{ marginBottom: 14 }}>Tahsilat ve Net Kâr Trendi</h2>
-              <div className={styles.donutLegend} style={{ flexDirection: 'row', gap: 16, marginBottom: 10 }}>
-                <div className={styles.legendRow} style={{ fontSize: 12 }}>
-                  <span className={styles.legendDot} style={{ background: 'var(--signal)' }} />
-                  <span>Tahsilat</span>
-                </div>
-                <div className={styles.legendRow} style={{ fontSize: 12 }}>
-                  <span className={styles.legendDot} style={{ background: 'var(--ok-text)' }} />
-                  <span>Net Kâr</span>
+              ))}
+            </div>
+            <div className={styles.legend}>
+              <span className={styles.legendRow}>
+                <span className={styles.legendDot} style={{ background: 'var(--signal)' }} />
+                Tahsilat
+              </span>
+              <span className={styles.legendRow}>
+                <span className={styles.legendDot} style={{ background: 'var(--accent)' }} />
+                Net kâr
+              </span>
+            </div>
+            <LineChart
+              series={[
+                { label: 'Tahsilat', color: 'var(--signal)', points: chart.revenueSeries },
+                { label: 'Net kâr', color: 'var(--accent)', points: chart.netProfitSeries },
+              ]}
+              xLabels={chart.xLabels}
+              height={150}
+            />
+          </>
+        )
+      case 'musteri': {
+        const diger = Math.max(0, segmentCounts.total - segmentCounts.yeni - segmentCounts.sadik)
+        return (
+          <>
+            <span className={styles.answerText}>
+              Toplam <b>{segmentCounts.total} müşterin</b> var; {periodPhrase.toLocaleLowerCase('tr')} {current.newCustomers} yeni müşteri eklendi.
+              İptal oranı %{cancelRate.toFixed(0)}, gelmeme oranı %{noShowRate.toFixed(0)}.
+            </span>
+            {segmentCounts.total > 0 && (
+              <div className={styles.donutRow}>
+                <DonutChart
+                  segments={[
+                    { value: segmentCounts.yeni, color: 'var(--accent)' },
+                    { value: segmentCounts.sadik, color: 'var(--signal)' },
+                    { value: diger, color: '#e2e5ea' },
+                  ]}
+                  size={96}
+                  strokeWidth={10}
+                  centerLabel={`${segmentCounts.total}`}
+                  centerSubLabel="müşteri"
+                />
+                <div className={styles.legendCol}>
+                  <span className={styles.legendRow}>
+                    <span className={styles.legendDot} style={{ background: 'var(--accent)' }} />
+                    Yeni <strong>{segmentCounts.yeni}</strong>
+                  </span>
+                  <span className={styles.legendRow}>
+                    <span className={styles.legendDot} style={{ background: 'var(--signal)' }} />
+                    Sadık <strong>{segmentCounts.sadik}</strong>
+                  </span>
+                  <span className={styles.legendRow}>
+                    <span className={styles.legendDot} style={{ background: '#e2e5ea' }} />
+                    Diğer <strong>{diger}</strong>
+                  </span>
                 </div>
               </div>
-              <LineChart
-                series={[
-                  { label: 'Tahsilat', color: 'var(--signal)', points: chart.revenueSeries },
-                  { label: 'Net Kâr', color: 'var(--ok-text)', points: chart.netProfitSeries },
-                ]}
-                xLabels={chart.xLabels}
-              />
+            )}
+          </>
+        )
+      }
+      case 'iyi':
+      case 'risk':
+      case 'oneri': {
+        if (!insight) {
+          return (
+            <>
+              <span className={styles.answerText}>
+                Bunun için rakamlarına bakıp yazılı bir değerlendirme hazırlamam gerekiyor. Hazırlamak 30 saniye kadar sürer.
+              </span>
+              {generateChip}
+            </>
+          )
+        }
+        const items = key === 'iyi' ? insight.highlights : key === 'risk' ? insight.risks : insight.recommendations
+        return items.length === 0 ? (
+          <span className={styles.answerText}>Bu dönem için söyleyecek özel bir şey bulamadım.</span>
+        ) : (
+          <ul className={styles.bubbleList}>
+            {items.map((item, i) => (
+              <li key={i}>{item}</li>
+            ))}
+          </ul>
+        )
+      }
+      default:
+        return (
+          <>
+            <span className={styles.answerText}>
+              Bunu henüz kendi kayıtlarından cevaplayamıyorum. Şunlardan birini sorabilirsin:
+            </span>
+            <div className={styles.inlineChips}>
+              {ASK_ORDER.map((k) => (
+                <button type="button" key={k} className={styles.suggestChip} onClick={() => ask(k)}>
+                  {ASK_TEXT[k]}
+                </button>
+              ))}
             </div>
+          </>
+        )
+    }
+  }
 
-            <div className="card">
-              <h2 style={{ marginBottom: 14 }}>Müşteri Segmentleri</h2>
-              {segmentCounts.total === 0 ? (
-                <p className={styles.hint}>Henüz müşteri yok.</p>
-              ) : (
-                <div className={styles.donutRow}>
-                  <DonutChart
-                    segments={[
-                      { value: segmentCounts.yeni, color: 'var(--warn-text)' },
-                      { value: segmentCounts.sadik, color: 'var(--ok-text)' },
-                    ]}
-                    centerLabel={`${segmentCounts.total}`}
-                    centerSubLabel="Müşteri"
-                  />
-                  <div className={styles.donutLegend}>
-                    <div className={styles.legendRow}>
-                      <span className={styles.legendDot} style={{ background: 'var(--warn-text)' }} />
-                      <span>Yeni</span>
-                      <strong>{segmentCounts.yeni}</strong>
-                    </div>
-                    <div className={styles.legendRow}>
-                      <span className={styles.legendDot} style={{ background: 'var(--ok-text)' }} />
-                      <span>Sadık</span>
-                      <strong>{segmentCounts.sadik}</strong>
-                    </div>
-                  </div>
+  return (
+    <div className={styles.wrap}>
+      <PageHeader
+        back="/daha-fazla"
+        title="Salonuna sor"
+        sub="Kendi kayıtlarından cevaplar"
+        action={
+          <div className={styles.periodWrap}>
+            <button
+              type="button"
+              className={styles.periodBtn}
+              onClick={() => setPeriodMenuOpen((v) => !v)}
+              aria-haspopup="menu"
+              aria-expanded={periodMenuOpen}
+            >
+              {PRESETS.find((p) => p.value === preset)?.label} ▾
+            </button>
+            {periodMenuOpen && (
+              <>
+                <div className={styles.menuScrim} onClick={() => setPeriodMenuOpen(false)} />
+                <div className={styles.periodMenu} role="menu">
+                  {PRESETS.map((p) => (
+                    <button
+                      type="button"
+                      key={p.value}
+                      className={styles.periodMenuItem}
+                      onClick={() => {
+                        applyPreset(p.value)
+                        setPeriodMenuOpen(false)
+                      }}
+                    >
+                      {p.long}
+                      {preset === p.value && <CheckCircleIcon width={14} height={14} />}
+                    </button>
+                  ))}
                 </div>
-              )}
-            </div>
+              </>
+            )}
           </div>
-        </>
-      )}
+        }
+      />
 
-      {generating && <p className={styles.hint}>Analiz oluşturuluyor, bu işlem 30 saniyeye kadar sürebilir…</p>}
+      <div className={styles.aiBubble}>
+        <span className={styles.answerText}>
+          İşletme sağlığı <b>{healthLabel}</b> · {healthScore}/100.{' '}
+          {insight ? insight.summary : 'Aşağıdan bir soru seç ya da kendin yaz; cevapları kendi kayıtlarından hesaplarım.'}
+        </span>
+        {insight && (
+          <span className={styles.source}>
+            Yazılı analiz:{' '}
+            {new Date(insight.generated_at).toLocaleString('tr-TR', { day: 'numeric', month: 'short', hour: '2-digit', minute: '2-digit' })}
+          </span>
+        )}
+        {generateChip}
+        {generating && <span className={styles.source}>Analiz hazırlanıyor, 30 saniye kadar sürebilir…</span>}
+        {error && <p className={styles.error}>{error}</p>}
+      </div>
 
-      {insight && (
-        <>
-          {insight.highlights.length > 0 && (
-            <div className="card">
-              <h2 style={{ marginBottom: 14 }}>Öne Çıkanlar</h2>
-              <ul className={styles.list}>
-                {insight.highlights.map((item, i) => (
-                  <li key={i} className={styles.listItem}>
-                    <span className={`${styles.listIcon} ${styles.listIconInfo}`}>
-                      <TrendingUpIcon width={13} height={13} />
-                    </span>
-                    {item}
-                  </li>
-                ))}
-              </ul>
-            </div>
-          )}
+      {thread.map((t) => (
+        <div className={styles.exchange} key={t.id}>
+          <div className={styles.userBubble}>{t.text}</div>
+          <div className={styles.aiBubble}>{renderAnswer(t.key)}</div>
+        </div>
+      ))}
+      <div ref={threadEndRef} />
 
-          {insight.risks.length > 0 && (
-            <div className={`card ${styles.riskCard}`}>
-              <h2 style={{ marginBottom: 14 }}>Riskler</h2>
-              <ul className={styles.list}>
-                {insight.risks.map((item, i) => (
-                  <li key={i} className={styles.listItem}>
-                    <span className={`${styles.listIcon} ${styles.listIconDanger}`}>
-                      <AlertTriangleIcon width={13} height={13} />
-                    </span>
-                    {item}
-                  </li>
-                ))}
-              </ul>
-            </div>
-          )}
-
-          {insight.recommendations.length > 0 && (
-            <div className={`card ${styles.recCard}`}>
-              <h2 style={{ marginBottom: 14 }}>Öneriler</h2>
-              <ul className={styles.list}>
-                {insight.recommendations.map((item, i) => (
-                  <li key={i} className={styles.listItem}>
-                    <span className={`${styles.listIcon} ${styles.listIconOk}`}>
-                      <CheckCircleIcon width={13} height={13} />
-                    </span>
-                    {item}
-                  </li>
-                ))}
-              </ul>
-            </div>
-          )}
-        </>
-      )}
+      <div className={styles.composer}>
+        {remaining.length > 0 && (
+          <div className={styles.suggestRow}>
+            {remaining.map((k) => (
+              <button type="button" key={k} className={styles.suggestChip} onClick={() => ask(k)}>
+                {ASK_TEXT[k]}
+              </button>
+            ))}
+          </div>
+        )}
+        <form
+          className={styles.inputPill}
+          onSubmit={(e) => {
+            e.preventDefault()
+            submitDraft()
+          }}
+        >
+          <input
+            className={styles.input}
+            placeholder="Bir şey sor…"
+            value={draft}
+            onChange={(e) => setDraft(e.target.value)}
+            aria-label="Soru"
+          />
+          <button type="submit" className={styles.sendBtn} disabled={!draft.trim()} aria-label="Gönder">
+            <SendIcon width={18} height={18} />
+          </button>
+        </form>
+      </div>
     </div>
   )
 }

@@ -1,42 +1,277 @@
 .wrap {
   display: flex;
   flex-direction: column;
-  gap: 16px;
-}
-
-.backBtn {
-  display: flex;
-  align-items: center;
-  gap: 4px;
-  align-self: flex-start;
-  background: none;
-  border: none;
-  color: var(--text-dim);
-  font-size: 13px;
-  font-weight: 600;
-  font-family: var(--font-body);
-  cursor: pointer;
-  padding: 0;
-}
-
-.backIcon {
-  transform: rotate(180deg);
-}
-
-.subtitle {
-  font-size: 12.5px;
-  color: var(--text-dim);
-  margin-bottom: 16px;
-}
-
-.error {
-  color: var(--danger-text);
-  font-size: 13px;
-  margin-bottom: 16px;
+  gap: 14px;
 }
 
 .hint {
   font-size: 12px;
   color: var(--text-dim);
-  margin-top: 6px;
+}
+
+.note {
+  font-size: 12px;
+  color: var(--text-dim);
+  padding: 0 4px;
+  line-height: 1.45;
+}
+
+.error {
+  font-size: 13px;
+  color: var(--danger-text);
+  background: var(--danger-bg);
+  border-radius: 12px;
+  padding: 10px 12px;
+}
+
+/* ---------- Form ---------- */
+
+.formCard {
+  background: var(--panel);
+  border-radius: 22px;
+  padding: 16px;
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+}
+
+.field {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.field label,
+.fieldLabel {
+  font-size: 12px;
+  font-weight: 700;
+  color: var(--text-dim);
+}
+
+.field > input {
+  width: 100%;
+  border: none;
+  outline: none;
+  background: var(--bg);
+  border-radius: 14px;
+  padding: 13px 14px;
+  font-family: var(--font-body);
+  font-size: 15px;
+  color: var(--text);
+}
+
+.field > input::placeholder,
+.passwordBox input::placeholder {
+  color: #9ca3af;
+  font-weight: 400;
+}
+
+.field > .inputStrong {
+  font-weight: 700;
+}
+
+.fieldHint {
+  font-size: 12px;
+  color: var(--text-dim);
+}
+
+.passwordBox {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  background: var(--bg);
+  border-radius: 14px;
+  padding: 4px 4px 4px 14px;
+}
+
+.passwordBox input {
+  flex: 1;
+  min-width: 0;
+  border: none;
+  outline: none;
+  background: transparent;
+  font-family: var(--font-body);
+  font-size: 15px;
+  color: var(--text);
+}
+
+.genBtn {
+  border: none;
+  background: var(--panel);
+  color: var(--signal);
+  border-radius: 11px;
+  padding: 9px 12px;
+  font-family: var(--font-body);
+  font-size: 13px;
+  font-weight: 700;
+  cursor: pointer;
+}
+
+.segmented {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  background: var(--seg-bg);
+  border-radius: 14px;
+  padding: 4px;
+}
+
+.segment,
+.segmentActive {
+  border: none;
+  background: transparent;
+  color: var(--text-dim);
+  font-family: var(--font-body);
+  font-size: 13px;
+  font-weight: 700;
+  padding: 9px 0;
+  border-radius: 11px;
+  cursor: pointer;
+}
+
+.segmentActive {
+  background: var(--panel);
+  color: var(--text);
+}
+
+/* ---------- Yetkiler ---------- */
+
+.roleList {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.roleCardActive {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  background: var(--panel);
+  border-radius: 20px;
+  padding: 14px;
+  box-shadow: inset 0 0 0 2px var(--signal);
+}
+
+.radioOn {
+  width: 20px;
+  height: 20px;
+  border-radius: 50%;
+  border: 6px solid var(--signal);
+  flex-shrink: 0;
+}
+
+.roleText {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+
+.roleName {
+  font-size: 15px;
+  font-weight: 700;
+}
+
+.roleDesc {
+  font-size: 12px;
+  color: var(--text-dim);
+}
+
+.infoBox {
+  background: var(--tint);
+  border-radius: 16px;
+  padding: 12px 14px;
+  font-size: 13px;
+  color: var(--signal);
+  line-height: 1.45;
+}
+
+.groupLabel {
+  font-size: 12px;
+  font-weight: 700;
+  color: #6b7280;
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+  padding: 4px 4px 0;
+}
+
+.listCard {
+  background: var(--panel);
+  border-radius: 20px;
+  padding: 2px 14px;
+  display: flex;
+  flex-direction: column;
+}
+
+.checkRow {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  width: 100%;
+  border: none;
+  border-bottom: 1px solid #eef0f3;
+  background: none;
+  padding: 13px 0;
+  font-family: var(--font-body);
+  color: var(--text);
+  text-align: left;
+  cursor: pointer;
+}
+
+.checkRow:last-child {
+  border-bottom: none;
+}
+
+.checkLabel {
+  flex: 1;
+  font-size: 14px;
+  font-weight: 700;
+}
+
+.checkBox,
+.checkBoxOn {
+  width: 24px;
+  height: 24px;
+  border-radius: 8px;
+  border: 2px solid #c5cad3;
+  color: #fff;
+  font-size: 13px;
+  font-weight: 700;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+}
+
+.checkBoxOn {
+  border-color: var(--signal);
+  background: var(--signal);
+}
+
+/* ---------- Alttaki dugme ---------- */
+
+.footer {
+  position: sticky;
+  bottom: -16px;
+  margin: auto -16px -16px;
+  padding: 14px 16px;
+  background: var(--panel);
+  border-top: 1px solid #eef0f3;
+  z-index: 5;
+}
+
+.footerBtn {
+  width: 100%;
+  border: none;
+  background: var(--signal);
+  color: #fff;
+  border-radius: 16px;
+  padding: 15px 0;
+  font-family: var(--font-body);
+  font-size: 15px;
+  font-weight: 700;
+  cursor: pointer;
+}
+
+.footerBtn:disabled {
+  opacity: 0.6;
 }

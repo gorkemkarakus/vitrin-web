@@ -4,211 +4,384 @@
   gap: 16px;
 }
 
-.stickyFilter {
+/* ---------- Baslik donem secimi ---------- */
+
+.headSegWrap {
+  position: relative;
+  flex-shrink: 0;
+}
+
+.headSeg {
+  display: flex;
+  background: var(--seg-bg);
+  border-radius: 12px;
+  padding: 3px;
+}
+
+.headSegBtn,
+.headSegActive {
+  border: none;
+  background: transparent;
+  color: var(--text-dim);
+  font-family: var(--font-body);
+  font-size: 12px;
+  font-weight: 700;
+  padding: 7px 10px;
+  border-radius: 9px;
+  cursor: pointer;
+}
+
+.headSegActive {
+  background: var(--panel);
+  color: var(--text);
+}
+
+.periodMenu {
+  position: absolute;
+  top: calc(100% + 8px);
+  right: 0;
+  width: 190px;
+  background: var(--panel);
+  border-radius: 16px;
+  box-shadow: 0 12px 32px rgba(17, 24, 39, 0.16);
+  padding: 6px;
   display: flex;
   flex-direction: column;
-  gap: 16px;
+  z-index: 30;
 }
 
-.sectionLabel {
-  font-size: 11px;
-  font-weight: 700;
-  color: var(--text-dim);
-  text-transform: uppercase;
-  letter-spacing: 0.07em;
-  margin-bottom: -10px;
-}
-
-/* ---------- Tarih filtresi ---------- */
-
-.filterRow {
-  display: flex;
-  gap: 6px;
-}
-
-.filterBtn,
-.filterBtnActive {
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  gap: 6px;
-  flex: 1;
-  min-width: 0;
-  background: var(--panel);
-  border: 1px solid var(--line);
-  color: var(--text-dim);
-  border-radius: 999px;
-  padding: 9px 8px;
-  font-size: 12.5px;
-  font-weight: 600;
+.periodMenuItem {
+  border: none;
+  background: none;
+  border-radius: 11px;
+  padding: 11px 12px;
   font-family: var(--font-body);
+  font-size: 14px;
+  color: var(--text);
+  text-align: left;
   cursor: pointer;
-  overflow: hidden;
-  text-overflow: ellipsis;
-  white-space: nowrap;
-}
-
-.filterBtnActive {
-  background: var(--signal);
-  border-color: var(--signal);
-  color: #fff;
 }
 
 .customRangeRow {
   display: grid;
-  grid-template-columns: 1fr 1fr;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
   gap: 12px;
 }
 
-.customRangeRow input {
-  color-scheme: dark;
-}
+/* ---------- Toplam tahsilat ---------- */
 
-.exportBtn {
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  gap: 7px;
-  font-weight: 600;
-}
-
-/* ---------- Donem ozeti kartlari ---------- */
-
-.statsGrid {
-  display: grid;
-  grid-template-columns: repeat(2, 1fr);
-  gap: 10px;
-}
-
-@media (min-width: 640px) {
-  .statsGrid {
-    grid-template-columns: repeat(4, 1fr);
-  }
-}
-
-.statCard {
+.totalCard {
+  background: var(--panel);
+  border-radius: 22px;
+  padding: 16px;
   display: flex;
   flex-direction: column;
-  align-items: flex-start;
-  gap: 8px;
-  border-radius: var(--radius-lg);
-  padding: 14px;
-  min-width: 0;
+  gap: 14px;
 }
 
-.statCardSignal {
-  background: #eaf1fb;
-}
-
-.statCardOk {
-  background: #eafaf3;
-}
-
-.statCardDanger {
-  background: #fdefee;
-}
-
-.statCardInfo {
-  background: #eaf2fd;
-}
-
-.statIcon {
-  width: 30px;
-  height: 30px;
-  border-radius: 9px;
+.totalHead {
   display: flex;
-  align-items: center;
-  justify-content: center;
-  flex-shrink: 0;
+  justify-content: space-between;
+  align-items: baseline;
+  gap: 12px;
 }
 
-.statIconSignal {
-  background: #dbe7f8;
-  color: var(--signal);
-}
-
-.statIconOk {
-  background: #d1f2e3;
-  color: var(--ok-text);
-}
-
-.statIconDanger {
-  background: #fbdedc;
-  color: var(--danger-text);
-}
-
-.statIconInfo {
-  background: #d3e6fb;
-  color: var(--info-text);
-}
-
-.statValue {
-  font-family: var(--font-heading);
-  font-size: 17px;
-  font-weight: 600;
-  color: var(--text);
-  font-variant-numeric: tabular-nums;
-  overflow: hidden;
-  text-overflow: ellipsis;
-  white-space: nowrap;
-  max-width: 100%;
-}
-
-.statLabel {
-  font-size: 11.5px;
-  font-weight: 600;
+.totalLabel {
+  font-size: 13px;
   color: var(--text-dim);
 }
 
-/* ---------- Donem hesaplama dokumu ---------- */
+.totalValue {
+  font-family: var(--font-heading);
+  font-size: 28px;
+  font-weight: 600;
+  font-variant-numeric: tabular-nums;
+  color: var(--text);
+}
 
-.waterfall {
+.totalHint {
+  font-size: 12px;
+  color: var(--text-dim);
+}
+
+.methodList {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.methodRow {
+  display: flex;
+  flex-direction: column;
+  gap: 5px;
+}
+
+.methodTop {
+  display: flex;
+  justify-content: space-between;
+  font-size: 14px;
+}
+
+.methodLabel {
+  font-weight: 700;
+  color: var(--text);
+}
+
+.methodAmount {
+  font-family: var(--font-heading);
+  font-weight: 600;
+  font-variant-numeric: tabular-nums;
+  color: var(--text);
+}
+
+.methodTrack {
+  height: 10px;
+  border-radius: 4px;
+  background: #eef0f3;
+  overflow: hidden;
+}
+
+.methodFill {
+  display: block;
+  height: 100%;
+  border-radius: 4px;
+  background: var(--signal);
+}
+
+/* ---------- Kutular ---------- */
+
+.tiles {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 10px;
+}
+
+.tile {
+  border: none;
+  background: var(--panel);
+  color: var(--text);
+  border-radius: 20px;
+  padding: 14px;
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  font-family: var(--font-body);
+  text-align: left;
+  min-width: 0;
+}
+
+button.tile {
+  cursor: pointer;
+}
+
+.tileLabel {
+  font-size: 12px;
+  color: var(--text-dim);
+}
+
+.tileValue {
+  font-family: var(--font-heading);
+  font-size: 22px;
+  font-weight: 600;
+  font-variant-numeric: tabular-nums;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  max-width: 100%;
+}
+
+.tileHint {
+  font-size: 11px;
+  color: var(--text-dim);
+}
+
+.tileNavy {
+  background: var(--signal);
+  color: #fff;
+}
+
+.tileNavy .tileLabel,
+.tileNavy .tileHint {
+  color: var(--navy-dim);
+}
+
+.textOk {
+  color: var(--ok-text);
+}
+
+.textWarm {
+  color: var(--accent-text);
+}
+
+.textDanger {
+  color: var(--danger-text);
+}
+
+/* ---------- Islem dugmeleri ---------- */
+
+.actionRow {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 10px;
+}
+
+.action,
+.actionPrimary {
+  border: none;
+  border-radius: 16px;
+  padding: 14px 0;
+  font-family: var(--font-body);
+  font-size: 14px;
+  font-weight: 700;
+  cursor: pointer;
+  background: var(--panel);
+  color: var(--text);
+}
+
+.actionPrimary {
+  background: var(--signal);
+  color: #fff;
+}
+
+/* ---------- Son hareketler ---------- */
+
+.movesCard {
+  background: var(--panel);
+  border-radius: 22px;
+  padding: 6px 16px;
   display: flex;
   flex-direction: column;
 }
 
-.waterfallRow {
+.movesHead {
   display: flex;
   justify-content: space-between;
-  padding: 10px 0;
-  font-size: 14px;
-  border-bottom: 1px solid var(--line);
-  font-variant-numeric: tabular-nums;
+  align-items: baseline;
+  padding: 10px 0 4px;
 }
 
+.movesTitle {
+  font-family: var(--font-heading);
+  font-size: 17px;
+  font-weight: 600;
+}
+
+.link {
+  border: none;
+  background: none;
+  padding: 2px 0;
+  font-family: var(--font-body);
+  font-size: 13px;
+  font-weight: 700;
+  color: var(--signal);
+  cursor: pointer;
+}
+
+.movesCard .moveRow {
+  padding: 11px 0;
+  border-bottom: 1px solid #eef0f3;
+}
+
+.movesCard .moveRow:last-child {
+  border-bottom: none;
+}
+
+/* ---------- Bloklar ve listeler ---------- */
+
+.block {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.blockTitle {
+  font-size: 17px;
+  font-weight: 600;
+}
+
+.empty {
+  font-size: 13px;
+  color: var(--text-dim);
+}
+
+.listCard {
+  background: var(--panel);
+  border-radius: 22px;
+  padding: 4px 16px;
+  display: flex;
+  flex-direction: column;
+}
+
+.moveRow,
+.waterfallRow {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  padding: 12px 0;
+  border-bottom: 1px solid var(--line);
+}
+
+.moveRow:last-child,
 .waterfallRow:last-child {
   border-bottom: none;
 }
 
-.waterfallMinus {
-  color: var(--danger-text);
+.moveText {
+  flex: 1;
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
 }
 
-.waterfallSubtotal {
+.moveTitle {
+  font-size: 14px;
+  font-weight: 700;
+  color: var(--text);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.moveSub {
+  font-size: 12px;
   color: var(--text-dim);
-  font-size: 13px;
+}
+
+.moveAmount {
+  font-family: var(--font-heading);
+  font-size: 15px;
+  font-weight: 600;
+  font-variant-numeric: tabular-nums;
+  color: var(--text);
+  flex-shrink: 0;
+}
+
+.waterfallRow {
+  font-size: 14px;
+  color: var(--text);
+  font-variant-numeric: tabular-nums;
+}
+
+.waterfallMinus {
+  color: var(--text-dim);
 }
 
 .waterfallNet {
-  padding-top: 14px;
-  font-family: var(--font-heading);
-  font-size: 20px;
-  font-weight: 600;
-  color: var(--ok-text);
-  border-top: 1px solid var(--line);
+  font-weight: 700;
+  font-size: 15px;
 }
 
-.waterfallNetDanger {
-  color: var(--danger-text);
-}
+/* ---------- Oran ayarlari ---------- */
 
-/* ---------- Vergi & prim ayarlari ---------- */
-
-.rateRow {
-  display: flex;
-  align-items: flex-end;
+.rateCard {
+  background: var(--panel);
+  border-radius: 22px;
+  padding: 16px;
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
   gap: 12px;
-  flex-wrap: wrap;
 }
 
 .rateField {
@@ -219,196 +392,48 @@
 
 .rateField label {
   font-size: 12px;
+  font-weight: 700;
   color: var(--text-dim);
-  font-weight: 500;
 }
 
 .rateField input {
-  width: 90px;
-  background: var(--panel-2);
-  border: 1px solid var(--line);
-  border-radius: var(--radius-sm);
-  padding: 10px 12px;
-  color: var(--text);
-  font-size: 14px;
-  font-family: var(--font-body);
+  width: 100%;
+  border: none;
   outline: none;
-  transition: border-color 0.15s;
-}
-
-.rateField input:focus {
-  border-color: var(--signal);
+  background: var(--panel-2);
+  color: var(--text);
+  border-radius: 14px;
+  padding: 13px 14px;
+  font-family: var(--font-heading);
+  font-size: 17px;
+  font-weight: 600;
 }
 
 .saveBtn {
-  width: auto;
-  padding: 10px 16px;
-}
-
-.savedHint {
-  font-size: 13px;
-  color: var(--ok-text);
-  font-weight: 600;
-}
-
-/* ---------- Arama ---------- */
-
-.searchBox {
-  display: flex;
-  align-items: center;
-  gap: 8px;
-  background: var(--panel);
-  border: 1px solid var(--line);
-  border-radius: var(--radius-sm);
-  padding: 0 12px;
-}
-
-.searchIcon {
-  color: var(--text-dim);
-  flex-shrink: 0;
-}
-
-.searchInput {
-  flex: 1;
-  min-width: 0;
+  grid-column: 1 / -1;
   border: none;
-  background: none;
-  outline: none;
-  padding: 11px 0;
-  font-size: 14px;
-  font-family: var(--font-body);
+  background: var(--panel-2);
   color: var(--text);
-}
-
-.searchInput::placeholder {
-  color: var(--text-dim);
-}
-
-.empty {
-  color: var(--text-dim);
-  font-size: 13px;
-}
-
-/* ---------- Giderler ozet karti ---------- */
-
-.giderlerHead {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  margin-bottom: 14px;
-}
-
-.sectionLink {
-  display: flex;
-  align-items: center;
-  gap: 2px;
-  background: none;
-  border: none;
-  color: var(--signal);
-  font-size: 12.5px;
-  font-weight: 600;
+  border-radius: 14px;
+  padding: 13px;
   font-family: var(--font-body);
+  font-size: 14px;
+  font-weight: 700;
   cursor: pointer;
 }
 
-.giderMiniGrid {
-  display: grid;
-  grid-template-columns: repeat(2, 1fr);
-  gap: 10px;
-}
-
-@media (min-width: 640px) {
-  .giderMiniGrid {
-    grid-template-columns: repeat(4, 1fr);
-  }
-}
-
-/* ---------- Liste satirlari (calisan / hizmet ciro) ---------- */
-
-.list {
-  display: flex;
-  flex-direction: column;
-}
-
-.employeeRow {
+.exportBtn {
   display: flex;
   align-items: center;
-  gap: 10px;
-  padding: 10px 2px;
-  border-bottom: 1px solid var(--line);
-}
-
-.employeeRow:last-child {
-  border-bottom: none;
-}
-
-.rank {
-  width: 16px;
-  flex-shrink: 0;
-  font-size: 12.5px;
-  font-weight: 700;
-  color: var(--text-dim);
-  font-variant-numeric: tabular-nums;
-}
-
-.employeeName {
-  flex: 1;
-  min-width: 0;
-  font-size: 13.5px;
-  font-weight: 600;
+  justify-content: center;
+  gap: 8px;
+  border: none;
+  background: var(--panel);
   color: var(--text);
-  overflow: hidden;
-  text-overflow: ellipsis;
-  white-space: nowrap;
-}
-
-.employeeStats {
-  display: flex;
-  gap: 20px;
-  flex-shrink: 0;
-}
-
-.employeeStatBlock {
-  display: flex;
-  flex-direction: column;
-  align-items: flex-end;
-  gap: 1px;
-}
-
-/* Tutar (Ciro/Kazanc) her zaman son blok — degeri satirdan satira genislik
-   olarak cok degisebildigi (7 TL / 546.265 TL) icin sabit bir min-width
-   verilmezse "Randevu" blogu her satirda farkli bir yatay konuma kayardi
-   (sutun hizasi bozuluyordu, bildirildi). */
-.employeeStatBlock:last-child {
-  min-width: 84px;
-}
-
-.employeeStatLabel {
-  font-size: 9px;
-  color: var(--text-dim);
-  white-space: nowrap;
-}
-
-.employeeStatValue {
-  font-size: 12.5px;
+  border-radius: 16px;
+  padding: 14px;
+  font-family: var(--font-body);
+  font-size: 14px;
   font-weight: 700;
-  color: var(--text);
-}
-
-.employeeStatValueSignal {
-  font-size: 12.5px;
-  font-weight: 700;
-  color: var(--signal);
-  white-space: nowrap;
-}
-
-@media (max-width: 480px) {
-  .rangeField,
-  .customRangeRow {
-    width: 100%;
-  }
-
-  .waterfallRow {
-    font-size: 13px;
-  }
+  cursor: pointer;
 }

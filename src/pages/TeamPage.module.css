@@ -1,363 +1,172 @@
 .wrap {
   display: flex;
   flex-direction: column;
-  gap: 16px;
+  gap: 14px;
 }
 
-/* ---------- Arama + filtrele satiri ---------- */
-
-.searchRow {
-  display: flex;
-  gap: 10px;
-}
-
-.searchBox {
-  flex: 1;
-  min-width: 0;
-  display: flex;
-  align-items: center;
-  gap: 8px;
-  background: var(--panel);
-  border: 1px solid var(--line);
-  border-radius: var(--radius-sm);
-  padding: 0 12px;
-}
-
-.searchIcon {
-  color: var(--text-dim);
-  flex-shrink: 0;
-}
-
-.searchInput {
-  flex: 1;
-  min-width: 0;
-  border: none;
-  background: none;
-  outline: none;
-  padding: 11px 0;
-  font-size: 14px;
-  font-family: var(--font-body);
-  color: var(--text);
-}
-
-.searchInput::placeholder {
+.empty {
+  font-size: 13px;
   color: var(--text-dim);
 }
 
-.filterWrap {
-  position: relative;
-  flex-shrink: 0;
+.nowLine {
+  font-size: 13px;
+  color: var(--text-dim);
+  padding: 0 4px;
 }
 
-.filterBtn {
-  display: flex;
-  align-items: center;
-  gap: 6px;
-  height: 100%;
-  background: var(--panel);
-  border: 1px solid var(--line);
-  border-radius: var(--radius-sm);
-  padding: 0 14px;
-  font-size: 13.5px;
-  font-weight: 600;
-  color: var(--text);
-  font-family: var(--font-body);
-  cursor: pointer;
-}
+/* ---------- Calisan kartlari ---------- */
 
-.addBtn {
-  flex-shrink: 0;
-  width: 42px;
-  background: var(--signal);
+.card {
+  width: 100%;
   border: none;
-  border-radius: var(--radius-sm);
-  color: #fff;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  cursor: pointer;
-}
-
-.filterMenu {
-  position: absolute;
-  top: calc(100% + 6px);
-  right: 0;
-  min-width: 210px;
   background: var(--panel);
-  border: 1px solid var(--line);
-  border-radius: var(--radius-sm);
-  box-shadow: 0 8px 24px rgba(31, 41, 55, 0.14);
-  padding: 5px;
+  color: var(--text);
+  border-radius: 22px;
+  padding: 14px;
   display: flex;
   flex-direction: column;
-  gap: 1px;
-  z-index: 20;
-}
-
-.filterMenuItem {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  gap: 10px;
-  background: none;
-  border: none;
-  border-radius: 6px;
-  padding: 9px 10px;
-  font-size: 13px;
-  color: var(--text);
+  gap: 12px;
+  font-family: var(--font-body);
   text-align: left;
   cursor: pointer;
-  font-family: var(--font-body);
-  white-space: nowrap;
 }
 
-.filterMenuItem:hover {
-  background: var(--panel-2);
+.cardMuted {
+  opacity: 0.6;
 }
 
-.filterMenuItem svg {
-  color: var(--signal);
-  flex-shrink: 0;
-}
-
-/* ---------- Segment sekmeleri ---------- */
-
-.segmentRow {
-  display: flex;
-  align-items: center;
-  gap: 4px;
-}
-
-.segmentBtn,
-.segmentBtnActive {
-  flex: 1;
-  min-width: 0;
-  border: none;
-  background: none;
-  padding: 9px 6px;
-  border-radius: 999px;
-  font-size: 12.5px;
-  font-weight: 600;
-  font-family: var(--font-body);
-  color: var(--text-dim);
-  cursor: pointer;
-  overflow: hidden;
-  text-overflow: ellipsis;
-  white-space: nowrap;
-}
-
-.segmentBtnActive {
-  background: var(--signal);
-  color: #fff;
-}
-
-/* ---------- Resmi tatiller giris satiri ---------- */
-
-.holidayRow {
+.cardTop {
   display: flex;
   align-items: center;
   gap: 12px;
-  width: 100%;
-  background: var(--panel);
-  border: 1px solid var(--line);
-  border-radius: var(--radius-lg);
-  padding: 12px 14px;
-  text-align: left;
-  cursor: pointer;
-  font-family: var(--font-body);
-  box-shadow: 0 1px 3px rgba(43, 43, 38, 0.06);
-  transition: border-color 0.15s;
 }
 
-.holidayRow:hover {
-  border-color: var(--text-dim);
-}
-
-.holidayRowIcon {
-  width: 38px;
-  height: 38px;
-  border-radius: 10px;
-  background: var(--panel-2);
-  color: var(--signal);
+.avatar {
+  width: 46px;
+  height: 46px;
+  border-radius: 50%;
+  font-family: var(--font-heading);
+  font-size: 17px;
+  font-weight: 600;
   display: flex;
   align-items: center;
   justify-content: center;
   flex-shrink: 0;
 }
 
-.holidayRowText {
-  display: flex;
-  flex-direction: column;
-  gap: 1px;
-  min-width: 0;
-  flex: 1;
+.toneNavy {
+  background: var(--signal);
+  color: #fff;
 }
 
-.holidayRowLabel {
-  font-size: 13.5px;
-  font-weight: 700;
-  color: var(--text);
+.tonePurple {
+  background: #f1eafd;
+  color: #4c1d95;
 }
 
-.holidayRowSub {
-  font-size: 11.5px;
-  color: var(--text-dim);
-  overflow: hidden;
-  text-overflow: ellipsis;
-  white-space: nowrap;
-}
-
-.holidayRowChevron {
-  color: var(--text-dim);
-  flex-shrink: 0;
-}
-
-/* ---------- Ekip listesi ---------- */
-
-.list {
-  display: flex;
-  flex-direction: column;
-}
-
-.rowWrap {
-  border-bottom: 1px solid var(--line);
-}
-
-.rowWrap:last-child {
-  border-bottom: none;
-}
-
-.row {
-  display: flex;
-  align-items: center;
-  gap: 8px;
-  padding: 10px 2px;
-  cursor: pointer;
-  border-radius: var(--radius-sm);
-}
-
-.row:active {
-  background: var(--panel-2);
-}
-
-.avatarWrap {
-  position: relative;
-  flex-shrink: 0;
-}
-
-.statusDot {
-  position: absolute;
-  top: -1px;
-  left: -1px;
-  width: 10px;
-  height: 10px;
-  border-radius: 50%;
-  border: 2px solid var(--panel);
-}
-
-.statusDot_aktif {
-  background: var(--ok-text);
-}
-
-.statusDot_izinli {
-  background: var(--warn-text);
-}
-
-.statusDot_pasif {
-  background: var(--text-dim);
-}
-
-.rowMain {
-  display: flex;
-  flex-direction: column;
-  align-items: flex-start;
-  gap: 2px;
-  min-width: 0;
-  flex: 1;
-}
-
-.rowName {
-  font-size: 13.5px;
-  font-weight: 700;
-  color: var(--text);
-  overflow: hidden;
-  text-overflow: ellipsis;
-  white-space: nowrap;
-  max-width: 100%;
-}
-
-.rowRole {
-  font-size: 11px;
-  font-weight: 600;
-  color: var(--signal);
-}
-
-.rowPhone {
-  display: flex;
-  align-items: center;
-  gap: 4px;
-  font-size: 11px;
-  color: var(--text-dim);
-  min-width: 0;
-  max-width: 100%;
-}
-
-.rowPhoneText {
-  overflow: hidden;
-  text-overflow: ellipsis;
-  white-space: nowrap;
-}
-
-.rowStatBlock {
-  display: flex;
-  flex-direction: column;
-  align-items: flex-end;
-  gap: 1px;
-  flex-shrink: 0;
-  text-align: right;
-}
-
-.rowStatLabel {
-  font-size: 8.5px;
-  color: var(--text-dim);
-  white-space: nowrap;
-}
-
-.rowStatValue {
-  font-size: 12.5px;
-  font-weight: 700;
-  color: var(--text);
-  font-variant-numeric: tabular-nums;
-}
-
-.statusPill {
-  flex-shrink: 0;
-  font-size: 10px;
-  font-weight: 700;
-  padding: 3px 8px;
-  border-radius: 999px;
-  white-space: nowrap;
-}
-
-.statusPill_aktif {
-  color: var(--ok-text);
+.toneGreen {
   background: var(--ok-bg);
+  color: #0a5c43;
 }
 
-.statusPill_izinli {
-  color: var(--warn-text);
-  background: var(--warn-bg);
+.cardWho {
+  flex: 1;
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
 }
 
-.statusPill_pasif {
-  color: var(--text-dim);
-  background: var(--panel-2);
-}
-
-.editLabel {
-  flex-shrink: 0;
-  font-size: 12px;
+.cardName {
+  font-size: 16px;
   font-weight: 700;
-  color: var(--signal);
   white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.cardRole {
+  font-size: 12px;
+  color: var(--text-dim);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.pill {
+  flex-shrink: 0;
+  font-size: 11px;
+  font-weight: 700;
+  padding: 5px 9px;
+  border-radius: 999px;
+}
+
+.pill_warm {
+  background: var(--accent-bg);
+  color: var(--accent-text);
+}
+
+.pill_ok {
+  background: var(--ok-bg);
+  color: var(--ok-text);
+}
+
+.pill_muted {
+  background: var(--panel-2);
+  color: #374151;
+}
+
+.infoStrip {
+  display: flex;
+  justify-content: space-between;
+  gap: 10px;
+  font-size: 13px;
+  background: var(--bg);
+  border-radius: 12px;
+  padding: 10px 12px;
+}
+
+.infoText {
+  min-width: 0;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.infoCount {
+  font-weight: 700;
+  flex-shrink: 0;
+}
+
+/* ---------- Alt baglantilar ---------- */
+
+.linkGrid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 10px;
+}
+
+.linkCard {
+  border: none;
+  background: var(--panel);
+  color: var(--text);
+  border-radius: 18px;
+  padding: 14px;
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  font-family: var(--font-body);
+  text-align: left;
+  cursor: pointer;
+}
+
+.linkTitle {
+  font-size: 14px;
+  font-weight: 700;
+}
+
+.linkSub {
+  font-size: 12px;
+  color: var(--text-dim);
 }

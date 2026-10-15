@@ -1,284 +1,552 @@
 .wrap {
   display: flex;
   flex-direction: column;
-  gap: 16px;
+  gap: 12px;
 }
 
-/* ---------- Donem filtresi ---------- */
+.empty {
+  font-size: 14px;
+  color: var(--text-dim);
+  text-align: center;
+  padding: 24px 12px;
+}
 
-.presetRow {
+.note {
+  font-size: 12px;
+  color: var(--text-dim);
+  padding: 0 4px;
+}
+
+/* ---------- Donem secimi ---------- */
+
+.periodWrap {
+  position: relative;
+  flex-shrink: 0;
+}
+
+.periodBtn {
+  border: none;
+  background: var(--panel);
+  color: var(--text);
+  border-radius: 12px;
+  padding: 9px 12px;
+  font-family: var(--font-body);
+  font-size: 13px;
+  font-weight: 700;
+  white-space: nowrap;
+  cursor: pointer;
+}
+
+.menuScrim {
+  position: fixed;
+  inset: 0;
+  z-index: 19;
+}
+
+.periodMenu {
+  position: absolute;
+  top: calc(100% + 8px);
+  right: 0;
+  min-width: 190px;
+  background: var(--panel);
+  border-radius: 16px;
+  box-shadow: 0 12px 32px rgba(17, 24, 39, 0.16);
+  padding: 6px;
   display: flex;
-  gap: 6px;
+  flex-direction: column;
+  z-index: 20;
 }
 
-.presetBtn,
-.presetBtnActive {
+.periodMenuItem {
   display: flex;
   align-items: center;
-  justify-content: center;
-  gap: 5px;
-  flex: 1;
-  min-width: 0;
-  background: var(--panel);
-  border: 1px solid var(--line);
-  color: var(--text-dim);
-  border-radius: 999px;
-  padding: 9px 8px;
-  font-size: 12.5px;
-  font-weight: 600;
+  justify-content: space-between;
+  gap: 12px;
+  border: none;
+  background: none;
+  border-radius: 11px;
+  padding: 11px 12px;
   font-family: var(--font-body);
+  font-size: 14px;
+  color: var(--text);
+  text-align: left;
   cursor: pointer;
-  overflow: hidden;
-  text-overflow: ellipsis;
-  white-space: nowrap;
 }
 
-.presetBtnActive {
-  background: var(--signal);
-  border-color: var(--signal);
-  color: #fff;
+.periodMenuItem svg {
+  color: var(--signal);
 }
 
 .customRangeRow {
   display: grid;
-  grid-template-columns: 1fr 1fr;
-  gap: 12px;
-}
-
-/* ---------- KPI kartlari ---------- */
-
-.kpiGrid {
-  display: grid;
-  grid-template-columns: repeat(2, 1fr);
+  grid-template-columns: repeat(2, minmax(0, 1fr));
   gap: 10px;
 }
 
-@media (min-width: 640px) {
-  .kpiGrid {
-    grid-template-columns: repeat(4, 1fr);
-  }
-}
-
-.kpiCard {
+.dateField {
   display: flex;
   flex-direction: column;
-  align-items: center;
   gap: 6px;
-  padding: 16px 10px;
-  background: var(--panel);
-  border: 1px solid var(--line);
-  border-radius: var(--radius-lg);
-  box-shadow: 0 1px 3px rgba(43, 43, 38, 0.06);
-  text-align: center;
+  min-width: 0;
 }
 
-.kpiIcon {
-  width: 38px;
-  height: 38px;
+.dateField label {
+  font-size: 12px;
+  font-weight: 700;
+  color: var(--text-dim);
+}
+
+.dateField input {
+  width: 100%;
+  border: none;
+  outline: none;
+  background: var(--panel);
+  border-radius: 14px;
+  padding: 11px 12px;
+  font-family: var(--font-body);
+  font-size: 14px;
+  color: var(--text);
+}
+
+/* ---------- Arama ---------- */
+
+.searchBox {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  background: var(--panel);
+  border-radius: 14px;
+  padding: 0 14px;
+}
+
+.searchIcon {
+  color: #9ca3af;
+  flex-shrink: 0;
+}
+
+.searchInput {
+  flex: 1;
+  min-width: 0;
+  border: none;
+  outline: none;
+  background: transparent;
+  padding: 12px 0;
+  font-family: var(--font-body);
+  font-size: 14px;
+  color: var(--text);
+}
+
+.searchInput::placeholder {
+  color: #9ca3af;
+}
+
+/* ---------- Calisan kartlari ---------- */
+
+.card {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  width: 100%;
+  border: none;
+  background: var(--panel);
+  border-radius: 22px;
+  padding: 16px;
+  font-family: var(--font-body);
+  color: var(--text);
+  text-align: left;
+  cursor: pointer;
+}
+
+div.card {
+  cursor: default;
+}
+
+.cardTop {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+
+.avatar {
+  width: 42px;
+  height: 42px;
   border-radius: 50%;
+  font-size: 15px;
+  font-weight: 700;
   display: flex;
   align-items: center;
   justify-content: center;
   flex-shrink: 0;
 }
 
-.kpiValue {
-  font-family: var(--font-heading);
-  font-size: 17px;
-  font-weight: 700;
-  color: var(--text);
-  line-height: 1.2;
+.toneNavy {
+  background: var(--signal);
+  color: #fff;
 }
 
-.kpiLabel {
-  font-size: 11px;
-  font-weight: 600;
+.tonePurple {
+  background: #f1eafd;
+  color: #4c1d95;
+}
+
+.toneGreen {
+  background: var(--ok-bg);
+  color: #0a5c43;
+}
+
+.toneBot {
+  background: var(--tint);
+  color: var(--signal);
+}
+
+.cardWho {
+  flex: 1;
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+}
+
+.cardName {
+  font-size: 17px;
+  font-weight: 700;
+}
+
+.cardSub {
+  font-size: 12px;
   color: var(--text-dim);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.chevron {
+  color: #9ca3af;
+}
+
+.cardStats,
+.cardStats2 {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  background: var(--bg);
+  border-radius: 14px;
+}
+
+.cardStats2 {
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+}
+
+.cardStat {
+  padding: 10px;
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  min-width: 0;
+}
+
+.cardStat + .cardStat {
+  border-left: 1px solid #e2e5ea;
+}
+
+.cardStatValue {
+  font-family: var(--font-heading);
+  font-size: 18px;
+  font-weight: 600;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.cardStatLabel {
+  font-size: 11px;
+  color: var(--text-dim);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+/* ---------- Toplamlar ---------- */
+
+.totals {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  background: var(--signal);
+  color: #fff;
+  border-radius: 20px;
+}
+
+.totalItem {
+  padding: 14px 12px;
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  min-width: 0;
+}
+
+.totalItem + .totalItem {
+  border-left: 1px solid var(--navy-line);
+}
+
+.totalValue {
+  font-family: var(--font-heading);
+  font-size: 18px;
+  font-weight: 600;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.totalLabel {
+  font-size: 11px;
+  color: var(--navy-dim);
 }
 
 .exportBtn {
   display: flex;
   align-items: center;
   justify-content: center;
-  gap: 7px;
-  font-weight: 600;
-}
-
-/* ---------- Siralama + arama ---------- */
-
-.controlRow {
-  display: flex;
-  gap: 10px;
-  align-items: center;
-}
-
-.searchBox {
-  position: relative;
-  flex: 1;
-  min-width: 0;
-  display: flex;
-  align-items: center;
-}
-
-.searchIcon {
-  position: absolute;
-  left: 12px;
-  color: var(--text-dim);
-}
-
-.searchInput {
-  width: 100%;
+  gap: 8px;
+  border: none;
   background: var(--panel);
-  border: 1px solid var(--line);
-  border-radius: var(--radius-sm);
-  padding: 10px 12px 10px 34px;
-  font-size: 13px;
-  color: var(--text);
-  font-family: var(--font-body);
-  outline: none;
-}
-
-.searchInput:focus {
-  border-color: var(--signal);
-}
-
-/* ---------- Calisanlar basligi ---------- */
-
-.sectionHead {
-  display: flex;
-  align-items: baseline;
-  justify-content: space-between;
-}
-
-.sectionLabel {
-  font-family: var(--font-heading);
-  font-size: 16px;
-  font-weight: 600;
-  color: var(--text);
-}
-
-.sectionCount {
-  font-size: 12px;
-  color: var(--text-dim);
-}
-
-/* ---------- Calisan listesi ---------- */
-
-.employeeList {
-  display: flex;
-  flex-direction: column;
-  gap: 10px;
-}
-
-.employeeRow {
-  display: flex;
-  align-items: center;
-  gap: 10px;
-}
-
-
-.botAvatar {
-  flex-shrink: 0;
-  width: 44px;
-  height: 44px;
-  border-radius: 50%;
-  background: var(--info-bg);
   color: var(--signal);
-  display: inline-flex;
-  align-items: center;
-  justify-content: center;
-}
-
-.employeeMain {
-  flex: 1;
-  min-width: 0;
-  display: flex;
-  flex-direction: column;
-  gap: 6px;
-}
-
-.employeeNameRow {
-  display: flex;
-  align-items: center;
-  gap: 7px;
-  min-width: 0;
-}
-
-.employeeName {
+  border-radius: 16px;
+  padding: 14px;
+  font-family: var(--font-body);
   font-size: 14px;
   font-weight: 700;
+  cursor: pointer;
+}
+
+/* ---------- Karne ---------- */
+
+.chips {
+  display: flex;
+  gap: 8px;
+  overflow-x: auto;
+  scrollbar-width: none;
+}
+
+.chips::-webkit-scrollbar {
+  display: none;
+}
+
+.chip,
+.chipActive {
+  flex-shrink: 0;
+  border: none;
+  background: var(--panel);
   color: var(--text);
-  overflow: hidden;
-  text-overflow: ellipsis;
-  white-space: nowrap;
-}
-
-.employeeTag {
-  flex-shrink: 0;
-  font-size: 10px;
-  font-weight: 700;
-  color: var(--signal-2);
-  background: #f2edfd;
-  padding: 2px 8px;
   border-radius: 999px;
-  overflow: hidden;
-  text-overflow: ellipsis;
-  white-space: nowrap;
-  max-width: 130px;
+  padding: 8px 12px;
+  font-family: var(--font-body);
+  font-size: 13px;
+  font-weight: 600;
+  cursor: pointer;
 }
 
-.employeeStatsRow {
-  display: flex;
-  align-items: center;
-  gap: 12px;
-  flex-wrap: wrap;
+.chipActive {
+  background: var(--signal);
+  color: #fff;
+  font-weight: 700;
 }
 
-.employeeStat {
-  display: flex;
-  align-items: center;
-  gap: 4px;
-  font-size: 12px;
-  color: var(--text-dim);
-  white-space: nowrap;
+.tiles {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 10px;
 }
 
-.primBox {
-  flex-shrink: 0;
+.tile {
+  background: var(--panel);
+  border-radius: 20px;
+  padding: 14px;
   display: flex;
   flex-direction: column;
-  align-items: flex-end;
-  gap: 2px;
-  background: var(--ok-bg);
-  border-radius: 10px;
-  padding: 8px 10px;
-  min-width: 100px;
+  gap: 4px;
+  min-width: 0;
 }
 
-.primRate {
-  font-size: 9.5px;
-  font-weight: 700;
-  color: var(--ok-text);
+.tileLabel {
+  font-size: 12px;
+  color: var(--text-dim);
+}
+
+.tileValue {
+  font-family: var(--font-heading);
+  font-size: 26px;
+  font-weight: 600;
   white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
 }
 
-.primAmount {
+.tileHint,
+.tileUp,
+.tileDown {
+  font-size: 12px;
+  color: var(--text-dim);
+}
+
+.tileUp {
+  color: var(--ok-text);
+  font-weight: 700;
+}
+
+.tileDown {
+  color: var(--warn-text);
+  font-weight: 700;
+}
+
+.chartCard {
+  background: var(--panel);
+  border-radius: 22px;
+  padding: 16px;
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+.cardTitle {
+  font-family: var(--font-heading);
+  font-size: 17px;
+  font-weight: 600;
+}
+
+.bars,
+.barLabels {
+  display: grid;
+  gap: 8px;
+}
+
+.bars {
+  align-items: end;
+  height: 84px;
+}
+
+.barCol {
+  height: 100%;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: flex-end;
+  gap: 4px;
+}
+
+.barPct,
+.barPctTop {
+  font-size: 11px;
+  color: var(--text-dim);
+}
+
+.barPctTop {
+  font-size: 12px;
+  font-weight: 700;
+  color: var(--text);
+}
+
+.bar,
+.barTop {
+  width: 100%;
+  background: var(--navy-dim);
+  border-radius: 4px 4px 0 0;
+}
+
+.barTop {
+  background: var(--signal);
+}
+
+.barLabels {
+  font-size: 11px;
+  color: var(--text-dim);
+  text-align: center;
+  border-top: 1px solid #eef0f3;
+  padding-top: 8px;
+}
+
+.barLabelTop {
+  font-weight: 700;
+  color: var(--text);
+}
+
+.insight {
+  background: var(--tint);
+  border-radius: 18px;
+  padding: 12px 14px;
+  font-size: 13px;
+  color: var(--signal);
+  line-height: 1.45;
+}
+
+.listCard {
+  background: var(--panel);
+  border-radius: 22px;
+  padding: 2px 14px;
+  display: flex;
+  flex-direction: column;
+}
+
+.kvRow {
   display: flex;
   align-items: center;
-  gap: 4px;
+  justify-content: space-between;
+  gap: 12px;
+  padding: 13px 0;
+  border-bottom: 1px solid #eef0f3;
+}
+
+.kvRow:last-child {
+  border-bottom: none;
+}
+
+.kvLabel {
+  font-size: 13px;
+  color: var(--text-dim);
+}
+
+.kvValue {
+  font-size: 14px;
+  font-weight: 700;
+  text-align: right;
+}
+
+.textWarm {
+  color: var(--warn-text);
+}
+
+.barRow {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+.barRowLabel {
+  width: 96px;
+  flex-shrink: 0;
+  font-size: 13px;
+  font-weight: 600;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.barTrack {
+  flex: 1;
+  height: 8px;
+  border-radius: 999px;
+  background: var(--panel-2);
+  overflow: hidden;
+}
+
+.barFill {
+  display: block;
+  height: 100%;
+  border-radius: 999px;
+  background: var(--signal);
+}
+
+.barValue {
+  width: 28px;
+  text-align: right;
   font-size: 13px;
   font-weight: 700;
-  color: var(--ok-text);
-  white-space: nowrap;
-}
-
-.primAmountLabel {
-  font-size: 9px;
-  color: var(--ok-text);
-  opacity: 0.75;
-}
-
-.empty {
-  color: var(--text-dim);
-  font-size: 13px;
+  font-variant-numeric: tabular-nums;
 }

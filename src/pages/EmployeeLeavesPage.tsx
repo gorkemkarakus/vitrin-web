@@ -1,10 +1,9 @@
-import { useEffect, useMemo, useState } from 'react'
-import { useNavigate, useParams } from 'react-router-dom'
+import { useEffect, useState } from 'react'
+import { useNavigate, useParams, useSearchParams } from 'react-router-dom'
 import { supabase } from '../lib/supabase'
 import { TIME_OPTIONS } from '../lib/timeOptions'
 import { toLocalDateString } from '../lib/date'
-import Avatar from '../components/Avatar'
-import { AlertTriangleIcon, CalendarIcon, ChevronRightIcon, PlusIcon, TrashIcon } from '../components/icons'
+import PageHeader from '../components/PageHeader'
 import styles from './EmployeeLeavesPage.module.css'
 
 interface Employee {
@@ -86,10 +85,20 @@ interface LeaveDraft {
   label: string
 }
 
-const LEAVE_REASON_OPTIONS: { value: 'yillik' | 'mazeret'; label: string }[] = [
-  { value: 'yillik', label: 'Yıllık İzin' },
-  { value: 'mazeret', label: 'Mazeret İzni' },
-]
+const LEAVE_REASON_OPTIONS = ['Yıllık izin', 'Kişisel', 'Rapor', 'Doktor', 'Mazeret izni', 'Diğer']
+
+// Ekleme penceresindeki uc secenek: tek gun tam gun, tek gun birkac saat,
+// birden fazla gun (tam gun).
+type LeaveKind = 'tam' | 'saat' | 'gun'
+
+interface UpcomingAppt {
+  id: string
+  employee_id: string | null
+  customer_id: string | null
+  scheduled_at: string
+  duration_minutes: number | null
+}
+
 
 function todayLocalDateString() {
   return toLocalDateString(new Date())
@@ -103,6 +112,7 @@ function timeStringToMinutes(t: string) {
 export default function EmployeeLeavesPage() {
   const { id } = useParams<{ id: string }>()
   const navigate = useNavigate()
+  const [searchParams, setSearchParams] = useSearchParams()
 
   const [employee, setEmployee] = useState<Employee | null>(null)
   const [timeBlocks, setTimeBlocks] = useState<TimeBlock[]>([])
@@ -113,23 +123,29 @@ export default function EmployeeLeavesPage() {
   const [leaveDrafts, setLeaveDrafts] = useState<LeaveDraft[]>([])
   const [leaveReady, setLeaveReady] = useState(false)
   const [savingLeaves, setSavingLeaves] = useState(false)
-  const [leaveJsonCopied, setLeaveJsonCopied] = useState(false)
+  const [formOpen, setFormOpen] = useState(false)
+  // Ekleme/silme sonrasi taslak listesi guncellenince kaydi tetiklemek icin.
+  const [autoSave, setAutoSave] = useState(false)
 
-  const [leaveMode, setLeaveMode] = useState<'day' | 'range'>('day')
   const [leaveDate, setLeaveDate] = useState(todayLocalDateString())
   const [leaveEndDate, setLeaveEndDate] = useState('')
-  const [leaveAllDay, setLeaveAllDay] = useState(true)
   const [leaveStart, setLeaveStart] = useState('')
   const [leaveEnd, setLeaveEnd] = useState('')
-  const [leaveReason, setLeaveReason] = useState<'yillik' | 'mazeret'>('yillik')
-  const [leaveLabel, setLeaveLabel] = useState('Yıllık İzin')
+  const [leaveKind, setLeaveKind] = useState<LeaveKind>('tam')
+  // Liste filtresi: 'herkes' ya da bir calisan id'si (varsayilan bu sayfanin calisani).
+  const [who, setWho] = useState<string>(id ?? 'herkes')
+  const [allProfiles, setAllProfiles] = useState<Employee[]>([])
+  const [allLeaves, setAllLeaves] = useState<TimeBlock[]>([])
+  const [upcomingAppts, setUpcomingAppts] = useState<UpcomingAppt[]>([])
+  const [upcomingCustomerNames, setUpcomingCustomerNames] = useState<Map<string, string>>(new Map())
+  // Cakisma ekraninda her randevu icin secim: 'to:<calisanId>' | 'cancel' | 'keep'
+  const [choices, setChoices] = useState<Record<string, string>>({})
+  const [leaveLabel, setLeaveLabel] = useState('Yıllık izin')
 
   // Cakisma kontrolu + cozum modali
   const [checkingConflicts, setCheckingConflicts] = useState(false)
   const [conflictModalOpen, setConflictModalOpen] = useState(false)
   const [conflicts, setConflicts] = useState<ConflictAppointment[]>([])
-  const [conflictAction, setConflictAction] = useState<'transfer' | 'distribute' | null>(null)
-  const [transferTargetId, setTransferTargetId] = useState('')
   const [resolving, setResolving] = useState(false)
   const [otherProfiles, setOtherProfiles] = useState<OtherProfile[]>([])
   const [employeeServices, setEmployeeServices] = useState<EmployeeServiceRow[]>([])
@@ -149,6 +165,32 @@ export default function EmployeeLeavesPage() {
     ])
     setEmployee(emp ?? null)
     setTimeBlocks(blocks ?? [])
+
+    // Tum ekibin izinleri (resmi tatil haric) + bugunden sonraki randevular
+    // (listede "N randevu cakisiyor" ve ekleme penceresi onizlemesi icin).
+    const todayIso = new Date(new Date().setHours(0, 0, 0, 0)).toISOString()
+    const [{ data: profs }, { data: leaves }, { data: appts }] = await Promise.all([
+      supabase.from('profiles').select('id, full_name').eq('is_active', true).order('full_name'),
+      supabase
+        .from('employee_time_blocks')
+        .select('id, profile_id, day_of_week, block_date, end_date, starts_at, ends_at, label')
+        .is('day_of_week', null)
+        .neq('label', 'Resmi Tatil'),
+      supabase
+        .from('appointments')
+        .select('id, employee_id, customer_id, scheduled_at, duration_minutes')
+        .neq('status', 'iptal')
+        .gte('scheduled_at', todayIso)
+        .limit(1000),
+    ])
+    setAllProfiles(profs ?? [])
+    setAllLeaves((leaves ?? []).filter((b) => b.block_date) as TimeBlock[])
+    setUpcomingAppts((appts ?? []) as UpcomingAppt[])
+    const custIds = [...new Set((appts ?? []).map((a) => a.customer_id).filter(Boolean))] as string[]
+    if (custIds.length) {
+      const { data: custs } = await supabase.from('customers').select('id, full_name').in('id', custIds.slice(0, 300))
+      setUpcomingCustomerNames(new Map((custs ?? []).map((c) => [c.id, c.full_name])))
+    }
     setLoading(false)
   }
 
@@ -179,51 +221,29 @@ export default function EmployeeLeavesPage() {
 
   function addLeaveDraft() {
     if (!leaveDate) return
-    if (!leaveAllDay && (!leaveStart || !leaveEnd)) return
+    const allDay = leaveKind !== 'saat'
+    if (!allDay && (!leaveStart || !leaveEnd)) return
     const newDraft: LeaveDraft = {
       id: crypto.randomUUID(),
-      mode: leaveMode,
+      mode: leaveKind === 'gun' ? 'range' : 'day',
       date: leaveDate,
-      endDate: leaveMode === 'range' ? leaveEndDate || leaveDate : leaveDate,
-      allDay: leaveAllDay,
-      start: leaveAllDay ? '00:00' : leaveStart,
-      end: leaveAllDay ? '23:59' : leaveEnd,
+      endDate: leaveKind === 'gun' ? leaveEndDate || leaveDate : leaveDate,
+      allDay,
+      start: allDay ? '00:00' : leaveStart,
+      end: allDay ? '23:59' : leaveEnd,
       label: leaveLabel.trim(),
     }
     setLeaveDrafts((prev) => [...prev, newDraft])
-    setLeaveMode('day')
     setLeaveDate(todayLocalDateString())
     setLeaveEndDate('')
-    setLeaveAllDay(true)
     setLeaveStart('')
     setLeaveEnd('')
-    setLeaveReason('yillik')
-    setLeaveLabel('Yıllık İzin')
+    setLeaveKind('tam')
+    setLeaveLabel('Yıllık izin')
   }
 
   function removeLeaveDraft(draftId: string) {
     setLeaveDrafts((prev) => prev.filter((d) => d.id !== draftId))
-  }
-
-  function leavesJson() {
-    return JSON.stringify(
-      leaveDrafts.map((d) => ({
-        baslangic: d.date,
-        bitis: d.mode === 'range' ? d.endDate : d.date,
-        tumGunKapali: d.allDay,
-        baslangicSaati: d.allDay ? null : d.start,
-        bitisSaati: d.allDay ? null : d.end,
-        etiket: d.label || null,
-      })),
-      null,
-      2,
-    )
-  }
-
-  function copyLeavesJson() {
-    navigator.clipboard.writeText(leavesJson())
-    setLeaveJsonCopied(true)
-    setTimeout(() => setLeaveJsonCopied(false), 2000)
   }
 
   async function saveLeaves() {
@@ -392,28 +412,6 @@ export default function EmployeeLeavesPage() {
     return candidatesFor(conflict).filter((p) => isCandidateAvailable(p.id, conflict.scheduled_at, conflict.duration_minutes))
   }
 
-  // Her cakisan randevu icin GERCEKTEN musait aday havuzu uzerinden
-  // round-robin dagitim onerisi — havuz aynı olan randevular kendi
-  // aralarinda sirayla donerken, farkli kategori/havuzdaki randevular
-  // birbirini etkilemez. Musait aday olmayan randevu "atanmadi" kalir.
-  const distributionPlan = useMemo(() => {
-    if (conflictAction !== 'distribute') return []
-    const cursors = new Map<string, number>()
-    return conflicts.map((c) => {
-      const avail = availableCandidatesFor(c)
-      if (avail.length === 0) return { conflict: c, assignedId: null as string | null, assignedName: null as string | null }
-      const key = avail
-        .map((p) => p.id)
-        .sort()
-        .join(',')
-      const idx = cursors.get(key) ?? 0
-      const chosen = avail[idx % avail.length]
-      cursors.set(key, idx + 1)
-      return { conflict: c, assignedId: chosen.id, assignedName: chosen.full_name }
-    })
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [conflictAction, conflicts, otherProfiles, employeeServices, otherSchedules, otherTimeBlocks, otherAppointments])
-
   async function handleSaveClick() {
     const range = draftDateRange()
     if (!range) {
@@ -429,27 +427,20 @@ export default function EmployeeLeavesPage() {
     }
     await loadResolutionPool(range)
     setConflicts(found)
-    setConflictAction(null)
-    setTransferTargetId('')
+    setChoices({})
     setCheckingConflicts(false)
     setConflictModalOpen(true)
   }
 
+  // Her randevu icin secilen islemi uygula, sonra izni kaydet.
   async function confirmResolution() {
     setResolving(true)
-    if (conflictAction === 'transfer' && transferTargetId) {
-      await supabase
-        .from('appointments')
-        .update({ employee_id: transferTargetId })
-        .in(
-          'id',
-          conflicts.map((c) => c.id),
-        )
-    } else if (conflictAction === 'distribute') {
-      for (const item of distributionPlan) {
-        if (item.assignedId) {
-          await supabase.from('appointments').update({ employee_id: item.assignedId }).eq('id', item.conflict.id)
-        }
+    for (const c of conflicts) {
+      const choice = choices[c.id] ?? 'keep'
+      if (choice.startsWith('to:')) {
+        await supabase.from('appointments').update({ employee_id: choice.slice(3) }).eq('id', c.id)
+      } else if (choice === 'cancel') {
+        await supabase.from('appointments').update({ status: 'iptal' }).eq('id', c.id)
       }
     }
     setConflictModalOpen(false)
@@ -457,283 +448,457 @@ export default function EmployeeLeavesPage() {
     setResolving(false)
   }
 
-  async function skipResolution() {
-    setConflictModalOpen(false)
-    await saveLeaves()
+  // Baska bir calisanin sayfasindan "Kim izinli?" ile gelindiyse formu ac.
+  useEffect(() => {
+    if (searchParams.get('ekle') === '1') {
+      setFormOpen(true)
+      searchParams.delete('ekle')
+      setSearchParams(searchParams, { replace: true })
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [searchParams])
+
+  // Rota degisince (baska calisana gecis) liste filtresi o calisana donsun.
+  useEffect(() => {
+    if (id) setWho(id)
+    setLeaveReady(false)
+  }, [id])
+
+  useEffect(() => {
+    if (!autoSave) return
+    setAutoSave(false)
+    handleSaveClick()
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [autoSave, leaveDrafts])
+
+  if (loading) return <p className={styles.empty}>Yükleniyor…</p>
+  if (!employee) return <p className={styles.empty}>Ekip üyesi bulunamadı.</p>
+
+  const busy = savingLeaves || checkingConflicts
+  const todayStr = todayLocalDateString()
+  const nameOf = (pid: string) => (allProfiles.find((p) => p.id === pid)?.full_name ?? '—').trim().split(/\s+/)[0]
+  const employeeFirst = (employee.full_name ?? '—').trim().split(/\s+/)[0]
+
+  // Liste: "Herkes" secilirse tum ekibin izinleri, degilse secili calisaninki.
+  // Secili calisan bu sayfanin calisaniysa taslaklar (henuz kaydedilmemis
+  // degisiklikler dahil) gosterilir.
+  type Row = { key: string; pid: string; date: string; endDate: string; allDay: boolean; start: string; end: string; label: string; draftId?: string }
+  const ownRows: Row[] = leaveDrafts.map((d) => ({
+    key: d.id,
+    pid: id as string,
+    date: d.date,
+    endDate: d.endDate || d.date,
+    allDay: d.allDay,
+    start: d.start,
+    end: d.end,
+    label: d.label,
+    draftId: d.id,
+  }))
+  const otherRows: Row[] = allLeaves
+    .filter((b) => b.profile_id !== id)
+    .map((b) => ({
+      key: b.id,
+      pid: b.profile_id,
+      date: b.block_date as string,
+      endDate: (b.end_date ?? b.block_date) as string,
+      allDay: b.starts_at.slice(0, 5) <= '00:05' && b.ends_at.slice(0, 5) >= '23:55',
+      start: b.starts_at.slice(0, 5),
+      end: b.ends_at.slice(0, 5),
+      label: b.label ?? '',
+    }))
+  const rows = (who === 'herkes' ? [...ownRows, ...otherRows] : who === id ? ownRows : otherRows.filter((r) => r.pid === who)).sort(
+    (a, b) => a.date.localeCompare(b.date),
+  )
+  const upcoming = rows.filter((r) => r.endDate >= todayStr)
+  const past = rows.filter((r) => r.endDate < todayStr).reverse()
+
+  function rowDays(r: Row) {
+    return Math.round((new Date(`${r.endDate}T00:00:00`).getTime() - new Date(`${r.date}T00:00:00`).getTime()) / 86400000) + 1
   }
 
-  if (loading) return <p style={{ color: 'var(--text-dim)' }}>Yükleniyor…</p>
-  if (!employee) return <p style={{ color: 'var(--text-dim)' }}>Ekip üyesi bulunamadı.</p>
+  function conflictCount(r: Row) {
+    return upcomingAppts.filter((a) => {
+      if (a.employee_id !== r.pid) return false
+      const d = new Date(a.scheduled_at)
+      const ds = toLocalDateString(d)
+      if (ds < r.date || ds > r.endDate) return false
+      if (r.allDay) return true
+      const s = d.getHours() * 60 + d.getMinutes()
+      return timeStringToMinutes(r.start) < s + (a.duration_minutes ?? 30) && timeStringToMinutes(r.end) > s
+    }).length
+  }
+
+  // Ekleme penceresinde secili tarihlerdeki randevular (onizleme).
+  const formEnd = leaveKind === 'gun' ? leaveEndDate || leaveDate : leaveDate
+  const formConflicts = upcomingAppts
+    .filter((a) => {
+      if (a.employee_id !== id || !leaveDate) return false
+      const d = new Date(a.scheduled_at)
+      const ds = toLocalDateString(d)
+      if (ds < leaveDate || ds > formEnd) return false
+      if (leaveKind !== 'saat') return true
+      if (!leaveStart || !leaveEnd) return false
+      const s = d.getHours() * 60 + d.getMinutes()
+      return timeStringToMinutes(leaveStart) < s + (a.duration_minutes ?? 30) && timeStringToMinutes(leaveEnd) > s
+    })
+    .sort((a, b) => a.scheduled_at.localeCompare(b.scheduled_at))
+
+  const resolvedCount = conflicts.filter((c) => choices[c.id] && choices[c.id] !== 'keep').length
+
+  // Cakisma cozum ekrani (tasarim: Izinler-5)
+  if (conflictModalOpen) {
+    const first = leaveDrafts.find((d) => !d.blockId)
+    return (
+      <div className={styles.wrap}>
+        <PageHeader
+          back={() => setConflictModalOpen(false)}
+          title={`${employeeFirst} izinli olacak`}
+          sub={
+            first
+              ? `${new Date(`${first.date}T00:00:00`).toLocaleDateString('tr-TR', { weekday: 'long', day: 'numeric', month: 'long' })}${
+                  first.endDate && first.endDate !== first.date
+                    ? ` – ${new Date(`${first.endDate}T00:00:00`).toLocaleDateString('tr-TR', { day: 'numeric', month: 'long' })}`
+                    : ''
+                } · ${first.allDay ? 'tam gün' : `${first.start} – ${first.end}`}`
+              : undefined
+          }
+        />
+
+        <div className={styles.resolveHero}>
+          <span className={styles.resolveTitle}>
+            O tarihte {conflicts.length} randevusu var. Ne yapalım?
+          </span>
+          <div className={styles.resolveProgress}>
+            <span className={styles.resolveTrack}>
+              <span style={{ width: `${conflicts.length ? (resolvedCount / conflicts.length) * 100 : 0}%` }} />
+            </span>
+            <span className={styles.resolveCount}>
+              {resolvedCount} / {conflicts.length} çözüldü
+            </span>
+          </div>
+        </div>
+
+        {conflicts.map((c) => {
+          const cands = availableCandidatesFor(c)
+          const choice = choices[c.id] ?? 'keep'
+          const set = (v: string) => setChoices((prev) => ({ ...prev, [c.id]: v }))
+          return (
+            <div className={choice === 'keep' ? `${styles.resolveCard} ${styles.resolveCardOpen}` : styles.resolveCard} key={c.id}>
+              <span className={styles.resolveWho}>
+                <span className={styles.resolveName}>{c.customerName}</span>
+                <span className={styles.resolveMeta}>
+                  {new Date(c.scheduled_at).toLocaleDateString('tr-TR', { day: 'numeric', month: 'short' })}{' '}
+                  {new Date(c.scheduled_at).toLocaleTimeString('tr-TR', { hour: '2-digit', minute: '2-digit' })} · {c.serviceName} ·{' '}
+                  {c.duration_minutes ?? 30} dk
+                </span>
+              </span>
+              <div className={styles.optionList}>
+                {cands.slice(0, 2).map((p) => (
+                  <button
+                    key={p.id}
+                    type="button"
+                    className={choice === `to:${p.id}` ? styles.optionActive : styles.option}
+                    onClick={() => set(`to:${p.id}`)}
+                  >
+                    <span className={choice === `to:${p.id}` ? styles.radioOn : styles.radio} />
+                    <span className={styles.optionText}>
+                      <span className={styles.optionTitle}>{(p.full_name ?? '—').split(' ')[0]} yapsın</span>
+                      <span className={styles.optionSub}>Aynı saat boş, bu hizmeti yapabiliyor</span>
+                    </span>
+                  </button>
+                ))}
+                {cands.length === 0 && <span className={styles.optionNote}>Bu saatte bu hizmeti yapabilecek boş kimse yok.</span>}
+                <button
+                  type="button"
+                  className={choice === 'cancel' ? styles.optionActive : styles.option}
+                  onClick={() => set('cancel')}
+                >
+                  <span className={choice === 'cancel' ? styles.radioOn : styles.radio} />
+                  <span className={styles.optionText}>
+                    <span className={styles.optionTitle}>İptal et</span>
+                    <span className={styles.optionSub}>Randevu iptal olarak işaretlenir</span>
+                  </span>
+                </button>
+                <button
+                  type="button"
+                  className={choice === 'keep' ? styles.optionActive : styles.option}
+                  onClick={() => set('keep')}
+                >
+                  <span className={choice === 'keep' ? styles.radioOn : styles.radio} />
+                  <span className={styles.optionText}>
+                    <span className={styles.optionTitle}>Şimdilik dokunma</span>
+                    <span className={styles.optionSub}>Sonra Randevular ekranından taşırsın</span>
+                  </span>
+                </button>
+              </div>
+            </div>
+          )
+        })}
+
+        <div className={styles.footer}>
+          <button type="button" className={styles.footerBtn} onClick={confirmResolution} disabled={resolving}>
+            {resolving ? 'Kaydediliyor…' : 'Uygula ve izni kaydet'}
+          </button>
+        </div>
+      </div>
+    )
+  }
 
   return (
     <div className={styles.wrap}>
-      <button type="button" className={styles.backBtn} onClick={() => navigate(`/ekip/${id}`)}>
-        <ChevronRightIcon width={14} height={14} className={styles.backIcon} />
-        {employee.full_name ?? 'Çalışana'} Dön
-      </button>
+      <PageHeader back={`/ekip/${id}`} title="İzinler" />
 
-      <div className={styles.pageHeader}>
-        <Avatar name={employee.full_name ?? '?'} size={36} />
-        <div>
-          <h1 className={styles.pageTitle}>İzinli Günler</h1>
-          <span className={styles.pageSubtitle}>{employee.full_name ?? '—'}</span>
-        </div>
-      </div>
-
-      <div className="card">
-        <p className={styles.subtitle}>Yıllık izin veya tek günlük kapanışları buradan tanımla. Bu günlerde randevu alınamaz.</p>
-
-        <div className={styles.leaveModeToggle}>
-          <button
-            type="button"
-            className={leaveMode === 'day' ? styles.leaveModeTabActive : styles.leaveModeTab}
-            onClick={() => setLeaveMode('day')}
-          >
-            Tek gün
-          </button>
-          <button
-            type="button"
-            className={leaveMode === 'range' ? styles.leaveModeTabActive : styles.leaveModeTab}
-            onClick={() => setLeaveMode('range')}
-          >
-            Tarih aralığı
-          </button>
-        </div>
-
-        <div className={styles.leaveField}>
-          <label>{leaveMode === 'range' ? 'Başlangıç Tarihi' : 'Tarih'}</label>
-          <input type="date" value={leaveDate} onChange={(e) => setLeaveDate(e.target.value)} />
-        </div>
-
-        {leaveMode === 'range' && (
-          <div className={styles.leaveField}>
-            <label>Bitiş Tarihi</label>
-            <input
-              type="date"
-              min={leaveDate || undefined}
-              value={leaveEndDate}
-              onChange={(e) => setLeaveEndDate(e.target.value)}
-            />
-          </div>
-        )}
-
-        <div className={styles.leaveAllDayRow}>
-          <label className={styles.switch}>
-            <input type="checkbox" checked={leaveAllDay} onChange={() => setLeaveAllDay((v) => !v)} />
-            <span className={styles.switchTrack} />
-          </label>
-          <span>Tüm gün kapalı</span>
-        </div>
-
-        {!leaveAllDay && (
-          <div className={styles.timeRow} style={{ marginBottom: 16 }}>
-            <div className={styles.timeField}>
-              <label>Başlangıç</label>
-              <select value={leaveStart} onChange={(e) => setLeaveStart(e.target.value)}>
-                <option value="">--:--</option>
-                {TIME_OPTIONS.map((t) => (
-                  <option key={t} value={t}>
-                    {t}
-                  </option>
-                ))}
-              </select>
-            </div>
-            <span className={styles.timeSep}>–</span>
-            <div className={styles.timeField}>
-              <label>Bitiş</label>
-              <select value={leaveEnd} onChange={(e) => setLeaveEnd(e.target.value)}>
-                <option value="">--:--</option>
-                {TIME_OPTIONS.map((t) => (
-                  <option key={t} value={t}>
-                    {t}
-                  </option>
-                ))}
-              </select>
-            </div>
-          </div>
-        )}
-
-        <div className={styles.leaveReasonRow}>
-          {LEAVE_REASON_OPTIONS.map((opt) => (
-            <button
-              type="button"
-              key={opt.value}
-              className={leaveReason === opt.value ? styles.leaveReasonChipActive : styles.leaveReasonChip}
-              onClick={() => {
-                setLeaveReason(opt.value)
-                setLeaveLabel(opt.label)
-              }}
-            >
-              {opt.label}
-            </button>
-          ))}
-        </div>
-
-        <div className={styles.leaveLabelField}>
-          <label>Etiket (opsiyonel)</label>
-          <input value={leaveLabel} onChange={(e) => setLeaveLabel(e.target.value)} placeholder="ör. Yıllık İzin" />
-        </div>
-
-        <button type="button" className={`btn-primary ${styles.addLeaveBtn}`} onClick={addLeaveDraft}>
-          <PlusIcon width={15} height={15} /> İzin Ekle
+      <div className={styles.whoChips}>
+        <button type="button" className={who === 'herkes' ? styles.whoChipActive : styles.whoChip} onClick={() => setWho('herkes')}>
+          Herkes
         </button>
-
-        <div className={styles.leaveListLabel}>Tanımlı İzinler</div>
-
-        {leaveDrafts.length === 0 ? (
-          <div className={styles.leaveEmpty}>
-            <CalendarIcon width={22} height={22} />
-            Henüz izin günü eklenmedi.
-          </div>
-        ) : (
-          <div className={styles.leaveList}>
-            {leaveDrafts.map((d) => (
-              <div className={styles.leaveRow} key={d.id}>
-                <div>
-                  <div className={styles.leaveRowDate}>
-                    {d.mode === 'range' && d.endDate !== d.date
-                      ? `${new Date(d.date + 'T00:00:00').toLocaleDateString('tr-TR', { day: 'numeric', month: 'short' })} – ${new Date(d.endDate + 'T00:00:00').toLocaleDateString('tr-TR', { day: 'numeric', month: 'short' })}`
-                      : new Date(d.date + 'T00:00:00').toLocaleDateString('tr-TR', {
-                          day: 'numeric',
-                          month: 'short',
-                          year: 'numeric',
-                        })}
-                  </div>
-                  <div className={styles.leaveRowMeta}>
-                    {d.allDay ? 'Tüm gün kapalı' : `${d.start} – ${d.end}`}
-                    {d.label ? ` • ${d.label}` : ''}
-                  </div>
-                </div>
-                <button
-                  type="button"
-                  className={styles.leaveRemoveBtn}
-                  onClick={() => removeLeaveDraft(d.id)}
-                  aria-label="İzni kaldır"
-                >
-                  <TrashIcon width={13} height={13} />
-                </button>
-              </div>
-            ))}
-          </div>
-        )}
-
-        <div className={styles.leaveFooter}>
-          <span className={styles.leaveFooterSummary}>
-            {leaveDrafts.length === 0 ? 'İzin tanımlı değil' : `${leaveDrafts.length} izin tanımlı`}
-          </span>
-          <div className={styles.leaveFooterActions}>
-            <button type="button" className={styles.jsonLink} onClick={copyLeavesJson}>
-              {leaveJsonCopied ? 'Kopyalandı ✓' : 'JSON çıktısı'}
-            </button>
-            <button
-              type="button"
-              className={`btn-primary ${styles.saveBtn}`}
-              onClick={handleSaveClick}
-              disabled={savingLeaves || checkingConflicts}
-            >
-              {checkingConflicts ? 'Kontrol ediliyor…' : savingLeaves ? 'Kaydediliyor…' : 'Kaydet'}
-            </button>
-          </div>
-        </div>
+        {allProfiles.map((p) => (
+          <button
+            type="button"
+            key={p.id}
+            className={who === p.id ? styles.whoChipActive : styles.whoChip}
+            onClick={() => (p.id === id ? setWho(p.id) : navigate(`/ekip/${p.id}/izinler`))}
+          >
+            {(p.full_name ?? '—').trim().split(/\s+/)[0]}
+          </button>
+        ))}
       </div>
 
-      {conflictModalOpen && (
-        <div className={styles.conflictBackdrop}>
-          <div className={`card ${styles.conflictCard}`}>
-            <div className={styles.conflictHeader}>
-              <span className={styles.conflictHeaderIcon}>
-                <AlertTriangleIcon width={18} height={18} />
-              </span>
-              <div>
-                <div className={styles.conflictTitle}>{conflicts.length} randevu bu izinle çakışıyor</div>
-                <div className={styles.conflictSubtitle}>Bu randevularla ne yapmak istersiniz?</div>
+      {busy && <p className={styles.empty}>{checkingConflicts ? 'Randevular kontrol ediliyor…' : 'Kaydediliyor…'}</p>}
+
+      <span className={styles.groupLabel}>Yaklaşan</span>
+      {upcoming.length === 0 ? (
+        <div className={styles.emptyCard}>Planlanmış izin yok.</div>
+      ) : (
+        <div className={styles.listCard}>
+          {upcoming.map((r) => {
+            const start = new Date(`${r.date}T00:00:00`)
+            const days = rowDays(r)
+            const cc = conflictCount(r)
+            return (
+              <div className={styles.leaveRow} key={r.key}>
+                <span className={cc > 0 ? `${styles.dateTile} ${styles.dateTileWarm}` : styles.dateTile}>
+                  <span className={styles.dateTileDay}>{start.getDate()}</span>
+                  <span className={styles.dateTileMonth}>
+                    {start.toLocaleDateString('tr-TR', { month: 'short' }).toLocaleUpperCase('tr')}
+                  </span>
+                </span>
+                <span className={styles.leaveText}>
+                  <span className={styles.leaveTitle}>
+                    {nameOf(r.pid)} · {r.allDay ? `${days} gün` : 'birkaç saat'}
+                  </span>
+                  <span className={styles.leaveMeta}>
+                    {days > 1
+                      ? `${start.getDate()} – ${new Date(`${r.endDate}T00:00:00`).toLocaleDateString('tr-TR', { day: 'numeric', month: 'long' })}`
+                      : start.toLocaleDateString('tr-TR', { weekday: 'long' })}
+                    {' · '}
+                    {r.allDay ? 'tam gün' : `${r.start} – ${r.end}`}
+                    {r.label ? ` · ${r.label.toLocaleLowerCase('tr')}` : ''}
+                  </span>
+                </span>
+                {cc > 0 && <span className={styles.conflictPill}>{cc} randevu çakışıyor</span>}
+                {r.draftId && (
+                  <button
+                    type="button"
+                    className={styles.removeBtn}
+                    onClick={() => {
+                      if (!window.confirm('Bu izni silmek istiyor musun?')) return
+                      removeLeaveDraft(r.draftId!)
+                      setAutoSave(true)
+                    }}
+                    disabled={busy}
+                    aria-label="İzni sil"
+                  >
+                    ×
+                  </button>
+                )}
+              </div>
+            )
+          })}
+        </div>
+      )}
+
+      {past.length > 0 && (
+        <>
+          <span className={styles.groupLabel}>Geçmiş</span>
+          <div className={styles.listCard}>
+            {past.map((r) => {
+              const start = new Date(`${r.date}T00:00:00`)
+              const days = rowDays(r)
+              return (
+                <div className={styles.pastRow} key={r.key}>
+                  <span>
+                    <b>{nameOf(r.pid)}</b>{' '}
+                    <span className={styles.pastMeta}>
+                      · {start.toLocaleDateString('tr-TR', { day: 'numeric', month: 'short' })}
+                      {days > 1 ? ` – ${new Date(`${r.endDate}T00:00:00`).toLocaleDateString('tr-TR', { day: 'numeric', month: 'short' })}` : ''}
+                      {r.label ? ` · ${r.label.toLocaleLowerCase('tr')}` : ''}
+                    </span>
+                  </span>
+                  <span className={styles.pastMeta}>{r.allDay ? `${days} gün` : 'saatlik'}</span>
+                </div>
+              )
+            })}
+          </div>
+        </>
+      )}
+
+      <div className={styles.footer}>
+        <button type="button" className={styles.footerBtn} onClick={() => setFormOpen(true)} disabled={busy}>
+          İzin ekle
+        </button>
+      </div>
+
+      {formOpen && (
+        <div className={styles.sheetBackdrop} onClick={() => setFormOpen(false)}>
+          <div className={styles.sheet} onClick={(e) => e.stopPropagation()}>
+            <span className={styles.sheetHandle} aria-hidden="true" />
+            <div className={styles.sheetHead}>
+              <h1 className={styles.sheetTitle}>İzin ekle</h1>
+              <button type="button" className={styles.sheetCancel} onClick={() => setFormOpen(false)}>
+                Vazgeç
+              </button>
+            </div>
+
+            <div className={styles.fGroup}>
+              <span className={styles.fLabel}>Kim izinli?</span>
+              <div className={styles.personRow}>
+                {allProfiles.map((p, i) => (
+                  <button
+                    type="button"
+                    key={p.id}
+                    className={p.id === id ? styles.personActive : styles.person}
+                    onClick={() => {
+                      if (p.id === id) return
+                      setFormOpen(false)
+                      navigate(`/ekip/${p.id}/izinler?ekle=1`)
+                    }}
+                  >
+                    <span className={`${styles.personAvatar} ${styles[`tone${i % 3}`]}`}>
+                      {(p.full_name ?? '?').trim().charAt(0).toLocaleUpperCase('tr')}
+                    </span>
+                    {(p.full_name ?? '—').trim().split(/\s+/)[0]}
+                  </button>
+                ))}
               </div>
             </div>
 
-            <div className={styles.conflictList}>
-              {conflicts.map((c) => {
-                const plan = distributionPlan.find((d) => d.conflict.id === c.id)
-                return (
-                  <div className={styles.conflictRow} key={c.id}>
-                    <div className={styles.conflictRowMain}>
-                      <span className={styles.conflictRowCustomer}>{c.customerName}</span>
-                      <span className={styles.conflictRowService}>{c.serviceName}</span>
-                    </div>
-                    <div className={styles.conflictRowRight}>
-                      <span className={styles.conflictRowDate}>
-                        {new Date(c.scheduled_at).toLocaleDateString('tr-TR', { day: 'numeric', month: 'short' })}
-                        {' · '}
-                        {new Date(c.scheduled_at).toLocaleTimeString('tr-TR', { hour: '2-digit', minute: '2-digit' })}
-                      </span>
-                      {conflictAction === 'distribute' && (
-                        <span className={plan?.assignedName ? styles.conflictRowAssign : styles.conflictRowAssignWarn}>
-                          {plan?.assignedName ? `→ ${plan.assignedName}` : '⚠ Uygun çalışan yok'}
-                        </span>
-                      )}
-                    </div>
-                  </div>
-                )
-              })}
-            </div>
-
-            <div className={styles.conflictActions}>
-              <button
-                type="button"
-                className={conflictAction === 'transfer' ? styles.conflictActionBtnActive : styles.conflictActionBtn}
-                onClick={() => setConflictAction('transfer')}
-              >
-                Belirli bir çalışana aktar
-              </button>
-              <button
-                type="button"
-                className={conflictAction === 'distribute' ? styles.conflictActionBtnActive : styles.conflictActionBtn}
-                onClick={() => setConflictAction('distribute')}
-              >
-                Çalışanlar arasında eşit dağıt
-              </button>
-            </div>
-
-            {conflictAction === 'transfer' && (
-              <div className={styles.leaveField}>
-                <label>Aktarılacak çalışan</label>
-                <select
-                  className={styles.conflictSelect}
-                  value={transferTargetId}
-                  onChange={(e) => setTransferTargetId(e.target.value)}
+            <div className={styles.segmented}>
+              {(
+                [
+                  { value: 'tam', label: 'Tam gün' },
+                  { value: 'saat', label: 'Birkaç saat' },
+                  { value: 'gun', label: 'Birkaç gün' },
+                ] as { value: LeaveKind; label: string }[]
+              ).map((o) => (
+                <button
+                  key={o.value}
+                  type="button"
+                  className={leaveKind === o.value ? styles.segmentActive : styles.segment}
+                  onClick={() => setLeaveKind(o.value)}
                 >
-                  <option value="">Seçin…</option>
-                  {otherProfiles.map((p) => {
-                    const riskCount = conflicts.filter((c) => !isCandidateAvailable(p.id, c.scheduled_at, c.duration_minutes)).length
-                    return (
-                      <option key={p.id} value={p.id}>
-                        {p.full_name ?? '—'}
-                        {riskCount > 0 ? ` (${riskCount} çakışma riski)` : ''}
-                      </option>
-                    )
-                  })}
+                  {o.label}
+                </button>
+              ))}
+            </div>
+
+            <div className={styles.rowsCard}>
+              <label className={styles.formRow}>
+                <span className={styles.formRowLabel}>{leaveKind === 'gun' ? 'Başlangıç' : 'Gün'}</span>
+                <span className={styles.formRowValue}>
+                  {leaveDate
+                    ? new Date(`${leaveDate}T00:00:00`).toLocaleDateString('tr-TR', { weekday: 'long', day: 'numeric', month: 'long' })
+                    : 'Seç'}{' '}
+                  ›
+                </span>
+                <input className={styles.formRowInput} type="date" value={leaveDate} onChange={(e) => setLeaveDate(e.target.value)} />
+              </label>
+              {leaveKind === 'gun' && (
+                <label className={styles.formRow}>
+                  <span className={styles.formRowLabel}>Bitiş</span>
+                  <span className={styles.formRowValue}>
+                    {leaveEndDate
+                      ? new Date(`${leaveEndDate}T00:00:00`).toLocaleDateString('tr-TR', { weekday: 'long', day: 'numeric', month: 'long' })
+                      : 'Seç'}{' '}
+                    ›
+                  </span>
+                  <input
+                    className={styles.formRowInput}
+                    type="date"
+                    min={leaveDate || undefined}
+                    value={leaveEndDate}
+                    onChange={(e) => setLeaveEndDate(e.target.value)}
+                  />
+                </label>
+              )}
+              {leaveKind === 'saat' && (
+                <div className={styles.formRow}>
+                  <span className={styles.formRowLabel}>Saat</span>
+                  <span className={styles.timePair}>
+                    <select className={styles.timeSelect} value={leaveStart} onChange={(e) => setLeaveStart(e.target.value)}>
+                      <option value="">--:--</option>
+                      {TIME_OPTIONS.map((t) => (
+                        <option key={t} value={t}>
+                          {t}
+                        </option>
+                      ))}
+                    </select>
+                    –
+                    <select className={styles.timeSelect} value={leaveEnd} onChange={(e) => setLeaveEnd(e.target.value)}>
+                      <option value="">--:--</option>
+                      {TIME_OPTIONS.map((t) => (
+                        <option key={t} value={t}>
+                          {t}
+                        </option>
+                      ))}
+                    </select>
+                  </span>
+                </div>
+              )}
+              <label className={styles.formRow}>
+                <span className={styles.formRowLabel}>Sebep</span>
+                <span className={styles.formRowValue}>{leaveLabel || 'Seç'} ›</span>
+                <select className={styles.formRowInput} value={leaveLabel} onChange={(e) => setLeaveLabel(e.target.value)}>
+                  {LEAVE_REASON_OPTIONS.map((o) => (
+                    <option key={o} value={o}>
+                      {o}
+                    </option>
+                  ))}
                 </select>
+              </label>
+            </div>
+
+            {formConflicts.length > 0 && (
+              <div className={styles.warnBox}>
+                <span className={styles.warnTitle}>
+                  O {leaveKind === 'gun' ? 'tarihlerde' : 'gün'} {employeeFirst}’in {formConflicts.length} randevusu var
+                </span>
+                <div className={styles.warnList}>
+                  {formConflicts.slice(0, 4).map((a) => (
+                    <span key={a.id}>
+                      {new Date(a.scheduled_at).toLocaleTimeString('tr-TR', { hour: '2-digit', minute: '2-digit' })} ·{' '}
+                      {upcomingCustomerNames.get(a.customer_id ?? '') ?? 'Müşteri'}
+                    </span>
+                  ))}
+                </div>
+                <span className={styles.warnSub}>Bir sonraki adımda her biri için ne yapılacağını seçeceksin.</span>
               </div>
             )}
 
-            <div className={styles.conflictFooter}>
-              <button type="button" className={styles.conflictSkipBtn} onClick={skipResolution} disabled={resolving}>
-                Şimdilik atla
-              </button>
-              <button
-                type="button"
-                className={`btn-primary ${styles.conflictConfirmBtn}`}
-                onClick={confirmResolution}
-                disabled={resolving || !conflictAction || (conflictAction === 'transfer' && !transferTargetId)}
-              >
-                {resolving
-                  ? 'Kaydediliyor…'
-                  : conflictAction === 'transfer'
-                    ? 'Aktar ve İzni Kaydet'
-                    : conflictAction === 'distribute'
-                      ? 'Dağıt ve İzni Kaydet'
-                      : 'Onayla'}
-              </button>
-            </div>
+            <span className={styles.infoNote}>İzinli olduğu saatlerde bot ve online sayfa {employeeFirst}’e randevu vermez.</span>
+
+            <button
+              type="button"
+              className={styles.footerBtn}
+              disabled={!leaveDate || (leaveKind === 'saat' && (!leaveStart || !leaveEnd))}
+              onClick={() => {
+                addLeaveDraft()
+                setFormOpen(false)
+                setAutoSave(true)
+              }}
+            >
+              {formConflicts.length > 0 ? `Devam · ${formConflicts.length} randevuyu çöz` : 'İzni kaydet'}
+            </button>
           </div>
         </div>
       )}

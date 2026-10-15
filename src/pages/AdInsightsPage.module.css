@@ -1,152 +1,383 @@
 .wrap {
   display: flex;
   flex-direction: column;
-  gap: 16px;
+  gap: 14px;
 }
 
-/* ---------- Bağlı değil ---------- */
-
-.connectState {
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  text-align: center;
-  gap: 8px;
-  padding: 24px 8px;
-}
-
-.connectIcon {
-  width: 52px;
-  height: 52px;
-  border-radius: 50%;
-  background: var(--info-bg);
-  color: var(--signal);
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  margin-bottom: 8px;
-}
-
-.connectTitle {
-  font-family: var(--font-heading);
-  font-size: 17px;
-  font-weight: 600;
-  color: var(--text);
-}
-
-.connectText {
-  font-size: 13.5px;
-  color: var(--text-dim);
-  line-height: 1.5;
-  margin-bottom: 8px;
+.note {
+  font-size: 12px;
+  color: #6b7280;
+  line-height: 1.45;
+  padding: 0 4px;
 }
 
 .errorText {
   font-size: 13px;
   color: var(--danger-text);
-  margin-bottom: 4px;
+  background: var(--danger-bg);
+  border-radius: 12px;
+  padding: 10px 12px;
 }
 
-/* ---------- Bağlı ---------- */
+/* ---------- Bagli degil ---------- */
 
-.connectedHead {
+.hero {
+  background: var(--signal);
+  color: #fff;
+  border-radius: 26px;
+  padding: 22px;
   display: flex;
   flex-direction: column;
-  gap: 12px;
+  gap: 16px;
 }
 
-.connectedInfo {
-  display: flex;
-  flex-direction: column;
-  gap: 3px;
-  min-width: 0;
+.heroTitle {
+  font-family: var(--font-heading);
+  font-size: 26px;
+  font-weight: 600;
+  letter-spacing: -0.02em;
+  line-height: 1.2;
+  text-wrap: balance;
 }
 
-.connectedName {
-  font-size: 14.5px;
+.heroText {
+  font-size: 14px;
+  color: var(--navy-dim);
+  line-height: 1.5;
+}
+
+.heroBtn {
+  border: none;
+  background: var(--panel);
+  color: var(--signal);
+  border-radius: 16px;
+  padding: 15px 0;
+  font-family: var(--font-body);
+  font-size: 15px;
   font-weight: 700;
-  color: var(--text);
+  cursor: pointer;
 }
 
-.connectedSync {
+.heroNote {
+  font-size: 12px;
+  color: var(--navy-dim);
+  text-align: center;
+}
+
+.card {
+  background: var(--panel);
+  border-radius: 22px;
+  padding: 16px;
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+}
+
+.cardTitle {
+  font-family: var(--font-heading);
+  font-size: 17px;
+  font-weight: 600;
+}
+
+.cardTitleSm {
+  font-size: 14px;
+  font-weight: 700;
+}
+
+.cardSub {
   font-size: 12px;
   color: var(--text-dim);
 }
 
-/* ---------- Tarih aralığı ---------- */
-
-.presetRow {
+.stepRow {
   display: flex;
-  gap: 6px;
+  align-items: flex-start;
+  gap: 12px;
 }
 
-.presetBtn,
-.presetBtnActive {
+.stepNum {
+  width: 28px;
+  height: 28px;
+  border-radius: 50%;
+  background: var(--tint);
+  color: var(--signal);
+  font-size: 13px;
+  font-weight: 700;
   display: flex;
   align-items: center;
   justify-content: center;
-  gap: 6px;
+  flex: 0 0 28px;
+}
+
+.stepText {
   flex: 1;
   min-width: 0;
-  background: var(--panel);
-  border: 1px solid var(--line);
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+
+.stepTitle {
+  font-size: 14px;
+  font-weight: 700;
+}
+
+.stepSub {
+  font-size: 12px;
   color: var(--text-dim);
-  border-radius: 999px;
-  padding: 9px 8px;
-  font-size: 12.5px;
-  font-weight: 600;
+}
+
+.noAdCard {
+  background: var(--panel);
+  border-radius: 18px;
+  padding: 14px;
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+
+.linkBtn {
+  border: none;
+  background: none;
+  color: var(--signal);
   font-family: var(--font-body);
+  font-size: 13px;
+  font-weight: 700;
+  white-space: nowrap;
   cursor: pointer;
 }
 
-.presetBtnActive {
-  background: var(--signal);
-  border-color: var(--signal);
-  color: #fff;
-}
-
-/* ---------- KPI kartları ---------- */
-
-.kpiGrid {
-  display: grid;
-  grid-template-columns: repeat(2, 1fr);
+.barRow {
+  display: flex;
+  align-items: center;
   gap: 10px;
 }
 
-.kpiCard {
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  gap: 6px;
-  padding: 16px 10px;
-  background: var(--panel);
-  border: 1px solid var(--line);
-  border-radius: var(--radius-lg);
-  box-shadow: 0 1px 3px rgba(43, 43, 38, 0.06);
-  text-align: center;
-}
-
-.kpiIcon {
-  width: 38px;
-  height: 38px;
-  border-radius: 50%;
-  display: flex;
-  align-items: center;
-  justify-content: center;
+.barLabel {
+  width: 120px;
   flex-shrink: 0;
+  font-size: 13px;
+  font-weight: 600;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
 }
 
-.kpiValue {
-  font-family: var(--font-heading);
-  font-size: 17px;
+.barTrack {
+  flex: 1;
+  height: 8px;
+  border-radius: 999px;
+  background: var(--panel-2);
+  overflow: hidden;
+}
+
+.barFill {
+  display: block;
+  height: 100%;
+  border-radius: 999px;
+  background: var(--signal);
+}
+
+.barValue {
+  width: 28px;
+  text-align: right;
+  font-size: 13px;
   font-weight: 700;
-  color: var(--text);
-  line-height: 1.2;
   font-variant-numeric: tabular-nums;
 }
 
-.kpiLabel {
-  font-size: 11px;
-  font-weight: 600;
+/* ---------- Bagli ---------- */
+
+.miniSeg {
+  display: flex;
+  background: var(--seg-bg);
+  border-radius: 12px;
+  padding: 3px;
+  flex-shrink: 0;
+}
+
+.miniSegBtn,
+.miniSegActive {
+  border: none;
+  background: transparent;
   color: var(--text-dim);
+  border-radius: 9px;
+  padding: 7px 10px;
+  font-family: var(--font-body);
+  font-size: 12px;
+  font-weight: 700;
+  cursor: pointer;
+}
+
+.miniSegActive {
+  background: var(--panel);
+  color: var(--text);
+}
+
+.adTop {
+  display: flex;
+  gap: 12px;
+}
+
+.adThumb {
+  width: 72px;
+  height: 72px;
+  border-radius: 14px;
+  background: repeating-linear-gradient(135deg, var(--tint) 0 6px, var(--bg) 6px 12px);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 11px;
+  font-weight: 700;
+  color: var(--text-dim);
+  flex: 0 0 72px;
+}
+
+.adText {
+  flex: 1;
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 3px;
+}
+
+.adName {
+  font-size: 16px;
+  font-weight: 700;
+}
+
+.pillOk,
+.pillWarn {
+  align-self: flex-start;
+  margin-top: 2px;
+  font-size: 11px;
+  font-weight: 700;
+  border-radius: 999px;
+  padding: 4px 8px;
+  color: var(--ok-text);
+  background: var(--ok-bg);
+}
+
+.pillWarn {
+  color: var(--warn-text);
+  background: var(--warn-bg);
+}
+
+.statGrid {
+  display: grid;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  background: var(--bg);
+  border-radius: 14px;
+}
+
+.stat {
+  padding: 10px 8px;
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  min-width: 0;
+}
+
+.stat + .stat {
+  border-left: 1px solid #e2e5ea;
+}
+
+.statValue,
+.statValueOk {
+  font-family: var(--font-heading);
+  font-size: 16px;
+  font-weight: 600;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.statValueOk {
+  color: var(--ok-text);
+}
+
+.statLabel {
+  font-size: 10px;
+  color: var(--text-dim);
+}
+
+.listCard {
+  background: var(--panel);
+  border-radius: 22px;
+  padding: 2px 14px;
+  display: flex;
+  flex-direction: column;
+}
+
+.kvRow {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  padding: 13px 0;
+  border-bottom: 1px solid #eef0f3;
+}
+
+.kvRow:last-child {
+  border-bottom: none;
+}
+
+.kvLabel {
+  font-size: 13px;
+  color: var(--text-dim);
+}
+
+.kvValue {
+  font-size: 14px;
+  font-weight: 700;
+}
+
+.totals {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  background: var(--signal);
+  color: #fff;
+  border-radius: 20px;
+  padding: 14px;
+}
+
+.totalItem {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  min-width: 0;
+}
+
+.totalItem + .totalItem {
+  border-left: 1px solid var(--navy-line);
+  padding-left: 12px;
+}
+
+.totalValue {
+  font-family: var(--font-heading);
+  font-size: 18px;
+  font-weight: 600;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.totalLabel {
+  font-size: 11px;
+  color: var(--navy-dim);
+}
+
+.disconnectBtn {
+  border: none;
+  background: none;
+  color: var(--danger-text);
+  font-family: var(--font-body);
+  font-size: 14px;
+  font-weight: 700;
+  padding: 8px;
+  cursor: pointer;
+}
+
+.disconnectBtn:disabled {
+  opacity: 0.6;
 }

@@ -1,23 +1,39 @@
-import { useState } from 'react'
-import { useNavigate } from 'react-router-dom'
-import Logo from '../components/Logo'
+import { useEffect, useState } from 'react'
+import { useNavigate, useSearchParams } from 'react-router-dom'
+import logoMark from '../assets/brand/logo-mark.png'
 import { useAuth } from '../contexts/AuthContext'
+import { ChevronRightIcon } from '../components/icons'
 import styles from './LoginPage.module.css'
+
+type Mode = 'intro' | 'login' | 'forgot'
+
+// Ayni adrese ust uste baglanti istenmesin diye.
+const RESEND_SECONDS = 60
 
 export default function LoginPage() {
   const navigate = useNavigate()
+  const [searchParams] = useSearchParams()
   const { signIn, resetPassword } = useAuth()
 
-  const [mode, setMode] = useState<'login' | 'forgot'>('login')
+  // Yeni sifre ekranindaki "Yenisini iste" buraya ?unuttum=1 ile doner.
+  const [mode, setMode] = useState<Mode>(searchParams.get('unuttum') === '1' ? 'forgot' : 'intro')
 
   const [email, setEmail] = useState('')
   const [password, setPassword] = useState('')
+  const [showPassword, setShowPassword] = useState(false)
   const [error, setError] = useState<string | null>(null)
   const [loading, setLoading] = useState(false)
 
   const [forgotEmail, setForgotEmail] = useState('')
   const [forgotLoading, setForgotLoading] = useState(false)
-  const [forgotSent, setForgotSent] = useState(false)
+  const [sentTo, setSentTo] = useState<string | null>(null)
+  const [cooldown, setCooldown] = useState(0)
+
+  useEffect(() => {
+    if (cooldown <= 0) return
+    const t = setTimeout(() => setCooldown((c) => c - 1), 1000)
+    return () => clearTimeout(t)
+  }, [cooldown])
 
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault()
@@ -29,61 +45,111 @@ export default function LoginPage() {
       setError('E-posta veya şifre hatalı.')
       return
     }
-    navigate('/randevular')
+    // Yonetici ana sayfaya, calisan (ana sayfa yetkisi yok) Randevular'a
+    // duser — yonlendirmeyi ProtectedRoute yapiyor.
+    navigate('/dashboard')
   }
 
   async function handleForgotSubmit(e: React.FormEvent) {
     e.preventDefault()
+    if (cooldown > 0) return
     setForgotLoading(true)
     await resetPassword(forgotEmail)
     setForgotLoading(false)
     // Kayıtlı olmayan bir e-postanın var olup olmadığını sızdırmamak için
     // sonucu her zaman ayni basarili mesajla gosteriyoruz.
-    setForgotSent(true)
+    setSentTo(forgotEmail)
+    setCooldown(RESEND_SECONDS)
+  }
+
+  if (mode === 'intro') {
+    return (
+      <div className={styles.intro}>
+        <span className={styles.ringLeft} aria-hidden="true" />
+        <span className={styles.dotRight} aria-hidden="true" />
+        <div className={styles.brandRow}>
+          <span className={styles.introMark}>
+            <img src={logoMark} alt="" />
+          </span>
+          <span className={styles.brand}>Adapptiv</span>
+        </div>
+        <div className={styles.introText}>
+          <h1 className={styles.introTitle}>
+            Salonun,
+            <br />
+            cebinde.
+          </h1>
+          <p className={styles.introSub}>
+            Randevular, müşteriler, kasa ve WhatsApp’tan randevu alan asistan tek uygulamada.
+          </p>
+          <button type="button" className={styles.introBtn} onClick={() => setMode('login')}>
+            Giriş yap
+          </button>
+        </div>
+      </div>
+    )
   }
 
   if (mode === 'forgot') {
     return (
-      <div className={styles.wrap}>
-        <div className={styles.card}>
-          <div className={styles.logoWrap}>
-            <Logo />
+      <div className={styles.lightPage}>
+        <button
+          type="button"
+          className={styles.backBtn}
+          onClick={() => {
+            setMode('login')
+            setSentTo(null)
+          }}
+          aria-label="Girişe dön"
+        >
+          <ChevronRightIcon width={18} height={18} className={styles.backIcon} />
+        </button>
+        <div className={styles.lightHead}>
+          <h1 className={styles.lightTitle}>Şifremi unuttum</h1>
+          <span className={styles.lightSub}>
+            E-posta adresinizi yazın, yeni şifre belirlemeniz için bir bağlantı gönderelim.
+          </span>
+        </div>
+
+        <form className={styles.lightForm} onSubmit={handleForgotSubmit}>
+          <div className={styles.field}>
+            <label htmlFor="forgotEmail">E-posta adresi</label>
+            <input
+              id="forgotEmail"
+              className={styles.inputWhite}
+              type="email"
+              autoComplete="email"
+              placeholder="isletmeniz@ornek.com"
+              value={forgotEmail}
+              onChange={(e) => setForgotEmail(e.target.value)}
+              required
+            />
           </div>
-          <h1 className={styles.title}>Şifremi unuttum</h1>
-          <p className={styles.sub}>
-            {forgotSent
-              ? 'E-postanız sistemde kayıtlıysa, şifre sıfırlama bağlantısı gönderildi. Gelen kutunuzu kontrol edin.'
-              : 'E-posta adresinizi girin, size bir şifre sıfırlama bağlantısı gönderelim.'}
-          </p>
+          <button type="submit" className={styles.primaryBtn} disabled={forgotLoading || cooldown > 0}>
+            {forgotLoading ? 'Gönderiliyor…' : cooldown > 0 ? `Tekrar göndermek için ${cooldown} sn` : 'Bağlantı gönder'}
+          </button>
+        </form>
 
-          {!forgotSent && (
-            <form onSubmit={handleForgotSubmit}>
-              <div className="field">
-                <label htmlFor="forgotEmail">E-posta Adresi</label>
-                <input
-                  id="forgotEmail"
-                  type="email"
-                  placeholder="isletmeniz@ornek.com"
-                  value={forgotEmail}
-                  onChange={(e) => setForgotEmail(e.target.value)}
-                  required
-                />
-              </div>
-              <button type="submit" className="btn-primary" disabled={forgotLoading}>
-                {forgotLoading ? 'Gönderiliyor…' : 'Bağlantı gönder'}
-              </button>
-            </form>
-          )}
+        {sentTo && (
+          <div className={styles.sentCard}>
+            <span className={styles.sentTitle}>Gönderildi</span>
+            <span className={styles.sentSub}>
+              <b>{sentTo}</b> kayıtlıysa bu adrese bir bağlantı yolladık. Gelmediyse gereksiz klasörüne bakın;{' '}
+              {RESEND_SECONDS} saniye sonra tekrar isteyebilirsiniz.
+            </span>
+          </div>
+        )}
 
+        <div className={styles.lightFoot}>
           <button
             type="button"
-            className={styles.linkBtn}
+            className={styles.textLink}
             onClick={() => {
               setMode('login')
-              setForgotSent(false)
+              setSentTo(null)
             }}
           >
-            ← Girişe dön
+            Girişe dön
           </button>
         </div>
       </div>
@@ -91,49 +157,69 @@ export default function LoginPage() {
   }
 
   return (
-    <div className={styles.wrap}>
-      <div className={styles.card}>
-        <div className={styles.logoWrap}>
-          <Logo />
-        </div>
-        <h1 className={styles.title}>Hoş Geldiniz</h1>
-        <p className={styles.sub}>Lütfen hesabınıza giriş yapın</p>
+    <div className={styles.shell}>
+      <span className={styles.ringTop} aria-hidden="true" />
+      <div className={styles.top}>
+        <span className={styles.topMark}>
+          <img src={logoMark} alt="" />
+        </span>
+        <h1 className={styles.topTitle}>Hoş geldiniz</h1>
+        <p className={styles.topSub}>Salonunuza giriş yapın.</p>
+      </div>
 
-        <form onSubmit={handleSubmit}>
-          <div className="field">
-            <label htmlFor="email">E-posta Adresi</label>
-            <input
-              id="email"
-              type="email"
-              placeholder="isletmeniz@ornek.com"
-              value={email}
-              onChange={(e) => setEmail(e.target.value)}
-              required
-            />
-          </div>
-          <div className="field">
-            <label htmlFor="password">Şifre</label>
+      <form className={styles.sheet} onSubmit={handleSubmit}>
+        <div className={styles.field}>
+          <label htmlFor="email">E-posta adresi</label>
+          <input
+            id="email"
+            className={styles.inputGray}
+            type="email"
+            autoComplete="email"
+            placeholder="isletmeniz@ornek.com"
+            value={email}
+            onChange={(e) => setEmail(e.target.value)}
+            required
+          />
+        </div>
+        <div className={styles.field}>
+          <label htmlFor="password">Şifre</label>
+          <div className={styles.passwordBox}>
             <input
               id="password"
-              type="password"
+              type={showPassword ? 'text' : 'password'}
+              autoComplete="current-password"
               placeholder="••••••••••"
               value={password}
               onChange={(e) => setPassword(e.target.value)}
               required
             />
+            <button
+              type="button"
+              className={styles.showBtn}
+              onClick={() => setShowPassword((v) => !v)}
+              aria-label={showPassword ? 'Şifreyi gizle' : 'Şifreyi göster'}
+            >
+              {showPassword ? 'Gizle' : 'Göster'}
+            </button>
           </div>
-
-          {error && <p className={styles.error}>{error}</p>}
-
-          <button type="submit" className="btn-primary" disabled={loading}>
-            {loading ? 'Giriş yapılıyor…' : 'Giriş yap →'}
-          </button>
-        </form>
-
-        <button type="button" className={styles.linkBtn} onClick={() => setMode('forgot')}>
+        </div>
+        <button
+          type="button"
+          className={styles.forgotLink}
+          onClick={() => {
+            setForgotEmail(email)
+            setMode('forgot')
+          }}
+        >
           Şifremi unuttum
         </button>
-      </div>
+
+        {error && <p className={styles.error}>{error}</p>}
+
+        <button type="submit" className={styles.primaryBtn} disabled={loading}>
+          {loading ? 'Giriş yapılıyor…' : 'Giriş yap'}
+        </button>
+      </form>
     </div>
   )
 }

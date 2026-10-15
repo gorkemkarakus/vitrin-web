@@ -1,14 +1,15 @@
 .wrap {
   display: flex;
   flex-direction: column;
-  gap: 16px;
+  gap: 14px;
 }
 
-/* ---------- Arama + filtrele satiri ---------- */
+/* ---------- Arama + siralama + ekle ---------- */
 
 .searchRow {
   display: flex;
-  gap: 10px;
+  align-items: center;
+  gap: 8px;
 }
 
 .searchBox {
@@ -17,14 +18,15 @@
   display: flex;
   align-items: center;
   gap: 8px;
+  height: 46px;
   background: var(--panel);
-  border: 1px solid var(--line);
-  border-radius: var(--radius-sm);
-  padding: 0 12px;
+  border-radius: 14px;
+  padding: 0 14px;
+  box-shadow: 0 1px 2px rgba(17, 24, 39, 0.05);
 }
 
 .searchIcon {
-  color: var(--text-dim);
+  color: #9ca3af;
   flex-shrink: 0;
 }
 
@@ -32,16 +34,16 @@
   flex: 1;
   min-width: 0;
   border: none;
-  background: none;
   outline: none;
-  padding: 11px 0;
-  font-size: 14px;
+  background: transparent;
+  padding: 0;
   font-family: var(--font-body);
+  font-size: 14px;
   color: var(--text);
 }
 
 .searchInput::placeholder {
-  color: var(--text-dim);
+  color: #9ca3af;
 }
 
 .filterWrap {
@@ -50,34 +52,44 @@
 }
 
 .filterBtn {
+  height: 46px;
   display: flex;
   align-items: center;
   gap: 6px;
-  height: 100%;
+  border: none;
   background: var(--panel);
-  border: 1px solid var(--line);
-  border-radius: var(--radius-sm);
-  padding: 0 14px;
-  font-size: 13.5px;
-  font-weight: 600;
   color: var(--text);
+  border-radius: 14px;
+  padding: 0 12px;
   font-family: var(--font-body);
+  font-size: 13px;
+  font-weight: 700;
   cursor: pointer;
+  box-shadow: 0 1px 2px rgba(17, 24, 39, 0.05);
+}
+
+.filterMenuTitle {
+  font-size: 11px;
+  font-weight: 700;
+  color: var(--text-dim);
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+  padding: 10px 12px 4px;
+  border-top: 1px solid var(--line);
+  margin-top: 4px;
 }
 
 .filterMenu {
   position: absolute;
-  top: calc(100% + 6px);
+  top: calc(100% + 8px);
   right: 0;
-  min-width: 200px;
+  min-width: 210px;
   background: var(--panel);
-  border: 1px solid var(--line);
-  border-radius: var(--radius-sm);
-  box-shadow: 0 8px 24px rgba(31, 41, 55, 0.14);
-  padding: 5px;
+  border-radius: 16px;
+  box-shadow: 0 12px 32px rgba(17, 24, 39, 0.16);
+  padding: 6px;
   display: flex;
   flex-direction: column;
-  gap: 1px;
   z-index: 20;
 }
 
@@ -85,304 +97,316 @@
   display: flex;
   align-items: center;
   justify-content: space-between;
-  gap: 10px;
-  background: none;
+  gap: 12px;
   border: none;
-  border-radius: 6px;
-  padding: 9px 10px;
-  font-size: 13px;
+  background: none;
+  border-radius: 11px;
+  padding: 11px 12px;
+  font-family: var(--font-body);
+  font-size: 14px;
   color: var(--text);
   text-align: left;
   cursor: pointer;
-  font-family: var(--font-body);
-  white-space: nowrap;
-}
-
-.filterMenuItem:hover {
-  background: var(--panel-2);
 }
 
 .filterMenuItem svg {
   color: var(--signal);
-  flex-shrink: 0;
 }
 
-/* ---------- Ust kartlarin donem secici (Tum Zamanlar / Son Hafta / Son Ay) ---------- */
-
-.periodRow {
+.addBtn {
+  flex-shrink: 0;
   display: flex;
   align-items: center;
-  gap: 4px;
+  gap: 6px;
+  border: none;
+  background: var(--signal);
+  color: #fff;
+  border-radius: 999px;
+  padding: 13px 16px;
+  font-family: var(--font-body);
+  font-size: 13px;
+  font-weight: 700;
+  line-height: 20px;
+  cursor: pointer;
 }
 
-.periodBtn,
-.periodBtnActive {
-  flex: 1;
-  min-width: 0;
-  border: 1px solid var(--line);
+/* ---------- Ozet kutulari ---------- */
+
+.statsGrid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 10px;
+}
+
+.statCard {
+  border: none;
   background: var(--panel);
-  padding: 8px 6px;
-  border-radius: 999px;
-  font-size: 12px;
-  font-weight: 600;
+  color: var(--text);
+  border-radius: 20px;
+  padding: 14px;
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
   font-family: var(--font-body);
-  color: var(--text-dim);
+  text-align: left;
+  min-width: 0;
+}
+
+button.statCard {
   cursor: pointer;
+}
+
+.statValue {
+  font-family: var(--font-heading);
+  font-size: 24px;
+  font-weight: 600;
+  font-variant-numeric: tabular-nums;
+  white-space: nowrap;
   overflow: hidden;
   text-overflow: ellipsis;
-  white-space: nowrap;
+  max-width: 100%;
 }
 
-.periodBtnActive {
-  background: var(--signal);
-  border-color: var(--signal);
-  color: #fff;
+.statLabel {
+  font-size: 12px;
+  color: var(--text-dim);
 }
 
-/* ---------- Segment sekmeleri ---------- */
+.statCardWarm {
+  background: var(--accent-bg);
+}
+
+.statCardWarm .statValue {
+  color: var(--accent-text);
+}
+
+.statCardWarm .statLabel {
+  color: #6b5545;
+}
+
+/* ---------- Sekmeler ---------- */
 
 .segmentRow {
   display: flex;
-  align-items: center;
-  flex-wrap: wrap;
-  gap: 4px;
-  row-gap: 6px;
+  gap: 20px;
+  padding: 0 4px;
+  border-bottom: 1px solid #e2e5ea;
 }
 
 .segmentBtn,
 .segmentBtnActive {
-  flex: 1;
-  min-width: 0;
   border: none;
   background: none;
-  padding: 9px 6px;
-  border-radius: 999px;
-  font-size: 12.5px;
-  font-weight: 600;
+  padding: 8px 0 10px;
+  margin-bottom: -1px;
+  border-bottom: 2px solid transparent;
   font-family: var(--font-body);
-  color: var(--text-dim);
+  font-size: 14px;
+  font-weight: 600;
+  color: #6b7280;
   cursor: pointer;
-  overflow: hidden;
-  text-overflow: ellipsis;
   white-space: nowrap;
 }
 
 .segmentBtnActive {
-  background: var(--signal);
-  color: #fff;
+  color: var(--text);
+  font-weight: 700;
+  border-bottom-color: var(--accent);
 }
 
-/* ---------- Musteri listesi ---------- */
+.segmentCount {
+  font-size: 12px;
+  color: #9ca3af;
+  font-weight: 500;
+}
+
+/* ---------- Liste ---------- */
+
+.note {
+  font-size: 13px;
+  color: var(--text-dim);
+}
+
+.emptyCard {
+  background: var(--panel);
+  border-radius: 20px;
+  padding: 22px 18px;
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.emptyTitle {
+  font-size: 15px;
+  font-weight: 700;
+}
+
+.emptySub {
+  font-size: 13px;
+  color: var(--text-dim);
+}
 
 .list {
   display: flex;
   flex-direction: column;
+  gap: 8px;
 }
 
 .row {
   display: flex;
   align-items: center;
   gap: 12px;
-  padding: 14px 2px;
-  border-bottom: 1px solid var(--line);
-  cursor: pointer;
-}
-
-.row:hover {
-  background: var(--panel-2);
-}
-
-.row:last-child {
-  border-bottom: none;
-}
-
-.loadMoreBtn {
   width: 100%;
   border: none;
-  background: none;
-  padding: 13px 2px 4px;
-  font-size: 13px;
-  font-weight: 600;
+  background: var(--panel);
+  color: var(--text);
+  border-radius: 18px;
+  padding: 12px 14px;
   font-family: var(--font-body);
-  color: var(--signal);
-  text-align: center;
+  text-align: left;
   cursor: pointer;
 }
 
-.rowMain {
-  display: flex;
-  flex-direction: column;
-  align-items: flex-start;
-  gap: 4px;
-  min-width: 0;
-  flex: 1;
-}
-
-.rowName {
-  font-size: 14.5px;
-  font-weight: 700;
-  color: var(--text);
-  overflow: hidden;
-  text-overflow: ellipsis;
-  white-space: nowrap;
-  max-width: 100%;
-}
-
-.rowPhone {
-  font-size: 12.5px;
-  color: var(--text-dim);
-}
-
-.badge {
-  display: inline-flex;
-  align-items: center;
-  gap: 4px;
-  font-size: 10.5px;
-  font-weight: 700;
-  padding: 3px 8px;
-  border-radius: 999px;
-  margin-top: 1px;
-}
-
-.badgeSadik {
+.rowInitials {
+  width: 44px;
+  height: 44px;
+  border-radius: 14px;
+  background: var(--tint);
   color: var(--signal);
-  background: #eaf1fb;
-}
-
-.badgeYeni {
-  color: var(--ok-text);
-  background: var(--ok-bg);
-}
-
-.debtBadge {
-  display: inline-flex;
-  align-items: center;
-  font-size: 10.5px;
+  font-size: 14px;
   font-weight: 700;
-  padding: 3px 8px;
-  border-radius: 999px;
-  margin-top: 1px;
-  color: var(--danger-text);
-  background: var(--danger-bg);
-}
-
-.rowStats {
-  display: flex;
-  flex-direction: column;
-  align-items: flex-end;
-  gap: 7px;
-  flex-shrink: 0;
-  text-align: right;
-}
-
-.rowStatBlock {
-  display: flex;
-  flex-direction: column;
-  align-items: flex-end;
-  gap: 1px;
-}
-
-.rowStatLabel {
-  font-size: 10px;
-  color: var(--text-dim);
-}
-
-.rowStatValueSignal {
-  font-size: 12.5px;
-  font-weight: 700;
-  color: var(--signal);
-}
-
-.rowStatValue {
-  font-size: 12.5px;
-  font-weight: 700;
-  color: var(--text);
-}
-
-.rowChevron {
-  color: var(--text-dim);
-  flex-shrink: 0;
-}
-
-/* ---------- Ust istatistik kartlari ---------- */
-
-.statsGrid {
-  display: grid;
-  grid-template-columns: repeat(4, 1fr);
-  gap: 6px;
-}
-
-.statCard {
-  display: flex;
-  flex-direction: column;
-  align-items: flex-start;
-  gap: 7px;
-  min-width: 0;
-  border-radius: var(--radius-sm);
-  padding: 10px 8px;
-}
-
-.statCardSignal {
-  background: #eaf1fb;
-}
-
-.statCardOk {
-  background: #eafaf3;
-}
-
-.statCardWarn {
-  background: #fdf3e7;
-}
-
-.statCardInfo {
-  background: #eaf2fd;
-}
-
-.statIcon {
-  width: 26px;
-  height: 26px;
-  border-radius: 50%;
   display: flex;
   align-items: center;
   justify-content: center;
   flex-shrink: 0;
 }
 
-.statIconSignal {
-  background: #dbe7f8;
+.tone0 {
+  background: var(--tint);
   color: var(--signal);
 }
 
-.statIconOk {
-  background: #d1f2e3;
+.tone1 {
+  background: #f1eafd;
+  color: #4c1d95;
+}
+
+.tone2 {
+  background: var(--ok-bg);
+  color: #0a5c43;
+}
+
+.rowMain {
+  flex: 1;
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 3px;
+}
+
+.rowNameLine {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  min-width: 0;
+}
+
+.rowName {
+  font-size: 15px;
+  font-weight: 700;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.rowSub {
+  font-size: 12px;
+  color: var(--text-dim);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.rowPill {
+  align-self: flex-start;
+  font-size: 11px;
+  font-weight: 700;
+  padding: 3px 8px;
+  border-radius: 999px;
+}
+
+.rowPillWarm {
+  background: var(--accent-bg);
+  color: var(--accent-text);
+}
+
+.rowDate {
+  font-size: 11px;
+  color: #6b7280;
+}
+
+.badgeSadik {
+  background: var(--tint);
+  color: var(--signal);
+}
+
+.badgeYeni {
+  background: var(--ok-bg);
   color: var(--ok-text);
 }
 
-.statIconWarn {
-  background: #fae6c8;
-  color: var(--warn-text);
+.rowSide {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-end;
+  gap: 3px;
+  flex-shrink: 0;
 }
 
-.statIconInfo {
-  background: #d3e6fb;
-  color: var(--info-text);
-}
-
-.statValue {
+.rowAmount {
   font-family: var(--font-heading);
   font-size: 15px;
-  font-weight: 700;
-  color: var(--text);
+  font-weight: 600;
   font-variant-numeric: tabular-nums;
-  overflow: hidden;
-  text-overflow: ellipsis;
-  white-space: nowrap;
-  max-width: 100%;
 }
 
-.statLabel {
-  font-size: 9.5px;
+.rowDebt {
+  font-size: 12px;
+  font-weight: 700;
+  color: var(--accent-text);
+}
+
+.loadMoreBtn {
+  border: none;
+  background: var(--panel-2);
+  color: var(--text);
+  border-radius: 14px;
+  padding: 13px;
+  font-family: var(--font-body);
+  font-size: 13px;
+  font-weight: 700;
+  cursor: pointer;
+}
+
+.dupBanner {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+  width: 100%;
+  border: none;
+  background: var(--warn-bg);
+  color: var(--warn-text);
+  border-radius: 16px;
+  padding: 11px 14px;
+  font-family: var(--font-body);
+  font-size: 13px;
   font-weight: 600;
-  color: var(--text-dim);
-  line-height: 1.25;
+  text-align: left;
+  cursor: pointer;
+}
+
+.dupBannerAction {
+  font-weight: 700;
+  white-space: nowrap;
 }

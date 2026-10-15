@@ -1,652 +1,1121 @@
 .wrap {
   display: flex;
   flex-direction: column;
-  gap: 16px;
+  gap: 14px;
 }
 
-/* ---------- Ust satir: geri + avatar + isim + "..." ---------- */
+.empty {
+  font-size: 13px;
+  color: var(--text-dim);
+}
 
-.topRow {
+.hint {
+  font-size: 12px;
+  color: var(--text-dim);
+  text-align: center;
+}
+
+.backLink {
+  align-self: flex-start;
   display: flex;
   align-items: center;
-  gap: 12px;
-}
-
-.backBtn {
-  flex-shrink: 0;
-  width: 34px;
-  height: 34px;
-  border-radius: 50%;
-  border: 1px solid var(--line);
-  background: var(--panel);
-  color: var(--text);
+  gap: 4px;
+  border: none;
+  background: none;
+  padding: 4px 0;
+  font-family: var(--font-body);
+  font-size: 13px;
+  font-weight: 700;
+  color: var(--text-dim);
   cursor: pointer;
-  display: inline-flex;
-  align-items: center;
-  justify-content: center;
 }
 
 .backIcon {
   transform: rotate(180deg);
 }
 
-.topInfo {
+/* ---------- Ust blok ---------- */
+
+.hero {
   display: flex;
   flex-direction: column;
-  gap: 1px;
-  min-width: 0;
-  flex: 1;
-}
-
-.topName {
-  font-family: var(--font-heading);
-  font-size: 16px;
-  font-weight: 600;
-  color: var(--text);
-  overflow: hidden;
-  text-overflow: ellipsis;
-  white-space: nowrap;
-}
-
-.topSpecialty {
-  font-size: 12px;
-  color: var(--text-dim);
-  overflow: hidden;
-  text-overflow: ellipsis;
-  white-space: nowrap;
-}
-
-/* ---------- Kisisel bilgiler ---------- */
-
-.profileField {
-  display: flex;
-  flex-direction: column;
-  gap: 8px;
-  margin-bottom: 14px;
-}
-
-.profileField label {
-  font-size: 13px;
-  font-weight: 600;
-  color: var(--text);
-}
-
-.profileField input {
-  width: 100%;
-  background: var(--panel);
-  border: 1px solid var(--line);
-  border-radius: var(--radius-sm);
-  padding: 12px 14px;
-  font-size: 14px;
-  font-family: var(--font-body);
-  color: var(--text);
-  outline: none;
-}
-
-.profileField input:focus {
-  border-color: var(--signal);
-}
-
-.profileError {
-  color: var(--danger-text);
-  font-size: 12.5px;
-  margin: -4px 0 14px;
-}
-
-.profileSaveBtn {
-  width: auto;
-  padding: 10px 22px;
-  font-size: 13.5px;
-}
-
-.accountSection {
-  margin-top: 20px;
-  padding-top: 18px;
-  border-top: 1px solid var(--line);
-}
-
-.accountTitle {
-  font-family: var(--font-heading);
-  font-size: 14px;
-  font-weight: 600;
-  color: var(--text);
-  margin-bottom: 2px;
-}
-
-.accountHint {
-  font-size: 12px;
-  color: var(--text-dim);
-  margin-bottom: 14px;
-}
-
-.accountSuccess {
-  color: var(--ok-text);
-  font-size: 12.5px;
-  margin: -4px 0 14px;
-}
-
-/* ---------- Sekme cubugu ---------- */
-
-.tabBar {
-  display: flex;
   align-items: center;
   gap: 4px;
-  background: var(--panel);
-  border: 1px solid var(--line);
-  border-radius: var(--radius-lg);
-  padding: 4px;
-  overflow-x: auto;
-  scrollbar-width: none;
+  text-align: center;
 }
 
-.tabBar::-webkit-scrollbar {
-  display: none;
-}
-
-.tab,
-.tabActive {
-  flex-shrink: 0;
-  width: auto;
-  border: none;
-  background: none;
-  border-radius: 10px;
-  padding: 9px 11px;
-  font-size: 12px;
-  font-weight: 600;
-  font-family: var(--font-body);
-  color: var(--text-dim);
-  cursor: pointer;
-  white-space: nowrap;
-}
-
-.tabActive {
+.heroAvatar {
+  width: 76px;
+  height: 76px;
+  border-radius: 50%;
   background: var(--signal);
   color: #fff;
-  cursor: default;
-}
-
-/* ---------- Istatistik kartlari ---------- */
-
-.statsRow {
-  display: grid;
-  grid-template-columns: repeat(3, 1fr);
-  gap: 8px;
-}
-
-.statCard {
-  display: flex;
-  flex-direction: column;
-  gap: 6px;
-  background: var(--panel);
-  border: 1px solid var(--line);
-  border-radius: var(--radius-lg);
-  padding: 12px 10px;
-  min-width: 0;
-}
-
-.statCardHead {
-  display: flex;
-  align-items: center;
-  gap: 5px;
-  color: var(--text-dim);
-  font-size: 10.5px;
-  font-weight: 600;
-}
-
-.statCardValue {
   font-family: var(--font-heading);
-  font-size: 16px;
-  font-weight: 700;
-  color: var(--text);
-  font-variant-numeric: tabular-nums;
-}
-
-.statCardSub {
-  font-size: 9.5px;
-  color: var(--text-dim);
-  line-height: 1.35;
-}
-
-.statCardMiniRow {
-  display: flex;
-  gap: 8px;
-}
-
-.statCardMiniItem {
-  display: flex;
-  flex-direction: column;
-  gap: 1px;
-}
-
-.statCardMiniValue {
-  font-family: var(--font-heading);
-  font-size: 14px;
-  font-weight: 700;
-  color: var(--text);
-  font-variant-numeric: tabular-nums;
-}
-
-.statCardMiniLabel {
-  font-size: 8.5px;
-  color: var(--text-dim);
-  white-space: nowrap;
-}
-
-.statusPill {
-  align-self: flex-start;
-  flex-shrink: 0;
-  font-size: 10px;
-  font-weight: 700;
-  padding: 3px 9px;
-  border-radius: 999px;
-  white-space: nowrap;
-}
-
-.statusPill_aktif {
-  color: var(--ok-text);
-  background: var(--ok-bg);
-}
-
-.statusPill_izinli {
-  color: var(--warn-text);
-  background: var(--warn-bg);
-}
-
-.statusPill_pasif {
-  color: var(--text-dim);
-  background: var(--panel-2);
-}
-
-/* ---------- Kart baslik + Duzenle linki ---------- */
-
-.sectionHead {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  gap: 12px;
-  margin-bottom: 14px;
-}
-
-.sectionHead h2 {
-  margin-bottom: 0;
-}
-
-.editLink {
-  flex-shrink: 0;
-  display: flex;
-  align-items: center;
-  gap: 5px;
-  width: auto;
-  background: none;
-  border: none;
-  color: var(--signal);
-  font-size: 12.5px;
+  font-size: 26px;
   font-weight: 600;
-  font-family: var(--font-body);
-  padding: 0;
-  cursor: pointer;
-}
-
-.editLink:hover {
-  text-decoration: underline;
-}
-
-/* ---------- Gun pill secici ---------- */
-
-.dayPillRow {
-  display: flex;
-  gap: 6px;
-  overflow-x: auto;
-  margin-bottom: 14px;
-  scrollbar-width: none;
-}
-
-.dayPillRow::-webkit-scrollbar {
-  display: none;
-}
-
-.dayPill,
-.dayPillActive {
-  flex-shrink: 0;
-  width: 42px;
-  height: 36px;
   display: flex;
   align-items: center;
   justify-content: center;
-  border-radius: 10px;
-  font-size: 12.5px;
-  font-weight: 600;
-  font-family: var(--font-body);
-  cursor: pointer;
+  margin-bottom: 8px;
 }
 
-.dayPill {
-  background: var(--panel-2);
-  border: 1px solid var(--line);
+.heroName {
+  font-family: var(--font-heading);
+  font-size: 24px;
+  font-weight: 600;
+  color: var(--text);
+}
+
+.heroSub {
+  font-size: 13px;
   color: var(--text-dim);
 }
 
-.dayPill:hover {
-  color: var(--text);
-  border-color: var(--text-dim);
+.statusPill {
+  margin-top: 6px;
+  font-size: 12px;
+  font-weight: 700;
+  padding: 5px 12px;
+  border-radius: 999px;
 }
 
-.dayPillActive {
-  background: var(--signal);
-  border: 1px solid var(--signal);
-  color: #fff;
+.statusPill_aktif {
+  background: var(--ok-bg);
+  color: var(--ok-text);
 }
 
-/* ---------- Secili gunun saat araliklari ---------- */
-
-.rangeList {
-  display: flex;
-  flex-direction: column;
-  gap: 8px;
-  margin-bottom: 14px;
+.statusPill_izinli {
+  background: var(--accent-bg);
+  color: var(--accent-text);
 }
 
-.rangeRow {
-  display: flex;
-  align-items: center;
-  gap: 10px;
-  width: 100%;
+.statusPill_pasif {
   background: var(--panel-2);
-  border: 1px solid var(--line);
-  border-radius: var(--radius-sm);
-  padding: 11px 12px;
-  cursor: pointer;
-  text-align: left;
-  font-family: var(--font-body);
+  color: var(--text-dim);
 }
 
-.rangeRow:hover {
-  border-color: var(--text-dim);
+.statStrip {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  background: var(--panel);
+  border-radius: 20px;
+  padding: 14px 0;
 }
 
-.rangeDot {
-  width: 8px;
-  height: 8px;
-  border-radius: 50%;
-  flex-shrink: 0;
-}
-
-.rangeDotWork {
-  background: var(--ok-text);
-}
-
-.rangeDotBreak {
-  background: var(--warn-text);
-}
-
-.rangeText {
-  font-size: 13.5px;
-  font-weight: 600;
-  color: var(--text);
-  font-variant-numeric: tabular-nums;
-}
-
-.rangeTextCol {
+.statItem {
   display: flex;
   flex-direction: column;
-  gap: 1px;
-  flex: 1;
+  align-items: center;
+  gap: 2px;
+  padding: 0 6px;
+  text-align: center;
   min-width: 0;
 }
 
-.rangeSub {
+.statItem + .statItem {
+  border-left: 1px solid var(--line);
+}
+
+.statValue {
+  font-family: var(--font-heading);
+  font-size: 20px;
+  font-weight: 600;
+  font-variant-numeric: tabular-nums;
+  color: var(--text);
+}
+
+.statLabel {
   font-size: 11px;
   color: var(--text-dim);
 }
 
-.rangeRow > .rangeText {
-  flex: 1;
+.statNote {
+  font-size: 11px;
+  color: #9ca3af;
+  text-align: center;
+  margin-top: -8px;
 }
 
-.rangeBadge {
-  flex-shrink: 0;
-  font-size: 10.5px;
+.nowCard {
+  background: var(--signal);
+  color: #fff;
+  border-radius: 22px;
+  padding: 16px 18px;
+  display: flex;
+  flex-direction: column;
+  gap: 3px;
+}
+
+.nowEyebrow {
+  font-size: 11px;
   font-weight: 700;
-  padding: 3px 9px;
-  border-radius: 999px;
-  white-space: nowrap;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  color: #ffb07a;
 }
 
-.rangeBadgeWork {
-  color: var(--ok-text);
-  background: var(--ok-bg);
+.nowMain {
+  font-size: 16px;
+  font-weight: 700;
 }
 
-.rangeBadgeBreak {
-  color: var(--warn-text);
-  background: var(--warn-bg);
-}
-
-.rangeChevron {
-  flex-shrink: 0;
-  color: var(--text-dim);
-}
-
-.emptyDay {
-  color: var(--text-dim);
+.nowSub {
   font-size: 13px;
-  margin-bottom: 14px;
+  color: var(--navy-dim);
 }
 
-/* ---------- Cerceveli "ekle" butonu ---------- */
+/* ---------- Satirlar ---------- */
 
-.outlineAddBtn {
+.listCard {
+  background: var(--panel);
+  border-radius: 22px;
+  padding: 4px 16px;
+  display: flex;
+  flex-direction: column;
+}
+
+.navRow,
+.checkRow {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  width: 100%;
+  border: none;
+  border-bottom: 1px solid var(--line);
+  background: none;
+  padding: 13px 0;
+  font-family: var(--font-body);
+  color: var(--text);
+  text-align: left;
+  cursor: pointer;
+}
+
+.navRow:last-child,
+.checkRow:last-child {
+  border-bottom: none;
+}
+
+.navIcon {
+  width: 38px;
+  height: 38px;
+  border-radius: 13px;
+  background: var(--tint);
+  color: var(--signal);
   display: flex;
   align-items: center;
   justify-content: center;
-  gap: 8px;
-  width: 100%;
-  background: var(--panel);
-  border: 1px solid var(--signal);
-  color: var(--signal);
-  border-radius: 999px;
-  padding: 12px;
-  font-size: 13.5px;
-  font-weight: 600;
-  font-family: var(--font-body);
-  cursor: pointer;
-  margin-bottom: 14px;
-}
-
-.outlineAddBtn:hover {
-  background: #eaf1fb;
-}
-
-.infoBanner {
-  display: flex;
-  align-items: center;
-  gap: 10px;
-  background: #eaf1fb;
-  border: 1px solid #d3e3f8;
-  border-radius: var(--radius-lg);
-  padding: 12px 14px;
-  font-size: 12.5px;
-  line-height: 1.4;
-  color: var(--signal);
-}
-
-.infoBanner svg {
   flex-shrink: 0;
 }
 
-/* ---------- Izin filtre segmenti ---------- */
-
-.leaveFilterToggle {
-  display: flex;
-  gap: 6px;
-  background: var(--panel-2);
-  border-radius: 10px;
-  padding: 3px;
-  margin-bottom: 14px;
-}
-
-.leaveFilterTab,
-.leaveFilterTabActive {
+.navText {
   flex: 1;
   min-width: 0;
-  border: none;
-  background: none;
-  border-radius: 8px;
-  padding: 9px 6px;
-  font-size: 12px;
-  font-weight: 600;
-  font-family: var(--font-body);
-  color: var(--text-dim);
-  cursor: pointer;
-  overflow: hidden;
-  text-overflow: ellipsis;
-  white-space: nowrap;
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
 }
 
-.leaveFilterTabActive {
+.navTitle {
+  font-size: 15px;
+  font-weight: 700;
+}
+
+.navSub {
+  font-size: 12px;
+  color: var(--text-dim);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.navChevron {
+  color: #9ca3af;
+  flex-shrink: 0;
+}
+
+.kvRow {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  padding: 13px 0;
+  border-bottom: 1px solid var(--line);
+}
+
+.kvRow:last-child {
+  border-bottom: none;
+}
+
+.kvLabel {
+  font-size: 13px;
+  color: var(--text-dim);
+}
+
+.kvValue {
+  font-size: 14px;
+  font-weight: 700;
+  color: var(--text);
+  text-align: right;
+}
+
+/* ---------- Alt sayfa basligi ---------- */
+
+.subHead {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+
+.backBtn {
+  width: 40px;
+  height: 40px;
+  border-radius: 50%;
+  border: none;
+  background: var(--panel);
+  color: var(--text);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+  cursor: pointer;
+}
+
+.subHeadText {
+  display: flex;
+  flex-direction: column;
+  gap: 1px;
+  min-width: 0;
+}
+
+.subHeadTitle {
+  font-family: var(--font-heading);
+  font-size: 20px;
+  font-weight: 600;
+  color: var(--text);
+}
+
+.subHeadName {
+  font-size: 13px;
+  color: var(--text-dim);
+}
+
+/* ---------- Calisma saatleri ---------- */
+
+.dayPillRow {
+  display: grid;
+  grid-template-columns: repeat(7, minmax(0, 1fr));
+  gap: 4px;
+  background: var(--panel);
+  border-radius: 22px;
+  padding: 8px;
+}
+
+.dayPill,
+.dayPillActive {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 5px;
+  border: none;
+  background: transparent;
+  color: var(--text);
+  border-radius: 14px;
+  padding: 10px 0 8px;
+  font-family: var(--font-body);
+  font-size: 13px;
+  font-weight: 700;
+  cursor: pointer;
+}
+
+.dayPillActive {
   background: var(--signal);
   color: #fff;
 }
 
-/* ---------- Izin ozet listesi ---------- */
+.dayPillDot,
+.dayPillDotOff {
+  width: 5px;
+  height: 5px;
+  border-radius: 50%;
+  background: var(--ok-text);
+}
 
-.leaveSummaryList {
+.dayPillDotOff {
+  background: #c5cad3;
+}
+
+.dayPillActive .dayPillDot {
+  background: var(--accent);
+}
+
+.timeline {
+  position: relative;
   display: flex;
   flex-direction: column;
-  gap: 8px;
-  margin-bottom: 14px;
+  gap: 10px;
 }
 
-.leaveSummaryRow {
+.timeline::before {
+  content: '';
+  position: absolute;
+  left: 25px;
+  top: 10px;
+  bottom: 10px;
+  width: 2px;
+  background: #e2e5ea;
+}
+
+.timelineRow {
+  position: relative;
   display: flex;
   align-items: center;
-  gap: 10px;
-  width: 100%;
-  background: var(--panel-2);
-  border: 1px solid var(--line);
-  border-radius: var(--radius-sm);
-  padding: 10px 12px;
-  cursor: pointer;
-  text-align: left;
-  font-family: var(--font-body);
 }
 
-.leaveSummaryRow:hover {
-  border-color: var(--text-dim);
-}
-
-.leaveSummaryIcon {
+.timelineTime {
+  width: 52px;
   flex-shrink: 0;
-  width: 32px;
-  height: 32px;
-  border-radius: 9px;
-  background: #ede9fe;
-  color: #5b21b6;
+  padding: 6px 0;
+  background: var(--bg);
+  font-family: var(--font-heading);
+  font-size: 15px;
+  font-weight: 600;
+  font-variant-numeric: tabular-nums;
+  color: var(--text);
+}
+
+.timelineCard {
+  flex: 1;
+  min-width: 0;
+  background: var(--panel);
+  border-radius: 18px;
+  padding: 12px 14px;
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+
+.timelineCardBreak {
+  background: var(--accent-bg);
+}
+
+.timelineTitle {
+  font-size: 14px;
+  font-weight: 700;
+  color: var(--text);
+}
+
+.timelineCardBreak .timelineTitle {
+  color: var(--accent-text);
+}
+
+.timelineSub {
+  font-size: 12px;
+  color: var(--text-dim);
+}
+
+.offCard {
+  background: var(--panel);
+  border-radius: 18px;
+  padding: 18px;
+  font-size: 14px;
+  color: var(--text-dim);
+  text-align: center;
+}
+
+/* ---------- Hizmetler ---------- */
+
+.checkBox,
+.checkBoxOn {
+  width: 24px;
+  height: 24px;
+  border-radius: 8px;
+  border: 2px solid #c5cad3;
+  background: var(--panel);
+  color: #fff;
   display: flex;
   align-items: center;
   justify-content: center;
+  flex-shrink: 0;
 }
 
-.leaveSummaryText {
+.checkBoxOn {
+  border-color: var(--signal);
+  background: var(--signal);
+}
+
+.checkLabel {
+  flex: 1;
+  font-size: 15px;
+  font-weight: 500;
+}
+
+/* ---------- Kazanc ---------- */
+
+.earnHero {
+  background: var(--signal);
+  color: #fff;
+  border-radius: 24px;
+  padding: 20px;
   display: flex;
   flex-direction: column;
-  gap: 1px;
+  gap: 2px;
+}
+
+.earnLabel {
+  font-size: 13px;
+  color: var(--navy-dim);
+}
+
+.earnValue {
+  font-family: var(--font-heading);
+  font-size: 38px;
+  font-weight: 600;
+  letter-spacing: -0.02em;
+  font-variant-numeric: tabular-nums;
+}
+
+.earnHint {
+  font-size: 13px;
+  color: #ffb07a;
+}
+
+/* ---------- Formlar ---------- */
+
+.formCard {
+  background: var(--panel);
+  border-radius: 22px;
+  padding: 18px 16px;
+  display: flex;
+  flex-direction: column;
+}
+
+.formTitle {
+  font-size: 16px;
+  font-weight: 700;
+  color: var(--text);
+  margin-bottom: 4px;
+}
+
+.formCard .hint {
+  margin-bottom: 12px;
+}
+
+.error {
+  font-size: 13px;
+  color: var(--danger-text);
+  background: var(--danger-bg);
+  border-radius: 12px;
+  padding: 10px 12px;
+  margin-bottom: 12px;
+}
+
+.success {
+  font-size: 13px;
+  color: var(--ok-text);
+  background: var(--ok-bg);
+  border-radius: 12px;
+  padding: 10px 12px;
+  margin-bottom: 12px;
+}
+
+/* ---------- Ana ekran (tasarim: Sec-Calisan) ---------- */
+
+.topBlock {
+  margin: calc(-14px - env(safe-area-inset-top, 0px)) -16px 0;
+  background: var(--panel);
+  padding: calc(14px + env(safe-area-inset-top, 0px)) 16px 18px;
+  border-radius: 0 0 28px 28px;
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+}
+
+.topBar {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+}
+
+.backBtnGray {
+  width: 40px;
+  height: 40px;
+  border-radius: 50%;
+  border: none;
+  background: var(--panel-2);
+  color: var(--text);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+}
+
+.editBtn {
+  border: none;
+  background: var(--panel-2);
+  color: var(--text);
+  border-radius: 12px;
+  padding: 9px 14px;
+  font-family: var(--font-body);
+  font-size: 13px;
+  font-weight: 700;
+  cursor: pointer;
+}
+
+.topBlock .hero {
+  gap: 8px;
+}
+
+.topBlock .heroAvatar {
+  font-size: 30px;
+}
+
+.topBlock .statStrip {
+  background: var(--bg);
+  border-radius: 16px;
+  padding: 12px 0;
+}
+
+.topBlock .statItem + .statItem {
+  border-left: 1px solid #e2e5ea;
+}
+
+.topBlock .statValue {
+  font-size: 19px;
+}
+
+.body {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.body .nowCard {
+  background: var(--panel);
+  color: var(--text);
+  border-radius: 20px;
+  padding: 14px;
+  flex-direction: row;
+  align-items: center;
+  gap: 12px;
+}
+
+.nowDot {
+  width: 10px;
+  height: 10px;
+  border-radius: 50%;
+  background: var(--accent);
+  flex-shrink: 0;
+}
+
+.nowDotIdle {
+  background: var(--ok-text);
+}
+
+.nowText {
   flex: 1;
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+
+.body .nowMain {
+  font-size: 14px;
+  font-weight: 700;
+}
+
+.body .nowSub {
+  font-size: 12px;
+  color: var(--text-dim);
+}
+
+.body .listCard {
+  padding: 2px 14px;
+}
+
+.body .navRow {
+  padding: 14px 0;
+}
+
+.body .navChevron {
+  color: #9ca3af;
+  font-size: 18px;
+}
+
+.deactivateBtn {
+  border: none;
+  background: transparent;
+  color: var(--danger-text);
+  font-family: var(--font-body);
+  font-size: 14px;
+  font-weight: 700;
+  padding: 8px 0;
+  cursor: pointer;
+}
+
+/* ---------- Gunluk cizelge (tasarim: Calisan-3) ---------- */
+
+.subAvatar {
+  width: 44px;
+  height: 44px;
+  border-radius: 50%;
+  background: var(--signal);
+  color: #fff;
+  font-family: var(--font-heading);
+  font-size: 17px;
+  font-weight: 600;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+}
+
+.subHead .subHeadText {
+  flex: 1;
+}
+
+.dateStrip {
+  display: grid;
+  grid-template-columns: repeat(7, minmax(0, 1fr));
+  gap: 6px;
+}
+
+.dateCell,
+.dateCellActive {
+  border: none;
+  background: var(--panel);
+  color: var(--text);
+  border-radius: 12px;
+  padding: 8px 0;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  font-family: var(--font-body);
+  font-size: 11px;
+  cursor: pointer;
+}
+
+.dateCellActive {
+  background: var(--signal);
+  color: #fff;
+}
+
+.dateCellDay {
+  color: var(--text-dim);
+}
+
+.dateCellActive .dateCellDay {
+  color: var(--navy-dim);
+}
+
+.dateCellNum {
+  font-size: 15px;
+}
+
+.daySlots {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.slotRow {
+  display: flex;
+  gap: 12px;
+  align-items: stretch;
+}
+
+.slotTime {
+  width: 44px;
+  flex-shrink: 0;
+  padding-top: 12px;
+  font-size: 13px;
+  font-weight: 700;
+  color: #6b7280;
+  font-variant-numeric: tabular-nums;
+}
+
+.slotTimeLive {
+  color: var(--accent-text);
+}
+
+.slotCard {
+  flex: 1;
+  min-width: 0;
+  border: none;
+  background: var(--panel);
+  color: var(--text);
+  border-radius: 16px;
+  padding: 12px 14px;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 10px;
+  font-family: var(--font-body);
+  text-align: left;
+  cursor: pointer;
+}
+
+.slotCardLive {
+  background: var(--signal);
+  color: #fff;
+}
+
+.slotCardDone {
+  opacity: 0.6;
+}
+
+.slotText {
+  display: flex;
+  flex-direction: column;
   min-width: 0;
 }
 
-.leaveSummaryDate {
-  font-size: 13px;
+.slotName {
+  font-size: 14px;
   font-weight: 700;
-  color: var(--text);
+  white-space: nowrap;
   overflow: hidden;
   text-overflow: ellipsis;
-  white-space: nowrap;
 }
 
-.leaveSummarySub {
-  font-size: 11.5px;
-  color: var(--text-dim);
-}
-
-.leaveSummaryBadge {
-  flex-shrink: 0;
-  font-size: 10.5px;
-  font-weight: 700;
-  padding: 3px 9px;
-  border-radius: 999px;
-  color: #5b21b6;
-  background: #ede9fe;
-  white-space: nowrap;
-}
-
-.leaveSummaryMore {
-  flex-shrink: 0;
-  color: var(--text-dim);
-}
-
-/* ---------- Alanlar ---------- */
-
-.employeeTags {
-  display: flex;
-  flex-wrap: wrap;
-  gap: 8px;
-  margin-top: 10px;
-}
-
-.hashtag {
+.slotSub {
   font-size: 12px;
+  color: var(--text-dim);
+}
+
+.slotCardLive .slotSub {
+  color: var(--navy-dim);
+}
+
+.slotLivePill {
+  flex-shrink: 0;
+  font-size: 11px;
+  font-weight: 700;
+  color: var(--signal);
+  background: #ffb07a;
+  padding: 4px 8px;
+  border-radius: 999px;
+}
+
+.slotPrice {
+  flex-shrink: 0;
+  font-size: 13px;
+  font-weight: 700;
+}
+
+.slotPriceOk {
+  color: var(--ok-text);
+}
+
+.slotGap {
+  flex: 1;
+  border: 1.5px dashed #c5cad3;
+  background: transparent;
+  border-radius: 16px;
+  padding: 10px 14px;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  font-family: var(--font-body);
+  font-size: 13px;
+  color: var(--text-dim);
+  cursor: pointer;
+}
+
+.slotGapAction {
+  font-weight: 700;
+  color: var(--signal);
+}
+
+.daySummary {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  background: var(--panel);
+  border-radius: 18px;
+}
+
+.daySummaryItem {
+  padding: 12px;
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+
+.daySummaryItem + .daySummaryItem {
+  border-left: 1px solid #eef0f3;
+}
+
+.daySummaryValue {
+  font-family: var(--font-heading);
+  font-size: 17px;
   font-weight: 600;
 }
 
-.categoryCheckboxes {
+.daySummaryLabel {
+  font-size: 11px;
+  color: var(--text-dim);
+}
+
+/* ---------- Yaptigi hizmetler (tasarim: Calisan-5) ---------- */
+
+.countBar {
   display: flex;
-  flex-wrap: wrap;
-  gap: 8px;
-}
-
-.categoryChip,
-.categoryChipActive {
-  display: inline-flex;
+  justify-content: space-between;
   align-items: center;
-  gap: 6px;
-  padding: 8px 14px;
-  border-radius: 999px;
-  font-size: 13px;
-  font-weight: 500;
-  cursor: pointer;
-  text-align: center;
-  transition:
-    background 0.15s,
-    border-color 0.15s,
-    color 0.15s,
-    transform 0.1s;
-}
-
-.categoryChip {
-  background: var(--panel-2);
-  border: 1px solid var(--line);
-  color: var(--text-dim);
-}
-
-.categoryChip:hover {
-  color: var(--text);
-  border-color: var(--text-dim);
-  background: var(--panel);
-}
-
-.categoryChipActive {
+  gap: 12px;
   background: var(--signal);
-  border: 1px solid var(--signal);
-  color: var(--signal-text);
+  color: #fff;
+  border-radius: 16px;
+  padding: 12px 14px;
+  font-size: 14px;
 }
 
-.categoryChipActive:active,
-.categoryChip:active {
-  transform: scale(0.96);
+.countBarNum {
+  font-family: var(--font-heading);
+  font-size: 18px;
 }
 
-.empty {
+.copyWrap {
+  position: relative;
+}
+
+.copyBtn {
+  border: none;
+  background: var(--navy-2);
+  color: #fff;
+  border-radius: 10px;
+  padding: 7px 10px;
+  font-family: var(--font-body);
+  font-size: 12px;
+  font-weight: 700;
+  cursor: pointer;
+}
+
+.copyMenu {
+  position: absolute;
+  right: 0;
+  top: calc(100% + 6px);
+  min-width: 180px;
+  background: var(--panel);
+  border-radius: 14px;
+  box-shadow: 0 12px 32px rgba(17, 24, 39, 0.16);
+  padding: 6px;
+  display: flex;
+  flex-direction: column;
+  z-index: 20;
+}
+
+.copyMenuItem {
+  border: none;
+  background: none;
+  border-radius: 10px;
+  padding: 10px 12px;
+  font-family: var(--font-body);
+  font-size: 14px;
+  color: var(--text);
+  text-align: left;
+  cursor: pointer;
+}
+
+.listHead {
+  display: flex;
+  justify-content: space-between;
+  padding: 0 4px;
+  font-size: 12px;
+  font-weight: 700;
+  color: #6b7280;
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+}
+
+.listHeadLink {
+  border: none;
+  background: none;
+  padding: 0;
+  font-family: var(--font-body);
+  font-size: 12px;
+  font-weight: 700;
+  color: var(--signal);
+  text-transform: none;
+  letter-spacing: 0;
+  cursor: pointer;
+}
+
+.checkLabelOff {
+  font-weight: 600;
+  color: #374151;
+}
+
+.checkMeta {
+  font-size: 12px;
   color: var(--text-dim);
-  font-size: 13px;
+  flex-shrink: 0;
+}
+
+/* ---------- Kazanc (tasarim: Calisan-4) ---------- */
+
+.earnHero {
+  gap: 14px;
+  padding: 18px;
+}
+
+.earnTop {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-end;
+  gap: 12px;
+}
+
+.earnMain {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+
+.earnSide {
+  font-size: 12px;
+  color: var(--navy-dim);
+  text-align: right;
+}
+
+.earnBox {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  background: var(--navy-2);
+  border-radius: 14px;
+  padding: 12px 14px;
+}
+
+.earnBoxText {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+
+.earnBoxLabel {
+  font-size: 12px;
+  color: var(--navy-dim);
+}
+
+.earnBoxValue {
+  font-family: var(--font-heading);
+  font-size: 20px;
+  font-weight: 600;
+  color: #ffb07a;
+}
+
+.chartCard {
+  background: var(--panel);
+  border-radius: 22px;
+  padding: 16px;
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+.chartHead {
+  display: flex;
+  justify-content: space-between;
+  align-items: baseline;
+}
+
+.chartTitle {
+  font-family: var(--font-heading);
+  font-size: 17px;
+  font-weight: 600;
+}
+
+.chartUnit {
+  font-size: 12px;
+  color: var(--text-dim);
+}
+
+.barGrid {
+  display: grid;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  gap: 12px;
+  align-items: end;
+  height: 96px;
+}
+
+.barCol {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: flex-end;
+  gap: 5px;
+  height: 100%;
+}
+
+.barValue {
+  font-size: 12px;
+  font-weight: 700;
+}
+
+.barValueDim {
+  color: var(--text-dim);
+}
+
+.bar {
+  width: 100%;
+  background: var(--signal);
+  border-radius: 4px 4px 0 0;
+}
+
+.barCurrent {
+  background: var(--navy-dim);
+}
+
+.barLabels {
+  display: grid;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  gap: 12px;
+  font-size: 11px;
+  color: var(--text-dim);
+  text-align: center;
+  border-top: 1px solid #eef0f3;
+  padding-top: 8px;
+}
+
+.tableCard {
+  background: var(--panel);
+  border-radius: 22px;
+  padding: 4px 16px;
+}
+
+.tableRow {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) 44px 76px 64px;
+  padding: 11px 0;
+  font-size: 14px;
+  border-bottom: 1px solid #eef0f3;
+}
+
+.tableRow:last-child {
+  border-bottom: none;
+}
+
+.tableHead {
+  padding: 10px 0;
+  font-size: 11px;
+  font-weight: 700;
+  color: #6b7280;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+}
+
+.tRight {
+  text-align: right;
+}
+
+.tName {
+  font-weight: 700;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.tBold {
+  font-weight: 700;
 }

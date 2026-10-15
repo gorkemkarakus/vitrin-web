@@ -4,174 +4,172 @@
   gap: 16px;
 }
 
-.backBtn {
+.topRow {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+}
+
+.backLink {
   display: flex;
   align-items: center;
   gap: 4px;
-  align-self: flex-start;
-  background: none;
   border: none;
-  color: var(--text-dim);
-  font-size: 13px;
-  font-weight: 600;
+  background: none;
+  padding: 10px 4px;
   font-family: var(--font-body);
+  font-size: 14px;
+  font-weight: 700;
+  color: var(--text);
   cursor: pointer;
-  padding: 0;
 }
 
 .backIcon {
   transform: rotate(180deg);
 }
 
-.insightsGrid {
-  display: grid;
-  grid-template-columns: repeat(2, 1fr);
-  gap: 10px;
-}
+/* ---------- Ust blok ---------- */
 
-.insightTile {
+.hero {
   display: flex;
   flex-direction: column;
-  gap: 4px;
-  min-width: 0;
-  background: var(--panel-2);
-  border-radius: var(--radius-sm);
-  padding: 12px;
+  align-items: center;
+  gap: 8px;
+  text-align: center;
 }
 
-.insightIcon {
-  width: 24px;
-  height: 24px;
+.heroAvatar {
+  width: 76px;
+  height: 76px;
   border-radius: 50%;
+  background: var(--signal);
+  color: #fff;
+  font-family: var(--font-heading);
+  font-size: 26px;
+  font-weight: 600;
   display: flex;
   align-items: center;
   justify-content: center;
-  background: var(--info-bg);
-  color: var(--info-text);
 }
 
-.insightValue {
-  font-family: var(--font-heading);
-  font-size: 14px;
-  font-weight: 700;
-  color: var(--text);
-  overflow: hidden;
-  text-overflow: ellipsis;
-  white-space: nowrap;
-}
-
-.insightSub {
+.heroBadge {
   font-size: 11px;
-  color: var(--text-dim);
-  overflow: hidden;
-  text-overflow: ellipsis;
-  white-space: nowrap;
+  font-weight: 700;
+  color: var(--signal);
+  background: var(--tint);
+  padding: 4px 10px;
+  border-radius: 999px;
 }
 
-.insightLabel {
-  font-size: 10.5px;
+.heroName {
+  font-family: var(--font-heading);
+  font-size: 24px;
   font-weight: 600;
+  color: var(--text);
+}
+
+.heroSub {
+  font-size: 13px;
   color: var(--text-dim);
+  user-select: text;
+  -webkit-user-select: text;
 }
 
-.headerCard {
-  display: flex;
-  align-items: center;
-  gap: 14px;
+.actions {
+  display: grid;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  gap: 8px;
 }
 
-.headerInfo {
+.actionBtn {
   display: flex;
   flex-direction: column;
-  gap: 4px;
-  min-width: 0;
-}
-
-.headerName {
-  font-family: var(--font-heading);
-  font-size: 17px;
-  font-weight: 600;
-  color: var(--text);
-}
-
-.headerLine {
-  display: flex;
   align-items: center;
   gap: 6px;
-  font-size: 12.5px;
-  color: var(--text-dim);
-}
-
-.editCustomerBtn {
-  flex-shrink: 0;
-  margin-left: auto;
-  align-self: flex-start;
-  width: 32px;
-  height: 32px;
-  border-radius: 50%;
   border: none;
-  background: var(--panel-2);
-  color: var(--text-dim);
+  background: var(--panel);
+  border-radius: 16px;
+  padding: 12px 0;
+  font-family: var(--font-body);
+  font-size: 11px;
+  font-weight: 700;
+  color: var(--text);
+  text-decoration: none;
+  text-align: center;
   cursor: pointer;
-  display: inline-flex;
-  align-items: center;
-  justify-content: center;
 }
 
-.editCustomerBtn:hover {
-  background: var(--info-bg);
+.actionBtn svg {
   color: var(--signal);
 }
 
-.balanceRow {
-  display: grid;
-  grid-template-columns: 1fr 1fr;
-  gap: 10px;
+.actionBtn:disabled {
+  opacity: 0.45;
+  cursor: default;
 }
 
-.creditBanner {
+.actionBtnPrimary {
+  background: var(--accent);
+  color: #fff;
+}
+
+.actionBtnPrimary svg {
+  color: #fff;
+}
+
+/* ---------- Sekmeler ---------- */
+
+.tabs {
   display: flex;
-  align-items: center;
   justify-content: space-between;
-  gap: 12px;
-  background: var(--ok-bg);
-  border-radius: var(--radius-lg);
-  padding: 13px 16px;
+  padding: 0 4px;
+  border-bottom: 1px solid #e2e5ea;
 }
 
-.creditBannerLeft {
-  display: flex;
-  align-items: center;
-  gap: 9px;
-  font-size: 13.5px;
+.tab,
+.tabActive {
+  border: none;
+  background: none;
+  padding: 8px 0 10px;
+  margin-bottom: -1px;
+  border-bottom: 2px solid transparent;
+  font-family: var(--font-body);
+  font-size: 14px;
   font-weight: 600;
-  color: var(--ok-text);
+  color: #6b7280;
+  cursor: pointer;
 }
 
-.creditBannerIcon {
-  width: 28px;
-  height: 28px;
-  border-radius: 50%;
-  background: var(--panel);
-  color: var(--ok-text);
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  flex-shrink: 0;
-}
-
-.creditBannerValue {
-  font-family: var(--font-heading);
-  font-size: 20px;
+.tabActive {
+  color: var(--text);
   font-weight: 700;
-  color: var(--ok-text);
-  font-variant-numeric: tabular-nums;
+  border-bottom-color: var(--accent);
 }
+
+.tabCount {
+  font-size: 12px;
+  color: #9ca3af;
+}
+
+/* ---------- Bakiye ---------- */
 
 .balanceCard {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  background: var(--panel);
+  border-radius: 22px;
+}
+
+.balanceCol {
   display: flex;
   flex-direction: column;
-  gap: 4px;
+  gap: 2px;
+  padding: 16px;
+  min-width: 0;
+}
+
+.balanceColDivided {
+  border-left: 1px solid #eef0f3;
 }
 
 .balanceLabel {
@@ -179,303 +177,306 @@
   color: var(--text-dim);
 }
 
-.balanceValueOk {
+.balanceValue {
   font-family: var(--font-heading);
-  font-size: 19px;
+  font-size: 22px;
   font-weight: 600;
+  font-variant-numeric: tabular-nums;
+  color: var(--text);
+}
+
+.textOk {
   color: var(--ok-text);
-}
-
-.balanceValueDanger {
-  font-family: var(--font-heading);
-  font-size: 19px;
-  font-weight: 600;
-  color: var(--danger-text);
-}
-
-.payBtn {
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  gap: 8px;
-  width: 100%;
-  background: var(--signal);
-  color: #fff;
-  border: none;
-  border-radius: 999px;
-  padding: 13px;
-  font-size: 14px;
+  font-size: 12px;
   font-weight: 700;
-  font-family: var(--font-body);
-  cursor: pointer;
 }
 
-.payBtn:hover {
-  opacity: 0.92;
+.textWarm {
+  color: var(--accent-text);
+  font-size: 12px;
+  font-weight: 700;
 }
 
-.empty {
-  color: var(--text-dim);
-  font-size: 13px;
+.balanceValue.textOk,
+.balanceValue.textWarm {
+  font-size: 22px;
+  font-weight: 600;
 }
 
-.list {
+/* ---------- Liste kartlari ---------- */
+
+.listCard {
+  background: var(--panel);
+  border-radius: 22px;
+  padding: 4px 16px;
   display: flex;
   flex-direction: column;
 }
 
-.packageRow {
-  display: flex;
-  flex-direction: column;
-  gap: 8px;
-  padding: 12px 2px;
-  border-bottom: 1px solid var(--line);
-}
-
-.packageRow:last-child {
-  border-bottom: none;
-}
-
-.packageRowTop {
+.insightRow,
+.apptRow,
+.paymentRow {
   display: flex;
   align-items: center;
   justify-content: space-between;
+  gap: 12px;
+  padding: 13px 0;
+  border-bottom: 1px solid var(--line);
+}
+
+.insightRow:last-child,
+.apptRow:last-child,
+.paymentRow:last-child {
+  border-bottom: none;
+}
+
+.insightLabel {
+  font-size: 14px;
+  color: var(--text-dim);
+}
+
+.insightValue {
+  font-size: 14px;
+  font-weight: 700;
+  color: var(--text);
+  text-align: right;
+}
+
+.rowMain {
+  flex: 1;
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+
+.rowTitle {
+  font-size: 14px;
+  font-weight: 700;
+  color: var(--text);
+}
+
+.rowMeta {
+  font-size: 12px;
+  color: var(--text-dim);
+}
+
+.rowSide {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-end;
+  gap: 4px;
+  flex-shrink: 0;
+}
+
+.statusPill {
+  font-size: 11px;
+  font-weight: 700;
+  padding: 4px 9px;
+  border-radius: 999px;
+  white-space: nowrap;
+  background: var(--panel-2);
+  color: var(--text-dim);
+}
+
+.status_bekliyor {
+  background: var(--warn-bg);
+  color: var(--warn-text);
+}
+
+.status_onaylandi {
+  background: var(--info-bg);
+  color: var(--info-text);
+}
+
+.status_tamamlandi {
+  background: var(--ok-bg);
+  color: var(--ok-text);
+}
+
+.status_iptal {
+  background: var(--danger-bg);
+  color: var(--danger-text);
+}
+
+.status_gelmedi {
+  background: var(--panel-2);
+  color: var(--text-dim);
+}
+
+.paymentAmount {
+  font-family: var(--font-heading);
+  font-size: 16px;
+  font-weight: 600;
+  font-variant-numeric: tabular-nums;
+  color: var(--text);
+}
+
+.paymentRowVoided .paymentAmount {
+  text-decoration: line-through;
+  color: #9ca3af;
+}
+
+.paymentRowActions {
+  display: flex;
+  gap: 6px;
+  flex-shrink: 0;
+}
+
+.iconBtn {
+  width: 34px;
+  height: 34px;
+  border-radius: 11px;
+  border: none;
+  background: var(--panel-2);
+  color: var(--text-dim);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+}
+
+.iconBtnDanger {
+  color: var(--danger-text);
+}
+
+.voidedBadge {
+  font-size: 11px;
+  font-weight: 700;
+  padding: 4px 9px;
+  border-radius: 999px;
+  background: var(--panel-2);
+  color: var(--text-dim);
+}
+
+.empty {
+  font-size: 13px;
+  color: var(--text-dim);
+}
+
+/* ---------- Paketler ---------- */
+
+.block {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.blockTitle {
+  font-size: 17px;
+  font-weight: 600;
+}
+
+.packageCard {
+  background: var(--panel);
+  border-radius: 22px;
+  padding: 16px;
+  display: flex;
+  flex-direction: column;
   gap: 10px;
+}
+
+.packageTop,
+.packageBottom {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+}
+
+.packageName {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 15px;
+  font-weight: 700;
+  color: var(--text);
+  min-width: 0;
+}
+
+.packageDoneBadge {
+  font-size: 11px;
+  font-weight: 700;
+  padding: 2px 8px;
+  border-radius: 999px;
+  background: var(--ok-bg);
+  color: var(--ok-text);
+}
+
+.packageCount {
+  font-family: var(--font-heading);
+  font-size: 14px;
+  font-weight: 600;
+  color: var(--text);
+  flex-shrink: 0;
+}
+
+.packageBar {
+  height: 8px;
+  border-radius: 4px;
+  background: var(--panel-2);
+  overflow: hidden;
+}
+
+.packageBar span {
+  display: block;
+  height: 100%;
+  border-radius: 4px;
+  background: var(--signal);
+}
+
+.packageBottom {
+  font-size: 12px;
+  color: var(--text-dim);
 }
 
 .sessionList {
   display: flex;
   flex-direction: column;
-  gap: 1px;
-  margin-left: 4px;
-  padding-left: 10px;
-  border-left: 2px solid var(--line);
+  border-top: 1px solid var(--line);
+  padding-top: 4px;
 }
 
 .sessionRow {
   display: flex;
   align-items: center;
-  gap: 8px;
-  padding: 4px 0;
-  font-size: 12px;
+  gap: 10px;
+  padding: 8px 0;
 }
 
 .sessionRowLabel {
-  color: var(--text-dim);
+  font-size: 13px;
+  font-weight: 700;
+  color: var(--text);
+  width: 68px;
   flex-shrink: 0;
-  width: 54px;
 }
 
 .sessionRowDate {
-  color: var(--text);
   flex: 1;
-  min-width: 0;
-  overflow: hidden;
-  text-overflow: ellipsis;
-  white-space: nowrap;
-}
-
-.sessionRowStatus {
-  flex-shrink: 0;
-  font-size: 10px;
-  font-weight: 700;
-  padding: 2px 8px;
-  border-radius: 999px;
-}
-
-.sessionRowStatus_bekliyor {
-  background: var(--warn-bg);
-  color: var(--warn-text);
-}
-
-.sessionRowStatus_onaylandi {
-  background: var(--info-bg);
-  color: var(--info-text);
-}
-
-.sessionRowStatus_tamamlandi {
-  background: var(--ok-bg);
-  color: var(--ok-text);
-}
-
-.sessionRowStatus_iptal {
-  background: var(--danger-bg);
-  color: var(--danger-text);
-}
-
-.sessionRowStatus_gelmedi {
-  background: var(--panel-2);
+  font-size: 13px;
   color: var(--text-dim);
 }
 
-.packageRowMain {
-  display: flex;
-  flex-direction: column;
-  gap: 2px;
-  min-width: 0;
-}
-
-.packageRowName {
-  font-size: 13.5px;
-  font-weight: 700;
-  color: var(--text);
-}
-
-.packageDoneBadge {
-  margin-left: 8px;
-  font-size: 10px;
-  font-weight: 700;
-  color: var(--ok-text);
-  background: var(--ok-bg);
-  padding: 2px 8px;
-  border-radius: 999px;
-}
-
-.packageRowProgress {
-  font-size: 12px;
-  color: var(--text-dim);
-}
-
-.packageRowStats {
-  display: flex;
-  flex-direction: column;
-  align-items: flex-end;
-  gap: 2px;
-  flex-shrink: 0;
-}
-
-.packageRowExpected {
-  font-size: 12.5px;
-  font-weight: 700;
-  color: var(--text);
-}
-
-.packageRowRemainingOk {
-  font-size: 11px;
-  font-weight: 600;
-  color: var(--ok-text);
-}
-
-.packageRowRemainingDanger {
-  font-size: 11px;
-  font-weight: 600;
-  color: var(--danger-text);
-}
-
-.paymentRow {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  gap: 10px;
-  padding: 10px 2px;
-  border-bottom: 1px solid var(--line);
-}
-
-.paymentRow:last-child {
-  border-bottom: none;
-}
-
-.paymentRowMain {
-  display: flex;
-  flex-direction: column;
-  gap: 2px;
-  min-width: 0;
-  flex: 1;
-}
-
-.editPaymentBtn {
-  flex-shrink: 0;
-  width: 28px;
-  height: 28px;
-  border-radius: 50%;
-  border: none;
-  background: transparent;
-  color: var(--text-dim);
-  cursor: pointer;
-  display: inline-flex;
-  align-items: center;
-  justify-content: center;
-}
-
-.editPaymentBtn:hover {
-  background: var(--info-bg);
-  color: var(--signal);
-}
-
-.paymentRowActions {
-  display: flex;
-  align-items: center;
-  gap: 2px;
-  flex-shrink: 0;
-}
-
-.voidPaymentBtn {
-  flex-shrink: 0;
-  width: 28px;
-  height: 28px;
-  border-radius: 50%;
-  border: none;
-  background: transparent;
-  color: var(--text-dim);
-  cursor: pointer;
-  display: inline-flex;
-  align-items: center;
-  justify-content: center;
-}
-
-.voidPaymentBtn:hover {
-  background: var(--danger-bg);
-  color: var(--danger-text);
-}
-
-.paymentRowAmount {
-  font-size: 13.5px;
-  font-weight: 700;
-  color: var(--ok-text);
-}
-
-.paymentRowMeta {
-  font-size: 12px;
-  color: var(--text-dim);
-}
-
-.paymentRowVoided {
-  opacity: 0.55;
-}
-
-.paymentRowVoided .paymentRowAmount {
-  color: var(--text-dim);
-  text-decoration: line-through;
-}
-
-.voidedBadge {
-  flex-shrink: 0;
-  font-size: 10.5px;
-  font-weight: 700;
-  padding: 3px 9px;
-  border-radius: 999px;
-  color: var(--text-dim);
-  background: var(--panel-2);
-  white-space: nowrap;
-}
-
-/* ---------- Odeme al modali ---------- */
+/* ---------- Pencereler ---------- */
 
 .modalBackdrop {
   position: fixed;
   inset: 0;
-  background: rgba(31, 41, 55, 0.4);
+  background: rgba(17, 24, 39, 0.45);
   display: flex;
-  align-items: flex-start;
+  align-items: flex-end;
   justify-content: center;
-  padding: 48px 24px;
-  overflow-y: auto;
-  z-index: 80;
+  z-index: 70;
 }
 
 .modalCard {
   width: 100%;
-  max-width: 420px;
+  max-width: 560px;
+  max-height: 92dvh;
+  overflow-y: auto;
+  border-radius: 28px 28px 0 0;
+  padding: 20px 18px calc(20px + env(safe-area-inset-bottom));
 }
 
 .modalHead {
@@ -486,20 +487,134 @@
 }
 
 .modalClose {
-  background: none;
+  width: 34px;
+  height: 34px;
+  border-radius: 50%;
   border: none;
+  background: var(--panel-2);
   color: var(--text-dim);
+  font-size: 14px;
   cursor: pointer;
-  display: flex;
-  padding: 4px;
-}
-
-.modalClose:hover {
-  color: var(--text);
 }
 
 .error {
-  color: var(--danger-text);
   font-size: 13px;
-  margin-bottom: 16px;
+  color: var(--danger-text);
+  background: var(--danger-bg);
+  border-radius: 12px;
+  padding: 10px 12px;
+  margin-bottom: 12px;
+}
+
+/* ---------- Musteri notu ---------- */
+
+.noteCard,
+.noteCardEmpty {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  width: 100%;
+  border: none;
+  background: var(--accent-bg);
+  border-radius: 20px;
+  padding: 14px 16px;
+  font-family: var(--font-body);
+  text-align: left;
+  cursor: pointer;
+}
+
+.noteCardEmpty {
+  background: transparent;
+  border: 1px dashed #c5cad3;
+}
+
+.noteLabel {
+  font-size: 12px;
+  font-weight: 700;
+  color: var(--accent-text);
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+}
+
+.noteCardEmpty .noteLabel {
+  color: var(--text-dim);
+}
+
+.noteText {
+  font-size: 14px;
+  line-height: 1.45;
+  color: var(--text);
+  white-space: pre-wrap;
+}
+
+.noteCardEmpty .noteText {
+  color: #9ca3af;
+}
+
+/* ---------- Ozet: paket karti ---------- */
+
+.pkgMini {
+  display: flex;
+  align-items: center;
+  gap: 14px;
+  width: 100%;
+  border: none;
+  background: var(--panel);
+  border-radius: 22px;
+  padding: 16px;
+  font-family: var(--font-body);
+  text-align: left;
+  cursor: pointer;
+}
+
+.pkgMiniTile {
+  width: 48px;
+  height: 48px;
+  border-radius: 14px;
+  background: var(--tint);
+  color: var(--signal);
+  font-family: var(--font-heading);
+  font-size: 16px;
+  font-weight: 600;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+}
+
+.pkgMiniText {
+  flex: 1;
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+
+.pkgMiniName {
+  font-size: 15px;
+  font-weight: 700;
+  color: var(--text);
+}
+
+.pkgMiniSub {
+  font-size: 12px;
+  color: var(--text-dim);
+}
+
+.anonymizeBtn {
+  display: block;
+  width: 100%;
+  margin-top: 12px;
+  border: none;
+  background: none;
+  padding: 10px;
+  font-family: var(--font-body);
+  font-size: 13px;
+  font-weight: 700;
+  color: var(--danger-text);
+  cursor: pointer;
+}
+
+.anonymizeBtn:disabled {
+  opacity: 0.6;
 }

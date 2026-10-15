@@ -4,7 +4,6 @@ import { Capacitor } from '@capacitor/core'
 import { useAuth } from '../contexts/AuthContext'
 import { supabase } from '../lib/supabase'
 import QuickAddCustomerModal from '../components/QuickAddCustomerModal'
-import logoMark from '../assets/brand/logo-mark.png'
 import {
   HomeIcon,
   AppointmentsIcon,
@@ -13,40 +12,33 @@ import {
   BellIcon,
   PlusIcon,
   UserPlusIcon,
-  AccountingIcon,
+  CalendarIcon,
+  WalletIcon,
+  ReceiptIcon,
+  SendIcon,
   MessagesIcon,
   SettingsIcon,
   LogOutIcon,
 } from '../components/icons'
+import { currencyWhole } from '../lib/currency'
+import { toLocalDateString } from '../lib/date'
 import styles from './DashboardLayout.module.css'
 
 const TAB_ITEMS = [
-  { path: '/dashboard', label: 'Ana Sayfa', icon: HomeIcon },
-  { path: '/randevular', label: 'Takvim', icon: AppointmentsIcon },
+  { path: '/dashboard', label: 'Anasayfa', icon: HomeIcon },
+  { path: '/randevular', label: 'Randevular', icon: AppointmentsIcon },
   { path: '/musteriler', label: 'Müşteriler', icon: UsersIcon },
   { path: '/daha-fazla', label: 'Daha Fazla', icon: MoreHorizontalIcon },
 ]
 
-const PAGE_TITLES: Record<string, string> = {
-  '/dashboard': 'Ana Sayfa',
-  '/randevular': 'Takvim',
-  '/musteriler': 'Müşteriler',
-  '/daha-fazla': 'Daha Fazla',
-  '/muhasebe': 'Muhasebe',
-  '/giderler': 'Giderler',
-  '/ekip': 'Ekip',
-  '/performans-raporu': 'Performans Raporu',
-  '/hizmetler': 'Hizmetler',
-  '/ayarlar': 'Ayarlar',
-  '/mesajlar': 'Mesajlar',
-  '/ai-analiz': 'AI İş Analizi',
-}
-
-function pageTitleFor(pathname: string) {
-  if (PAGE_TITLES[pathname]) return PAGE_TITLES[pathname]
-  const match = Object.keys(PAGE_TITLES).find((p) => pathname.startsWith(p + '/'))
-  return match ? PAGE_TITLES[match] : 'Panel'
-}
+// Ana sayfa (kasa/ciro ozeti) sadece yoneticiye acik — calisan "Anasayfa"ya
+// basinca Randevular'a atiliyordu. Calisanda o sekmenin yerine Mesajlar var.
+const EMPLOYEE_TAB_ITEMS = [
+  { path: '/randevular', label: 'Randevular', icon: AppointmentsIcon },
+  { path: '/musteriler', label: 'Müşteriler', icon: UsersIcon },
+  { path: '/mesajlar', label: 'Mesajlar', icon: MessagesIcon },
+  { path: '/daha-fazla', label: 'Daha Fazla', icon: MoreHorizontalIcon },
+]
 
 function timeGreeting() {
   const h = new Date().getHours()
@@ -55,10 +47,40 @@ function timeGreeting() {
   return 'İyi akşamlar'
 }
 
+function profileInitials(name: string) {
+  return (
+    name
+      .trim()
+      .split(/\s+/)
+      .slice(0, 2)
+      .map((w) => w[0]?.toLocaleUpperCase('tr') ?? '')
+      .join('') || '?'
+  )
+}
+
+function todayLabel() {
+  const d = new Date()
+  const weekday = d.toLocaleDateString('tr-TR', { weekday: 'long' })
+  const dayMonth = d.toLocaleDateString('tr-TR', { day: 'numeric', month: 'long' })
+  return `${weekday}, ${dayMonth}`
+}
+
 interface PendingAppointment {
   id: string
   scheduled_at: string
   customer_name: string
+}
+
+// Odenmemis giderlerin + dugmesi acilinca gosterilen ozeti. `overdue` son
+// odeme tarihi (yoksa gider tarihi) gecmis olanlar, `soon` 3 gun icinde
+// odenmesi gerekenler.
+interface UnpaidSummary {
+  overdueCount: number
+  overdueTotal: number
+  overdueOldest: string
+  soonCount: number
+  soonTotal: number
+  soonFirst: string
 }
 
 function apptDateKey(iso: string) {
@@ -82,9 +104,13 @@ export default function DashboardLayout() {
   const { profile, signOut } = useAuth()
   const isAdmin = profile?.role === 'admin'
   const isHome = location.pathname === '/dashboard'
+  const tabItems = isAdmin ? TAB_ITEMS : EMPLOYEE_TAB_ITEMS
   const firstName = (profile?.full_name ?? 'İşletmeniz').trim().split(/\s+/)[0]
 
   const [pending, setPending] = useState<PendingAppointment[]>([])
+  const [unpaid, setUnpaid] = useState<UnpaidSummary | null>(null)
+  const [unpaidToday, setUnpaidToday] = useState<{ customerId: string | null; name: string; time: string; amount: number }[]>([])
+  const [waitingConvs, setWaitingConvs] = useState<{ phone: string; name: string }[]>([])
   const [bellOpen, setBellOpen] = useState(false)
   const [profileMenuOpen, setProfileMenuOpen] = useState(false)
   const [actionSheetOpen, setActionSheetOpen] = useState(false)
@@ -192,61 +218,125 @@ export default function DashboardLayout() {
     loadPending()
   }, [location.pathname])
 
+  // Giderler sadece yoneticiye acik — calisan hesabinda sorgu hic atilmaz.
+  useEffect(() => {
+    if (!isAdmin) {
+      setUnpaid(null)
+      return
+    }
+    async function loadUnpaid() {
+      const { data } = await supabase
+        .from('business_expenses')
+        .select('description, amount, expense_date, due_date')
+        .eq('is_paid', false)
+      const today = toLocalDateString(new Date())
+      const soonLimit = new Date()
+      soonLimit.setDate(soonLimit.getDate() + 3)
+      const soonLimitStr = toLocalDateString(soonLimit)
+      const rows = (data ?? [])
+        .map((e) => ({ description: e.description as string, amount: e.amount as number, date: (e.due_date ?? e.expense_date) as string }))
+        .sort((a, b) => a.date.localeCompare(b.date))
+      const overdue = rows.filter((e) => e.date < today)
+      const soon = rows.filter((e) => e.date >= today && e.date <= soonLimitStr)
+      setUnpaid({
+        overdueCount: overdue.length,
+        overdueTotal: overdue.reduce((sum, e) => sum + e.amount, 0),
+        overdueOldest: overdue[0]?.description ?? '',
+        soonCount: soon.length,
+        soonTotal: soon.reduce((sum, e) => sum + e.amount, 0),
+        soonFirst: soon[0]?.description ?? '',
+      })
+    }
+    loadUnpaid()
+  }, [location.pathname, isAdmin])
+
+  // + menusundeki "Once bunlara bak" kutusu icin: bugun tamamlanan ama
+  // ucreti (tamami) alinmayan tek seferlik randevular ve botun birakip seni
+  // bekleyen konusmalar. Sadece menu acilinca sorgulanir.
+  useEffect(() => {
+    if (!actionSheetOpen) return
+    let cancelled = false
+    async function loadQuickExtras() {
+      const start = new Date()
+      start.setHours(0, 0, 0, 0)
+      const end = new Date(start)
+      end.setDate(end.getDate() + 1)
+      const [{ data: done }, { data: paused }] = await Promise.all([
+        supabase
+          .from('appointments')
+          .select('id, customer_id, service_id, price_override, scheduled_at, package_id')
+          .eq('status', 'tamamlandi')
+          .is('package_id', null)
+          .gte('scheduled_at', start.toISOString())
+          .lt('scheduled_at', end.toISOString()),
+        supabase
+          .from('customers')
+          .select('full_name, phone')
+          .gt('bot_paused_until', new Date().toISOString())
+          .limit(5),
+      ])
+      const appts = done ?? []
+      let rows: { customerId: string | null; name: string; time: string; amount: number }[] = []
+      if (appts.length) {
+        const serviceIds = [...new Set(appts.map((a) => a.service_id).filter(Boolean))] as string[]
+        const customerIds = [...new Set(appts.map((a) => a.customer_id).filter(Boolean))] as string[]
+        const [{ data: svcs }, { data: pays }, { data: custs }] = await Promise.all([
+          serviceIds.length ? supabase.from('services').select('id, price').in('id', serviceIds) : Promise.resolve({ data: [] as { id: string; price: number | null }[] }),
+          supabase.from('payments').select('appointment_id, amount').is('voided_at', null).in('appointment_id', appts.map((a) => a.id)),
+          customerIds.length ? supabase.from('customers').select('id, full_name').in('id', customerIds) : Promise.resolve({ data: [] as { id: string; full_name: string }[] }),
+        ])
+        rows = appts
+          .map((a) => {
+            const price = a.price_override ?? svcs?.find((x) => x.id === a.service_id)?.price ?? 0
+            const paid = (pays ?? []).filter((x) => x.appointment_id === a.id).reduce((sum, x) => sum + x.amount, 0)
+            return {
+              customerId: a.customer_id,
+              name: custs?.find((c) => c.id === a.customer_id)?.full_name ?? 'Müşteri',
+              time: new Date(a.scheduled_at).toLocaleTimeString('tr-TR', { hour: '2-digit', minute: '2-digit' }),
+              amount: Math.max(0, price - paid),
+            }
+          })
+          .filter((r) => r.amount > 0)
+      }
+      if (cancelled) return
+      setUnpaidToday(rows)
+      setWaitingConvs(
+        (paused ?? [])
+          .filter((c) => c.phone)
+          .map((c) => ({ phone: c.phone as string, name: c.full_name && c.full_name !== 'Müşteri' ? c.full_name : (c.phone as string) })),
+      )
+    }
+    loadQuickExtras()
+    return () => {
+      cancelled = true
+    }
+  }, [actionSheetOpen])
+
+  const hasQuickInfo = unpaidToday.length > 0 || waitingConvs.length > 0 || pending.length > 0 || (unpaid !== null && (unpaid.overdueCount > 0 || unpaid.soonCount > 0))
+
   return (
     <div className={styles.shell}>
-      <header className={styles.topbar}>
-        <img src={logoMark} alt="" className={styles.topbarMark} />
-        {isHome ? (
-          <div className={styles.greeting}>
-            <h1>
-              {timeGreeting()}, {firstName} 👋
-            </h1>
-            <p>Bugün işletmende neler oluyor?</p>
-          </div>
-        ) : (
-          <h1 className={styles.pageTitle}>{pageTitleFor(location.pathname)}</h1>
-        )}
+      {/* Ortak ust bar sadece ana sayfada; diger sayfalar kendi basligini
+          (PageHeader) ciziyor — tasarimdaki gibi. */}
+      {isHome && (
+      <header className={`${styles.topbar} ${styles.topbarHome}`}>
+        <div className={styles.greeting}>
+          <p>{todayLabel()}</p>
+          <h1>
+            {timeGreeting()}, {firstName}
+          </h1>
+        </div>
         <div className={styles.topbarRight}>
           <div className={styles.bellWrap} ref={bellRef}>
             <button
               type="button"
               className={styles.bellBtn}
-              onClick={() => setBellOpen((v) => !v)}
+              onClick={() => navigate('/bildirimler')}
               aria-label="Bildirimler"
             >
               <BellIcon />
               {pending.length > 0 && <span className={styles.bellBadge}>{pending.length}</span>}
             </button>
-            {bellOpen && (
-              <div className={styles.bellDropdown}>
-                <div className={styles.bellDropdownTitle}>Bekleyen randevular</div>
-                {pending.length === 0 ? (
-                  <p className={styles.bellEmpty}>Bekleyen randevu yok.</p>
-                ) : (
-                  pending.map((a) => (
-                    <button
-                      type="button"
-                      key={a.id}
-                      className={styles.bellItem}
-                      onClick={() => {
-                        setBellOpen(false)
-                        navigate(`/randevular?tarih=${apptDateKey(a.scheduled_at)}`)
-                      }}
-                    >
-                      <span>{a.customer_name}</span>
-                      <span className={styles.bellItemTime}>
-                        {new Date(a.scheduled_at).toLocaleString('tr-TR', {
-                          day: '2-digit',
-                          month: '2-digit',
-                          hour: '2-digit',
-                          minute: '2-digit',
-                        })}
-                      </span>
-                    </button>
-                  ))
-                )}
-              </div>
-            )}
           </div>
           <div className={styles.profileWrap} ref={profileRef}>
             <button
@@ -256,7 +346,7 @@ export default function DashboardLayout() {
               aria-haspopup="menu"
               aria-expanded={profileMenuOpen}
             >
-              <span className={styles.avatar}>{(profile?.full_name ?? 'İ').charAt(0).toUpperCase()}</span>
+              <span className={styles.avatar}>{profileInitials(profile?.full_name ?? 'İşletme')}</span>
             </button>
             {profileMenuOpen && (
               <div className={styles.profileDropdown} role="menu">
@@ -291,13 +381,14 @@ export default function DashboardLayout() {
           </div>
         </div>
       </header>
+      )}
 
-      <main className={styles.content} ref={contentRef}>
+      <main className={isHome ? styles.content : `${styles.content} ${styles.contentPage}`} ref={contentRef}>
         <Outlet context={{ searchQuery: '', setSearchPlaceholder: () => {} } satisfies LayoutOutletContext} />
       </main>
 
-      <nav className={styles.bottomNav}>
-        {TAB_ITEMS.slice(0, 2).map((item) => {
+      <nav className={actionSheetOpen ? `${styles.bottomNav} ${styles.bottomNavRaised}` : styles.bottomNav}>
+        {tabItems.slice(0, 2).map((item) => {
           const Icon = item.icon
           return (
             <NavLink
@@ -305,7 +396,9 @@ export default function DashboardLayout() {
               to={item.path}
               className={({ isActive }) => (isActive ? `${styles.tab} ${styles.tabActive}` : styles.tab)}
             >
-              <Icon width={22} height={22} />
+              <span className={styles.tabIcon}>
+                <Icon width={20} height={20} />
+              </span>
               <span>{item.label}</span>
             </NavLink>
           )
@@ -313,16 +406,16 @@ export default function DashboardLayout() {
 
         <button
           type="button"
-          className={styles.fab}
-          onClick={() => setActionSheetOpen(true)}
-          aria-label="Hızlı işlemler"
+          className={actionSheetOpen ? `${styles.fab} ${styles.fabOpen}` : styles.fab}
+          onClick={() => setActionSheetOpen((v) => !v)}
+          aria-label={actionSheetOpen ? 'Hızlı işlemleri kapat' : 'Hızlı işlemler'}
           aria-haspopup="menu"
           aria-expanded={actionSheetOpen}
         >
-          <PlusIcon width={24} height={24} />
+          <PlusIcon width={22} height={22} />
         </button>
 
-        {TAB_ITEMS.slice(2).map((item) => {
+        {tabItems.slice(2).map((item) => {
           const Icon = item.icon
           return (
             <NavLink
@@ -330,7 +423,9 @@ export default function DashboardLayout() {
               to={item.path}
               className={({ isActive }) => (isActive ? `${styles.tab} ${styles.tabActive}` : styles.tab)}
             >
-              <Icon width={22} height={22} />
+              <span className={styles.tabIcon}>
+                <Icon width={20} height={20} />
+              </span>
               <span>{item.label}</span>
             </NavLink>
           )
@@ -338,64 +433,214 @@ export default function DashboardLayout() {
       </nav>
 
       {actionSheetOpen && (
-        <div className={styles.sheetBackdrop} onClick={() => setActionSheetOpen(false)}>
-          <div className={styles.sheet} onClick={(e) => e.stopPropagation()}>
-            <div className={styles.sheetHandle} />
-            <h2 className={styles.sheetTitle}>Hızlı işlemler</h2>
-            <div className={styles.sheetGrid}>
-              <button
-                type="button"
-                className={styles.sheetItem}
-                onClick={() => {
-                  setActionSheetOpen(false)
-                  navigate('/randevular?yeni=1')
-                }}
-              >
-                <span className={`${styles.sheetItemIcon} ${styles.sheetItemIconSignal}`}>
-                  <PlusIcon width={20} height={20} />
-                </span>
-                Yeni Randevu
-              </button>
-              <button
-                type="button"
-                className={styles.sheetItem}
-                onClick={() => {
-                  setActionSheetOpen(false)
-                  setQuickAddCustomerOpen(true)
-                }}
-              >
-                <span className={`${styles.sheetItemIcon} ${styles.sheetItemIconPink}`}>
-                  <UserPlusIcon width={20} height={20} />
-                </span>
-                Yeni Müşteri
-              </button>
-              <button
-                type="button"
-                className={styles.sheetItem}
-                onClick={() => {
-                  setActionSheetOpen(false)
-                  navigate('/muhasebe')
-                }}
-              >
-                <span className={`${styles.sheetItemIcon} ${styles.sheetItemIconOk}`}>
-                  <AccountingIcon width={20} height={20} />
-                </span>
-                Muhasebe
-              </button>
-              <button
-                type="button"
-                className={styles.sheetItem}
-                onClick={() => {
-                  setActionSheetOpen(false)
-                  navigate('/mesajlar')
-                }}
-              >
-                <span className={styles.sheetItemIcon}>
-                  <MessagesIcon width={20} height={20} />
-                </span>
-                Mesajlar
-              </button>
+        <div className={styles.quickOverlay} onClick={() => setActionSheetOpen(false)}>
+          {hasQuickInfo && (
+            <div className={styles.quickInfo} onClick={(e) => e.stopPropagation()}>
+              <span className={styles.quickInfoTitle}>Önce bunlara bak</span>
+              {unpaid !== null && unpaid.overdueCount > 0 && (
+                <div className={styles.quickInfoRow}>
+                  <span className={styles.quickInfoText}>
+                    <span className={styles.quickInfoMain}>Geciken ödemeler · {currencyWhole.format(unpaid.overdueTotal)}</span>
+                    <span className={styles.quickInfoSub}>
+                      {unpaid.overdueCount} ödeme · en eskisi {unpaid.overdueOldest}
+                    </span>
+                  </span>
+                  <button
+                    type="button"
+                    className={styles.quickInfoBtn}
+                    onClick={() => {
+                      setActionSheetOpen(false)
+                      navigate('/giderler')
+                    }}
+                  >
+                    Gör
+                  </button>
+                </div>
+              )}
+              {unpaid !== null && unpaid.soonCount > 0 && (
+                <div className={styles.quickInfoRow}>
+                  <span className={styles.quickInfoText}>
+                    <span className={styles.quickInfoMain}>Yaklaşan ödemeler · {currencyWhole.format(unpaid.soonTotal)}</span>
+                    <span className={styles.quickInfoSub}>
+                      3 gün içinde {unpaid.soonCount} ödeme · {unpaid.soonFirst}
+                    </span>
+                  </span>
+                  <button
+                    type="button"
+                    className={styles.quickInfoBtnQuiet}
+                    onClick={() => {
+                      setActionSheetOpen(false)
+                      navigate('/giderler')
+                    }}
+                  >
+                    Gör
+                  </button>
+                </div>
+              )}
+              {unpaidToday.length > 0 && (
+                <div className={styles.quickInfoRow}>
+                  <span className={styles.quickInfoText}>
+                    <span className={styles.quickInfoMain}>
+                      {unpaidToday.length === 1
+                        ? `${unpaidToday[0].name}'in ödemesi alınmadı`
+                        : `${unpaidToday.length} randevunun ödemesi alınmadı`}
+                    </span>
+                    <span className={styles.quickInfoSub}>
+                      Bugün {unpaidToday[0].time} randevusu bitti · {currencyWhole.format(unpaidToday[0].amount)}
+                    </span>
+                  </span>
+                  <button
+                    type="button"
+                    className={styles.quickInfoBtn}
+                    onClick={() => {
+                      setActionSheetOpen(false)
+                      navigate(unpaidToday[0].customerId ? `/musteriler/${unpaidToday[0].customerId}` : '/musteriler')
+                    }}
+                  >
+                    Ödeme al
+                  </button>
+                </div>
+              )}
+              {waitingConvs.length > 0 && (
+                <div className={styles.quickInfoRow}>
+                  <span className={styles.quickInfoText}>
+                    <span className={styles.quickInfoMain}>
+                      {waitingConvs.length === 1 ? `${waitingConvs[0].name} yanıt bekliyor` : `${waitingConvs.length} konuşma yanıt bekliyor`}
+                    </span>
+                    <span className={styles.quickInfoSub}>Bot konuşmayı sana bıraktı</span>
+                  </span>
+                  <button
+                    type="button"
+                    className={styles.quickInfoBtnQuiet}
+                    onClick={() => {
+                      setActionSheetOpen(false)
+                      navigate(`/mesajlar?telefon=${encodeURIComponent(waitingConvs[0].phone)}`)
+                    }}
+                  >
+                    Aç
+                  </button>
+                </div>
+              )}
+              {pending.length > 0 && (
+                <div className={styles.quickInfoRow}>
+                  <span className={styles.quickInfoText}>
+                    <span className={styles.quickInfoMain}>{pending.length} randevu onay bekliyor</span>
+                    <span className={styles.quickInfoSub}>
+                      İlki {pending[0].customer_name} ·{' '}
+                      {new Date(pending[0].scheduled_at).toLocaleString('tr-TR', {
+                        day: '2-digit',
+                        month: '2-digit',
+                        hour: '2-digit',
+                        minute: '2-digit',
+                      })}
+                    </span>
+                  </span>
+                  <button
+                    type="button"
+                    className={styles.quickInfoBtnQuiet}
+                    onClick={() => {
+                      setActionSheetOpen(false)
+                      navigate(`/randevular?tarih=${apptDateKey(pending[0].scheduled_at)}`)
+                    }}
+                  >
+                    Aç
+                  </button>
+                </div>
+              )}
             </div>
+          )}
+
+          <div className={styles.quickStack} role="menu" onClick={(e) => e.stopPropagation()}>
+            {isAdmin && (
+              <button
+                type="button"
+                role="menuitem"
+                className={styles.quickPill}
+                onClick={() => {
+                  setActionSheetOpen(false)
+                  navigate('/toplu-mesaj')
+                }}
+              >
+                <span className={styles.quickPillIcon}>
+                  <SendIcon width={16} height={16} />
+                </span>
+                Toplu mesaj
+              </button>
+            )}
+            {isAdmin && (
+              <button
+                type="button"
+                role="menuitem"
+                className={styles.quickPill}
+                onClick={() => {
+                  setActionSheetOpen(false)
+                  navigate('/giderler?yeni=1')
+                }}
+              >
+                <span className={styles.quickPillIcon}>
+                  <ReceiptIcon width={16} height={16} />
+                </span>
+                Gider ekle
+              </button>
+            )}
+            {!isAdmin && (
+            <button
+              type="button"
+              role="menuitem"
+              className={styles.quickPill}
+              onClick={() => {
+                setActionSheetOpen(false)
+                navigate('/mesajlar')
+              }}
+            >
+              <span className={styles.quickPillIcon}>
+                <MessagesIcon width={16} height={16} />
+              </span>
+              Mesajlar
+            </button>
+            )}
+            <button
+              type="button"
+              role="menuitem"
+              className={styles.quickPill}
+              onClick={() => {
+                setActionSheetOpen(false)
+                setQuickAddCustomerOpen(true)
+              }}
+            >
+              <span className={styles.quickPillIcon}>
+                <UserPlusIcon width={16} height={16} />
+              </span>
+              Yeni müşteri
+            </button>
+            <button
+              type="button"
+              role="menuitem"
+              className={styles.quickPill}
+              onClick={() => {
+                setActionSheetOpen(false)
+                navigate('/musteriler?sekme=borclu')
+              }}
+            >
+              <span className={`${styles.quickPillIcon} ${styles.quickPillIconWarm}`}>
+                <WalletIcon width={16} height={16} />
+              </span>
+              Ödeme al
+            </button>
+            <button
+              type="button"
+              role="menuitem"
+              className={`${styles.quickPill} ${styles.quickPillPrimary}`}
+              onClick={() => {
+                setActionSheetOpen(false)
+                navigate('/randevular?yeni=1')
+              }}
+            >
+              <span className={styles.quickPillIcon}>
+                <CalendarIcon width={17} height={17} />
+              </span>
+              Yeni randevu
+            </button>
           </div>
         </div>
       )}

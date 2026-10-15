@@ -1,21 +1,12 @@
 import { useEffect, useMemo, useState } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { supabase } from '../lib/supabase'
+import { fetchAll } from '../lib/fetchAll'
 import { useAuth } from '../contexts/AuthContext'
-import Avatar from '../components/Avatar'
-import QuickAddCustomerModal from '../components/QuickAddCustomerModal'
-import {
-  CalendarIcon,
-  WalletIcon,
-  ReceiptIcon,
-  CashIcon,
-  AccountingIcon,
-  PlusIcon,
-  UserPlusIcon,
-  ChevronRightIcon,
-} from '../components/icons'
-import { currency } from '../lib/currency'
+import { WalletIcon, ReceiptIcon, ChevronRightIcon, CreditCardIcon } from '../components/icons'
+import { currency, currencyWhole } from '../lib/currency'
 import { toLocalDateString } from '../lib/date'
+import { bookingUrl as bookingLink } from '../lib/bookingUrl'
 import styles from './DashboardPage.module.css'
 
 interface Appointment {
@@ -46,6 +37,8 @@ interface Profile {
 interface Customer {
   id: string
   full_name: string | null
+  phone: string | null
+  contact_phone: string | null
 }
 
 interface Expense {
@@ -74,15 +67,25 @@ interface Payment {
   paid_at: string
 }
 
-const STATUS_LABEL: Record<Appointment['status'], string> = {
-  bekliyor: 'Bekliyor',
-  onaylandi: 'Onaylandı',
-  tamamlandi: 'Tamamlandı',
-  iptal: 'İptal',
-  gelmedi: 'Gelmedi',
+type DateFilter = 'bugun' | 'hafta' | 'ay' | 'ozel'
+
+const DATE_FILTERS: { value: DateFilter; label: string }[] = [
+  { value: 'bugun', label: 'Bugün' },
+  { value: 'hafta', label: 'Bu hafta' },
+  { value: 'ay', label: 'Bu ay' },
+  { value: 'ozel', label: 'Özel' },
+]
+
+const REVENUE_LABEL: Record<DateFilter, string> = {
+  bugun: 'Bugünkü tahsilat',
+  hafta: 'Bu haftaki tahsilat',
+  ay: 'Bu ayki tahsilat',
+  ozel: 'Seçili aralıkta tahsilat',
 }
 
-type DateFilter = 'bugun' | 'hafta' | 'ay' | 'ozel'
+// Ozet blogundaki ilerleme seridi randevu basina bir parca cizer; bu sayinin
+// ustunde parcalar okunmayacak kadar inceldigi icin tek bir cubuga doner.
+const MAX_PROGRESS_SEGMENTS = 14
 
 function startOfWeekMonday(d: Date) {
   const day = d.getDay()
@@ -96,6 +99,34 @@ function atMidnight(d: Date) {
   const r = new Date(d)
   r.setHours(0, 0, 0, 0)
   return r
+}
+
+function money(n: number) {
+  return Number.isInteger(n) ? currencyWhole.format(n) : currency.format(n)
+}
+
+function initials(name: string) {
+  return (
+    name
+      .trim()
+      .split(/\s+/)
+      .slice(0, 2)
+      .map((w) => w[0]?.toUpperCase() ?? '')
+      .join('') || '?'
+  )
+}
+
+function timeOf(iso: string) {
+  return new Date(iso).toLocaleTimeString('tr-TR', { hour: '2-digit', minute: '2-digit' })
+}
+
+function relativeLabel(iso: string) {
+  const mins = Math.round((new Date(iso).getTime() - Date.now()) / 60000)
+  if (mins <= 0) return 'şimdi'
+  if (mins < 60) return `${mins} dk sonra`
+  const h = Math.floor(mins / 60)
+  const m = mins % 60
+  return m === 0 ? `${h} sa sonra` : `${h} sa ${m} dk sonra`
 }
 
 export default function DashboardPage() {
@@ -114,23 +145,22 @@ export default function DashboardPage() {
   const [dateFilter, setDateFilter] = useState<DateFilter>('bugun')
   const [customStart, setCustomStart] = useState(() => toLocalDateString(new Date()))
   const [customEnd, setCustomEnd] = useState(() => toLocalDateString(new Date()))
-  const [showQuickAddCustomer, setShowQuickAddCustomer] = useState(false)
 
   useEffect(() => {
     async function load() {
       const [{ data: appts }, { data: svcs }, { data: profs }, { data: custs }, { data: exps }, { data: pkgs }, { data: pays }] =
         await Promise.all([
-          supabase
+          fetchAll(() => supabase
             .from('appointments')
             .select(
               'id, customer_id, service_id, employee_id, created_by_user_id, status, source, scheduled_at, duration_minutes, package_id, price_override',
-            ),
+            ).order('id')),
           supabase.from('services').select('id, name, price'),
           supabase.from('profiles').select('id, full_name'),
-          supabase.from('customers').select('id, full_name'),
-          supabase.from('business_expenses').select('id, description, amount, expense_date, due_date, is_paid'),
-          supabase.from('service_packages').select('id, customer_id, service_id, total_sessions, session_offset'),
-          supabase.from('payments').select('id, customer_id, amount, appointment_id, package_id, paid_at').is('voided_at', null),
+          fetchAll(() => supabase.from('customers').select('id, full_name, phone, contact_phone').order('id')),
+          fetchAll(() => supabase.from('business_expenses').select('id, description, amount, expense_date, due_date, is_paid').order('id')),
+          fetchAll(() => supabase.from('service_packages').select('id, customer_id, service_id, total_sessions, session_offset').order('id')),
+          fetchAll(() => supabase.from('payments').select('id, customer_id, amount, appointment_id, package_id, paid_at').is('voided_at', null).order('id')),
         ])
       setAppointments(appts ?? [])
       setServices(svcs ?? [])
@@ -154,7 +184,7 @@ export default function DashboardPage() {
       .then(({ data }) => setBookingSlug(data?.slug ?? null))
   }, [profile?.business_id])
 
-  const bookingUrl = bookingSlug ? `${window.location.origin}/randevu-al/${bookingSlug}` : null
+  const bookingUrl = bookingLink(bookingSlug)
 
   function copyBookingLink() {
     if (!bookingUrl) return
@@ -188,11 +218,14 @@ export default function DashboardPage() {
   const servicePriceById = new Map(services.map((s) => [s.id, s.price ?? 0]))
   const serviceNameById = new Map(services.map((s) => [s.id, s.name]))
   const profileNameById = new Map(profiles.map((p) => [p.id, p.full_name ?? '—']))
+  const customerById = new Map(customers.map((c) => [c.id, c]))
   const customerNameById = new Map(customers.map((c) => [c.id, c.full_name ?? 'Müşteri']))
 
-  // ---- Tarih filtresine bagli ozet kartlari ----
+  // ---- Tarih filtresine bagli ozet ----
   const rangedAppointments = appointments.filter((a) => dateWithinRange(a.scheduled_at, rangeStart, rangeEnd))
   const rangedCompleted = rangedAppointments.filter((a) => a.status === 'tamamlandi')
+  // Iptal edilenler "bitecek" randevu sayisina girmez.
+  const rangedActive = rangedAppointments.filter((a) => a.status !== 'iptal')
   // Kazanc, tamamlanan randevu sayisindan degil gercek odemelerden (payments,
   // paid_at secili araliktaysa) hesaplanir — Muhasebe sayfasiyla ayni mantik.
   const rangeRevenue = payments
@@ -260,6 +293,7 @@ export default function DashboardPage() {
     .filter((e) => !e.is_paid)
     .sort((a, b) => reminderDate(a).localeCompare(reminderDate(b)))
   const upcomingExpenses = allUnpaidExpenses.slice(0, 4)
+  const unpaidExpensesTotal = allUnpaidExpenses.reduce((sum, e) => sum + e.amount, 0)
 
   function daysUntil(dateStr: string) {
     const d = atMidnight(new Date(`${dateStr}T00:00:00`))
@@ -270,262 +304,305 @@ export default function DashboardPage() {
     .filter((a) => toLocalDateString(new Date(a.scheduled_at)) === todayStr)
     .sort((a, b) => a.scheduled_at.localeCompare(b.scheduled_at))
 
-  const DATE_FILTERS: { value: DateFilter; label: string }[] = [
-    { value: 'bugun', label: 'Bugün' },
-    { value: 'hafta', label: 'Bu Hafta' },
-    { value: 'ay', label: 'Bu Ay' },
-    { value: 'ozel', label: 'Özel Tarih' },
-  ]
+  // "Siradaki": bugunun henuz bitmemis (bekleyen/onayli) ilk randevusu.
+  // Baslamis ama suresi dolmamis randevu da siradaki sayilir.
+  const nowMs = Date.now()
+  const upcomingToday = todaysAppointments.filter(
+    (a) =>
+      (a.status === 'bekliyor' || a.status === 'onaylandi') &&
+      new Date(a.scheduled_at).getTime() + (a.duration_minutes ?? 30) * 60000 > nowMs,
+  )
+  const nextAppt = upcomingToday[0] ?? null
+  const laterAppts = upcomingToday.slice(1, 5)
+
+  const nextCustomer = nextAppt?.customer_id ? customerById.get(nextAppt.customer_id) : undefined
+  const nextName = nextCustomer?.full_name ?? 'Müşteri'
+  const nextPhone = nextCustomer?.phone ?? nextCustomer?.contact_phone ?? null
+  const nextPrice = nextAppt
+    ? (nextAppt.price_override ?? (nextAppt.service_id ? (servicePriceById.get(nextAppt.service_id) ?? 0) : 0))
+    : 0
+  const nextDetail = nextAppt
+    ? [
+        nextAppt.service_id ? serviceNameById.get(nextAppt.service_id) : null,
+        nextAppt.employee_id ? profileNameById.get(nextAppt.employee_id) : null,
+        nextPrice > 0 ? money(nextPrice) : null,
+      ]
+        .filter(Boolean)
+        .join(' · ')
+    : ''
+
+  const segTotal = rangedActive.length
+  const segDone = rangedCompleted.length
 
   return (
     <div className={styles.wrap}>
-      {/* ---- Tarih filtresi ---- */}
-      <h2 className={styles.sectionLabel}>Tarih Filtresi</h2>
-      <div className={styles.filterRow}>
-        {DATE_FILTERS.map((f) => (
-          <button
-            key={f.value}
-            type="button"
-            className={dateFilter === f.value ? styles.filterBtnActive : styles.filterBtn}
-            onClick={() => setDateFilter(f.value)}
-          >
-            {f.value === 'ozel' && <CalendarIcon width={14} height={14} />}
-            {f.label}
-          </button>
-        ))}
-      </div>
-
-      {dateFilter === 'ozel' && (
-        <div className={`card ${styles.customRangeRow}`}>
-          <div className="field" style={{ marginBottom: 0 }}>
-            <label htmlFor="homeRangeStart">Başlangıç</label>
-            <input id="homeRangeStart" type="date" value={customStart} onChange={(e) => setCustomStart(e.target.value)} />
+      {/* ---- Lacivert ozet blogu (ust bar ile ayni renk, onun devami) ---- */}
+      <section className={styles.hero}>
+        <div className={styles.heroRow}>
+          <div className={styles.heroMain}>
+            <span className={styles.heroLabel}>{REVENUE_LABEL[dateFilter]}</span>
+            <span className={styles.heroValue}>{money(rangeRevenue)}</span>
           </div>
-          <div className="field" style={{ marginBottom: 0 }}>
-            <label htmlFor="homeRangeEnd">Bitiş</label>
-            <input id="homeRangeEnd" type="date" value={customEnd} onChange={(e) => setCustomEnd(e.target.value)} />
+          <div className={styles.heroSide}>
+            <span className={styles.heroCount}>
+              {segDone}
+              <span className={styles.heroCountTotal}>/{segTotal}</span>
+            </span>
+            <span className={styles.heroLabel}>randevu bitti</span>
           </div>
         </div>
-      )}
-
-      {/* ---- Ozet kartlari ---- */}
-      <h2 className={styles.sectionLabel}>Genel Bakış</h2>
-      <div className={styles.summaryRow}>
-        <div className={`card ${styles.summaryTile} ${styles.summaryTileSignal}`}>
-          <div className={styles.summaryTopRow}>
-            <span className={styles.summaryLabel}>Randevular</span>
-            <span className={`${styles.summaryIcon} ${styles.summaryIconSignal}`}>
-              <CalendarIcon width={16} height={16} />
-            </span>
+        {segTotal === 0 && (
+          <div className={styles.heroBar} aria-hidden="true">
+            <span style={{ width: 0 }} />
           </div>
-          <span className={styles.summaryValue}>{rangedAppointments.length}</span>
-          <span className={styles.summaryHint}>{rangedCompleted.length} tamamlandı</span>
-        </div>
-        <div className={`card ${styles.summaryTile} ${styles.summaryTileOk}`}>
-          <div className={styles.summaryTopRow}>
-            <span className={styles.summaryLabel}>Ciro</span>
-            <span className={`${styles.summaryIcon} ${styles.summaryIconOk}`}>
-              <WalletIcon width={16} height={16} />
-            </span>
-          </div>
-          <span className={`${styles.summaryValue} ${styles.summaryValueOk}`}>{currency.format(rangeRevenue)}</span>
-          {revenueChangePct !== null ? (
-            <span className={styles.summaryHint}>
-              {revenueChangePct >= 0 ? '↑' : '↓'} %{Math.abs(revenueChangePct)} önceki döneme göre
-            </span>
-          ) : (
-            <span className={styles.summaryHint}>Önceki dönem verisi yok</span>
-          )}
-        </div>
-        <div className={`card ${styles.summaryTile} ${styles.summaryTileSignal}`}>
-          <div className={styles.summaryTopRow}>
-            <span className={styles.summaryLabel}>Kazanç</span>
-            <span className={`${styles.summaryIcon} ${styles.summaryIconSignal}`}>
-              <CashIcon width={16} height={16} />
-            </span>
-          </div>
-          <span className={styles.summaryValue}>{currency.format(rangeBalance)}</span>
-          <span className={styles.summaryHint}>Gelir − Gider</span>
-        </div>
-        <div className={`card ${styles.summaryTile} ${styles.summaryTileDanger}`}>
-          <div className={styles.summaryTopRow}>
-            <span className={styles.summaryLabel}>Yaklaşan Ödemeler</span>
-            <span className={`${styles.summaryIcon} ${styles.summaryIconDanger}`}>
-              <ReceiptIcon width={16} height={16} />
-            </span>
-          </div>
-          <span className={`${styles.summaryValue} ${styles.summaryValueDanger}`}>
-            {currency.format(allUnpaidExpenses.reduce((sum, e) => sum + e.amount, 0))}
-          </span>
-          <span className={styles.summaryHint}>{allUnpaidExpenses.length} ödeme</span>
-        </div>
-      </div>
-
-      {/* ---- Hizli islemler ---- */}
-      <div>
-        <h2 className={styles.quickTitle}>Hızlı İşlemler</h2>
-        <div className={styles.quickRow}>
-          <button type="button" className={styles.quickBtn} onClick={() => navigate('/randevular?yeni=1')}>
-            <span className={styles.quickIcon}>
-              <PlusIcon width={19} height={19} />
-            </span>
-            Randevu
-          </button>
-          <button type="button" className={styles.quickBtn} onClick={() => setShowQuickAddCustomer(true)}>
-            <span className={styles.quickIcon}>
-              <UserPlusIcon width={19} height={19} />
-            </span>
-            Müşteri
-          </button>
-          <button type="button" className={styles.quickBtn} onClick={() => navigate('/muhasebe')}>
-            <span className={styles.quickIcon}>
-              <AccountingIcon width={19} height={19} />
-            </span>
-            Muhasebe
-          </button>
-          <button type="button" className={styles.quickBtn} onClick={() => navigate('/randevular')}>
-            <span className={styles.quickIcon}>
-              <CalendarIcon width={19} height={19} />
-            </span>
-            Takvim
-          </button>
-          <button type="button" className={styles.quickBtn} onClick={() => navigate('/giderler?yeni=1')}>
-            <span className={styles.quickIcon}>
-              <ReceiptIcon width={19} height={19} />
-            </span>
-            Ödeme Ekle
-          </button>
-        </div>
-      </div>
-
-      {/* ---- Bugunku randevular ---- */}
-      <div className="card">
-        <div className={styles.sectionHead}>
-          <h2>Bugünkü Randevular</h2>
-          <button type="button" className={styles.sectionLink} onClick={() => navigate(`/randevular?tarih=${todayStr}`)}>
-            Tümünü Gör <ChevronRightIcon width={14} height={14} />
-          </button>
-        </div>
-        {todaysAppointments.length === 0 ? (
-          <p className={styles.empty}>Bugün için randevu yok.</p>
-        ) : (
-          <div className={styles.apptList}>
-            {todaysAppointments.slice(0, 5).map((a) => (
-              <div className={styles.apptRow} key={a.id}>
-                <span className={styles.apptTime}>
-                  {new Date(a.scheduled_at).toLocaleTimeString('tr-TR', { hour: '2-digit', minute: '2-digit' })}
-                </span>
-                <Avatar name={customerNameById.get(a.customer_id ?? '') ?? '?'} size={32} />
-                <span className={styles.apptText}>
-                  <span className={styles.apptCustomer}>{customerNameById.get(a.customer_id ?? '') ?? 'Müşteri'}</span>
-                  <span className={styles.apptService}>{a.service_id ? serviceNameById.get(a.service_id) : '—'}</span>
-                </span>
-                <span className={styles.apptEmployee}>
-                  {a.employee_id ? profileNameById.get(a.employee_id) : '—'}
-                </span>
-                <span className={`${styles.apptStatus} ${styles[`apptStatus_${a.status}`]}`}>
-                  {STATUS_LABEL[a.status]}
-                </span>
-              </div>
+        )}
+        {segTotal > 0 && segTotal <= MAX_PROGRESS_SEGMENTS && (
+          <div className={styles.heroSegs} aria-hidden="true">
+            {Array.from({ length: segTotal }, (_, i) => (
+              <span key={i} className={i < segDone ? styles.heroSegDone : styles.heroSeg} />
             ))}
           </div>
         )}
-      </div>
-
-      {/* ---- Yaklasan odemeler ---- */}
-      <div className="card">
-        <div className={styles.sectionHead}>
-          <h2>Yaklaşan Ödemeler</h2>
-          <button type="button" className={styles.sectionLink} onClick={() => navigate('/giderler')}>
-            Tümü <ChevronRightIcon width={14} height={14} />
-          </button>
-        </div>
-        {upcomingExpenses.length === 0 ? (
-          <p className={styles.empty}>Ödenmemiş gider yok.</p>
-        ) : (
-          <div className={styles.paymentList}>
-            {upcomingExpenses.map((e) => {
-              const left = daysUntil(reminderDate(e))
-              return (
-                <div className={styles.paymentRow} key={e.id}>
-                  <span className={styles.paymentIcon}>
-                    <ReceiptIcon width={16} height={16} />
-                  </span>
-                  <span className={styles.paymentText}>
-                    <span className={styles.paymentDesc}>{e.description}</span>
-                    <span className={styles.paymentDate}>
-                      {e.due_date ? 'Son ödeme: ' : ''}
-                      {new Date(`${reminderDate(e)}T00:00:00`).toLocaleDateString('tr-TR', {
-                        day: '2-digit',
-                        month: 'long',
-                      })}
-                    </span>
-                  </span>
-                  <span className={styles.paymentAmount}>{currency.format(e.amount)}</span>
-                  <span className={left <= 3 ? styles.paymentDaysUrgent : styles.paymentDays}>
-                    {left < 0 ? `${Math.abs(left)} gün geçti` : left === 0 ? 'Bugün' : `${left} gün kaldı`}
-                  </span>
-                </div>
-              )
-            })}
+        {segTotal > MAX_PROGRESS_SEGMENTS && (
+          <div className={styles.heroBar} aria-hidden="true">
+            <span style={{ width: `${Math.round((segDone / segTotal) * 100)}%` }} />
           </div>
         )}
-        <button type="button" className={`btn-secondary ${styles.addPaymentBtn}`} onClick={() => navigate('/giderler?yeni=1')}>
-          + Ödeme Ekle
-        </button>
-      </div>
+        {revenueChangePct !== null && (
+          <span className={styles.heroHint}>
+            Önceki döneme göre %{Math.abs(revenueChangePct)} {revenueChangePct >= 0 ? 'fazla' : 'az'}
+          </span>
+        )}
+      </section>
 
-      {/* ---- Bekleyen tahsilatlar (musteri borclari) ---- */}
-      <div className="card">
-        <div className={styles.sectionHead}>
-          <h2>Bekleyen Tahsilatlar</h2>
-          <button type="button" className={styles.sectionLink} onClick={() => navigate('/musteriler')}>
-            Tümü <ChevronRightIcon width={14} height={14} />
-          </button>
+      <div className={styles.sheet}>
+        {/* ---- Donem secimi ---- */}
+        <div className={styles.segmented} role="group" aria-label="Dönem">
+          {DATE_FILTERS.map((f) => (
+            <button
+              key={f.value}
+              type="button"
+              className={dateFilter === f.value ? styles.segmentActive : styles.segment}
+              aria-pressed={dateFilter === f.value}
+              onClick={() => setDateFilter(f.value)}
+            >
+              {f.label}
+            </button>
+          ))}
         </div>
-        {topDebtors.length === 0 ? (
-          <p className={styles.empty}>Bu aralıkta bekleyen tahsilat yok.</p>
-        ) : (
-          <div className={styles.paymentList}>
-            {topDebtors.map(([customerId, amount]) => (
+
+        {dateFilter === 'ozel' && (
+          <div className={`card ${styles.customRangeRow}`}>
+            <div className="field" style={{ marginBottom: 0 }}>
+              <label htmlFor="homeRangeStart">Başlangıç</label>
+              <input id="homeRangeStart" type="date" value={customStart} onChange={(e) => setCustomStart(e.target.value)} />
+            </div>
+            <div className="field" style={{ marginBottom: 0 }}>
+              <label htmlFor="homeRangeEnd">Bitiş</label>
+              <input id="homeRangeEnd" type="date" value={customEnd} onChange={(e) => setCustomEnd(e.target.value)} />
+            </div>
+          </div>
+        )}
+
+        {/* ---- Siradaki randevu ---- */}
+        {nextAppt ? (
+          <div className={styles.nextCard}>
+            <div className={styles.nextTop}>
+              <span className={styles.nextEyebrow}>Sıradaki · {relativeLabel(nextAppt.scheduled_at)}</span>
+              <span className={styles.nextTime}>{timeOf(nextAppt.scheduled_at)}</span>
+            </div>
+            <div className={styles.nextWho}>
+              <span className={styles.nextAvatar}>{initials(nextName)}</span>
+              <div className={styles.nextText}>
+                <span className={styles.nextName}>{nextName}</span>
+                {nextDetail && <span className={styles.nextSub}>{nextDetail}</span>}
+              </div>
+            </div>
+            <div className={styles.nextActions}>
+              {/* Geldi: musteri geldi, randevuyu kapatma (tamamla + odeme)
+                  ekranini acar. */}
               <button
                 type="button"
-                className={styles.paymentRow}
-                key={customerId}
-                onClick={() => navigate(`/musteriler/${customerId}`)}
-                style={{ width: '100%', textAlign: 'left', background: 'none', border: 'none', cursor: 'pointer' }}
+                className={styles.nextBtnPrimary}
+                onClick={() => navigate(`/randevular?tarih=${todayStr}&tamamla=${nextAppt.id}`)}
               >
-                <span className={`${styles.paymentIcon} ${styles.paymentIconDanger}`}>
-                  <WalletIcon width={16} height={16} />
-                </span>
-                <span className={styles.paymentText}>
-                  <span className={styles.paymentDesc}>{customerNameById.get(customerId) ?? 'Müşteri'}</span>
-                </span>
-                <span className={styles.paymentAmountDanger}>{currency.format(amount)}</span>
+                Geldi
               </button>
-            ))}
+              <button
+                type="button"
+                className={styles.nextBtn}
+                disabled={!nextAppt.customer_id}
+                onClick={() => navigate(`/musteriler/${nextAppt.customer_id}`)}
+              >
+                Ödeme al
+              </button>
+              {nextPhone ? (
+                <a className={styles.nextBtn} href={`tel:${nextPhone}`}>
+                  Ara
+                </a>
+              ) : (
+                <button type="button" className={styles.nextBtn} disabled>
+                  Ara
+                </button>
+              )}
+            </div>
+          </div>
+        ) : (
+          <div className={styles.nextEmpty}>
+            <div className={styles.nextText}>
+              <span className={styles.nextName}>Bugün sırada randevu yok</span>
+              <span className={styles.nextSub}>
+                {todaysAppointments.length > 0 ? 'Bugünün randevuları tamamlandı.' : 'Bugün için kayıtlı randevu bulunmuyor.'}
+              </span>
+            </div>
+            <button type="button" className={styles.nextBtnPrimary} onClick={() => navigate('/randevular?yeni=1')}>
+              Yeni randevu
+            </button>
           </div>
         )}
-        {totalDebtInRange > 0 && (
-          <p className={styles.debtTotalHint}>
-            Toplam bekleyen: <strong>{currency.format(totalDebtInRange)}</strong>
-          </p>
-        )}
-      </div>
 
-      {bookingUrl && (
-        <div className={`card ${styles.linkCard}`}>
-          <div className={styles.linkCardText}>
-            <span className={styles.linkCardLabel}>Randevu linkiniz</span>
-            <span className={styles.linkCardUrl}>{bookingUrl}</span>
+        {/* ---- Bekleyen tahsilat seridi ---- */}
+        {totalDebtInRange > 0 && (
+          <button type="button" className={styles.debtBanner} onClick={() => navigate('/musteriler')}>
+            <span className={styles.debtIcon}>
+              <CreditCardIcon width={18} height={18} />
+            </span>
+            <span className={styles.debtText}>
+              <span className={styles.debtMain}>{money(totalDebtInRange)} bekleyen tahsilat</span>
+              <span className={styles.debtSub}>{debtByCustomerInRange.size} müşteriden</span>
+            </span>
+            <ChevronRightIcon width={18} height={18} />
+          </button>
+        )}
+
+        {/* ---- Gunun kalan randevulari ---- */}
+        {laterAppts.length > 0 && (
+          <div className={styles.block}>
+            <div className={styles.blockHead}>
+              <h2>Sonrası</h2>
+              <button type="button" className={styles.blockLink} onClick={() => navigate(`/randevular?tarih=${todayStr}`)}>
+                Takvim
+              </button>
+            </div>
+            <div className={styles.laterGrid}>
+              {laterAppts.map((a) => (
+                <button
+                  type="button"
+                  key={a.id}
+                  className={styles.laterCard}
+                  onClick={() => navigate(`/randevular?tarih=${todayStr}`)}
+                >
+                  <span className={styles.laterTime}>{timeOf(a.scheduled_at)}</span>
+                  <span className={styles.laterName}>{customerNameById.get(a.customer_id ?? '') ?? 'Müşteri'}</span>
+                  <span className={styles.laterService}>{a.service_id ? (serviceNameById.get(a.service_id) ?? '—') : '—'}</span>
+                </button>
+              ))}
+            </div>
           </div>
-          <button type="button" className="btn-secondary" style={{ width: 'auto' }} onClick={copyBookingLink}>
-            {linkCopied ? 'Kopyalandı ✓' : 'Kopyala'}
+        )}
+
+        {/* ---- Kazanc + odenmemis giderler ---- */}
+        <div className={styles.tiles}>
+          <div className={styles.tile}>
+            <span className={styles.tileLabel}>Kazanç</span>
+            <span className={styles.tileValue}>{money(rangeBalance)}</span>
+            <span className={styles.tileHint}>Gelir − gider</span>
+          </div>
+          <button type="button" className={styles.tile} onClick={() => navigate('/giderler')}>
+            <span className={styles.tileLabel}>Yaklaşan ödemeler</span>
+            <span className={`${styles.tileValue} ${allUnpaidExpenses.length > 0 ? styles.tileValueWarm : ''}`}>
+              {money(unpaidExpensesTotal)}
+            </span>
+            <span className={styles.tileHint}>{allUnpaidExpenses.length} ödeme</span>
           </button>
         </div>
-      )}
 
-      {showQuickAddCustomer && <QuickAddCustomerModal onClose={() => setShowQuickAddCustomer(false)} />}
+        {/* ---- Yaklasan odemeler ---- */}
+        <div className={styles.listCard}>
+          <div className={styles.blockHead}>
+            <h2>Yaklaşan ödemeler</h2>
+            <button type="button" className={styles.blockLink} onClick={() => navigate('/giderler')}>
+              Tümü
+            </button>
+          </div>
+          {upcomingExpenses.length === 0 ? (
+            <p className={styles.empty}>Ödenmemiş gider yok.</p>
+          ) : (
+            <div className={styles.paymentList}>
+              {upcomingExpenses.map((e) => {
+                const left = daysUntil(reminderDate(e))
+                return (
+                  <div className={styles.paymentRow} key={e.id}>
+                    <span className={styles.paymentIcon}>
+                      <ReceiptIcon width={16} height={16} />
+                    </span>
+                    <span className={styles.paymentText}>
+                      <span className={styles.paymentDesc}>{e.description}</span>
+                      <span className={left <= 3 ? styles.paymentDaysUrgent : styles.paymentDays}>
+                        {e.due_date ? 'Son ödeme ' : ''}
+                        {new Date(`${reminderDate(e)}T00:00:00`).toLocaleDateString('tr-TR', {
+                          day: 'numeric',
+                          month: 'long',
+                        })}
+                        {' · '}
+                        {left < 0 ? `${Math.abs(left)} gün geçti` : left === 0 ? 'bugün' : `${left} gün kaldı`}
+                      </span>
+                    </span>
+                    <span className={styles.paymentAmount}>{money(e.amount)}</span>
+                  </div>
+                )
+              })}
+            </div>
+          )}
+          <button type="button" className={`btn-secondary ${styles.addPaymentBtn}`} onClick={() => navigate('/giderler?yeni=1')}>
+            Ödeme ekle
+          </button>
+        </div>
+
+        {/* ---- Bekleyen tahsilatlar (musteri borclari) ---- */}
+        <div className={styles.listCard}>
+          <div className={styles.blockHead}>
+            <h2>Bekleyen tahsilatlar</h2>
+            <button type="button" className={styles.blockLink} onClick={() => navigate('/musteriler')}>
+              Tümü
+            </button>
+          </div>
+          {topDebtors.length === 0 ? (
+            <p className={styles.empty}>Bu aralıkta bekleyen tahsilat yok.</p>
+          ) : (
+            <div className={styles.paymentList}>
+              {topDebtors.map(([customerId, amount]) => (
+                <button
+                  type="button"
+                  className={styles.paymentRow}
+                  key={customerId}
+                  onClick={() => navigate(`/musteriler/${customerId}`)}
+                >
+                  <span className={`${styles.paymentIcon} ${styles.paymentIconWarm}`}>
+                    <WalletIcon width={16} height={16} />
+                  </span>
+                  <span className={styles.paymentText}>
+                    <span className={styles.paymentDesc}>{customerNameById.get(customerId) ?? 'Müşteri'}</span>
+                  </span>
+                  <span className={styles.paymentAmountWarm}>{money(amount)}</span>
+                </button>
+              ))}
+            </div>
+          )}
+        </div>
+
+        {bookingUrl && (
+          <div className={styles.linkCard}>
+            <div className={styles.linkCardText}>
+              <span className={styles.linkCardLabel}>Randevu linkiniz</span>
+              <span className={styles.linkCardUrl}>{bookingUrl}</span>
+            </div>
+            <button type="button" className={styles.linkCardBtn} onClick={copyBookingLink}>
+              {linkCopied ? 'Kopyalandı' : 'Kopyala'}
+            </button>
+          </div>
+        )}
+      </div>
     </div>
   )
 }

@@ -1,21 +1,12 @@
 import { useEffect, useMemo, useState } from 'react'
 import { supabase } from '../lib/supabase'
-import {
-  UsersIcon,
-  SendIcon,
-  XCircleIcon,
-  MehIcon,
-  UserPlusIcon,
-  StarIcon,
-  TagIcon,
-  ChevronRightIcon,
-  PlusIcon,
-  PencilIcon,
-} from '../components/icons'
+import { fetchAll } from '../lib/fetchAll'
+import { UsersIcon, XCircleIcon, MehIcon, UserPlusIcon, StarIcon, TagIcon, PencilIcon } from '../components/icons'
 import CreateGroupModal from '../components/CreateGroupModal'
 import GroupMembersModal from '../components/GroupMembersModal'
 import SendCampaignModal from '../components/SendCampaignModal'
 import TemplateModal from '../components/TemplateModal'
+import PageHeader from '../components/PageHeader'
 import styles from './TopluMesajPage.module.css'
 
 export interface Customer {
@@ -59,14 +50,13 @@ export interface UiGroup {
   customGroupId?: string
 }
 
-type Tab = 'gruplar' | 'sablonlar'
-
 function daysAgoIso(n: number) {
   return new Date(Date.now() - n * 86400000).toISOString()
 }
 
 export default function TopluMesajPage() {
-  const [tab, setTab] = useState<Tab>('gruplar')
+  const [selectedKey, setSelectedKey] = useState<string | null>(null)
+  const [message, setMessage] = useState('')
   const [loading, setLoading] = useState(true)
 
   const [customers, setCustomers] = useState<Customer[]>([])
@@ -80,17 +70,41 @@ export default function TopluMesajPage() {
   const [viewingGroup, setViewingGroup] = useState<UiGroup | null>(null)
   const [sendTarget, setSendTarget] = useState<{ name: string; memberIds: string[]; prefill?: string } | null>(null)
   const [editingTemplate, setEditingTemplate] = useState<Template | 'new' | null>(null)
-  const [pendingTemplateMessage, setPendingTemplateMessage] = useState<string | null>(null)
+  const [templatesOpen, setTemplatesOpen] = useState(false)
+  const [previewOpen, setPreviewOpen] = useState(false)
+  const [historyOpen, setHistoryOpen] = useState(false)
+  const [history, setHistory] = useState<{ key: string; message: string; at: string; count: number }[] | null>(null)
+
+  // "Gecmis": gonderilen toplu mesajlar (notification_log'da her musteri icin
+  // bir satir) — ayni metin + ayni dakika tek gonderim sayilir.
+  async function openHistory() {
+    setHistoryOpen(true)
+    setHistory(null)
+    const { data } = await supabase
+      .from('notification_log')
+      .select('message, created_at')
+      .eq('kind', 'bulk_campaign')
+      .order('created_at', { ascending: false })
+      .limit(1000)
+    const map = new Map<string, { key: string; message: string; at: string; count: number }>()
+    for (const r of data ?? []) {
+      const key = `${r.created_at.slice(0, 16)}|${r.message}`
+      const cur = map.get(key)
+      if (cur) cur.count++
+      else map.set(key, { key, message: r.message, at: r.created_at, count: 1 })
+    }
+    setHistory(Array.from(map.values()))
+  }
 
   async function loadAll() {
     setLoading(true)
     const [{ data: custs }, { data: appts }, { data: svcs }, { data: groups }, { data: members }, { data: tmpls }] =
       await Promise.all([
-        supabase.from('customers').select('id, full_name, phone, contact_phone'),
-        supabase.from('appointments').select('customer_id, service_id, status, scheduled_at'),
+        fetchAll(() => supabase.from('customers').select('id, full_name, phone, contact_phone').order('id')),
+        fetchAll(() => supabase.from('appointments').select('customer_id, service_id, status, scheduled_at').order('id')),
         supabase.from('services').select('id, name'),
         supabase.from('customer_groups').select('id, name, description').order('created_at', { ascending: false }),
-        supabase.from('customer_group_members').select('group_id, customer_id'),
+        fetchAll(() => supabase.from('customer_group_members').select('group_id, customer_id').order('id')),
         supabase.from('campaign_message_templates').select('id, title, message').order('created_at', { ascending: false }),
       ])
     setCustomers(custs ?? [])
@@ -238,120 +252,207 @@ export default function TopluMesajPage() {
     return nameOnly
   }, [appointments, services])
 
-  function openSend(group: UiGroup) {
-    setSendTarget({ name: group.name, memberIds: group.memberIds, prefill: pendingTemplateMessage ?? undefined })
-    setPendingTemplateMessage(null)
+  const everyoneGroup: UiGroup = {
+    key: 'herkes',
+    name: 'Herkes',
+    description: 'Tüm müşteriler',
+    memberIds: customers.map((c) => c.id),
+    icon: UsersIcon,
+    isCustom: false,
   }
+  const allGroups = [everyoneGroup, ...customGroups, ...fixedGroups]
+  const selectedGroup = allGroups.find((g) => g.key === selectedKey) ?? null
+  const reachableCount = selectedGroup
+    ? selectedGroup.memberIds.filter((cid) => {
+        const c = customerById.get(cid)
+        return !!(c?.contact_phone || c?.phone)
+      }).length
+    : 0
+  const previewName = selectedGroup
+    ? (customerById.get(selectedGroup.memberIds[0] ?? '')?.full_name ?? 'Müşteri').split(' ')[0]
+    : 'Müşteri'
 
-  function handleUseTemplate(message: string) {
-    setPendingTemplateMessage(message)
-    setTab('gruplar')
+  if (loading) return <p className={styles.hint}>Yükleniyor…</p>
+
+  if (historyOpen) {
+    return (
+      <div className={styles.wrap}>
+        <PageHeader back={() => setHistoryOpen(false)} title="Gönderilenler" />
+        {history === null ? (
+          <p className={styles.hint}>Yükleniyor…</p>
+        ) : history.length === 0 ? (
+          <p className={styles.hint}>Henüz toplu mesaj gönderilmedi.</p>
+        ) : (
+          <div className={styles.rowsCard}>
+            {history.map((h) => (
+              <div className={styles.historyRow} key={h.key}>
+                <span className={styles.historyText}>{h.message}</span>
+                <span className={styles.historyMeta}>
+                  {new Date(h.at).toLocaleString('tr-TR', { day: 'numeric', month: 'short', hour: '2-digit', minute: '2-digit' })}
+                  {' · '}
+                  {h.count} kişi
+                </span>
+              </div>
+            ))}
+          </div>
+        )}
+      </div>
+    )
   }
-
-  if (loading) return <p style={{ color: 'var(--text-dim)' }}>Yükleniyor…</p>
 
   return (
     <div className={styles.wrap}>
-      <div className={styles.tabBar}>
-        <button type="button" className={tab === 'gruplar' ? styles.tabActive : styles.tab} onClick={() => setTab('gruplar')}>
-          <UsersIcon width={15} height={15} />
-          Müşteri Grupları
+      <PageHeader
+        back="/daha-fazla"
+        title="Toplu mesaj"
+        action={
+          <button type="button" className="hdr-link" onClick={openHistory}>
+            Geçmiş
+          </button>
+        }
+      />
+
+      <section className={styles.block}>
+        <span className={styles.blockLabel}>Kime gidecek?</span>
+        <div className={styles.chips}>
+          {allGroups.map((g) => (
+            <button
+              type="button"
+              key={g.key}
+              className={selectedKey === g.key ? styles.chipActive : styles.chip}
+              onClick={() => setSelectedKey(g.key)}
+            >
+              {g.name} · {g.memberIds.length}
+            </button>
+          ))}
+          <button type="button" className={styles.chipDashed} onClick={() => setCreateGroupOpen(true)}>
+            Kendin seç
+          </button>
+        </div>
+        {selectedGroup && (
+          <button type="button" className={styles.groupLink} onClick={() => setViewingGroup(selectedGroup)}>
+            {selectedGroup.description} · kişileri gör ›
+          </button>
+        )}
+      </section>
+
+      <section className={styles.block}>
+        <div className={styles.blockHead}>
+          <label className={styles.blockLabel} htmlFor="campaignText">
+            Mesaj
+          </label>
+          {templates.length > 0 && (
+            <button type="button" className={styles.link} onClick={() => setTemplatesOpen((v) => !v)}>
+              {templatesOpen ? 'Şablonları gizle' : 'Şablondan seç'}
+            </button>
+          )}
+        </div>
+        {templatesOpen && (
+          <div className={styles.chips}>
+            {templates.map((t) => (
+              <span className={styles.templateChip} key={t.id}>
+                <button
+                  type="button"
+                  className={styles.templateChipMain}
+                  onClick={() => {
+                    setMessage(t.message)
+                    setTemplatesOpen(false)
+                  }}
+                >
+                  {t.title}
+                </button>
+                <button
+                  type="button"
+                  className={styles.templateChipEdit}
+                  onClick={() => setEditingTemplate(t)}
+                  aria-label={`${t.title} şablonunu düzenle`}
+                >
+                  <PencilIcon width={12} height={12} />
+                </button>
+              </span>
+            ))}
+            <button type="button" className={styles.chipDashed} onClick={() => setEditingTemplate('new')}>
+              + Yeni şablon
+            </button>
+          </div>
+        )}
+        <div className={styles.messageCard}>
+          <textarea
+            id="campaignText"
+            className={styles.message}
+            rows={5}
+            maxLength={1000}
+            value={message}
+            onChange={(e) => setMessage(e.target.value)}
+            placeholder="Merhaba, sizi özledik! Bu hafta gelenlere manikürde %15 indirim var. Randevu için bu mesaja yazmanız yeterli."
+          />
+          <div className={styles.messageFoot}>
+            {templates.length === 0 && (
+              <button type="button" className={styles.varChip} onClick={() => setEditingTemplate('new')}>
+                Şablon olarak kaydet
+              </button>
+            )}
+            <span className={styles.counter}>{message.length} / 1000</span>
+          </div>
+        </div>
+      </section>
+
+      <div className={styles.rowsCard}>
+        <div className={styles.infoRow}>
+          <span className={styles.infoLabel}>Kanal</span>
+          <span className={styles.infoValue}>WhatsApp</span>
+        </div>
+        <div className={styles.infoRow}>
+          <span className={styles.infoLabel}>Zaman</span>
+          <span className={styles.infoValue}>Hemen</span>
+        </div>
+        <div className={styles.infoRow}>
+          <span className={styles.infoLabel}>Telefonu kayıtlı</span>
+          <span className={styles.infoValue}>{selectedGroup ? `${reachableCount} kişi` : '—'}</span>
+        </div>
+      </div>
+
+      <div className={styles.footer}>
+        <button
+          type="button"
+          className={styles.previewBtn}
+          disabled={!message.trim()}
+          onClick={() => setPreviewOpen(true)}
+        >
+          Önizle
         </button>
         <button
           type="button"
-          className={tab === 'sablonlar' ? styles.tabActive : styles.tab}
-          onClick={() => setTab('sablonlar')}
+          className={styles.sendBtn}
+          disabled={!selectedGroup || selectedGroup.memberIds.length === 0}
+          onClick={() => {
+            if (!selectedGroup) return
+            setSendTarget({ name: selectedGroup.name, memberIds: selectedGroup.memberIds, prefill: message || undefined })
+          }}
         >
-          <SendIcon width={15} height={15} />
-          Kampanya Mesajları
+          {!selectedGroup
+            ? 'Önce kime gideceğini seç'
+            : selectedGroup.memberIds.length === 0
+              ? 'Bu grupta kimse yok'
+              : `${selectedGroup.memberIds.length} kişiye gönder`}
         </button>
       </div>
 
-      {pendingTemplateMessage && (
-        <p className={styles.hint}>Şablon seçildi — göndermek istediğiniz grubun "Mesaj Gönder" düğmesine tıklayın.</p>
-      )}
-
-      {tab === 'gruplar' ? (
-        <>
-          <div className={`card ${styles.introCard}`}>
-            <span className={styles.introIcon}>
-              <UsersIcon width={20} height={20} />
+      {previewOpen && (
+        <div className={styles.previewBackdrop} onClick={() => setPreviewOpen(false)}>
+          <div className={styles.previewSheet} onClick={(e) => e.stopPropagation()}>
+            <span className={styles.blockLabel}>Müşterinin göreceği</span>
+            <div className={styles.previewPhone}>
+              <span className={styles.previewBubble}>{message.trim() || '…'}</span>
+            </div>
+            <span className={styles.hint}>
+              {selectedGroup ? `${previewName} ve diğer ${Math.max(0, selectedGroup.memberIds.length - 1)} kişiye gider.` : 'Henüz kişi seçilmedi.'}
             </span>
-            <div className={styles.introText}>
-              <h2 className={styles.introTitle}>Doğru gruba, doğru mesaj!</h2>
-              <p className={styles.introSub}>Müşterilerinize özel kampanyalar gönderin, randevularınızı artırın.</p>
-            </div>
-            <button type="button" className="btn-primary" onClick={() => setCreateGroupOpen(true)}>
-              <PlusIcon width={15} height={15} />
-              Yeni Grup Oluştur
+            <button type="button" className={styles.previewBtn} onClick={() => setPreviewOpen(false)}>
+              Kapat
             </button>
           </div>
-
-          <h2 className={styles.sectionLabel}>Müşteri Gruplarım</h2>
-          <div className={styles.groupList}>
-            {[...customGroups, ...fixedGroups].map((g) => {
-              const Icon = g.icon
-              return (
-                <div className="card" key={g.key}>
-                  <div className={styles.groupRow}>
-                    <button type="button" className={styles.groupMain} onClick={() => setViewingGroup(g)}>
-                      <span className={styles.groupIcon}>
-                        <Icon width={18} height={18} />
-                      </span>
-                      <span className={styles.groupText}>
-                        <span className={styles.groupName}>{g.name}</span>
-                        <span className={styles.groupDesc}>{g.description}</span>
-                        <span className={styles.groupCount}>{g.memberIds.length} kişi</span>
-                      </span>
-                    </button>
-                    <div className={styles.groupActions}>
-                      <button
-                        type="button"
-                        className={`btn-secondary ${styles.sendBtn}`}
-                        onClick={() => openSend(g)}
-                        disabled={g.memberIds.length === 0}
-                      >
-                        <SendIcon width={13} height={13} />
-                        Mesaj Gönder
-                      </button>
-                      <ChevronRightIcon width={16} height={16} className={styles.groupChevron} onClick={() => setViewingGroup(g)} />
-                    </div>
-                  </div>
-                </div>
-              )
-            })}
-          </div>
-        </>
-      ) : (
-        <>
-          <div className={styles.templateHead}>
-            <h2 className={styles.sectionLabel}>Kampanya Şablonlarım</h2>
-            <button type="button" className="btn-primary" onClick={() => setEditingTemplate('new')}>
-              <PlusIcon width={15} height={15} />
-              Yeni Şablon
-            </button>
-          </div>
-          {templates.length === 0 ? (
-            <p className={styles.hint}>Henüz şablon yok. İlk kampanya mesajınızı oluşturun.</p>
-          ) : (
-            <div className={styles.templateGrid}>
-              {templates.map((t) => (
-                <div className="card" key={t.id}>
-                  <h3 className={styles.templateTitle}>{t.title}</h3>
-                  <p className={styles.templateMessage}>{t.message}</p>
-                  <div className={styles.templateActions}>
-                    <button type="button" className="btn-primary" onClick={() => handleUseTemplate(t.message)}>
-                      Kullan
-                    </button>
-                    <button type="button" className={styles.iconBtn} onClick={() => setEditingTemplate(t)} aria-label="Düzenle">
-                      <PencilIcon width={15} height={15} />
-                    </button>
-                  </div>
-                </div>
-              ))}
-            </div>
-          )}
-        </>
+        </div>
       )}
 
       {createGroupOpen && (

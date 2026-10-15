@@ -1,8 +1,7 @@
 import { useEffect, useState } from 'react'
-import { useNavigate, useParams } from 'react-router-dom'
+import { useParams } from 'react-router-dom'
 import { supabase } from '../lib/supabase'
-import Avatar from '../components/Avatar'
-import { ChevronRightIcon, InfoIcon, TrashIcon } from '../components/icons'
+import PageHeader from '../components/PageHeader'
 import styles from './EmployeeSchedulePage.module.css'
 
 interface Employee {
@@ -67,11 +66,7 @@ function dayHours(draft: DayDraft): number {
 // ör. Cumartesi 10:00-15:00 gibi yarim gun mesailer icin.
 const SHORT_DAY_THRESHOLD_HOURS = 6
 
-function dayStatus(draft: DayDraft): { dot: 'calisma' | 'kisa' | 'yok'; label: string } {
-  if (!draft.enabled) return { dot: 'yok', label: 'Çalışma Yok' }
-  if (dayHours(draft) < SHORT_DAY_THRESHOLD_HOURS) return { dot: 'kisa', label: 'Kısa Çalışma' }
-  return { dot: 'calisma', label: 'Çalışma Günü' }
-}
+
 
 function buildDayDrafts(schedules: Schedule[], timeBlocks: TimeBlock[]): Record<number, DayDraft> {
   const map: Record<number, DayDraft> = {}
@@ -92,7 +87,6 @@ function buildDayDrafts(schedules: Schedule[], timeBlocks: TimeBlock[]): Record<
 
 export default function EmployeeSchedulePage() {
   const { id } = useParams<{ id: string }>()
-  const navigate = useNavigate()
 
   const [employee, setEmployee] = useState<Employee | null>(null)
   const [schedules, setSchedules] = useState<Schedule[]>([])
@@ -105,7 +99,8 @@ export default function EmployeeSchedulePage() {
   const [dayDrafts, setDayDrafts] = useState<Record<number, DayDraft>>({})
   const [scheduleReady, setScheduleReady] = useState(false)
   const [savingSchedule, setSavingSchedule] = useState(false)
-  const [jsonCopied, setJsonCopied] = useState(false)
+  // Acik (duzenlenen) gun — digerleri tek satir ozet olarak gorunur.
+  const [openDay, setOpenDay] = useState<number>(() => new Date().getDay())
 
   async function loadData(silent = false) {
     if (!id) return
@@ -235,181 +230,177 @@ export default function EmployeeSchedulePage() {
     setSavingSchedule(false)
   }
 
-  function scheduleJson() {
-    return JSON.stringify(
-      WEEK_ORDER.map((day) => {
-        const draft = dayDrafts[day]
-        return {
-          gun: DAY_LABELS[day],
-          acik: draft?.enabled ?? false,
-          baslangic: draft?.enabled ? draft.start : null,
-          bitis: draft?.enabled ? draft.end : null,
-          molalar: draft?.enabled ? draft.breaks.map((b) => ({ baslangic: b.start, bitis: b.end })) : [],
+  if (loading) return <p className={styles.empty}>Yükleniyor…</p>
+  if (!employee) return <p className={styles.empty}>Ekip üyesi bulunamadı.</p>
+
+  const weekHours = WEEK_ORDER.reduce((sum, day) => sum + (dayDrafts[day] ? dayHours(dayDrafts[day]) : 0), 0)
+  const hoursText = (h: number) => h.toLocaleString('tr-TR', { maximumFractionDigits: 1 })
+
+  // Acik gunun saat + molalarini diger acik gunlere kopyala.
+  function copyToOtherDays(day: number) {
+    const src = dayDrafts[day]
+    if (!src) return
+    setDayDrafts((prev) => {
+      const next = { ...prev }
+      for (const d of WEEK_ORDER) {
+        if (d === day || !prev[d]?.enabled) continue
+        next[d] = {
+          ...prev[d],
+          start: src.start,
+          end: src.end,
+          // Var olan molalarin kayit kimlikleri korunur, fazlasi yeni mola olur.
+          breaks: src.breaks.map((b, i) => ({
+            id: crypto.randomUUID(),
+            blockId: prev[d].breaks[i]?.blockId,
+            start: b.start,
+            end: b.end,
+          })),
         }
-      }),
-      null,
-      2,
-    )
+      }
+      return next
+    })
   }
-
-  function copyJson() {
-    navigator.clipboard.writeText(scheduleJson())
-    setJsonCopied(true)
-    setTimeout(() => setJsonCopied(false), 2000)
-  }
-
-  if (loading) return <p style={{ color: 'var(--text-dim)' }}>Yükleniyor…</p>
-  if (!employee) return <p style={{ color: 'var(--text-dim)' }}>Ekip üyesi bulunamadı.</p>
-
-  const openDaysCount = WEEK_ORDER.filter((day) => dayDrafts[day]?.enabled).length
 
   return (
     <div className={styles.wrap}>
-      <button type="button" className={styles.backBtn} onClick={() => navigate(`/ekip/${id}`)}>
-        <ChevronRightIcon width={14} height={14} className={styles.backIcon} />
-        {employee.full_name ?? 'Çalışana'} Dön
-      </button>
+      <PageHeader
+        back={`/ekip/${id}`}
+        title="Çalışma saatleri"
+        sub={`${employee.full_name ?? '—'} · haftada ${hoursText(weekHours)} saat`}
+      />
 
-      <div className={styles.pageHeader}>
-        <Avatar name={employee.full_name ?? '?'} size={36} />
-        <div>
-          <h1 className={styles.pageTitle}>Çalışma Saatleri</h1>
-          <span className={styles.pageSubtitle}>{employee.full_name ?? '—'}</span>
-        </div>
-      </div>
+      {!scheduleReady ? (
+        <p className={styles.empty}>Yükleniyor…</p>
+      ) : (
+        <div className={styles.dayList}>
+          {WEEK_ORDER.map((day) => {
+            const draft = dayDrafts[day]
+            if (!draft) return null
+            const isOpen = openDay === day && draft.enabled
+            const short = draft.enabled && dayHours(draft) < SHORT_DAY_THRESHOLD_HOURS
+            const toggle = (
+              <label className={styles.switch}>
+                <input
+                  type="checkbox"
+                  checked={draft.enabled}
+                  onChange={() => {
+                    toggleDayEnabled(day)
+                    if (!draft.enabled) setOpenDay(day)
+                  }}
+                  aria-label={`${DAY_LABELS[day]} açık`}
+                />
+                <span className={styles.switchTrack} />
+              </label>
+            )
 
-      <div className={styles.infoBanner}>
-        <InfoIcon width={16} height={16} />
-        Belirlediğiniz saatler online randevu alımına açık olacaktır.
-      </div>
+            if (!draft.enabled) {
+              return (
+                <div className={styles.dayRow} key={day}>
+                  {toggle}
+                  <span className={styles.dayRowNameOff}>{DAY_LABELS[day]}</span>
+                  <span className={styles.dayRowOff}>Çalışmıyor</span>
+                </div>
+              )
+            }
 
-      <div className="card">
-        <div className={styles.scheduleColumnHeader}>
-          <span className={styles.scheduleColumnHeaderDay}>Günler</span>
-          <span>Çalışma Saatleri</span>
-        </div>
+            if (!isOpen) {
+              return (
+                <div className={styles.dayRow} key={day}>
+                  {toggle}
+                  <button type="button" className={styles.dayRowMain} onClick={() => setOpenDay(day)}>
+                    <span className={styles.dayRowText}>
+                      <span className={styles.dayRowName}>{DAY_LABELS[day]}</span>
+                      <span className={styles.dayRowSub}>
+                        {draft.breaks.length > 0 ? `${draft.breaks.length} mola` : 'molasız'}
+                      </span>
+                    </span>
+                    <span className={short ? `${styles.timeTag} ${styles.timeTagWarm}` : styles.timeTag}>{draft.start}</span>
+                    <span className={short ? styles.timeDashWarm : styles.timeDash}>–</span>
+                    <span className={short ? `${styles.timeTag} ${styles.timeTagWarm}` : styles.timeTag}>{draft.end}</span>
+                  </button>
+                </div>
+              )
+            }
 
-        {!scheduleReady ? (
-          <p style={{ color: 'var(--text-dim)', marginTop: 16 }}>Yükleniyor…</p>
-        ) : (
-          <>
-            <div className={styles.dayList}>
-              {WEEK_ORDER.map((day) => {
-                const draft = dayDrafts[day]
-                if (!draft) return null
-                const status = dayStatus(draft)
+            return (
+              <div className={styles.dayCardOpen} key={day}>
+                <div className={styles.dayOpenHead}>
+                  {toggle}
+                  <span className={styles.dayOpenName}>{DAY_LABELS[day]}</span>
+                  <span className={styles.dayOpenHours}>{hoursText(dayHours(draft))} saat</span>
+                </div>
 
-                if (!draft.enabled) {
-                  return (
-                    <div className={styles.dayOffRow} key={day}>
-                      <div className={styles.dayInfo}>
-                        <span className={styles.dayName}>{DAY_LABELS[day]}</span>
-                        <span className={styles.dayStatus}>
-                          <span className={`${styles.dayStatusDot} ${styles[`dayStatusDot_${status.dot}`]}`} />
-                          {status.label}
-                        </span>
-                      </div>
-                      <label className={styles.switch}>
-                        <input type="checkbox" checked={false} onChange={() => toggleDayEnabled(day)} />
-                        <span className={styles.switchTrack} />
-                      </label>
-                    </div>
-                  )
-                }
+                <div className={styles.rangeRow}>
+                  <span className={styles.rangeLabel}>Çalışma</span>
+                  <input
+                    type="time"
+                    className={styles.timeBtn}
+                    value={draft.start}
+                    onChange={(e) => updateDay(day, { start: e.target.value })}
+                    aria-label={`${DAY_LABELS[day]} başlangıç`}
+                  />
+                  <span className={styles.timeDash}>–</span>
+                  <input
+                    type="time"
+                    className={styles.timeBtn}
+                    value={draft.end}
+                    onChange={(e) => updateDay(day, { end: e.target.value })}
+                    aria-label={`${DAY_LABELS[day]} bitiş`}
+                  />
+                </div>
 
-                return (
-                  <div className={styles.dayRow} key={day}>
-                    <div className={styles.dayRowTop}>
-                      <div className={styles.dayInfo}>
-                        <span className={styles.dayName}>{DAY_LABELS[day]}</span>
-                        <span className={styles.dayStatus}>
-                          <span className={`${styles.dayStatusDot} ${styles[`dayStatusDot_${status.dot}`]}`} />
-                          {status.label}
-                        </span>
-                      </div>
-
-                      <div className={styles.dayRangesCol}>
-                        <div className={styles.rangeGroup}>
-                          <span className={styles.rangeLabel}>Çalışma</span>
-                          <div className={styles.dayTimesRow}>
-                            <input
-                              type="time"
-                              className={styles.timeInput}
-                              value={draft.start}
-                              onChange={(e) => updateDay(day, { start: e.target.value })}
-                            />
-                            <span className={styles.timeSep}>–</span>
-                            <input
-                              type="time"
-                              className={styles.timeInput}
-                              value={draft.end}
-                              onChange={(e) => updateDay(day, { end: e.target.value })}
-                            />
-                          </div>
-                        </div>
-
-                        {draft.breaks.map((b) => (
-                          <div className={styles.rangeGroup} key={b.id}>
-                            <span className={`${styles.rangeLabel} ${styles.rangeLabelBreak}`}>Mola</span>
-                            <div className={styles.dayTimesRow}>
-                              <input
-                                type="time"
-                                className={styles.timeInput}
-                                value={b.start}
-                                onChange={(e) => updateBreak(day, b.id, { start: e.target.value })}
-                              />
-                              <span className={styles.timeSep}>–</span>
-                              <input
-                                type="time"
-                                className={styles.timeInput}
-                                value={b.end}
-                                onChange={(e) => updateBreak(day, b.id, { end: e.target.value })}
-                              />
-                              <button
-                                type="button"
-                                className={styles.extraRangeRemove}
-                                onClick={() => removeBreak(day, b.id)}
-                                aria-label="Molayı kaldır"
-                              >
-                                <TrashIcon width={13} height={13} />
-                              </button>
-                            </div>
-                          </div>
-                        ))}
-
-                        <button type="button" className={styles.addBreakBtn} onClick={() => addBreak(day)}>
-                          + Ara Ekle
-                        </button>
-                      </div>
-
-                      <label className={styles.switch}>
-                        <input type="checkbox" checked={draft.enabled} onChange={() => toggleDayEnabled(day)} />
-                        <span className={styles.switchTrack} />
-                      </label>
-                    </div>
+                {draft.breaks.map((b) => (
+                  <div className={`${styles.rangeRow} ${styles.rangeRowBreak}`} key={b.id}>
+                    <span className={styles.rangeLabel}>Mola</span>
+                    <input
+                      type="time"
+                      className={styles.timeBtn}
+                      value={b.start}
+                      onChange={(e) => updateBreak(day, b.id, { start: e.target.value })}
+                      aria-label="Mola başlangıç"
+                    />
+                    <span className={styles.timeDashWarm}>–</span>
+                    <input
+                      type="time"
+                      className={styles.timeBtn}
+                      value={b.end}
+                      onChange={(e) => updateBreak(day, b.id, { end: e.target.value })}
+                      aria-label="Mola bitiş"
+                    />
+                    <button
+                      type="button"
+                      className={styles.removeBtn}
+                      onClick={() => removeBreak(day, b.id)}
+                      aria-label="Molayı kaldır"
+                    >
+                      ×
+                    </button>
                   </div>
-                )
-              })}
-            </div>
+                ))}
 
-            <div className={styles.scheduleFooter}>
-              <span className={styles.scheduleFooterSummary}>{openDaysCount} gün açık</span>
-              <div className={styles.scheduleFooterActions}>
-                <button type="button" className={styles.jsonLink} onClick={copyJson}>
-                  {jsonCopied ? 'Kopyalandı ✓' : 'JSON çıktısı'}
-                </button>
-                <button
-                  type="button"
-                  className={`btn-primary ${styles.saveBtn}`}
-                  onClick={saveWeeklySchedule}
-                  disabled={savingSchedule}
-                >
-                  {savingSchedule ? 'Kaydediliyor…' : 'Kaydet'}
-                </button>
+                <div className={styles.openActions}>
+                  <button type="button" className={styles.addBreakBtn} onClick={() => addBreak(day)}>
+                    + Mola ekle
+                  </button>
+                  <button type="button" className={styles.copyBtn} onClick={() => copyToOtherDays(day)}>
+                    Diğer günlere kopyala
+                  </button>
+                </div>
               </div>
-            </div>
-          </>
-        )}
+            )
+          })}
+        </div>
+      )}
+
+      <div className={styles.footer}>
+        <button
+          type="button"
+          className={styles.saveBtn}
+          onClick={saveWeeklySchedule}
+          disabled={savingSchedule || !scheduleReady}
+        >
+          {savingSchedule ? 'Kaydediliyor…' : 'Kaydet'}
+        </button>
       </div>
     </div>
   )

@@ -1,39 +1,47 @@
-import { useEffect, useState } from 'react'
-import { useNavigate, useParams } from 'react-router-dom'
+import { useEffect, useRef, useState } from 'react'
+import { useParams } from 'react-router-dom'
 import { supabase } from '../lib/supabase'
+import PageHeader from '../components/PageHeader'
+import { currencyWhole as currency } from '../lib/currency'
 import styles from './ServiceDescriptionPage.module.css'
 
 interface Service {
   id: string
   name: string
   description: string | null
+  duration_minutes: number
+  price: number | null
 }
 
-const GUIDING_QUESTIONS = [
-  'Bu hizmet tam olarak neyi içeriyor, nasıl uygulanıyor?',
-  'Ağrılı/rahatsız edici mi? Hassas cilt, hamilelik gibi durumlarda uygun mu?',
-  'Kimler bu hizmeti alamaz (alerji, cilt/saç durumu, yaş sınırı vb.)?',
-  'Sonuç kaç seansta / ne kadar sürede görülür, etkisi ne kadar kalıcı?',
-  'Öncesinde ve sonrasında dikkat edilmesi gereken bir şey var mı (bakım, kaçınılması gerekenler)?',
-  'Hangi ürün, malzeme veya teknik kullanılıyor?',
-  'Müşterilerin bu hizmetle ilgili sık sorduğu başka bir şey var mı (ör. benzer hizmetlerle farkı)?',
+// Bot uzun metni de okur; 500 yalnizca "kisa ve net tut" yonlendirmesi.
+const SOFT_LIMIT = 500
+
+// "Sik sorulanlari ekle": dokununca metnin sonuna soru satiri eklenir,
+// salon sahibi cevabini yanina yazar. Bot yalnizca buraya yazilani kullanir.
+const FAQ_PROMPTS = [
+  'Ne kadar dayanır?',
+  'Hazırlık gerekir mi?',
+  'Kimlere uygun değil?',
+  'Acıtır mı?',
+  'Sonrasında nelere dikkat edilmeli?',
+  'Hangi ürün kullanılıyor?',
 ]
 
 export default function ServiceDescriptionPage() {
   const { id } = useParams<{ id: string }>()
-  const navigate = useNavigate()
   const [service, setService] = useState<Service | null>(null)
   const [description, setDescription] = useState('')
   const [loading, setLoading] = useState(true)
   const [saving, setSaving] = useState(false)
   const [savedHint, setSavedHint] = useState(false)
+  const textareaRef = useRef<HTMLTextAreaElement>(null)
 
   useEffect(() => {
     async function load() {
       setLoading(true)
       const { data } = await supabase
         .from('services')
-        .select('id, name, description')
+        .select('id, name, description, duration_minutes, price')
         .eq('id', id)
         .maybeSingle()
       setService(data)
@@ -52,49 +60,76 @@ export default function ServiceDescriptionPage() {
     setTimeout(() => setSavedHint(false), 2000)
   }
 
-  if (loading) return <p style={{ color: 'var(--text-dim)' }}>Yükleniyor…</p>
-  if (!service) return <p style={{ color: 'var(--text-dim)' }}>Hizmet bulunamadı.</p>
+  function addPrompt(q: string) {
+    const base = description.trimEnd()
+    const next = `${base}${base ? '\n' : ''}${q} `
+    setDescription(next)
+    requestAnimationFrame(() => {
+      const el = textareaRef.current
+      if (!el) return
+      el.focus()
+      el.setSelectionRange(next.length, next.length)
+    })
+  }
+
+  if (loading) return <p className={styles.note}>Yükleniyor…</p>
+  if (!service) return <p className={styles.note}>Hizmet bulunamadı.</p>
+
+  const back = `/hizmetler?duzenle=${service.id}`
+  const prompts = FAQ_PROMPTS.filter((q) => !description.includes(q))
+  const priceText = service.price != null ? `, ${currency.format(service.price)}` : ''
+  const intro = description.trim().replace(/\s*\n+\s*/g, ' ')
+  const botReply = intro
+    ? `${intro} ${service.duration_minutes} dakika sürüyor${priceText}. Size uygun bir saat bakayım mı?`
+    : `${service.name} ${service.duration_minutes} dakika sürüyor${priceText}. Detayları salonumuza sorabilirsiniz. Size uygun bir saat bakayım mı?`
 
   return (
     <div className={styles.wrap}>
-      <button type="button" className={styles.backLink} onClick={() => navigate('/hizmetler')}>
-        ← Hizmetlere dön
-      </button>
+      <PageHeader back={back} title={service.name} sub="Müşteri sorduğunda bot ne anlatsın?" />
 
-      <div>
-        <div className={styles.serviceTitle}>{service.name} — Chatbot açıklaması</div>
-      </div>
-
-      <div className="card">
-        <p style={{ color: 'var(--text-dim)', fontSize: 13, marginBottom: 4 }}>
-          Chatbot, müşteriler bu hizmet hakkında bilgi istediğinde SADECE aşağıya yazdığınız
-          metni kullanır — kendi başına bilgi uydurmaz. Aşağıdaki soruları düşünerek yazarsanız,
-          müşterilerin sık sorduğu neredeyse her şeyi baştan cevaplamış olursunuz:
-        </p>
-        <div className={styles.hintList}>
-          {GUIDING_QUESTIONS.map((q) => (
-            <div className={styles.hintItem} key={q}>
-              <span>—</span>
-              <span>{q}</span>
-            </div>
-          ))}
-        </div>
-      </div>
-
-      <div className="card">
+      <div className={styles.editorCard}>
+        <label htmlFor="serviceDesc" className={styles.label}>
+          Açıklama
+        </label>
         <textarea
+          id="serviceDesc"
+          ref={textareaRef}
           className={styles.textarea}
           value={description}
           onChange={(e) => setDescription(e.target.value)}
-          placeholder="ör. Fransız manikür, tırnaklara doğal bir görünüm veren, uç kısmı beyaz, geri kalanı şeffaf/pembemsi tonda boyanan klasik bir manikür tekniğidir. Ağrısızdır, hassas tırnaklarda da uygulanabilir. Ortalama 3-4 hafta kalıcıdır..."
+          placeholder="ör. Tırnak şekillendirme, kütikül bakımı ve beyaz uçlu klasik Fransız oje. Kalıcı oje ile yapılır, 2–3 hafta dayanır."
         />
-        <div className={styles.footerRow} style={{ marginTop: 12 }}>
-          <button type="button" className={`btn-primary ${styles.saveBtn}`} onClick={save} disabled={saving}>
-            {saving ? 'Kaydediliyor…' : 'Kaydet'}
-          </button>
-          {savedHint && <span className={styles.savedHint}>Kaydedildi ✓</span>}
-          <span className={styles.charCount}>{description.length} karakter</span>
+        <div className={styles.editorFoot}>
+          <span className={description.length > SOFT_LIMIT ? styles.countOver : styles.count}>
+            {description.length} / {SOFT_LIMIT}
+          </span>
+          {description.length > SOFT_LIMIT && <span className={styles.countHint}>Kısa tutarsan bot daha net anlatır</span>}
         </div>
+      </div>
+
+      {prompts.length > 0 && (
+        <div className={styles.faqBlock}>
+          <span className={styles.groupLabel}>Sık sorulanları ekle</span>
+          <div className={styles.faqChips}>
+            {prompts.map((q) => (
+              <button type="button" key={q} className={styles.faqChip} onClick={() => addPrompt(q)}>
+                + {q}
+              </button>
+            ))}
+          </div>
+        </div>
+      )}
+
+      <div className={styles.chat}>
+        <span className={styles.chatLabel}>Bot yaklaşık böyle cevap verir</span>
+        <div className={styles.bubbleCustomer}>{service.name} nasıl oluyor, kaç para?</div>
+        <div className={styles.bubbleBot}>{botReply}</div>
+      </div>
+
+      <div className={styles.footer}>
+        <button type="button" className={styles.footerBtn} onClick={save} disabled={saving}>
+          {saving ? 'Kaydediliyor…' : savedHint ? 'Kaydedildi ✓' : 'Açıklamayı kaydet'}
+        </button>
       </div>
     </div>
   )

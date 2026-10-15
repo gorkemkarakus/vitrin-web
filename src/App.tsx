@@ -28,6 +28,7 @@ import AiInsightsPage from './pages/AiInsightsPage'
 import AdOAuthCallbackPage from './pages/AdOAuthCallbackPage'
 import TopluMesajPage from './pages/TopluMesajPage'
 import PublicBookingPage from './public/PublicBookingPage'
+import NotificationsPage from './pages/NotificationsPage'
 import ResetPasswordPage from './pages/ResetPasswordPage'
 
 function ProtectedRoute({ children, adminOnly = false }: { children: React.ReactNode; adminOnly?: boolean }) {
@@ -81,6 +82,7 @@ function AppRoutes() {
             <Route path="randevular" element={<AppointmentsPage />} />
             <Route path="mesajlar"   element={<MessagesPage />} />
             <Route path="ayarlar"    element={<SettingsPage />} />
+            <Route path="bildirimler" element={<NotificationsPage />} />
             <Route path="musteriler" element={<CustomersPage />} />
             <Route path="musteriler/:id" element={<CustomerDetailPage />} />
             <Route path="daha-fazla" element={<MorePage />} />

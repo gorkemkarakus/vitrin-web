@@ -1,10 +1,16 @@
 import { useEffect, useMemo, useRef, useState } from 'react'
-import { useNavigate } from 'react-router-dom'
+import { useNavigate, useSearchParams } from 'react-router-dom'
 import { supabase } from '../lib/supabase'
-import Avatar from '../components/Avatar'
-import { SearchIcon, FilterIcon, CheckCircleIcon, UsersIcon, UserPlusIcon, StarIcon, WalletIcon, ChevronRightIcon } from '../components/icons'
+import { fetchAll } from '../lib/fetchAll'
+import QuickAddCustomerModal from '../components/QuickAddCustomerModal'
+import DuplicateCustomers from '../components/DuplicateCustomers'
+import { visibleDuplicateGroups } from '../lib/duplicateCustomers'
+import { useAuth } from '../contexts/AuthContext'
+import { SearchIcon, CheckCircleIcon, PlusIcon, FilterIcon } from '../components/icons'
+import PageHeader from '../components/PageHeader'
 import { currencyWhole as currency } from '../lib/currency'
 import { toLocalDateString } from '../lib/date'
+import { computeCustomerDebts } from '../lib/customerDebts'
 import { segmentForStats, type CustomerSegment } from '../lib/customerSegments'
 import styles from './CustomersPage.module.css'
 
@@ -55,9 +61,9 @@ type SortBy = 'ad' | 'son_randevu' | 'harcama'
 type StatsPeriod = 'tumu' | 'hafta' | 'ay'
 
 const STATS_PERIODS: { value: StatsPeriod; label: string }[] = [
-  { value: 'tumu', label: 'Tüm Zamanlar' },
-  { value: 'hafta', label: 'Son Hafta' },
-  { value: 'ay', label: 'Son Ay' },
+  { value: 'tumu', label: 'tüm zamanlar' },
+  { value: 'hafta', label: 'son hafta' },
+  { value: 'ay', label: 'son ay' },
 ]
 
 // Yuzlerce musteriyi tek seferde DOM'a basmak her arama tuş vuruşunda/segment
@@ -72,15 +78,26 @@ const SEGMENT_TABS: { value: SegmentFilter; label: string }[] = [
   { value: 'yeni', label: 'Yeni' },
 ]
 
-const SORT_OPTIONS: { value: SortBy; label: string }[] = [
-  { value: 'ad', label: 'Ada Göre (A-Z)' },
-  { value: 'son_randevu', label: 'Son Randevuya Göre' },
-  { value: 'harcama', label: 'Harcamaya Göre' },
+const SORT_OPTIONS: { value: SortBy; label: string; short: string }[] = [
+  { value: 'ad', label: 'Ada göre (A–Z)', short: 'A-Z' },
+  { value: 'son_randevu', label: 'Son randevuya göre', short: 'Son' },
+  { value: 'harcama', label: 'Harcamaya göre', short: '₺' },
 ]
 
-const SEGMENT_BADGE: Record<Segment, { label: string; icon: typeof StarIcon; className: string }> = {
-  sadik: { label: 'Sadık Müşteri', icon: StarIcon, className: 'badgeSadik' },
-  yeni: { label: 'Yeni Müşteri', icon: UserPlusIcon, className: 'badgeYeni' },
+const SEGMENT_BADGE: Record<Segment, { label: string; className: string }> = {
+  sadik: { label: 'Sadık', className: 'badgeSadik' },
+  yeni: { label: 'Yeni', className: 'badgeYeni' },
+}
+
+function initials(name: string) {
+  return (
+    name
+      .trim()
+      .split(/\s+/)
+      .slice(0, 2)
+      .map((w) => w[0]?.toLocaleUpperCase('tr') ?? '')
+      .join('') || '?'
+  )
 }
 
 function monthStart(d: Date) {
@@ -95,6 +112,8 @@ function customerPhone(c: Customer) {
 
 export default function CustomersPage() {
   const navigate = useNavigate()
+  const { profile } = useAuth()
+  const isAdmin = profile?.role === 'admin'
   const [customers, setCustomers] = useState<Customer[]>([])
   const [appointments, setAppointments] = useState<Appointment[]>([])
   const [packages, setPackages] = useState<ServicePackage[]>([])
@@ -104,10 +123,17 @@ export default function CustomersPage() {
 
   const [search, setSearch] = useState('')
   const [statsPeriod, setStatsPeriod] = useState<StatsPeriod>('ay')
-  const [segmentFilter, setSegmentFilter] = useState<SegmentFilter>('tumu')
+  const [searchParams] = useSearchParams()
+  const [segmentFilter, setSegmentFilter] = useState<SegmentFilter>(() =>
+    searchParams.get('sekme') === 'borclu' ? 'borclu' : 'tumu',
+  )
   const [sortBy, setSortBy] = useState<SortBy>('ad')
   const [sortMenuOpen, setSortMenuOpen] = useState(false)
   const [visibleCount, setVisibleCount] = useState(PAGE_SIZE)
+  const [addOpen, setAddOpen] = useState(false)
+  const [dupOpen, setDupOpen] = useState(false)
+  // Birlestirmeden sonra listeyi yeniden yuklemek icin.
+  const [reloadKey, setReloadKey] = useState(0)
 
   const sortMenuRef = useRef<HTMLDivElement>(null)
 
@@ -124,15 +150,15 @@ export default function CustomersPage() {
     async function loadData() {
       setLoading(true)
       const [{ data: custs }, { data: appts }, { data: pkgs }, { data: pays }, { data: svcs }] = await Promise.all([
-        supabase
+        fetchAll(() => supabase
           .from('customers')
           .select('id, full_name, phone, contact_phone, email, created_at')
-          .order('full_name'),
-        supabase
+          .order('full_name').order('id')),
+        fetchAll(() => supabase
           .from('appointments')
-          .select('id, customer_id, service_id, status, scheduled_at, package_id, price_override'),
-        supabase.from('service_packages').select('id, customer_id, service_id, total_sessions, session_offset'),
-        supabase.from('payments').select('id, customer_id, amount, appointment_id, package_id, paid_at').is('voided_at', null),
+          .select('id, customer_id, service_id, status, scheduled_at, package_id, price_override').order('id')),
+        fetchAll(() => supabase.from('service_packages').select('id, customer_id, service_id, total_sessions, session_offset').order('id')),
+        fetchAll(() => supabase.from('payments').select('id, customer_id, amount, appointment_id, package_id, paid_at').is('voided_at', null).order('id')),
         supabase.from('services').select('id, price'),
       ])
       setCustomers(custs ?? [])
@@ -143,7 +169,7 @@ export default function CustomersPage() {
       setLoading(false)
     }
     loadData()
-  }, [])
+  }, [reloadKey])
 
   const now = useMemo(() => new Date(), [])
   const currentMonthStart = useMemo(() => monthStart(now), [now])
@@ -209,35 +235,10 @@ export default function CustomersPage() {
   // acilmamis kalan seanslar icin standart fiyat tahmini, eksi o pakete
   // yapilan odemeler; pakete bagli olmayan tamamlanmis randevular icin de
   // ayni mantik (randevunun gercek ucreti - o randevuya yapilan odemeler).
-  const debtByCustomer = useMemo(() => {
-    const map = new Map<string, number>()
-    for (const pkg of packages) {
-      const standardPrice = pkg.service_id ? (servicePriceById.get(pkg.service_id) ?? 0) : 0
-      // Paketin seans basi ucreti, ILK seansta belirlenen ozel fiyata
-      // kilitlidir (bkz. AppointmentsPage tamamlama akisi) — standart
-      // hizmet fiyati sadece hic seans acilmamissa yedek olarak kullanilir.
-      const sessions = appointments
-        .filter((a) => a.package_id === pkg.id)
-        .slice()
-        .sort((a, b) => a.scheduled_at.localeCompare(b.scheduled_at))
-      const price = sessions[0]?.price_override ?? standardPrice
-      const knownSessionsTotal = sessions.reduce((sum, a) => sum + (a.price_override ?? price), 0)
-      const remainingSessionsEstimate = Math.max(0, pkg.total_sessions - pkg.session_offset - sessions.length) * price
-      const expected = knownSessionsTotal + remainingSessionsEstimate
-      const paid = payments.filter((p) => p.package_id === pkg.id).reduce((sum, p) => sum + p.amount, 0)
-      const remaining = Math.max(0, expected - paid)
-      map.set(pkg.customer_id, (map.get(pkg.customer_id) ?? 0) + remaining)
-    }
-    for (const a of appointments) {
-      if (!a.customer_id || a.package_id || a.status !== 'tamamlandi') continue
-      const expected = a.price_override ?? (a.service_id ? (servicePriceById.get(a.service_id) ?? 0) : 0)
-      const paid = payments.filter((p) => p.appointment_id === a.id).reduce((sum, p) => sum + p.amount, 0)
-      const remaining = Math.max(0, expected - paid)
-      if (remaining > 0) map.set(a.customer_id, (map.get(a.customer_id) ?? 0) + remaining)
-    }
-    return map
-  }, [packages, payments, appointments, servicePriceById])
-
+  const debtByCustomer = useMemo(
+    () => computeCustomerDebts(packages, appointments, payments, servicePriceById),
+    [packages, payments, appointments, servicePriceById],
+  )
   // Yeni (bu ay eklendi) > Sadik (3+ tamamlanan randevu) onceligiyle TEK bir
   // segmente atanir; hicbirine uymayan musteriler sadece "Tumu" sekmesinde
   // gorunur, satirda rozet tasimaz.
@@ -282,6 +283,18 @@ export default function CustomersPage() {
 
   const statsPeriodLabel = STATS_PERIODS.find((p) => p.value === statsPeriod)?.label ?? ''
 
+  // Harcama / yeni musteri kutularina dokununca donem sirayla degisir.
+  function cyclePeriod() {
+    const i = STATS_PERIODS.findIndex((p) => p.value === statsPeriod)
+    setStatsPeriod(STATS_PERIODS[(i + 1) % STATS_PERIODS.length].value)
+  }
+
+  const totalDebt = useMemo(() => {
+    let sum = 0
+    for (const v of debtByCustomer.values()) sum += v
+    return sum
+  }, [debtByCustomer])
+
   const q = search.trim().toLowerCase()
   const filteredSorted = useMemo(() => {
     let list = customers.filter(
@@ -309,18 +322,49 @@ export default function CustomersPage() {
 
   const visibleCustomers = filteredSorted.slice(0, visibleCount)
 
+  // Olasi mukerrer kayitlar (ayni telefon / ayni tam ad) — sadece yonetici
+  // birlestirebilir (merge_customers RPC'si de yonetici ister).
+  // dupOpen: ekran kapaninca "Farkli kisiler" ile gizlenenler yeniden okunsun.
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  const duplicateGroups = useMemo(() => (isAdmin ? visibleDuplicateGroups(customers) : []), [customers, isAdmin, dupOpen])
+  const apptCountByCustomer = useMemo(
+    () => new Map(Array.from(apptsByCustomer.entries()).map(([id, list]) => [id, list.length])),
+    [apptsByCustomer],
+  )
+
+  if (dupOpen) {
+    return (
+      <DuplicateCustomers
+        groups={duplicateGroups}
+        apptCount={apptCountByCustomer}
+        onClose={() => setDupOpen(false)}
+        onChanged={() => setReloadKey((k) => k + 1)}
+      />
+    )
+  }
+
   return (
     <div className={styles.wrap}>
+      <PageHeader
+        title="Müşteriler"
+        action={
+          <button type="button" className="hdr-pill-navy" onClick={() => setAddOpen(true)}>
+            <PlusIcon width={14} height={14} />
+            Ekle
+          </button>
+        }
+      />
+
       <div className={styles.searchRow}>
-        <div className={styles.searchBox}>
+        <label className={styles.searchBox}>
           <SearchIcon width={16} height={16} className={styles.searchIcon} />
           <input
             className={styles.searchInput}
-            placeholder="Müşteri ara…"
+            placeholder="İsim veya telefon ara"
             value={search}
             onChange={(e) => setSearch(e.target.value)}
           />
-        </div>
+        </label>
         <div className={styles.filterWrap} ref={sortMenuRef}>
           <button
             type="button"
@@ -328,9 +372,10 @@ export default function CustomersPage() {
             onClick={() => setSortMenuOpen((v) => !v)}
             aria-haspopup="listbox"
             aria-expanded={sortMenuOpen}
+            aria-label="Sıralama"
           >
             <FilterIcon width={15} height={15} />
-            Filtrele
+            {SORT_OPTIONS.find((o) => o.value === sortBy)?.short}
           </button>
           {sortMenuOpen && (
             <div className={styles.filterMenu} role="listbox">
@@ -348,54 +393,55 @@ export default function CustomersPage() {
                   {sortBy === opt.value && <CheckCircleIcon width={14} height={14} />}
                 </button>
               ))}
+              <span className={styles.filterMenuTitle}>Harcama / yeni dönemi</span>
+              {STATS_PERIODS.map((p) => (
+                <button
+                  type="button"
+                  key={p.value}
+                  className={styles.filterMenuItem}
+                  onClick={() => {
+                    setStatsPeriod(p.value)
+                    setSortMenuOpen(false)
+                  }}
+                >
+                  {p.label.charAt(0).toLocaleUpperCase('tr') + p.label.slice(1)}
+                  {statsPeriod === p.value && <CheckCircleIcon width={14} height={14} />}
+                </button>
+              ))}
             </div>
           )}
         </div>
       </div>
 
-      <div className={styles.periodRow}>
-        {STATS_PERIODS.map((p) => (
-          <button
-            type="button"
-            key={p.value}
-            className={statsPeriod === p.value ? styles.periodBtnActive : styles.periodBtn}
-            onClick={() => setStatsPeriod(p.value)}
-          >
-            {p.label}
-          </button>
-        ))}
+      <div className={styles.statsGrid}>
+        <div className={styles.statCard}>
+          <span className={styles.statValue}>{customers.length}</span>
+          <span className={styles.statLabel}>Toplam müşteri</span>
+        </div>
+        <button type="button" className={styles.statCard} onClick={cyclePeriod}>
+          <span className={styles.statValue}>{currency.format(totalSpendForPeriod)}</span>
+          <span className={styles.statLabel}>Harcama · {statsPeriodLabel}</span>
+        </button>
+        <button type="button" className={styles.statCard} onClick={cyclePeriod}>
+          <span className={styles.statValue}>{newCustomerCountForPeriod}</span>
+          <span className={styles.statLabel}>Yeni · {statsPeriodLabel}</span>
+        </button>
+        <button
+          type="button"
+          className={`${styles.statCard} ${styles.statCardWarm}`}
+          onClick={() => setSegmentFilter('borclu')}
+        >
+          <span className={styles.statValue}>{currency.format(totalDebt)}</span>
+          <span className={styles.statLabel}>{counts.borclu} müşteride borç</span>
+        </button>
       </div>
 
-      <div className={styles.statsGrid}>
-        <div className={`${styles.statCard} ${styles.statCardSignal}`}>
-          <span className={`${styles.statIcon} ${styles.statIconSignal}`}>
-            <UsersIcon width={14} height={14} />
-          </span>
-          <span className={styles.statValue}>{customers.length}</span>
-          <span className={styles.statLabel}>Toplam Müşteri</span>
-        </div>
-        <div className={`${styles.statCard} ${styles.statCardOk}`}>
-          <span className={`${styles.statIcon} ${styles.statIconOk}`}>
-            <UserPlusIcon width={14} height={14} />
-          </span>
-          <span className={styles.statValue}>{newCustomerCountForPeriod}</span>
-          <span className={styles.statLabel}>Yeni Müşteri ({statsPeriodLabel})</span>
-        </div>
-        <div className={`${styles.statCard} ${styles.statCardWarn}`}>
-          <span className={`${styles.statIcon} ${styles.statIconWarn}`}>
-            <StarIcon width={14} height={14} />
-          </span>
-          <span className={styles.statValue}>{counts.sadik}</span>
-          <span className={styles.statLabel}>Sadık Müşteri</span>
-        </div>
-        <div className={`${styles.statCard} ${styles.statCardInfo}`}>
-          <span className={`${styles.statIcon} ${styles.statIconInfo}`}>
-            <WalletIcon width={14} height={14} />
-          </span>
-          <span className={styles.statValue}>{currency.format(totalSpendForPeriod)}</span>
-          <span className={styles.statLabel}>Toplam Harcama ({statsPeriodLabel})</span>
-        </div>
-      </div>
+      {!loading && duplicateGroups.length > 0 && (
+        <button type="button" className={styles.dupBanner} onClick={() => setDupOpen(true)}>
+          <span>{duplicateGroups.length} olası mükerrer kayıt — aynı kişi iki kez kaydedilmiş olabilir</span>
+          <span className={styles.dupBannerAction}>İncele ›</span>
+        </button>
+      )}
 
       <div className={styles.segmentRow}>
         {SEGMENT_TABS.map((tab) => (
@@ -405,66 +451,55 @@ export default function CustomersPage() {
             className={segmentFilter === tab.value ? styles.segmentBtnActive : styles.segmentBtn}
             onClick={() => setSegmentFilter(tab.value)}
           >
-            {tab.label} ({counts[tab.value]})
+            {tab.label}
           </button>
         ))}
       </div>
 
       {loading ? (
-        <p style={{ color: 'var(--text-dim)' }}>Yükleniyor…</p>
+        <p className={styles.note}>Yükleniyor…</p>
       ) : filteredSorted.length === 0 ? (
-        <p style={{ color: 'var(--text-dim)' }}>Müşteri bulunamadı.</p>
+        <div className={styles.emptyCard}>
+          <span className={styles.emptyTitle}>{q ? 'Aramana uyan müşteri yok' : 'Bu listede müşteri yok'}</span>
+          <span className={styles.emptySub}>
+            {q ? 'Adı ya da telefonu farklı yazmayı dene.' : 'Yeni müşteri eklemek için “Ekle”ye dokun.'}
+          </span>
+        </div>
       ) : (
-        <div className="card">
+        <>
           <div className={styles.list}>
-            {visibleCustomers.map((c) => {
+            {visibleCustomers.map((c, i) => {
               const seg = segmentFor(c.id)
               const s = statsByCustomer.get(c.id)
-              const badge = seg ? SEGMENT_BADGE[seg] : null
-              const BadgeIcon = badge?.icon
+              const debt = debtByCustomer.get(c.id) ?? 0
+              const phone = customerPhone(c)
               return (
-                <div
+                <button
+                  type="button"
                   key={c.id}
                   className={styles.row}
-                  role="button"
-                  tabIndex={0}
                   onClick={() => navigate(`/musteriler/${c.id}`)}
-                  onKeyDown={(e) => {
-                    if (e.key === 'Enter') navigate(`/musteriler/${c.id}`)
-                  }}
                 >
-                  <Avatar name={c.full_name} size={44} />
-                  <div className={styles.rowMain}>
+                  <span className={`${styles.rowInitials} ${styles[`tone${i % 3}`]}`}>{initials(c.full_name)}</span>
+                  <span className={styles.rowMain}>
                     <span className={styles.rowName}>{c.full_name}</span>
-                    {customerPhone(c) && <span className={styles.rowPhone}>{customerPhone(c)}</span>}
-                    {badge && BadgeIcon && (
-                      <span className={`${styles.badge} ${styles[badge.className]}`}>
-                        <BadgeIcon width={11} height={11} />
-                        {badge.label}
+                    {debt > 0 ? (
+                      <span className={`${styles.rowPill} ${styles.rowPillWarm}`}>{currency.format(debt)} borç</span>
+                    ) : seg ? (
+                      <span className={`${styles.rowPill} ${styles[SEGMENT_BADGE[seg].className]}`}>
+                        {SEGMENT_BADGE[seg].label}
                       </span>
+                    ) : (
+                      <span className={styles.rowSub}>{phone ?? 'Telefon yok'}</span>
                     )}
-                    {(debtByCustomer.get(c.id) ?? 0) > 0 && (
-                      <span className={styles.debtBadge}>
-                        Borç: {currency.format(debtByCustomer.get(c.id) ?? 0)}
-                      </span>
-                    )}
-                  </div>
-                  <div className={styles.rowStats}>
-                    <div className={styles.rowStatBlock}>
-                      <span className={styles.rowStatLabel}>Son Randevu</span>
-                      <span className={styles.rowStatValueSignal}>
-                        {s?.lastApptAt
-                          ? s.lastApptAt.toLocaleDateString('tr-TR', { day: 'numeric', month: 'long', year: 'numeric' })
-                          : '—'}
-                      </span>
-                    </div>
-                    <div className={styles.rowStatBlock}>
-                      <span className={styles.rowStatLabel}>Toplam Harcama</span>
-                      <span className={styles.rowStatValue}>{currency.format(s?.totalSpend ?? 0)}</span>
-                    </div>
-                  </div>
-                  <ChevronRightIcon width={16} height={16} className={styles.rowChevron} />
-                </div>
+                  </span>
+                  <span className={styles.rowSide}>
+                    <span className={styles.rowAmount}>{currency.format(s?.totalSpend ?? 0)}</span>
+                    <span className={styles.rowDate}>
+                      {s?.lastApptAt ? s.lastApptAt.toLocaleDateString('tr-TR', { day: 'numeric', month: 'short' }) : '—'}
+                    </span>
+                  </span>
+                </button>
               )
             })}
           </div>
@@ -474,12 +509,18 @@ export default function CustomersPage() {
               className={styles.loadMoreBtn}
               onClick={() => setVisibleCount((v) => v + PAGE_SIZE)}
             >
-              Daha Fazla Göster ({filteredSorted.length - visibleCustomers.length} kaldı)
+              Daha fazla göster ({filteredSorted.length - visibleCustomers.length} kaldı)
             </button>
           )}
-        </div>
+        </>
       )}
 
+      {addOpen && (
+        <QuickAddCustomerModal
+          onClose={() => setAddOpen(false)}
+          onCreated={(created) => navigate(`/musteriler/${created.id}`)}
+        />
+      )}
     </div>
   )
 }

@@ -1,70 +1,469 @@
-.wrap {
+/* ---------- Acilis ---------- */
+
+.intro {
+  position: relative;
+  overflow: hidden;
   min-height: 100vh;
+  min-height: 100dvh;
+  background: var(--signal);
+  color: #fff;
+  display: flex;
+  flex-direction: column;
+  padding: calc(48px + env(safe-area-inset-top)) 24px calc(44px + env(safe-area-inset-bottom));
+}
+
+/* Arka plandaki iki yuvarlak: sol altta halka, sag ustte dolu daire. */
+.ringLeft {
+  position: absolute;
+  left: -90px;
+  bottom: 150px;
+  width: 300px;
+  height: 300px;
+  border-radius: 50%;
+  border: 40px solid var(--navy-2);
+  pointer-events: none;
+}
+
+.dotRight {
+  position: absolute;
+  right: -60px;
+  top: 120px;
+  width: 150px;
+  height: 150px;
+  border-radius: 50%;
+  background: var(--navy-2);
+  pointer-events: none;
+}
+
+.brandRow {
+  position: relative;
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+.introMark {
+  width: 44px;
+  height: 44px;
+  border-radius: 14px;
+  background: #fff;
   display: flex;
   align-items: center;
   justify-content: center;
-  background: linear-gradient(160deg, #f7f4ec 0%, #efe9db 100%);
-  padding: 24px;
 }
 
-.card {
-  width: 100%;
-  max-width: 400px;
-  background: var(--panel);
-  border: 1px solid var(--line);
-  border-radius: var(--radius-lg);
-  box-shadow: 0 12px 40px rgba(61, 70, 50, 0.1);
-  padding: 40px 36px;
+.introMark img {
+  width: 28px;
+  height: 28px;
+  object-fit: contain;
 }
 
-.logoWrap {
-  display: flex;
-  justify-content: center;
-  margin-bottom: 24px;
-}
-
-.title {
-  text-align: center;
+.brand {
+  font-family: var(--font-heading);
   font-size: 22px;
-  margin-bottom: 6px;
+  font-weight: 600;
 }
 
-.sub {
-  text-align: center;
-  color: var(--text-dim);
-  font-size: 14px;
-  margin-bottom: 28px;
+.introText {
+  position: relative;
+  margin-top: auto;
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
 }
 
-.error {
-  color: var(--danger-text);
-  font-size: 13px;
-  margin-bottom: 12px;
+.introTitle {
+  font-family: var(--font-heading);
+  font-size: 44px;
+  font-weight: 600;
+  line-height: 1.05;
+  letter-spacing: -0.03em;
+  color: #fff;
 }
 
-.linkBtn {
-  display: block;
-  width: 100%;
-  text-align: center;
-  background: none;
+.introSub {
+  font-size: 16px;
+  line-height: 1.5;
+  color: var(--navy-dim);
+  max-width: 34ch;
+}
+
+.introBtn {
+  margin-top: 14px;
   border: none;
-  color: var(--text-dim);
-  font-size: 13px;
-  margin-top: 16px;
+  background: var(--accent);
+  color: #fff;
+  border-radius: 18px;
+  padding: 17px;
+  font-family: var(--font-body);
+  font-size: 16px;
+  font-weight: 700;
   cursor: pointer;
-  text-decoration: underline;
 }
 
-.linkBtn:hover {
+/* ---------- Giris ---------- */
+
+.shell {
+  position: relative;
+  overflow: hidden;
+  min-height: 100vh;
+  min-height: 100dvh;
+  background: var(--signal);
+  display: flex;
+  flex-direction: column;
+}
+
+.ringTop {
+  position: absolute;
+  right: -70px;
+  top: -70px;
+  width: 260px;
+  height: 260px;
+  border-radius: 50%;
+  border: 36px solid var(--navy-2);
+  pointer-events: none;
+}
+
+.top {
+  position: relative;
+  padding: calc(56px + env(safe-area-inset-top)) 24px 40px;
+  color: #fff;
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.topMark {
+  width: 52px;
+  height: 52px;
+  border-radius: 16px;
+  background: #fff;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.topMark img {
+  width: 32px;
+  height: 32px;
+  object-fit: contain;
+}
+
+.topTitle {
+  margin-top: 12px;
+  font-family: var(--font-heading);
+  font-size: 36px;
+  font-weight: 600;
+  letter-spacing: -0.03em;
+  line-height: 1.1;
+  color: #fff;
+}
+
+.topSub {
+  font-size: 15px;
+  color: var(--navy-dim);
+}
+
+.sheet {
+  position: relative;
+  margin-top: auto;
+  background: var(--panel);
+  border-radius: 30px 30px 0 0;
+  padding: 28px 24px calc(40px + env(safe-area-inset-bottom));
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+}
+
+.field {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.field label {
+  font-size: 13px;
+  font-weight: 700;
+  color: #374151;
+}
+
+.inputGray,
+.inputWhite {
+  width: 100%;
+  border: none;
+  outline: none;
+  background: var(--bg);
+  border-radius: 16px;
+  padding: 15px 16px;
+  font-family: var(--font-body);
+  font-size: 16px;
   color: var(--text);
 }
 
-@media (max-width: 420px) {
-  .wrap {
-    padding: 16px;
-  }
+.inputWhite {
+  background: var(--panel);
+  padding: 16px;
+}
 
-  .card {
-    padding: 28px 20px;
-  }
+.inputGray::placeholder,
+.inputWhite::placeholder,
+.passwordBox input::placeholder {
+  color: #9ca3af;
+}
+
+.inputGray:focus,
+.inputWhite:focus {
+  box-shadow: inset 0 0 0 2px var(--signal);
+}
+
+.passwordBox {
+  display: flex;
+  align-items: center;
+  background: var(--bg);
+  border-radius: 16px;
+  padding: 4px 4px 4px 16px;
+}
+
+.passwordBox:focus-within {
+  box-shadow: inset 0 0 0 2px var(--signal);
+}
+
+.passwordBoxWhite {
+  background: var(--panel);
+  box-shadow: inset 0 0 0 2px var(--signal);
+}
+
+.passwordBox input {
+  flex: 1;
+  min-width: 0;
+  border: none;
+  outline: none;
+  background: transparent;
+  padding: 11px 0;
+  font-family: var(--font-body);
+  font-size: 16px;
+  color: var(--text);
+}
+
+.showBtn {
+  border: none;
+  background: transparent;
+  color: var(--text-dim);
+  padding: 10px 12px;
+  font-family: var(--font-body);
+  font-size: 13px;
+  font-weight: 700;
+  cursor: pointer;
+}
+
+.forgotLink {
+  align-self: flex-end;
+  border: none;
+  background: none;
+  padding: 0;
+  font-family: var(--font-body);
+  font-size: 13px;
+  font-weight: 700;
+  color: var(--text);
+  cursor: pointer;
+}
+
+.primaryBtn {
+  border: none;
+  background: var(--signal);
+  color: #fff;
+  border-radius: 18px;
+  padding: 17px 0;
+  font-family: var(--font-body);
+  font-size: 16px;
+  font-weight: 700;
+  cursor: pointer;
+}
+
+.primaryBtn:disabled {
+  opacity: 0.6;
+}
+
+.sheet .primaryBtn {
+  margin-top: 4px;
+}
+
+.error {
+  font-size: 13px;
+  color: var(--danger-text);
+  background: var(--danger-bg);
+  border-radius: 12px;
+  padding: 10px 12px;
+}
+
+/* ---------- Acik zeminli ekranlar (sifremi unuttum, yeni sifre) ---------- */
+
+.lightPage {
+  min-height: 100vh;
+  min-height: 100dvh;
+  background: var(--bg);
+  color: var(--text);
+  display: flex;
+  flex-direction: column;
+  gap: 22px;
+  padding: calc(50px + env(safe-area-inset-top)) 24px calc(40px + env(safe-area-inset-bottom));
+}
+
+.backBtn {
+  width: 40px;
+  height: 40px;
+  border: none;
+  border-radius: 50%;
+  background: var(--panel);
+  color: var(--text);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+}
+
+.backIcon {
+  transform: rotate(180deg);
+}
+
+.lightBrand {
+  margin-top: 40px;
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  font-family: var(--font-heading);
+  font-size: 19px;
+  font-weight: 600;
+}
+
+.lightBrand img {
+  width: 30px;
+  height: 30px;
+  object-fit: contain;
+}
+
+.lightHead {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  padding-top: 20px;
+}
+
+.lightBrand + .lightHead {
+  padding-top: 0;
+}
+
+.lightTitle {
+  font-family: var(--font-heading);
+  font-size: 32px;
+  font-weight: 600;
+  letter-spacing: -0.03em;
+  line-height: 1.1;
+}
+
+.lightSub {
+  font-size: 15px;
+  color: var(--text-dim);
+  line-height: 1.5;
+}
+
+.lightForm {
+  display: flex;
+  flex-direction: column;
+  gap: 22px;
+}
+
+.sentCard {
+  background: var(--ok-bg);
+  border-radius: 18px;
+  padding: 14px 16px;
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.sentTitle {
+  font-size: 14px;
+  font-weight: 700;
+  color: #0a5c43;
+}
+
+.sentSub {
+  font-size: 13px;
+  color: #374151;
+  line-height: 1.5;
+  overflow-wrap: anywhere;
+}
+
+.lightFoot {
+  margin-top: auto;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 12px;
+}
+
+.textLink {
+  border: none;
+  background: none;
+  font-family: var(--font-body);
+  font-size: 14px;
+  font-weight: 700;
+  color: var(--text);
+  cursor: pointer;
+}
+
+.lightFootNote {
+  margin-top: auto;
+  font-size: 13px;
+  color: var(--text-dim);
+  text-align: center;
+}
+
+.note {
+  font-size: 14px;
+  color: var(--text-dim);
+  line-height: 1.5;
+}
+
+.strength {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  margin-top: -14px;
+}
+
+.strengthBars {
+  display: grid;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  gap: 4px;
+}
+
+.bar,
+.barOn {
+  height: 5px;
+  border-radius: 3px;
+  background: #e2e5ea;
+}
+
+.barOn {
+  background: var(--ok-text);
+}
+
+.rules {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.ruleOk,
+.ruleTodo {
+  font-size: 13px;
+  font-weight: 700;
+  color: var(--ok-text);
+}
+
+.ruleTodo {
+  color: var(--text-dim);
+  font-weight: 400;
 }

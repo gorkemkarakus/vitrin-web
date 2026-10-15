@@ -1,6 +1,7 @@
-import { useEffect, useMemo, useRef, useState, type FormEvent, type ReactNode } from 'react'
+import { useEffect, useMemo, useRef, useState, type FormEvent } from 'react'
 import { useNavigate, useOutletContext, useSearchParams } from 'react-router-dom'
 import { supabase } from '../lib/supabase'
+import { fetchAll } from '../lib/fetchAll'
 import { useAuth } from '../contexts/AuthContext'
 import { TIME_OPTIONS } from '../lib/timeOptions'
 import { formatPersonName } from '../lib/formatName'
@@ -10,27 +11,15 @@ import Avatar from '../components/Avatar'
 import StatusDropdown, { type StatusDropdownOption } from '../components/StatusDropdown'
 import Select from '../components/Select'
 import {
-  CalendarIcon,
   ChevronRightIcon,
   CheckCircleIcon,
-  ClockIcon,
-  XCircleIcon,
-  PhoneIcon,
   PencilIcon,
   UserIcon,
-  TeamIcon,
-  CashIcon,
-  CreditCardIcon,
-  BankIcon,
   MoreHorizontalIcon,
-  InfoIcon,
-  HelpCircleIcon,
-  ServicesIcon,
-  LayersIcon,
-  ReceiptIcon,
-  MehIcon,
+  MessagesIcon,
 } from '../components/icons'
 import type { LayoutOutletContext } from '../layouts/DashboardLayout'
+import PageHeader from '../components/PageHeader'
 import styles from './AppointmentsPage.module.css'
 
 interface Customer {
@@ -38,6 +27,7 @@ interface Customer {
   full_name: string
   phone: string | null
   contact_phone: string | null
+  notes?: string | null
 }
 
 interface Service {
@@ -84,8 +74,11 @@ interface Appointment {
   status: 'bekliyor' | 'onaylandi' | 'tamamlandi' | 'iptal' | 'gelmedi'
   source: string
   source_note: string | null
+  notes: string | null
   package_id: string | null
   price_override: number | null
+  created_at?: string
+  reminder_sent_at?: string | null
 }
 
 interface ServicePackage {
@@ -104,21 +97,77 @@ const PAYMENT_METHOD_OPTIONS = [
   { value: 'diger', label: 'Diğer' },
 ]
 
-const METHOD_ICONS: Record<string, ReactNode> = {
-  nakit: <CashIcon width={17} height={17} />,
-  kart: <CreditCardIcon width={17} height={17} />,
-  havale: <BankIcon width={17} height={17} />,
-  diger: <MoreHorizontalIcon width={17} height={17} />,
+// Kapanis ekranindaki odeme yontemi cipleri ve alt dugme metni icin kisa adlar.
+const METHOD_SHORT: Record<string, string> = { nakit: 'Nakit', kart: 'Kart', havale: 'Havale', diger: 'Diğer' }
+
+// Randevu detayindaki "hikaye" icin kim olusturdu.
+const SOURCE_STORY: Record<string, string> = {
+  chatbot: 'Chatbot',
+  online_randevu: 'Online randevu sayfası',
+  kullanici_uzerinden: 'Salon',
+  dogrudan_musteri: 'Salon',
+  reklam_instagram: 'Instagram reklamı',
+  reklam_whatsapp: 'WhatsApp reklamı',
+  diger: 'Salon',
 }
 
-function CompleteSectionHeader({ number, title, optional }: { number: number; title: string; optional?: boolean }) {
+// Yeni randevu penceresinde ilk anda gosterilen hizmet cipi sayisi.
+const FORM_SERVICE_LIMIT = 5
+
+function initialsOf(name: string) {
   return (
-    <div className={styles.sectionHeader}>
-      <span className={styles.sectionHeaderTitle}>
-        {number}. {title}
-        {optional && <span className={styles.sectionOptionalSuffix}> (İsteğe Bağlı)</span>}
-      </span>
-      {!optional && <span className={styles.sectionBadgeRequired}>Zorunlu</span>}
+    name
+      .trim()
+      .split(/\s+/)
+      .slice(0, 2)
+      .map((w) => w[0]?.toLocaleUpperCase('tr') ?? '')
+      .join('') || '?'
+  )
+}
+
+// Randevu detayinin altindaki "Tamamlamak icin kaydir" seridi. Turuncu
+// tutamac saga surukleniyor; sonuna yaklasinca onConfirm. Klavye ile
+// Enter/Space de calisir.
+function SwipeToConfirm({ label, onConfirm }: { label: string; onConfirm: () => void }) {
+  const trackRef = useRef<HTMLDivElement>(null)
+  const startX = useRef<number | null>(null)
+  const [dx, setDx] = useState(0)
+  const max = () => (trackRef.current ? trackRef.current.clientWidth - 64 : 240)
+  return (
+    <div className={styles.swipeTrack} ref={trackRef}>
+      <button
+        type="button"
+        className={styles.swipeKnob}
+        style={{ transform: `translateX(${dx}px)` }}
+        aria-label={label}
+        onPointerDown={(e) => {
+          startX.current = e.clientX
+          ;(e.target as HTMLElement).setPointerCapture?.(e.pointerId)
+        }}
+        onPointerMove={(e) => {
+          if (startX.current === null) return
+          setDx(Math.max(0, Math.min(max(), e.clientX - startX.current)))
+        }}
+        onPointerUp={() => {
+          const done = dx >= max() * 0.8
+          startX.current = null
+          setDx(0)
+          if (done) onConfirm()
+        }}
+        onPointerCancel={() => {
+          startX.current = null
+          setDx(0)
+        }}
+        onKeyDown={(e) => {
+          if (e.key === 'Enter' || e.key === ' ') {
+            e.preventDefault()
+            onConfirm()
+          }
+        }}
+      >
+        <ChevronRightIcon width={22} height={22} />
+      </button>
+      <span className={styles.swipeLabel}>{label}</span>
     </div>
   )
 }
@@ -169,15 +218,6 @@ function timeStringToMinutes(t: string) {
   return h * 60 + m
 }
 
-const TIMELINE_COLORS = [
-  styles.timelineColor0,
-  styles.timelineColor1,
-  styles.timelineColor2,
-  styles.timelineColor3,
-  styles.timelineColor4,
-  styles.timelineColor5,
-]
-
 // Chatbot (book-appointment) ve herkese açık randevu sayfasındaki
 // (public-book-appointment) rankEligibleByFairness ile AYNI algoritma —
 // "fark etmez" seçildiğinde her zaman ilk müsait çalışanı seçmek prim/
@@ -224,6 +264,30 @@ export default function AppointmentsPage() {
   const dateInputRef = useRef<HTMLInputElement>(null)
 
   const [showForm, setShowForm] = useState(false)
+  const [viewMenuOpen, setViewMenuOpen] = useState(false)
+  const viewMenuRef = useRef<HTMLDivElement>(null)
+  const weekSwipeX = useRef<number | null>(null)
+  const [detailMenuOpen, setDetailMenuOpen] = useState(false)
+  // Yeni randevu penceresi
+  const [customerQuery, setCustomerQuery] = useState('')
+  const [customerListOpen, setCustomerListOpen] = useState(false)
+  const [showAllServices, setShowAllServices] = useState(false)
+  const [formWeekOffset, setFormWeekOffset] = useState(0)
+  const [noteOpen, setNoteOpen] = useState(false)
+  const otherDateRef = useRef<HTMLInputElement>(null)
+  // Kapanis ekrani
+  const [completeTypeOpen, setCompleteTypeOpen] = useState(false)
+  const [completePayMode, setCompletePayMode] = useState<'full' | 'custom' | 'none'>('full')
+
+  // Gorunum menusu disina dokununca kapansin.
+  useEffect(() => {
+    if (!viewMenuOpen) return
+    function handleDown(e: PointerEvent) {
+      if (viewMenuRef.current && !viewMenuRef.current.contains(e.target as Node)) setViewMenuOpen(false)
+    }
+    document.addEventListener('pointerdown', handleDown)
+    return () => document.removeEventListener('pointerdown', handleDown)
+  }, [viewMenuOpen])
 
   useEffect(() => {
     setSearchPlaceholder('Müşteri veya randevu ara…')
@@ -245,33 +309,20 @@ export default function AppointmentsPage() {
       searchParams.delete('tarih')
       changed = true
     }
+    const tamamla = searchParams.get('tamamla')
+    if (tamamla && !loading) {
+      const target = appointments.find((a) => a.id === tamamla)
+      if (target) handleStatusChange(target, 'tamamlandi')
+      searchParams.delete('tamamla')
+      changed = true
+    }
     if (changed) setSearchParams(searchParams, { replace: true })
     // "yeni"/"tarih" sorgu parametreleri sayfa ZATEN acikken de gelebilir
     // (ör. Takvim'deyken alt navigasyondaki + > "Yeni Randevu"ya basmak) —
     // bos bagimlilik dizisi sadece ilk mount'ta calisirdi, o durumda hicbir
     // sey olmuyordu. searchParams degistikce yeniden calismali.
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [searchParams])
-
-  const [employeeMenuOpen, setEmployeeMenuOpen] = useState(false)
-  const [displayMenuOpen, setDisplayMenuOpen] = useState(false)
-  const employeeMenuRef = useRef<HTMLDivElement>(null)
-  const displayMenuRef = useRef<HTMLDivElement>(null)
-
-  useEffect(() => {
-    if (!employeeMenuOpen && !displayMenuOpen) return
-    function handleClick(e: MouseEvent) {
-      const target = e.target as Node
-      if (employeeMenuOpen && employeeMenuRef.current && !employeeMenuRef.current.contains(target)) {
-        setEmployeeMenuOpen(false)
-      }
-      if (displayMenuOpen && displayMenuRef.current && !displayMenuRef.current.contains(target)) {
-        setDisplayMenuOpen(false)
-      }
-    }
-    document.addEventListener('mousedown', handleClick)
-    return () => document.removeEventListener('mousedown', handleClick)
-  }, [employeeMenuOpen, displayMenuOpen])
+  }, [searchParams, loading])
 
   const [useNewCustomer, setUseNewCustomer] = useState(false)
   const [customerId, setCustomerId] = useState('')
@@ -326,7 +377,7 @@ export default function AppointmentsPage() {
   const [completeFollowupTime, setCompleteFollowupTime] = useState('')
   // "Tarih Seç" dokunulana kadar tarih/saat alanlari gizli kalir (amber
   // kartta sadece bir buton gorunur) — dokununca acilir.
-  const [completeNextSessionExpanded, setCompleteNextSessionExpanded] = useState(false)
+  const [, setCompleteNextSessionExpanded] = useState(false)
   const [completeNote, setCompleteNote] = useState('')
   const [completeBusy, setCompleteBusy] = useState(false)
   const [completeError, setCompleteError] = useState<string | null>(null)
@@ -375,16 +426,16 @@ export default function AppointmentsPage() {
       { data: scheds },
       { data: blocks },
     ] = await Promise.all([
-      supabase
+      fetchAll(() => supabase
         .from('appointments')
         .select(
-          'id, customer_id, service_id, employee_id, created_by_user_id, scheduled_at, duration_minutes, status, source, source_note, package_id, price_override',
+          'id, customer_id, service_id, employee_id, created_by_user_id, scheduled_at, duration_minutes, status, source, source_note, notes, package_id, price_override, created_at, reminder_sent_at',
         )
         .gte('scheduled_at', windowStart.toISOString())
         .lte('scheduled_at', windowEnd.toISOString())
-        .order('scheduled_at', { ascending: true }),
-      supabase.from('customers').select('id, full_name, phone, contact_phone').order('full_name'),
-      supabase.from('service_packages').select('id, customer_id, service_id, total_sessions, session_offset, status'),
+        .order('scheduled_at', { ascending: true }).order('id')),
+      fetchAll(() => supabase.from('customers').select('id, full_name, phone, contact_phone, notes').order('full_name').order('id')),
+      fetchAll(() => supabase.from('service_packages').select('id, customer_id, service_id, total_sessions, session_offset, status').order('id')),
       supabase
         .from('services')
         .select('id, name, duration_minutes, price')
@@ -418,10 +469,14 @@ export default function AppointmentsPage() {
     return c?.contact_phone || c?.phone || null
   }
   const serviceName = (id: string | null) => services.find((s) => s.id === id)?.name ?? '—'
+  const rawCustomerPhone = (id: string | null) => customers.find((c) => c.id === id)?.phone ?? null
+  const customerNote = (id: string | null) => customers.find((c) => c.id === id)?.notes ?? null
   const employeeName = (id: string | null) => profiles.find((p) => p.id === id)?.full_name ?? '—'
 
+  // Calisan: kendi actigi randevular + kendisine atanmis olanlar (bot, online
+  // sayfa ya da yoneticinin actigi) — appointments_update_assigned politikasi.
   function canEdit(appt: Appointment) {
-    return profile?.role === 'admin' || appt.created_by_user_id === profile?.id
+    return profile?.role === 'admin' || appt.created_by_user_id === profile?.id || appt.employee_id === profile?.id
   }
 
   function openDetail(a: Appointment) {
@@ -457,6 +512,12 @@ export default function AppointmentsPage() {
       return
     }
 
+    // Saat degistiyse eski saat icin gonderilmis hatirlatma isareti
+    // sifirlanir — yoksa process-appointment-reminders yeni saat icin bir daha
+    // hatirlatma gondermez (reschedule-appointment edge function'i da ayni
+    // sekilde sifirliyor).
+    const timeChanged = new Date(editingAppt.scheduled_at).getTime() !== start.getTime()
+
     setEditBusy(true)
     try {
       const { error: apptErr } = await supabase
@@ -467,14 +528,20 @@ export default function AppointmentsPage() {
           scheduled_at: start.toISOString(),
           duration_minutes: duration,
           source_note: editNote.trim() || null,
+          ...(timeChanged ? { reminder_sent_at: null } : {}),
         })
         .eq('id', editingAppt.id)
       if (apptErr) {
         const isOverlap = /exclusion|conflicting key|deadlock/i.test(apptErr.message)
+        // Calisan kendisine atanmis (kendi acmadigi) randevuyu baskasina
+        // devredemez; politika bunu reddeder.
+        const isRls = /row-level security/i.test(apptErr.message)
         setEditError(
           isOverlap
             ? 'Seçilen saat az önce başka bir randevuyla dolmuş. Farklı bir saat seçin.'
-            : 'Randevu güncellenemedi: ' + apptErr.message,
+            : isRls
+              ? 'Bu randevuyu başka bir çalışana yalnızca yönetici aktarabilir.'
+              : 'Randevu güncellenemedi: ' + apptErr.message,
         )
         return
       }
@@ -519,6 +586,11 @@ export default function AppointmentsPage() {
   }
 
   function closeForm() {
+    setCustomerQuery('')
+    setCustomerListOpen(false)
+    setShowAllServices(false)
+    setFormWeekOffset(0)
+    setNoteOpen(false)
     setShowForm(false)
     setError(null)
   }
@@ -594,6 +666,59 @@ export default function AppointmentsPage() {
       return { value: t, label: t, disabled: !available }
     })
   }
+
+  // Yeni randevu penceresi verisi (tasarim: Sec-YeniRandevu).
+  const formCandidateIds = employeeId ? [employeeId] : eligibleEmployees.map((p) => p.id)
+  const formDuration = selectedService?.duration_minutes ?? SLOT_MINUTES
+  const selectedCustomer = customerId ? (customers.find((c) => c.id === customerId) ?? null) : null
+  const cq = customerQuery.trim().toLocaleLowerCase('tr')
+  const customerMatches = cq
+    ? customers
+        .filter(
+          (c) =>
+            c.full_name.toLocaleLowerCase('tr').includes(cq) ||
+            (c.contact_phone ?? '').includes(cq) ||
+            (c.phone ?? '').includes(cq),
+        )
+        .slice(0, 6)
+    : []
+  const visibleFormServices = (() => {
+    if (showAllServices || services.length <= FORM_SERVICE_LIMIT) return services
+    const first = services.slice(0, FORM_SERVICE_LIMIT)
+    const sel = services.find((x) => x.id === serviceId)
+    return sel && !first.includes(sel) ? [sel, ...first.slice(0, FORM_SERVICE_LIMIT - 1)] : first
+  })()
+  // 6'li gun izgarasi: bugunden itibaren, oklarla 6'sar gun ileri.
+  const formDayOptions = showForm
+    ? Array.from({ length: 6 }, (_, i) => {
+        const d = new Date()
+        d.setDate(d.getDate() + formWeekOffset * 6 + i)
+        const key = toLocalDateString(d)
+        const open = isDayOpenForCandidates(key, formCandidateIds)
+        const free =
+          selectedService && open
+            ? buildTimeOptions(key, formCandidateIds, formDuration).filter((o) => !('disabled' in o && o.disabled)).length
+            : null
+        const isToday = formWeekOffset === 0 && i === 0
+        return { key, weekday: isToday ? 'Bugün' : WEEKDAY_SHORT[d.getDay()], day: d.getDate(), open, free }
+      })
+    : []
+  const formMonthLabel = formDayOptions.length
+    ? new Date(`${formDayOptions[0].key}T00:00:00`).toLocaleDateString('tr-TR', { month: 'long', year: 'numeric' })
+    : ''
+  // Saat izgarasi: ilk ve son musait saat arasi; aradaki dolu saatler soluk.
+  const formTimeOptions = (() => {
+    if (!showForm || !serviceId) return [] as { value: string; disabled: boolean }[]
+    const all = buildTimeOptions(apptDate, formCandidateIds, formDuration).map((o) => ({
+      value: o.value,
+      disabled: 'disabled' in o ? !!o.disabled : false,
+    }))
+    const first = all.findIndex((o) => !o.disabled)
+    if (first < 0) return []
+    let last = all.length - 1
+    while (last > first && all[last].disabled) last--
+    return all.slice(first, last + 1)
+  })()
 
   async function handleCreate(e: FormEvent) {
     e.preventDefault()
@@ -717,7 +842,9 @@ export default function AppointmentsPage() {
   async function handleStatusChange(appt: Appointment, status: Appointment['status']) {
     if (status === 'tamamlandi') {
       setCompletingAppt(appt)
-      setCompleteTransactionType(appt.package_id ? 'seansli' : null)
+      setCompleteTransactionType(appt.package_id ? 'seansli' : 'tek')
+      setCompleteTypeOpen(false)
+      setCompletePayMode('full')
       setCompletePackageTotalSessions('8')
       setCompletePackageSessionNumber('1')
       setCompleteScopeExpected(0)
@@ -887,10 +1014,10 @@ export default function AppointmentsPage() {
         .update({
           status: 'tamamlandi',
           price_override: Number.isFinite(priceOverrideValue) && priceOverrideValue >= 0 ? priceOverrideValue : null,
-          // Bos birakilirsa mevcut not (varsa, randevu olusturulurken girilmis)
-          // korunur — burada sadece kullanici gercekten bir sey yazdiysa
-          // ustune yazilir.
-          ...(completeNote.trim() ? { source_note: completeNote.trim() } : {}),
+          // Islem notu ayri kolona (notes) yazilir — eskiden source_note'un
+          // USTUNE yaziliyordu, randevu alinirken girilen not (kampanya adi,
+          // botun notu) kayboluyordu.
+          ...(completeNote.trim() ? { notes: completeNote.trim() } : {}),
         })
         .eq('id', completingAppt.id)
       if (statusErr) {
@@ -928,6 +1055,9 @@ export default function AppointmentsPage() {
 
       if (entered > 0) {
         const { error: payErr } = await supabase.from('payments').insert({
+          // paid_at bir date kolonu; varsayilani sunucunun (UTC) CURRENT_DATE'i —
+          // Turkiye'de 00:00-03:00 arasi alinan odeme bir onceki gune yazilirdi.
+          paid_at: toLocalDateString(new Date()),
           business_id: profile?.business_id,
           customer_id: completingAppt.customer_id,
           appointment_id: completingAppt.id,
@@ -989,12 +1119,6 @@ export default function AppointmentsPage() {
     }
   }
 
-  function shiftDate(days: number) {
-    const d = new Date(viewDate + 'T00:00:00')
-    d.setDate(d.getDate() + days)
-    setViewDate(toLocalDateString(d))
-  }
-
   function shiftWeek(weeks: number) {
     const d = new Date(viewDate + 'T00:00:00')
     d.setDate(d.getDate() + weeks * 7)
@@ -1029,6 +1153,25 @@ export default function AppointmentsPage() {
   const employeeFiltered = employeeFilter
     ? searchFiltered.filter((a) => a.employee_id === employeeFilter)
     : searchFiltered
+
+  // Hafta seridinde randevusu olan gunlerin altina nokta koymak icin.
+  const apptDayKeys = new Set(
+    employeeFiltered
+      .filter((a) => a.status !== 'iptal')
+      .map((a) => toLocalDateString(new Date(a.scheduled_at))),
+  )
+
+  // Bugunun henuz bitmemis ilk randevusu — kartinda "Sırada" etiketi ve
+  // hizli islem dugmeleri gosterilir.
+  const nextApptId =
+    employeeFiltered
+      .filter(
+        (a) =>
+          (a.status === 'bekliyor' || a.status === 'onaylandi') &&
+          toLocalDateString(new Date(a.scheduled_at)) === todayLocalDateString() &&
+          new Date(a.scheduled_at).getTime() + (a.duration_minutes ?? SLOT_MINUTES) * 60000 > now.getTime(),
+      )
+      .sort((a, b) => a.scheduled_at.localeCompare(b.scheduled_at))[0]?.id ?? null
 
   // Gunun 7-gunluk seridi (Pazartesi-Pazar), gun secici icin.
   const dayStripDates = useMemo(() => {
@@ -1126,34 +1269,6 @@ export default function AppointmentsPage() {
       items: byDate.get(dateKey) ?? [],
     }))
     visible = groupedByDate.flatMap((g) => g.items)
-  }
-
-  // Gunluk Gorunum: randevular sirali, esit bosluklu bir kart listesi olarak
-  // akar (gercek saatle orantili yukseklik/konum YOK) — "su an" cizgisi,
-  // kronolojik olarak dogru sıraya senkron bir satir gibi eklenir.
-  const timelineEntries: ({ kind: 'appt'; appt: Appointment; colorIdx: number } | { kind: 'now' })[] = []
-  if (viewMode === 'gunluk' && dailyDisplay === 'zaman') {
-    const showNow = viewDate === todayLocalDateString()
-    let nowInserted = !showNow
-    visible.forEach((a, i) => {
-      if (!nowInserted && new Date(a.scheduled_at).getTime() >= now.getTime()) {
-        timelineEntries.push({ kind: 'now' })
-        nowInserted = true
-      }
-      timelineEntries.push({ kind: 'appt', appt: a, colorIdx: i })
-    })
-    if (!nowInserted) timelineEntries.push({ kind: 'now' })
-  }
-
-  // Alt istatistik satiri — su an ekranda gorunen (secili gun/hafta/ay,
-  // calisan filtresi uygulanmis) randevularin durum dagilimi.
-  const statusStats = {
-    total: visible.length,
-    onaylandi: visible.filter((a) => a.status === 'onaylandi').length,
-    bekliyor: visible.filter((a) => a.status === 'bekliyor').length,
-    tamamlandi: visible.filter((a) => a.status === 'tamamlandi').length,
-    iptal: visible.filter((a) => a.status === 'iptal').length,
-    gelmedi: visible.filter((a) => a.status === 'gelmedi').length,
   }
 
   // Tamamlama modalinin "onizlemesi" — modalin hangi bolumlerinin
@@ -1257,8 +1372,12 @@ export default function AppointmentsPage() {
       completeMissing.push('Bir sonraki seans tarihini seçiniz.')
     }
   }
+  const completeTotalSteps = completionPreview?.needsNextSession ? 3 : 2
+  const completeDoneSteps =
+    1 +
+    (completeFullyPaid || completePaymentSummary.entered > 0 || completePayMode === 'none' ? 1 : 0) +
+    (completionPreview?.needsNextSession && completeFollowupDate && completeFollowupTime ? 1 : 0)
   const canSubmitCompletion = completingAppt !== null && !completeLoadingScope && completeMissing.length === 0
-  const showCompleteRest = completingAppt !== null && (!!completingAppt.package_id || !!completeTransactionType)
 
   function renderRow(a: Appointment) {
     const d = new Date(a.scheduled_at)
@@ -1335,112 +1454,238 @@ export default function AppointmentsPage() {
     )
   }
 
-  // Gunluk Gorunum karti — "birebir ayni" istegi geregi durum, sabit kucuk
-  // bir rozet olarak gosteriliyor (Liste Gorunumu'ndeki tikla-degistir
-  // StatusDropdown'dan farkli, daha sade); durum degistirmek icin Liste
-  // Gorunumu'ne gecilir.
-  function renderTimelineCard(a: Appointment, colorIdx: number) {
+  // Zaman cizelgesi karti (tasarim: H2-Randevular). Durum degistirme/duzenleme
+  // karttan kaldirildi; karta dokununca acilan detay ekraninda.
+  function renderTimelineCard(a: Appointment) {
     const d = new Date(a.scheduled_at)
     const durMin = a.duration_minutes ?? SLOT_MINUTES
     const isPast = new Date(d.getTime() + durMin * 60000) < now
     const isOverdue = isPast && a.status === 'bekliyor'
+    const isNext = a.id === nextApptId
+    const isClosed = a.status === 'tamamlandi' || a.status === 'iptal' || a.status === 'gelmedi'
+    const phone = customerPhone(a.customer_id)
+    const pkg = packageProgress(a)
+    const subParts = [serviceName(a.service_id), employeeName(a.employee_id)]
+    if (isNext) subParts.push(`${durMin} dk`)
+    if (pkg) subParts.push(`${pkg.current}/${pkg.total} seans`)
+
+    const statusText =
+      a.status === 'tamamlandi'
+        ? { text: 'Bitti', cls: styles.cardStateOk }
+        : a.status === 'iptal'
+          ? { text: 'İptal', cls: styles.cardStateDanger }
+          : a.status === 'gelmedi'
+            ? { text: 'Gelmedi', cls: styles.cardStateMuted }
+            : isOverdue
+              ? { text: 'Saati geçti', cls: styles.cardStateWarm }
+              : a.status === 'bekliyor' && !isNext
+                ? { text: 'Onay bekliyor', cls: styles.cardStateWarm }
+                : null
+
+    const open = () => openDetail(a)
+
+    if (isNext) {
+      return (
+        <div
+          className={`${styles.timelineCard} ${styles.timelineCardNext}`}
+          role="button"
+          tabIndex={0}
+          onClick={open}
+          onKeyDown={(e) => {
+            if (e.key === 'Enter') open()
+          }}
+        >
+          <div className={styles.timelineCardHead}>
+            <div className={styles.timelineCardText}>
+              <span className={styles.timelineCardCustomer}>{customerName(a.customer_id)}</span>
+              <span className={styles.timelineCardService}>{subParts.join(' · ')}</span>
+            </div>
+            <span className={styles.nextPill}>Sırada</span>
+          </div>
+          <div className={styles.timelineCardActions} onClick={(e) => e.stopPropagation()}>
+            <button
+              type="button"
+              className={styles.cardBtnPrimary}
+              disabled={!canEdit(a)}
+              onClick={() => handleStatusChange(a, 'tamamlandi')}
+            >
+              Geldi
+            </button>
+            {phone ? (
+              <a className={styles.cardBtn} href={`tel:${phone}`}>
+                Ara
+              </a>
+            ) : (
+              <button type="button" className={styles.cardBtn} disabled>
+                Ara
+              </button>
+            )}
+          </div>
+        </div>
+      )
+    }
 
     return (
       <div
-        className={`${styles.timelineCard} ${TIMELINE_COLORS[colorIdx % TIMELINE_COLORS.length]} ${isOverdue ? styles.timelineCardOverdue : ''}`}
+        className={isClosed ? `${styles.timelineCard} ${styles.timelineCardClosed}` : styles.timelineCard}
         role="button"
         tabIndex={0}
-        onClick={() => openDetail(a)}
+        onClick={open}
         onKeyDown={(e) => {
-          if (e.key === 'Enter') openDetail(a)
+          if (e.key === 'Enter') open()
         }}
       >
-        <div className={styles.timelineCardHead}>
-          <div className={styles.timelineCardCustomerCol}>
+        <div className={styles.timelineCardRow}>
+          <div className={styles.timelineCardText}>
             <span className={styles.timelineCardCustomer}>{customerName(a.customer_id)}</span>
-            {customerPhone(a.customer_id) && (
-              <span className={styles.timelineCardPhone}>
-                <PhoneIcon width={10} height={10} />
-                {customerPhone(a.customer_id)}
-              </span>
-            )}
+            <span className={styles.timelineCardService}>{subParts.join(' · ')}</span>
           </div>
-          <Avatar name={employeeName(a.employee_id)} size={30} />
-        </div>
-        <div className={styles.timelineCardServiceRow}>
-          <span className={styles.timelineCardService}>{serviceName(a.service_id)}</span>
-          {packageProgress(a) && (
-            <span className={styles.packageTag}>
-              {packageProgress(a)!.current}/{packageProgress(a)!.total} seans
-            </span>
-          )}
-        </div>
-        <div className={styles.timelineCardFoot}>
-          <span className={styles.timelineCardEmployee}>👤 {employeeName(a.employee_id)}</span>
-          <div className={styles.apptStatusRow} onClick={(e) => e.stopPropagation()}>
-            {canEdit(a) && (
-              <button
-                type="button"
-                className={styles.editApptBtn}
-                onClick={() => openEdit(a)}
-                aria-label="Randevuyu düzenle"
-              >
-                <PencilIcon width={12} height={12} />
-              </button>
-            )}
-            {canEdit(a) ? (
-              <StatusDropdown
-                compact
-                value={a.status}
-                options={STATUS_DROPDOWN_OPTIONS}
-                urgent={isOverdue}
-                onChange={(v) => handleStatusChange(a, v as Appointment['status'])}
-              />
-            ) : (
-              <span className={`${styles.statusBadge} ${STATUS_CLASS[a.status]}`}>
-                {STATUS_OPTIONS.find((o) => o.value === a.status)?.label ?? a.status}
-              </span>
-            )}
-          </div>
+          {statusText && <span className={`${styles.cardState} ${statusText.cls}`}>{statusText.text}</span>}
         </div>
       </div>
     )
   }
 
+  function renderTimelineRow(a: Appointment) {
+    const start = new Date(a.scheduled_at)
+    const ended = start.getTime() + (a.duration_minutes ?? SLOT_MINUTES) * 60000 < now.getTime()
+    const gutterClass = [
+      styles.timelineRowGutter,
+      a.id === nextApptId ? styles.timelineRowGutterNext : ended ? styles.timelineRowGutterPast : '',
+    ]
+      .filter(Boolean)
+      .join(' ')
+    return (
+      <div key={a.id} className={styles.timelineRow}>
+        <span className={gutterClass}>
+          {start.toLocaleTimeString('tr-TR', { hour: '2-digit', minute: '2-digit' })}
+        </span>
+        {renderTimelineCard(a)}
+      </div>
+    )
+  }
+
+  const employeeChips = (
+    <div className={styles.chipRow}>
+      <button
+        type="button"
+        className={employeeFilter === '' ? styles.chipActive : styles.chip}
+        onClick={() => setEmployeeFilter('')}
+      >
+        Tümü
+      </button>
+      {profiles.map((p) => (
+        <button
+          type="button"
+          key={p.id}
+          className={employeeFilter === p.id ? styles.chipActive : styles.chip}
+          onClick={() => setEmployeeFilter(p.id)}
+        >
+          {(p.full_name ?? '—').trim().split(/\s+/)[0]}
+        </button>
+      ))}
+    </div>
+  )
+
+  const viewAnchor = new Date(`${viewDate}T00:00:00`)
+  const headerPillLabel =
+    viewMode === 'gunluk' || viewMode === 'haftalik'
+      ? viewAnchor.toLocaleDateString('tr-TR', { month: 'long', year: 'numeric' })
+      : viewMode === 'liste'
+        ? new Date().toLocaleDateString('tr-TR', { month: 'long', year: 'numeric' })
+        : 'Özel aralık'
+
   return (
     <div className={styles.wrap}>
-      <div className={styles.statBar}>
-        <div className={styles.statBarItem}>
-          <CalendarIcon width={15} height={15} className={styles.statBarIconSignal} />
-          <span className={styles.statBarValue}>{statusStats.total}</span>
-          <span className={styles.statBarLabel}>Toplam Randevu</span>
-        </div>
-        <div className={styles.statBarItem}>
-          <CheckCircleIcon width={15} height={15} className={styles.statBarIconOk} />
-          <span className={`${styles.statBarValue} ${styles.statBarValueOk}`}>{statusStats.onaylandi}</span>
-          <span className={styles.statBarLabel}>Onaylandı</span>
-        </div>
-        <div className={styles.statBarItem}>
-          <ClockIcon width={15} height={15} className={styles.statBarIconWarn} />
-          <span className={`${styles.statBarValue} ${styles.statBarValueWarn}`}>{statusStats.bekliyor}</span>
-          <span className={styles.statBarLabel}>Bekliyor</span>
-        </div>
-        <div className={styles.statBarItem}>
-          <CheckCircleIcon width={15} height={15} className={styles.statBarIconInfo} />
-          <span className={`${styles.statBarValue} ${styles.statBarValueInfo}`}>{statusStats.tamamlandi}</span>
-          <span className={styles.statBarLabel}>Tamamlandı</span>
-        </div>
-        <div className={styles.statBarItem}>
-          <XCircleIcon width={15} height={15} className={styles.statBarIconDanger} />
-          <span className={`${styles.statBarValue} ${styles.statBarValueDanger}`}>{statusStats.iptal}</span>
-          <span className={styles.statBarLabel}>İptal Edildi</span>
-        </div>
-        <div className={styles.statBarItem}>
-          <MehIcon width={15} height={15} className={styles.statBarIconNeutral} />
-          <span className={`${styles.statBarValue} ${styles.statBarValueNeutral}`}>{statusStats.gelmedi}</span>
-          <span className={styles.statBarLabel}>Gelmedi</span>
-        </div>
-      </div>
+      <PageHeader
+        title="Randevular"
+        action={
+          <div className={styles.viewMenuWrap} ref={viewMenuRef}>
+            <button
+              type="button"
+              className="hdr-pill"
+              onClick={() => setViewMenuOpen((v) => !v)}
+              aria-haspopup="menu"
+              aria-expanded={viewMenuOpen}
+            >
+              {headerPillLabel}
+              <ChevronRightIcon width={12} height={12} className={styles.pillChevron} />
+            </button>
+            {viewMenuOpen && (
+              <div className={styles.viewMenu} role="menu">
+                <span className={styles.viewMenuTitle}>Görünüm</span>
+                <div className={styles.viewMenuSeg}>
+                  {(
+                    [
+                      { value: 'gunluk', label: 'Gün' },
+                      { value: 'haftalik', label: 'Hafta' },
+                      { value: 'liste', label: 'Ay' },
+                      { value: 'ozel', label: 'Özel' },
+                    ] as { value: ViewMode; label: string }[]
+                  ).map((v) => (
+                    <button
+                      key={v.value}
+                      type="button"
+                      className={viewMode === v.value ? styles.viewMenuSegActive : styles.viewMenuSegBtn}
+                      onClick={() => {
+                        setViewMode(v.value)
+                        if (v.value !== 'ozel') setViewMenuOpen(false)
+                      }}
+                    >
+                      {v.label}
+                    </button>
+                  ))}
+                </div>
+                {viewMode === 'gunluk' && (
+                  <button
+                    type="button"
+                    className={styles.viewMenuItem}
+                    onClick={() => {
+                      setDailyDisplay(dailyDisplay === 'zaman' ? 'liste' : 'zaman')
+                      setViewMenuOpen(false)
+                    }}
+                  >
+                    {dailyDisplay === 'zaman' ? 'Liste olarak göster' : 'Zaman çizelgesi olarak göster'}
+                  </button>
+                )}
+                <button
+                  type="button"
+                  className={styles.viewMenuItem}
+                  onClick={() => {
+                    setViewMenuOpen(false)
+                    dateInputRef.current?.showPicker?.()
+                  }}
+                >
+                  Tarihe git
+                </button>
+                {viewDate !== todayLocalDateString() && (
+                  <button
+                    type="button"
+                    className={styles.viewMenuItem}
+                    onClick={() => {
+                      setViewDate(todayLocalDateString())
+                      setViewMenuOpen(false)
+                    }}
+                  >
+                    Bugüne dön
+                  </button>
+                )}
+              </div>
+            )}
+            <input
+              ref={dateInputRef}
+              type="date"
+              value={viewDate}
+              onChange={(e) => {
+                if (e.target.value) setViewDate(e.target.value)
+              }}
+              className={styles.hiddenDateInput}
+              tabIndex={-1}
+              aria-hidden="true"
+            />
+          </div>
+        }
+      />
 
       {(error || success) && (
         <div className={`${styles.banner} ${error ? styles.bannerError : styles.bannerSuccess}`}>
@@ -1458,29 +1703,8 @@ export default function AppointmentsPage() {
         </div>
       )}
 
-      <div className={styles.viewToggle}>
-        {(
-          [
-            { value: 'gunluk', label: 'Gün' },
-            { value: 'haftalik', label: 'Hafta' },
-            { value: 'liste', label: 'Ay' },
-            { value: 'ozel', label: 'Özel' },
-          ] as { value: ViewMode; label: string }[]
-        ).map((v) => (
-          <button
-            key={v.value}
-            type="button"
-            className={viewMode === v.value ? styles.viewToggleBtnActive : styles.viewToggleBtn}
-            onClick={() => setViewMode(v.value)}
-          >
-            <CalendarIcon width={14} height={14} />
-            {v.label}
-          </button>
-        ))}
-      </div>
-
       {viewMode === 'ozel' && (
-        <div className={`card ${styles.customRangeRow}`}>
+        <div className={styles.customRangeRow}>
           <div className="field" style={{ marginBottom: 0 }}>
             <label htmlFor="calRangeStart">Başlangıç</label>
             <input
@@ -1504,32 +1728,19 @@ export default function AppointmentsPage() {
         </div>
       )}
 
-      <div className={styles.topRow}>
-        <button
-          type="button"
-          className="btn-primary"
-          style={{ width: 'auto' }}
-          onClick={() => {
-            setError(null)
-            setShowForm(true)
-          }}
-        >
-          + Yeni Randevu
-        </button>
-      </div>
-
       {showForm && (
-        <div className={styles.modalBackdrop} onClick={closeForm}>
-          <div className={`card ${styles.modalCard}`} onClick={(e) => e.stopPropagation()}>
-            <div className={styles.modalHeader}>
-              <h2>Yeni randevu</h2>
-              <button type="button" className={styles.bannerClose} onClick={closeForm}>
-                ✕
+        <div className={styles.sheetBackdrop} onClick={closeForm}>
+          <form className={styles.sheet} onSubmit={handleCreate} onClick={(e) => e.stopPropagation()}>
+            <span className={styles.sheetHandle} aria-hidden="true" />
+            <div className={styles.sheetHead}>
+              <h1 className={styles.sheetTitle}>Yeni randevu</h1>
+              <button type="button" className={styles.sheetCancel} onClick={closeForm}>
+                Vazgeç
               </button>
             </div>
 
             {error && (
-              <div className={`${styles.banner} ${styles.bannerError}`} style={{ marginBottom: 16 }}>
+              <div className={`${styles.banner} ${styles.bannerError}`}>
                 <span>{error}</span>
                 <button type="button" className={styles.bannerClose} onClick={() => setError(null)}>
                   ✕
@@ -1537,155 +1748,321 @@ export default function AppointmentsPage() {
               </div>
             )}
 
-            <form className={styles.form} onSubmit={handleCreate}>
-              {!useNewCustomer ? (
-                <div className="field">
-                  <label htmlFor="customer">Müşteri</label>
-                  <Select
-                    id="customer"
-                    value={customerId}
-                    onChange={setCustomerId}
-                    options={customers.map((c) => ({
-                      value: c.id,
-                      label: c.full_name,
-                      sub: c.contact_phone || c.phone || undefined,
-                    }))}
-                  />
-                  <button type="button" className={styles.newCustomerToggle} onClick={() => setUseNewCustomer(true)}>
-                    + Yeni müşteri ekle
+            {/* ---- Musteri ---- */}
+            <div className={styles.fGroup}>
+              <span className={styles.fLabel}>Müşteri</span>
+              <div className={styles.custField}>
+                <span className={styles.custAvatar}>
+                  {useNewCustomer
+                    ? initialsOf(newCustomerName || '?')
+                    : selectedCustomer
+                      ? initialsOf(selectedCustomer.full_name)
+                      : '?'}
+                </span>
+                <input
+                  className={styles.custInput}
+                  placeholder="Ad ya da telefon yaz"
+                  value={useNewCustomer ? newCustomerName : selectedCustomer ? selectedCustomer.full_name : customerQuery}
+                  onFocus={() => setCustomerListOpen(true)}
+                  onChange={(e) => {
+                    const v = e.target.value
+                    if (useNewCustomer) {
+                      setNewCustomerName(v)
+                      return
+                    }
+                    setCustomerId('')
+                    setCustomerQuery(v)
+                    setCustomerListOpen(true)
+                  }}
+                />
+                {selectedCustomer && !useNewCustomer && (
+                  <span className={styles.custPhone}>{selectedCustomer.contact_phone || selectedCustomer.phone || ''}</span>
+                )}
+                {(selectedCustomer || useNewCustomer || customerQuery) && (
+                  <button
+                    type="button"
+                    className={styles.custClear}
+                    aria-label="Müşteri seçimini temizle"
+                    onClick={() => {
+                      setCustomerId('')
+                      setCustomerQuery('')
+                      setUseNewCustomer(false)
+                      setNewCustomerName('')
+                      setNewCustomerPhone('')
+                      setCustomerListOpen(true)
+                    }}
+                  >
+                    ✕
                   </button>
-                </div>
-              ) : (
-                <div className="field">
-                  <label htmlFor="newCustomerName">Yeni müşteri</label>
-                  <input
-                    id="newCustomerName"
-                    placeholder="Ad Soyad"
-                    value={newCustomerName}
-                    onChange={(e) => setNewCustomerName(e.target.value)}
-                    style={{ marginBottom: 8 }}
-                  />
-                  <input
-                    type="tel"
-                    inputMode="numeric"
-                    placeholder="05xx xxx xx xx"
-                    value={newCustomerPhone}
-                    onChange={(e) => setNewCustomerPhone(e.target.value.replace(/\D/g, ''))}
-                  />
-                  <button type="button" className={styles.newCustomerToggle} onClick={() => setUseNewCustomer(false)}>
-                    Mevcut müşteri seç
+                )}
+              </div>
+              {customerListOpen && !selectedCustomer && !useNewCustomer && customerQuery.trim() && (
+                <div className={styles.custList}>
+                  {customerMatches.map((c) => (
+                    <button
+                      type="button"
+                      key={c.id}
+                      className={styles.custOption}
+                      onClick={() => {
+                        setCustomerId(c.id)
+                        setCustomerListOpen(false)
+                      }}
+                    >
+                      <span className={styles.custOptionName}>{c.full_name}</span>
+                      <span className={styles.custOptionPhone}>{c.contact_phone || c.phone || ''}</span>
+                    </button>
+                  ))}
+                  <button
+                    type="button"
+                    className={`${styles.custOption} ${styles.custOptionNew}`}
+                    onClick={() => {
+                      setUseNewCustomer(true)
+                      setNewCustomerName(customerQuery.trim())
+                      setCustomerListOpen(false)
+                    }}
+                  >
+                    + “{customerQuery.trim()}” yeni müşteri olarak ekle
                   </button>
                 </div>
               )}
+              {useNewCustomer && (
+                <input
+                  className={styles.fInput}
+                  type="tel"
+                  inputMode="numeric"
+                  placeholder="Telefon (isteğe bağlı) · 05xx xxx xx xx"
+                  value={newCustomerPhone}
+                  onChange={(e) => setNewCustomerPhone(e.target.value.replace(/\D/g, ''))}
+                />
+              )}
+            </div>
 
-              <div className="field">
-                <label htmlFor="service">Hizmet</label>
-                <Select
-                  id="service"
-                  value={serviceId}
-                  onChange={(v) => {
-                    setServiceId(v)
+            {/* ---- Hizmet ---- */}
+            <div className={styles.fGroup}>
+              <span className={styles.fLabel}>Hizmet</span>
+              <div className={styles.serviceChips}>
+                {visibleFormServices.map((s) => (
+                  <button
+                    type="button"
+                    key={s.id}
+                    className={s.id === serviceId ? styles.serviceChipActive : styles.serviceChip}
+                    onClick={() => {
+                      setServiceId(s.id)
+                      setEmployeeId('')
+                      setApptTime('')
+                    }}
+                  >
+                    {s.id === serviceId ? `${s.name} · ${s.duration_minutes} dk` : s.name}
+                  </button>
+                ))}
+                {services.length > FORM_SERVICE_LIMIT && (
+                  <button type="button" className={styles.serviceChipMore} onClick={() => setShowAllServices((v) => !v)}>
+                    {showAllServices ? 'Daha az' : 'Tümü'}
+                  </button>
+                )}
+              </div>
+            </div>
+
+            {/* ---- Calisan ---- */}
+            <div className={styles.fGroup}>
+              <span className={styles.fLabel}>Çalışan</span>
+              <div className={styles.staffRow}>
+                <button
+                  type="button"
+                  className={employeeId === '' ? styles.staffBtnActive : styles.staffBtn}
+                  onClick={() => {
                     setEmployeeId('')
+                    setApptTime('')
                   }}
-                  options={services.map((s) => ({ value: s.id, label: s.name, sub: `${s.duration_minutes} dk` }))}
-                />
-              </div>
-
-              <div className="field">
-                <label htmlFor="employee">Çalışan</label>
-                <Select
-                  id="employee"
-                  value={employeeId}
-                  onChange={setEmployeeId}
-                  options={[
-                    { value: '', label: 'Farketmez' },
-                    ...eligibleEmployees.map((p) => ({ value: p.id, label: p.full_name ?? '—' })),
-                  ]}
-                />
-              </div>
-
-              <div className="field">
-                <label htmlFor="apptDate">Tarih</label>
-                <input
-                  id="apptDate"
-                  type="date"
-                  value={apptDate}
-                  onChange={(e) => {
-                    const newDate = e.target.value
-                    const candidateIds = employeeId ? [employeeId] : eligibleEmployees.map((p) => p.id)
-                    if (newDate && !isDayOpenForCandidates(newDate, candidateIds)) {
-                      setError(
-                        employeeId
-                          ? 'Seçilen çalışan bu gün çalışmıyor.'
-                          : 'İşletme bu gün kapalı, uygun çalışan yok.',
-                      )
-                      return
-                    }
-                    setError(null)
-                    setApptDate(newDate)
-                  }}
-                />
-              </div>
-
-              <div className="field">
-                <label htmlFor="apptTime">Saat</label>
-                <Select
-                  id="apptTime"
-                  value={apptTime}
-                  onChange={setApptTime}
-                  options={buildTimeOptions(
-                    apptDate,
-                    employeeId ? [employeeId] : eligibleEmployees.map((p) => p.id),
-                    selectedService?.duration_minutes ?? SLOT_MINUTES,
-                  )}
-                />
-              </div>
-
-              <div className="field">
-                <label htmlFor="source">Kaynak</label>
-                <Select id="source" value={source} onChange={setSource} options={SOURCE_OPTIONS} />
-              </div>
-
-              <div className="field">
-                <label htmlFor="sourceNote">Not (opsiyonel)</label>
-                <input
-                  id="sourceNote"
-                  placeholder="ör. kampanya adı"
-                  value={sourceNote}
-                  onChange={(e) => setSourceNote(e.target.value)}
-                />
-              </div>
-
-              <div className={styles.formActions}>
-                <button type="submit" className="btn-primary" disabled={submitting}>
-                  {submitting ? 'Oluşturuluyor…' : 'Randevu oluştur'}
+                >
+                  <span className={`${styles.staffAvatar} ${styles.staffAvatarAny}`}>Hepsi</span>
+                  Fark etmez
                 </button>
+                {eligibleEmployees.map((p, i) => (
+                  <button
+                    type="button"
+                    key={p.id}
+                    className={employeeId === p.id ? styles.staffBtnActive : styles.staffBtn}
+                    onClick={() => {
+                      setEmployeeId(p.id)
+                      setApptTime('')
+                    }}
+                  >
+                    <span
+                      className={`${styles.staffAvatar} ${employeeId === p.id ? styles.staffAvatarActive : styles[`staffTone${i % 3}`]}`}
+                    >
+                      {(p.full_name ?? '?').trim().charAt(0).toLocaleUpperCase('tr')}
+                    </span>
+                    {(p.full_name ?? '—').trim().split(/\s+/)[0]}
+                  </button>
+                ))}
               </div>
-            </form>
-          </div>
+            </div>
+
+            {/* ---- Gun ---- */}
+            <div className={styles.fGroup}>
+              <div className={styles.fRowHead}>
+                <span className={styles.fLabel}>Gün</span>
+                <span className={styles.monthNav}>
+                  <button
+                    type="button"
+                    className={styles.monthNavBtn}
+                    disabled={formWeekOffset === 0}
+                    onClick={() => setFormWeekOffset((v) => Math.max(0, v - 1))}
+                    aria-label="Önceki günler"
+                  >
+                    ‹
+                  </button>
+                  {formMonthLabel}
+                  <button
+                    type="button"
+                    className={styles.monthNavBtn}
+                    onClick={() => setFormWeekOffset((v) => v + 1)}
+                    aria-label="Sonraki günler"
+                  >
+                    ›
+                  </button>
+                </span>
+              </div>
+              <div className={styles.formDayGrid}>
+                {formDayOptions.map((d) => (
+                  <button
+                    type="button"
+                    key={d.key}
+                    className={!d.open ? styles.formDayOff : d.key === apptDate ? styles.formDayActive : styles.formDay}
+                    disabled={!d.open}
+                    onClick={() => {
+                      setError(null)
+                      setApptDate(d.key)
+                      setApptTime('')
+                    }}
+                  >
+                    <span className={styles.formDayName}>{d.weekday}</span>
+                    <span className={styles.formDayNum}>{d.day}</span>
+                    <span
+                      className={
+                        !d.open || d.free === 0 ? styles.formDayStateMuted : styles.formDayState
+                      }
+                    >
+                      {!d.open ? 'kapalı' : d.free === null ? '' : d.free === 0 ? 'dolu' : `${d.free} boş`}
+                    </span>
+                  </button>
+                ))}
+              </div>
+            </div>
+
+            {/* ---- Saat ---- */}
+            <div className={styles.fGroup}>
+              <div className={styles.fRowHead}>
+                <span className={styles.fLabel}>Saat</span>
+                <span className={styles.fHint}>
+                  {new Date(`${apptDate}T00:00:00`).toLocaleDateString('tr-TR', { weekday: 'long', day: 'numeric', month: 'long' })}
+                  {employeeId ? ` · ${employeeName(employeeId).split(' ')[0]}` : ''}
+                </span>
+              </div>
+              {formTimeOptions.length === 0 ? (
+                <p className={styles.formNote}>
+                  {serviceId ? 'Bu gün için müsait saat yok, başka bir gün seç.' : 'Önce hizmeti seç.'}
+                </p>
+              ) : (
+                <div className={styles.timeGrid}>
+                  {formTimeOptions.map((t) => (
+                    <button
+                      type="button"
+                      key={t.value}
+                      disabled={t.disabled}
+                      className={t.value === apptTime ? styles.timeCellActive : t.disabled ? styles.timeCellOff : styles.timeCell}
+                      onClick={() => setApptTime(t.value)}
+                    >
+                      {t.value}
+                    </button>
+                  ))}
+                  <button type="button" className={styles.timeCellOther} onClick={() => otherDateRef.current?.showPicker?.()}>
+                    Başka
+                  </button>
+                </div>
+              )}
+              <input
+                ref={otherDateRef}
+                type="date"
+                className={styles.hiddenDateInput}
+                tabIndex={-1}
+                aria-hidden="true"
+                value={apptDate}
+                onChange={(e) => {
+                  const newDate = e.target.value
+                  if (!newDate) return
+                  if (!isDayOpenForCandidates(newDate, formCandidateIds)) {
+                    setError(employeeId ? 'Seçilen çalışan bu gün çalışmıyor.' : 'İşletme bu gün kapalı, uygun çalışan yok.')
+                    return
+                  }
+                  setError(null)
+                  setApptDate(newDate)
+                  setApptTime('')
+                }}
+              />
+            </div>
+
+            {/* ---- Kaynak + not ---- */}
+            <label className={styles.infoRow}>
+              <span className={styles.infoRowLabel}>Kaynak</span>
+              <span className={styles.infoRowValue}>
+                {SOURCE_OPTIONS.find((o) => o.value === source)?.label ?? 'Seç'} ›
+              </span>
+              <select className={styles.infoRowSelect} value={source} onChange={(e) => setSource(e.target.value)}>
+                {SOURCE_OPTIONS.map((o) => (
+                  <option key={o.value} value={o.value}>
+                    {o.label}
+                  </option>
+                ))}
+              </select>
+            </label>
+            {noteOpen || sourceNote ? (
+              <input
+                className={styles.fInput}
+                placeholder="Not (ör. kampanya adı)"
+                value={sourceNote}
+                autoFocus={noteOpen && !sourceNote}
+                onChange={(e) => setSourceNote(e.target.value)}
+              />
+            ) : (
+              <button type="button" className={styles.infoRow} onClick={() => setNoteOpen(true)}>
+                <span className={styles.infoRowLabel}>Not</span>
+                <span className={styles.infoRowValue}>Ekle ›</span>
+              </button>
+            )}
+
+            <button type="submit" className={styles.sheetSubmit} disabled={submitting}>
+              {submitting
+                ? 'Kaydediliyor…'
+                : `Randevuyu kaydet${selectedService?.price ? ` · ${currency.format(selectedService.price)}` : ''}`}
+            </button>
+          </form>
         </div>
       )}
 
       {completingAppt && (
-        <div className={styles.modalBackdrop} onClick={() => setCompletingAppt(null)}>
-          <div className={`card ${styles.modalCard}`} onClick={(e) => e.stopPropagation()}>
-            <div className={styles.completeHeader}>
-              <button
-                type="button"
-                className={styles.completeHeaderIconBtn}
-                onClick={() => setCompletingAppt(null)}
-                aria-label="Kapat"
-              >
-                <ChevronRightIcon width={18} height={18} style={{ transform: 'rotate(180deg)' }} />
+        <div className={styles.fullScreen}>
+          <div className={styles.fullScroll}>
+            <div className={styles.fsHead}>
+              <button type="button" className={styles.fsBack} onClick={() => setCompletingAppt(null)} aria-label="Geri">
+                <ChevronRightIcon width={18} height={18} className={styles.backIcon} />
               </button>
-              <h2>İşlemi Tamamla</h2>
-              <button type="button" className={styles.completeHeaderIconBtn} aria-label="Yardım">
-                <HelpCircleIcon width={18} height={18} />
-              </button>
+              <span className={styles.fsHeadText}>
+                <span className={styles.fsTitle}>Kapanış</span>
+                <span className={styles.fsSub}>
+                  {customerName(completingAppt.customer_id)} ·{' '}
+                  {new Date(completingAppt.scheduled_at).toLocaleTimeString('tr-TR', { hour: '2-digit', minute: '2-digit' })}
+                  {completingAppt.employee_id ? ` · ${employeeName(completingAppt.employee_id).split(' ')[0]}` : ''}
+                </span>
+              </span>
+              <span className={styles.stepPill}>
+                {completeDoneSteps} / {completeTotalSteps}
+              </span>
             </div>
 
             {completeError && (
-              <div className={`${styles.banner} ${styles.bannerError}`} style={{ marginBottom: 16 }}>
+              <div className={`${styles.banner} ${styles.bannerError}`}>
                 <span>{completeError}</span>
                 <button type="button" className={styles.bannerClose} onClick={() => setCompleteError(null)}>
                   ✕
@@ -1693,594 +2070,528 @@ export default function AppointmentsPage() {
               </div>
             )}
 
-            <div className={styles.completeInfoCard}>
-              <div className={styles.completeInfoCardLeft}>
-                <Avatar name={customerName(completingAppt.customer_id)} size={38} />
-                <div className={styles.completeInfoCardText}>
-                  <span className={styles.completeInfoCardName}>{customerName(completingAppt.customer_id)}</span>
-                  {customerPhone(completingAppt.customer_id) && (
-                    <span className={styles.completeInfoCardPhone}>{customerPhone(completingAppt.customer_id)}</span>
-                  )}
-                </div>
+            {/* ---- 1. Hizmet ---- */}
+            <div className={styles.stepCard}>
+              <div className={styles.stepCardHead}>
+                <span className={styles.stepDone}>
+                  <CheckCircleIcon width={16} height={16} />
+                </span>
+                <span className={styles.stepText}>
+                  <span className={styles.stepTitle}>Hizmet yapıldı</span>
+                  <span className={styles.stepSub}>
+                    {serviceName(completingAppt.service_id)}
+                    {completionPreview?.isPackageFlow
+                      ? ` · paketten ${completionPreview.currentSessionNumber || '?'}. seans`
+                      : ' · tek seferlik'}
+                  </span>
+                </span>
+                {!completingAppt.package_id && (
+                  <button type="button" className={styles.stepLink} onClick={() => setCompleteTypeOpen((v) => !v)}>
+                    {completeTypeOpen ? 'Kapat' : 'Düzenle'}
+                  </button>
+                )}
               </div>
-              {completingAppt.customer_id && (
-                <button
-                  type="button"
-                  className={styles.completeInfoCardLink}
-                  onClick={() => {
-                    const custId = completingAppt.customer_id
-                    setCompletingAppt(null)
-                    navigate(`/musteriler/${custId}`)
-                  }}
-                >
-                  Müşteri Detayı
-                  <ChevronRightIcon width={14} height={14} />
-                </button>
+
+              {!completingAppt.package_id && completeTypeOpen && (
+                <div className={styles.miniSeg}>
+                  <button
+                    type="button"
+                    className={completeTransactionType === 'tek' ? styles.miniSegActive : styles.miniSegBtn}
+                    onClick={() => setCompleteTransactionType('tek')}
+                  >
+                    Tek seferlik
+                  </button>
+                  <button
+                    type="button"
+                    className={completeTransactionType === 'seansli' ? styles.miniSegActive : styles.miniSegBtn}
+                    onClick={() => setCompleteTransactionType('seansli')}
+                  >
+                    Seanslı (paket)
+                  </button>
+                </div>
+              )}
+
+              {completionPreview?.isPackageFlow && (
+                <div className={styles.pkgBox}>
+                  <div className={styles.pkgRow}>
+                    <span className={styles.pkgLabel}>Toplam seans</span>
+                    {completionPreview.creatingPackage ? (
+                      <span className={styles.stepper}>
+                        <button
+                          type="button"
+                          className={styles.stepperBtn}
+                          disabled={(Number(completePackageTotalSessions) || 1) <= 1}
+                          onClick={() =>
+                            setCompletePackageTotalSessions(String(Math.max(1, (Number(completePackageTotalSessions) || 1) - 1)))
+                          }
+                        >
+                          −
+                        </button>
+                        <span className={styles.stepperValue}>{completePackageTotalSessions || 0}</span>
+                        <button
+                          type="button"
+                          className={styles.stepperBtn}
+                          onClick={() => setCompletePackageTotalSessions(String((Number(completePackageTotalSessions) || 0) + 1))}
+                        >
+                          +
+                        </button>
+                      </span>
+                    ) : (
+                      <span className={styles.pkgValue}>{completionPreview.totalSessionsForCheck}</span>
+                    )}
+                  </div>
+                  {completionPreview.creatingPackage && (
+                    <div className={styles.pkgRow}>
+                      <span className={styles.pkgLabel}>Bugünkü kaçıncı seans</span>
+                      <input
+                        className={styles.pkgInput}
+                        type="number"
+                        min={1}
+                        step={1}
+                        value={completePackageSessionNumber}
+                        onChange={(e) => setCompletePackageSessionNumber(e.target.value)}
+                      />
+                    </div>
+                  )}
+                  <div className={styles.pkgRow}>
+                    <span className={styles.pkgLabel}>Paket tutarı</span>
+                    {completePackageAmountEditing ? (
+                      <input
+                        type="number"
+                        min={0}
+                        step="0.01"
+                        autoFocus
+                        className={styles.pkgInput}
+                        defaultValue={completionPreview.previewExpected}
+                        onChange={(e) => {
+                          const newTotal = Number(e.target.value) || 0
+                          const sessionCount = Math.max(1, Math.round(Number(completePackageTotalSessions)) || 1)
+                          setCompletePriceOverride(String(newTotal / sessionCount))
+                        }}
+                        onBlur={() => setCompletePackageAmountEditing(false)}
+                      />
+                    ) : (
+                      <button
+                        type="button"
+                        className={styles.pkgValueBtn}
+                        disabled={!completionPreview.creatingPackage}
+                        onClick={() => setCompletePackageAmountEditing(true)}
+                      >
+                        {currency.format(completionPreview.previewExpected)}
+                      </button>
+                    )}
+                  </div>
+                  <div className={styles.pkgBar}>
+                    {Array.from({ length: Math.min(completionPreview.totalSessionsForCheck, 30) }).map((_, i) => (
+                      <span
+                        key={i}
+                        className={i < completionPreview!.currentSessionNumber ? styles.pkgSegDone : styles.pkgSeg}
+                      />
+                    ))}
+                  </div>
+                </div>
               )}
             </div>
 
-            <div className={styles.completeInfoStrip}>
-              <div className={styles.completeInfoStripItem}>
-                <span className={styles.completeInfoStripLabel}>
-                  <ServicesIcon width={11} height={11} /> Hizmet
-                </span>
-                <span className={styles.completeInfoStripValue}>{serviceName(completingAppt.service_id)}</span>
+            {/* ---- 2. Odeme ---- */}
+            <div className={`${styles.stepCard} ${styles.stepCardActive}`}>
+              <div className={styles.stepCardHead}>
+                <span className={styles.stepNum}>2</span>
+                <span className={styles.stepTitleBig}>Ödeme</span>
+                {!completeFullyPaid && completePaymentSummary.remainingDue > 0 && (
+                  <span className={styles.stepWarm}>{currency.format(completePaymentSummary.remainingDue)} alınacak</span>
+                )}
               </div>
-              <div className={styles.completeInfoStripItem}>
-                <span className={styles.completeInfoStripLabel}>
-                  <CalendarIcon width={11} height={11} /> Tarih / Saat
-                </span>
-                <span className={styles.completeInfoStripValue}>
-                  {new Date(completingAppt.scheduled_at).toLocaleDateString('tr-TR', { day: 'numeric', month: 'short' })}
-                  {' · '}
-                  {new Date(completingAppt.scheduled_at).toLocaleTimeString('tr-TR', {
-                    hour: '2-digit',
-                    minute: '2-digit',
-                  })}
-                </span>
-              </div>
-              <div className={styles.completeInfoStripItem}>
-                <span className={styles.completeInfoStripLabel}>
-                  <LayersIcon width={11} height={11} /> Paket
-                </span>
-                <span className={styles.completeInfoStripValue}>
-                  {completingAppt.package_id
-                    ? `${servicePackages.find((p) => p.id === completingAppt.package_id)?.total_sessions ?? '?'} Seans Paketi`
-                    : completeTransactionType === 'seansli'
-                      ? `${completePackageTotalSessions || '?'} Seans Paketi`
-                      : 'Tek Seferlik'}
-                </span>
-              </div>
-            </div>
-
-            {(() => {
-              let sectionNum = 0
-              const nextNum = () => ++sectionNum
-              return (
+              {completeLoadingScope ? (
+                <p className={styles.emptyNote}>Yükleniyor…</p>
+              ) : completeFullyPaid ? (
+                <p className={styles.stepOk}>Bu paket daha önce tamamen tahsil edildi.</p>
+              ) : (
                 <>
-                  {!completingAppt.package_id && (
-                    <div className={styles.sectionBlock}>
-                      <CompleteSectionHeader number={nextNum()} title="İŞLEM TÜRÜ" />
-                      <div className={styles.typeCardRow}>
-                        <button
-                          type="button"
-                          className={`${styles.typeCard} ${completeTransactionType === 'tek' ? styles.typeCardActive : ''}`}
-                          onClick={() => setCompleteTransactionType('tek')}
-                        >
-                          <span
-                            className={
-                              completeTransactionType === 'tek' ? styles.typeCardCheck : styles.typeCardRadio
-                            }
-                          >
-                            {completeTransactionType === 'tek' && <CheckCircleIcon width={12} height={12} />}
-                          </span>
-                          <span className={styles.typeCardIcon}>
-                            <UserIcon width={18} height={18} />
-                          </span>
-                          <span className={styles.typeCardTitle}>Tek Seferlik İşlem</span>
-                          <span className={styles.typeCardDesc}>İşlem bugün tamamlanır.</span>
-                        </button>
-                        <button
-                          type="button"
-                          className={`${styles.typeCard} ${completeTransactionType === 'seansli' ? styles.typeCardActive : ''}`}
-                          onClick={() => setCompleteTransactionType('seansli')}
-                        >
-                          <span
-                            className={
-                              completeTransactionType === 'seansli' ? styles.typeCardCheck : styles.typeCardRadio
-                            }
-                          >
-                            {completeTransactionType === 'seansli' && <CheckCircleIcon width={12} height={12} />}
-                          </span>
-                          <span className={styles.typeCardIcon}>
-                            <TeamIcon width={18} height={18} />
-                          </span>
-                          <span className={styles.typeCardTitle}>Seanslı İşlem</span>
-                          <span className={styles.typeCardDesc}>İşlem seanslar halinde devam eder.</span>
-                        </button>
-                      </div>
-                      {completeTransactionType === 'seansli' && (
-                        <div className={styles.typeInfoBanner}>
-                          <InfoIcon width={15} height={15} style={{ flexShrink: 0, marginTop: 1 }} />
-                          <span>
-                            Seanslı işlem seçtiğinizde paket oluşturulacak ve sonraki seans tarihi zorunlu olacaktır.
-                          </span>
-                        </div>
-                      )}
-                    </div>
-                  )}
-
-                  {showCompleteRest && completionPreview?.isPackageFlow && (
-                    <div className={styles.sectionBlock}>
-                      <CompleteSectionHeader number={nextNum()} title="PAKET BİLGİLERİ" />
-                      <div className="card" style={{ padding: 14 }}>
-                        <div className={styles.packageTopRow}>
-                          <div className={styles.packageTopCol}>
-                            <div className={styles.completeInfoStripLabel} style={{ marginBottom: 8 }}>
-                              Toplam Seans
-                            </div>
-                            {completionPreview.creatingPackage ? (
-                              <div className={styles.stepperRow}>
-                                <button
-                                  type="button"
-                                  className={styles.stepperBtn}
-                                  disabled={(Number(completePackageTotalSessions) || 1) <= 1}
-                                  onClick={() =>
-                                    setCompletePackageTotalSessions(
-                                      String(Math.max(1, (Number(completePackageTotalSessions) || 1) - 1)),
-                                    )
-                                  }
-                                >
-                                  −
-                                </button>
-                                <span className={styles.stepperValue}>{completePackageTotalSessions || 0}</span>
-                                <button
-                                  type="button"
-                                  className={styles.stepperBtn}
-                                  onClick={() =>
-                                    setCompletePackageTotalSessions(String((Number(completePackageTotalSessions) || 0) + 1))
-                                  }
-                                >
-                                  +
-                                </button>
-                              </div>
-                            ) : (
-                              <span className={styles.stepperValue}>{completionPreview.totalSessionsForCheck}</span>
-                            )}
-                          </div>
-
-                          <div className={`${styles.packageTopCol} ${styles.packageTopColDivided}`}>
-                            <div className={styles.completeInfoStripLabel} style={{ marginBottom: 8 }}>
-                              Paket Tutarı
-                            </div>
-                            {completePackageAmountEditing ? (
-                              <input
-                                type="number"
-                                min={0}
-                                step="0.01"
-                                autoFocus
-                                className={styles.packageAmountEditInput}
-                                defaultValue={completionPreview.previewExpected}
-                                onChange={(e) => {
-                                  const newTotal = Number(e.target.value) || 0
-                                  const sessionCount = Math.max(1, Math.round(Number(completePackageTotalSessions)) || 1)
-                                  setCompletePriceOverride(String(newTotal / sessionCount))
-                                }}
-                                onBlur={() => setCompletePackageAmountEditing(false)}
-                              />
-                            ) : (
-                              <span className={styles.packageAmountValue}>
-                                {currency.format(completionPreview.previewExpected)}
-                              </span>
-                            )}
-                          </div>
-
-                          {!completePackageAmountEditing && completionPreview.creatingPackage && (
-                            <button
-                              type="button"
-                              className={styles.packageEditBtn}
-                              onClick={() => setCompletePackageAmountEditing(true)}
-                            >
-                              <PencilIcon width={12} height={12} /> Düzenle
-                            </button>
-                          )}
-                        </div>
-
-                        <div className={styles.progressBarWrap}>
-                          <div className={styles.progressBarHead}>
-                            <span>Paket Durumu</span>
-                            <span>
-                              {completionPreview.currentSessionNumber} / {completionPreview.totalSessionsForCheck} Seans
-                            </span>
-                          </div>
-                          <div className={styles.segmentBar}>
-                            {Array.from({ length: completionPreview.totalSessionsForCheck }).map((_, i) => (
-                              <span
-                                key={i}
-                                className={i < completionPreview!.currentSessionNumber ? styles.segmentDone : styles.segmentPending}
-                              >
-                                {i < completionPreview!.currentSessionNumber && (
-                                  <CheckCircleIcon width={9} height={9} />
-                                )}
-                              </span>
-                            ))}
-                          </div>
-                        </div>
-
-                        <div className={styles.debtBlockStacked}>
-                          <span className={styles.debtLabel}>Kalan Borç</span>
-                          {(() => {
-                            const pkgDebt = Math.max(
-                              0,
-                              completionPreview.previewExpected - completionPreview.previewPaidSoFar,
-                            )
-                            return (
-                              <span className={pkgDebt > 0 ? styles.debtValue : styles.debtValueOk}>
-                                {currency.format(pkgDebt)}
-                              </span>
-                            )
-                          })()}
-                        </div>
-                      </div>
-
-                      {completionPreview.creatingPackage && (
-                        <div className="field" style={{ marginTop: 12, marginBottom: 0 }}>
-                          <label htmlFor="pkgSessionNumber">Bu Yapılan Kaçıncı Seans</label>
-                          <input
-                            id="pkgSessionNumber"
-                            type="number"
-                            min={1}
-                            step={1}
-                            value={completePackageSessionNumber}
-                            onChange={(e) => setCompletePackageSessionNumber(e.target.value)}
-                          />
-                        </div>
-                      )}
-                    </div>
-                  )}
-
-                  {showCompleteRest && (
-                    <div className={styles.sectionBlock}>
-                      <CompleteSectionHeader number={nextNum()} title="ÖDEME BİLGİLERİ" />
-                      {completeLoadingScope ? (
-                        <p style={{ color: 'var(--text-dim)', fontSize: 13 }}>Yükleniyor…</p>
-                      ) : completeFullyPaid ? (
-                        <div className={styles.creditBanner}>
-                          <span className={styles.creditBannerLeft}>
-                            <CheckCircleIcon width={16} height={16} /> Bu paket daha önce tamamen tahsil edilmiştir.
-                          </span>
-                        </div>
-                      ) : (
-                        <div className="card" style={{ padding: 14 }}>
-                          {/* Esnek Fiyat sadece tek seferlik islemde ve paketin ILK
-                              seansinda duzenlenebilir — bu fiyat paketin seans
-                              basi ucreti olarak kilitlenir, sonraki seanslarda bir
-                              daha sorulmaz/degistirilmez. */}
-                          <div className={styles.paymentTopRow}>
-                            {completionPreview?.isPackageFlow ? (
-                              // Paket akisinda "Paket Ücreti" HER seansta paketin TUM
-                              // toplamini gosterir (ör. 8000 TL — 3. seansta da, 5.
-                              // seansta da ayni) — duzenleme burada degil, sadece
-                              // Paket Bilgileri karti icindeki "Düzenle" ile yapilir
-                              // (tek bir kaynak, iki ayri duzenleme noktasi degil).
-                              <div className={styles.paymentTopCol}>
-                                <div className={styles.amountDisplayLabel} style={{ marginBottom: 6 }}>
-                                  <InfoIcon width={13} height={13} /> Paket Ücreti
-                                </div>
-                                <div className={styles.amountDisplayValueBtn} style={{ cursor: 'default' }}>
-                                  {currency.format(completionPreview.previewExpected)}
-                                </div>
-                              </div>
-                            ) : (
-                              <div className={styles.paymentTopCol}>
-                                <div className={styles.amountDisplayLabel} style={{ marginBottom: 6 }}>
-                                  <InfoIcon width={13} height={13} /> Alınacak Tutar
-                                </div>
-                                {completePriceEditing ? (
-                                  <input
-                                    type="number"
-                                    min={0}
-                                    step="0.01"
-                                    autoFocus
-                                    className={styles.amountEditInput}
-                                    value={completePriceOverride}
-                                    onChange={(e) => {
-                                      setCompletePriceOverride(e.target.value)
-                                      setCompletePaymentAmount(e.target.value)
-                                    }}
-                                    onBlur={() => setCompletePriceEditing(false)}
-                                  />
-                                ) : (
-                                  <>
-                                    <button
-                                      type="button"
-                                      className={styles.amountDisplayValueBtn}
-                                      onClick={() => setCompletePriceEditing(true)}
-                                    >
-                                      {currency.format(completePaymentSummary.price)}
-                                    </button>
-                                    <button
-                                      type="button"
-                                      className={styles.priceEditChip}
-                                      onClick={() => setCompletePriceEditing(true)}
-                                    >
-                                      <PencilIcon width={11} height={11} /> Esnek Fiyat
-                                    </button>
-                                  </>
-                                )}
-                              </div>
-                            )}
-
-                            {completePaymentSummary.remainingDue > 0 && (
-                              <div className={styles.paymentTopCol}>
-                                <label htmlFor="completeAmount" className={styles.paymentFieldLabel}>
-                                  Tahsil Edilen Tutar
-                                </label>
-                                <div className={styles.currencyInputWrap}>
-                                  <span className={styles.currencyPrefix}>₺</span>
-                                  <input
-                                    id="completeAmount"
-                                    className={styles.currencyInput}
-                                    type="number"
-                                    min={0}
-                                    max={completePaymentSummary.remainingDue}
-                                    step="0.01"
-                                    value={completePaymentAmount}
-                                    onChange={(e) => setCompletePaymentAmount(e.target.value)}
-                                  />
-                                </div>
-                              </div>
-                            )}
-
-                            <div className={styles.paymentTopCol}>
-                              <span className={styles.debtLabel}>Kalan Borç</span>
-                              {completePaymentSummary.stillOwed > 0 ? (
-                                <span className={styles.debtValue} style={{ marginTop: 6 }}>
-                                  {currency.format(completePaymentSummary.stillOwed)}
-                                </span>
-                              ) : (
-                                <span className={styles.debtPaidNote} style={{ marginTop: 6 }}>
-                                  {completionPreview?.isPackageFlow
-                                    ? 'Paket ücretinin tamamı ödendi.'
-                                    : 'Ücretin tamamı ödendi.'}
-                                </span>
-                              )}
-                            </div>
-                          </div>
-
-                          <div className={styles.sectionDivider} />
-
-                          <div>
-                            <div className={styles.sectionHeader} style={{ marginBottom: 8 }}>
-                              <span className={styles.completeInfoStripLabel}>Ödeme Yöntemi</span>
-                              <span className={styles.sectionBadgeRequired}>Zorunlu</span>
-                            </div>
-                            <div className={styles.methodGrid}>
-                              {PAYMENT_METHOD_OPTIONS.map((m) => (
-                                <button
-                                  key={m.value}
-                                  type="button"
-                                  className={`${styles.methodCard} ${completePaymentMethod === m.value ? styles.methodCardActive : ''}`}
-                                  onClick={() => setCompletePaymentMethod(m.value)}
-                                >
-                                  {completePaymentMethod === m.value && (
-                                    <span className={styles.methodCardCheck}>
-                                      <CheckCircleIcon width={9} height={9} />
-                                    </span>
-                                  )}
-                                  <span className={styles.methodCardIcon}>{METHOD_ICONS[m.value]}</span>
-                                  <span className={styles.methodCardLabel}>{m.label}</span>
-                                </button>
-                              ))}
-                            </div>
-                          </div>
-                        </div>
-                      )}
-                    </div>
-                  )}
-
-                  {showCompleteRest && completionPreview?.isPackageFlow && !completeLoadingScope && (
-                    <div className={styles.sectionBlock}>
-                      {completionPreview.needsNextSession ? (
-                        <>
-                          <CompleteSectionHeader number={nextNum()} title="SONRAKİ SEANS TARİHİ" />
-                          <div className={styles.nextSessionCard}>
-                            <span className={styles.nextSessionIcon}>
-                              <CalendarIcon width={16} height={16} />
-                            </span>
-                            <div className={styles.nextSessionText}>
-                              <div className={styles.nextSessionTitle}>Bir sonraki seans tarihini seçin.</div>
-                              <div className={styles.nextSessionSub}>Tarih seçilmeden işlem tamamlanamaz.</div>
-                            </div>
-                            {!completeNextSessionExpanded && (
-                              <button
-                                type="button"
-                                className={styles.nextSessionPickBtn}
-                                onClick={() => setCompleteNextSessionExpanded(true)}
-                              >
-                                <CalendarIcon width={13} height={13} /> Tarih Seç
-                                <ChevronRightIcon width={13} height={13} />
-                              </button>
-                            )}
-                          </div>
-                          {(completeNextSessionExpanded || (completeFollowupDate && completeFollowupTime)) && (
-                            <div className={styles.nextSessionFields}>
-                              <div className="field" style={{ flex: 1, marginBottom: 0 }}>
-                                <label htmlFor="followupDate">Tarih</label>
-                                <input
-                                  id="followupDate"
-                                  type="date"
-                                  autoFocus
-                                  value={completeFollowupDate}
-                                  onChange={(e) => {
-                                    const newDate = e.target.value
-                                    const candidateIds = completingAppt.employee_id ? [completingAppt.employee_id] : []
-                                    if (newDate && !isDayOpenForCandidates(newDate, candidateIds)) {
-                                      setCompleteError('Seçilen çalışan bu gün çalışmıyor.')
-                                      return
-                                    }
-                                    setCompleteError(null)
-                                    setCompleteFollowupDate(newDate)
-                                  }}
-                                />
-                              </div>
-                              <div className="field" style={{ flex: 1, marginBottom: 0 }}>
-                                <label htmlFor="followupTime">Saat</label>
-                                <Select
-                                  id="followupTime"
-                                  value={completeFollowupTime}
-                                  onChange={setCompleteFollowupTime}
-                                  options={buildTimeOptions(
-                                    completeFollowupDate,
-                                    completingAppt.employee_id ? [completingAppt.employee_id] : [],
-                                    services.find((s) => s.id === completingAppt.service_id)?.duration_minutes ??
-                                      SLOT_MINUTES,
-                                  )}
-                                />
-                              </div>
-                            </div>
-                          )}
-                        </>
-                      ) : (
-                        <div className={styles.lastSessionCard}>
-                          <CheckCircleIcon width={18} height={18} />
-                          <span>Bu, paketin son seansı — tamamlanınca paket kapanacak.</span>
-                        </div>
-                      )}
-                    </div>
-                  )}
-
-                  {showCompleteRest && (
-                    <div className={styles.sectionBlock}>
-                      <CompleteSectionHeader number={nextNum()} title="NOT" optional />
-                      <div className={styles.noteInputWrap}>
-                        <span className={styles.noteIcon}>
-                          <ReceiptIcon width={15} height={15} />
-                        </span>
-                        <textarea
-                          className={styles.noteTextarea}
-                          placeholder="Not eklemek için dokunun…"
-                          maxLength={250}
-                          value={completeNote}
-                          onChange={(e) => setCompleteNote(e.target.value)}
+                  <div className={styles.payOptions}>
+                    <button
+                      type="button"
+                      className={completePayMode === 'full' ? styles.payOptionActive : styles.payOption}
+                      onClick={() => {
+                        setCompletePayMode('full')
+                        setCompletePaymentAmount(String(completePaymentSummary.remainingDue))
+                      }}
+                    >
+                      <span className={completePayMode === 'full' ? styles.radioOn : styles.radio} />
+                      <span className={styles.payOptionLabel}>Hepsini al</span>
+                      <span className={styles.payOptionAmount}>{currency.format(completePaymentSummary.remainingDue)}</span>
+                    </button>
+                    <div className={completePayMode === 'custom' ? styles.payOptionActive : styles.payOption}>
+                      <button
+                        type="button"
+                        className={styles.payOptionInner}
+                        onClick={() => {
+                          setCompletePayMode('custom')
+                          setCompletePaymentAmount('')
+                        }}
+                      >
+                        <span className={completePayMode === 'custom' ? styles.radioOn : styles.radio} />
+                        <span className={styles.payOptionLabel}>Farklı tutar</span>
+                      </button>
+                      {completePayMode === 'custom' ? (
+                        <input
+                          className={styles.payInput}
+                          type="number"
+                          inputMode="decimal"
+                          min={0}
+                          max={completePaymentSummary.remainingDue}
+                          step="0.01"
+                          placeholder="₺ tutar"
+                          autoFocus
+                          value={completePaymentAmount}
+                          onChange={(e) => setCompletePaymentAmount(e.target.value)}
                         />
-                      </div>
-                      <div className={styles.noteCounter}>{completeNote.length} / 250</div>
+                      ) : (
+                        <span className={styles.payOptionMuted}>₺ —</span>
+                      )}
                     </div>
+                    {!completionPreview?.isLastSession && (
+                      <button
+                        type="button"
+                        className={completePayMode === 'none' ? styles.payOptionActive : styles.payOption}
+                        onClick={() => {
+                          setCompletePayMode('none')
+                          setCompletePaymentAmount('0')
+                        }}
+                      >
+                        <span className={completePayMode === 'none' ? styles.radioOn : styles.radio} />
+                        <span className={styles.payOptionLabel}>Şimdi ödeme yok</span>
+                        <span className={styles.payOptionMuted}>borç kalır</span>
+                      </button>
+                    )}
+                  </div>
+
+                  {completePaymentSummary.entered > 0 && (
+                    <div className={styles.methodChips}>
+                      {PAYMENT_METHOD_OPTIONS.map((m) => (
+                        <button
+                          key={m.value}
+                          type="button"
+                          className={completePaymentMethod === m.value ? styles.methodChipActive : styles.methodChip}
+                          onClick={() => setCompletePaymentMethod(m.value)}
+                        >
+                          {METHOD_SHORT[m.value] ?? m.label}
+                        </button>
+                      ))}
+                    </div>
+                  )}
+
+                  {!completionPreview?.isPackageFlow && (
+                    <div className={styles.priceLine}>
+                      <span>Hizmet ücreti</span>
+                      {completePriceEditing ? (
+                        <input
+                          type="number"
+                          min={0}
+                          step="0.01"
+                          autoFocus
+                          className={styles.pkgInput}
+                          value={completePriceOverride}
+                          onChange={(e) => {
+                            setCompletePriceOverride(e.target.value)
+                            if (completePayMode === 'full') setCompletePaymentAmount(e.target.value)
+                          }}
+                          onBlur={() => setCompletePriceEditing(false)}
+                        />
+                      ) : (
+                        <button type="button" className={styles.stepLink} onClick={() => setCompletePriceEditing(true)}>
+                          {currency.format(completePaymentSummary.price)} · değiştir
+                        </button>
+                      )}
+                    </div>
+                  )}
+
+                  {completePaymentSummary.stillOwed > 0 && (
+                    <span className={styles.stepWarmNote}>
+                      {currency.format(completePaymentSummary.stillOwed)} borç olarak kalacak
+                    </span>
                   )}
                 </>
-              )
-            })()}
+              )}
+            </div>
 
-            {showCompleteRest && (
-              <div className={styles.completeFooter}>
-                {completeMissing.length > 0 && (
-                  <div className={styles.missingList} style={{ marginBottom: 12 }}>
-                    {completeMissing.map((m) => (
-                      <span key={m}>⚠ {m}</span>
-                    ))}
+            {/* ---- 3. Sonraki randevu ---- */}
+            <div className={completionPreview?.needsNextSession ? styles.stepCard : `${styles.stepCard} ${styles.stepCardDim}`}>
+              <div className={styles.stepCardHead}>
+                <span className={styles.stepNumMuted}>3</span>
+                <span className={styles.stepText}>
+                  <span className={styles.stepTitle}>Sonraki randevu</span>
+                  <span className={styles.stepSub}>
+                    {completionPreview?.isLastSession
+                      ? 'Paketin son seansı — tamamlanınca paket kapanır.'
+                      : completionPreview?.needsNextSession
+                        ? completeFollowupDate && completeFollowupTime
+                          ? `${new Date(`${completeFollowupDate}T00:00:00`).toLocaleDateString('tr-TR', { day: 'numeric', month: 'long' })} · ${completeFollowupTime}`
+                          : 'Paketin sonraki seansı için tarih seç (zorunlu)'
+                        : 'Tek seferlik işlem — gerekirse sonra yeni randevu aç'}
+                  </span>
+                </span>
+              </div>
+              {completionPreview?.needsNextSession && (
+                <div className={styles.twoCol}>
+                  <div className="field" style={{ marginBottom: 0 }}>
+                    <label htmlFor="followupDate">Tarih</label>
+                    <input
+                      id="followupDate"
+                      type="date"
+                      value={completeFollowupDate}
+                      onChange={(e) => {
+                        const newDate = e.target.value
+                        const candidateIds = completingAppt.employee_id ? [completingAppt.employee_id] : []
+                        if (newDate && !isDayOpenForCandidates(newDate, candidateIds)) {
+                          setCompleteError('Seçilen çalışan bu gün çalışmıyor.')
+                          return
+                        }
+                        setCompleteError(null)
+                        setCompleteFollowupDate(newDate)
+                      }}
+                    />
                   </div>
-                )}
-                <button
-                  type="button"
-                  className="btn-primary"
-                  disabled={completeBusy || !canSubmitCompletion}
-                  onClick={submitCompletion}
-                >
-                  {completeBusy ? 'Kaydediliyor…' : '✓ İşlemi Tamamla'}
-                </button>
-                <div className={styles.completeFooterHint}>
-                  🔒 İşlemi tamamlamak için tüm zorunlu alanları doldurmalısınız.
+                  <div className="field" style={{ marginBottom: 0 }}>
+                    <label htmlFor="followupTime">Saat</label>
+                    <Select
+                      id="followupTime"
+                      value={completeFollowupTime}
+                      onChange={setCompleteFollowupTime}
+                      options={buildTimeOptions(
+                        completeFollowupDate,
+                        completingAppt.employee_id ? [completingAppt.employee_id] : [],
+                        services.find((s) => s.id === completingAppt.service_id)?.duration_minutes ?? SLOT_MINUTES,
+                      )}
+                    />
+                  </div>
                 </div>
+              )}
+            </div>
+
+            {/* ---- Not ---- */}
+            <div className={styles.stepCard}>
+              <textarea
+                className={styles.noteBox}
+                placeholder="İşlem notu (isteğe bağlı) — ör. kullanılan renk, müşterinin isteği"
+                maxLength={250}
+                value={completeNote}
+                onChange={(e) => setCompleteNote(e.target.value)}
+              />
+            </div>
+
+            {completeMissing.length > 0 && (
+              <div className={styles.missingList}>
+                {completeMissing.map((m) => (
+                  <span key={m}>{m}</span>
+                ))}
               </div>
             )}
           </div>
-        </div>
-      )}
 
-      {viewingAppt && (
-        <div className={styles.modalBackdrop} onClick={() => setViewingAppt(null)}>
-          <div className={`card ${styles.modalCard}`} onClick={(e) => e.stopPropagation()}>
-            <div className={styles.modalHeader}>
-              <h2>Randevu Detayı</h2>
-              <button type="button" className={styles.bannerClose} onClick={() => setViewingAppt(null)}>
-                ✕
-              </button>
-            </div>
-
-            <div className={styles.detailList}>
-              <div className={styles.detailRow}>
-                <span className={styles.detailLabel}>Müşteri</span>
-                <span className={styles.detailValue}>
-                  {customerName(viewingAppt.customer_id)}
-                  {customerPhone(viewingAppt.customer_id) && ` · ${customerPhone(viewingAppt.customer_id)}`}
-                </span>
-              </div>
-              <div className={styles.detailRow}>
-                <span className={styles.detailLabel}>Hizmet</span>
-                <span className={styles.detailValue}>
-                  {serviceName(viewingAppt.service_id)}
-                  {packageProgress(viewingAppt) &&
-                    ` · ${packageProgress(viewingAppt)!.current}/${packageProgress(viewingAppt)!.total} seans`}
-                </span>
-              </div>
-              <div className={styles.detailRow}>
-                <span className={styles.detailLabel}>Çalışan</span>
-                <span className={styles.detailValue}>{employeeName(viewingAppt.employee_id)}</span>
-              </div>
-              <div className={styles.detailRow}>
-                <span className={styles.detailLabel}>Tarih / Saat</span>
-                <span className={styles.detailValue}>
-                  {new Date(viewingAppt.scheduled_at).toLocaleString('tr-TR', {
-                    day: '2-digit',
-                    month: 'long',
-                    year: 'numeric',
-                    hour: '2-digit',
-                    minute: '2-digit',
-                  })}
-                  {` · ${viewingAppt.duration_minutes ?? SLOT_MINUTES} dk`}
-                </span>
-              </div>
-              <div className={styles.detailRow}>
-                <span className={styles.detailLabel}>Durum</span>
-                <span className={`${styles.statusBadge} ${STATUS_CLASS[viewingAppt.status]}`}>
-                  {STATUS_OPTIONS.find((o) => o.value === viewingAppt.status)?.label ?? viewingAppt.status}
-                </span>
-              </div>
-              <div className={styles.detailRow}>
-                <span className={styles.detailLabel}>Kaynak</span>
-                <span className={styles.detailValue}>
-                  {SOURCE_OPTIONS.find((o) => o.value === viewingAppt.source)?.label ?? viewingAppt.source}
-                </span>
-              </div>
-              <div className={styles.detailRow}>
-                <span className={styles.detailLabel}>Not</span>
-                <span className={styles.detailValue}>{viewingAppt.source_note || 'Not eklenmemiş.'}</span>
-              </div>
-            </div>
-
-            <div className={styles.formActions}>
-              {canEdit(viewingAppt) && (
-                <button
-                  type="button"
-                  className="btn-secondary"
-                  style={{ width: 'auto' }}
-                  onClick={() => {
-                    const a = viewingAppt
-                    setViewingAppt(null)
-                    openEdit(a)
-                  }}
-                >
-                  Düzenle
-                </button>
-              )}
-              <button type="button" className="btn-primary" style={{ width: 'auto' }} onClick={() => setViewingAppt(null)}>
-                Kapat
-              </button>
-            </div>
+          <div className={styles.fsFooter}>
+            <button
+              type="button"
+              className={styles.fsSubmit}
+              disabled={completeBusy || !canSubmitCompletion}
+              onClick={submitCompletion}
+            >
+              {completeBusy
+                ? 'Kaydediliyor…'
+                : completePaymentSummary.entered > 0
+                  ? `${currency.format(completePaymentSummary.entered)} ${METHOD_SHORT[completePaymentMethod]?.toLocaleLowerCase('tr') ?? ''} alındı · tamamla`.replace('  ', ' ')
+                  : 'İşlemi tamamla'}
+            </button>
           </div>
         </div>
       )}
+
+      {viewingAppt &&
+        (() => {
+          const a = viewingAppt
+          const start = new Date(a.scheduled_at)
+          const durMin = a.duration_minutes ?? SLOT_MINUTES
+          const phone = customerPhone(a.customer_id)
+          const isOpen = a.status === 'bekliyor' || a.status === 'onaylandi'
+          const price = a.price_override ?? services.find((s) => s.id === a.service_id)?.price ?? null
+          const pkg = packageProgress(a)
+          const statusLabel = STATUS_OPTIONS.find((o) => o.value === a.status)?.label ?? a.status
+          const fmt = (iso: string) =>
+            new Date(iso).toLocaleString('tr-TR', { day: 'numeric', month: 'short', hour: '2-digit', minute: '2-digit' })
+          // "Randevunun hikayesi": kaydin bilinen olaylari sirayla.
+          const story: { key: string; title: string; sub: string; tone: 'purple' | 'navy' | 'ok' | 'danger' | 'muted' }[] = []
+          if (a.created_at) {
+            story.push({
+              key: 'created',
+              title: `${SOURCE_STORY[a.source] ?? 'Salon'} oluşturdu`,
+              sub: fmt(a.created_at) + (a.source_note ? ` · ${a.source_note}` : ''),
+              tone: a.source === 'chatbot' || a.source === 'online_randevu' ? 'purple' : 'navy',
+            })
+          }
+          if (a.reminder_sent_at) {
+            story.push({ key: 'reminder', title: 'Hatırlatma gönderildi', sub: `${fmt(a.reminder_sent_at)} · WhatsApp`, tone: 'navy' })
+          }
+          if (a.status === 'onaylandi') story.push({ key: 'st', title: 'Onaylandı', sub: 'Randevu onaylı', tone: 'ok' })
+          if (a.status === 'tamamlandi')
+            story.push({ key: 'st', title: 'Tamamlandı', sub: a.notes ? `İşlem notu: ${a.notes}` : 'İşlem kapandı', tone: 'ok' })
+          if (a.status === 'iptal') story.push({ key: 'st', title: 'İptal edildi', sub: 'Randevu iptal', tone: 'danger' })
+          if (a.status === 'gelmedi') story.push({ key: 'st', title: 'Gelmedi', sub: 'Müşteri gelmedi olarak işaretlendi', tone: 'muted' })
+
+          return (
+            <div className={styles.fullScreen}>
+              <div className={styles.fullScroll}>
+                <div className={styles.fsHeadSplit}>
+                  <button type="button" className={styles.fsBack} onClick={() => setViewingAppt(null)} aria-label="Geri">
+                    <ChevronRightIcon width={18} height={18} className={styles.backIcon} />
+                  </button>
+                  {canEdit(a) && (
+                    <div className={styles.viewMenuWrap}>
+                      <button
+                        type="button"
+                        className={styles.fsBack}
+                        onClick={() => setDetailMenuOpen((v) => !v)}
+                        aria-label="Durumu değiştir"
+                        aria-expanded={detailMenuOpen}
+                      >
+                        <MoreHorizontalIcon width={18} height={18} />
+                      </button>
+                      {detailMenuOpen && (
+                        <div className={styles.viewMenu} role="menu">
+                          <span className={styles.viewMenuTitle}>Durumu değiştir</span>
+                          {STATUS_DROPDOWN_OPTIONS.filter((o) => o.value !== a.status && o.value !== 'tamamlandi').map((o) => (
+                            <button
+                              key={o.value}
+                              type="button"
+                              className={styles.viewMenuItem}
+                              onClick={async () => {
+                                setDetailMenuOpen(false)
+                                setViewingAppt(null)
+                                await handleStatusChange(a, o.value as Appointment['status'])
+                              }}
+                            >
+                              {o.label}
+                            </button>
+                          ))}
+                        </div>
+                      )}
+                    </div>
+                  )}
+                </div>
+
+                <div className={styles.detailHero}>
+                  <div className={styles.detailDate}>
+                    <span className={styles.detailDateWeekday}>
+                      {start.toLocaleDateString('tr-TR', { weekday: 'short' }).toLocaleUpperCase('tr')}
+                    </span>
+                    <span className={styles.detailDateDay}>{start.getDate()}</span>
+                    <span className={styles.detailDateMonth}>{start.toLocaleDateString('tr-TR', { month: 'long' })}</span>
+                  </div>
+                  <div className={styles.detailHeroText}>
+                    <span className={styles.detailHeroTitle}>
+                      {start.toLocaleTimeString('tr-TR', { hour: '2-digit', minute: '2-digit' })} · {customerName(a.customer_id)}
+                    </span>
+                    <span className={styles.detailHeroSub}>
+                      {serviceName(a.service_id)} · {employeeName(a.employee_id)} · {durMin} dk
+                      {pkg ? ` · ${pkg.current}/${pkg.total} seans` : ''}
+                    </span>
+                    <span className={`${styles.detailHeroStatus} ${styles[`detailStatus_${a.status}`]}`}>
+                      {statusLabel}
+                      {price != null ? ` · ${currency.format(price)}` : ''}
+                    </span>
+                  </div>
+                </div>
+
+                {customerNote(a.customer_id) && (
+                  <div className={styles.customerNote}>
+                    <span className={styles.customerNoteLabel}>Müşteri notu</span>
+                    {customerNote(a.customer_id)}
+                  </div>
+                )}
+
+                <div className={styles.storyCard}>
+                  <span className={styles.storyTitle}>Randevunun hikâyesi</span>
+                  {story.map((s, i) => (
+                    <div className={styles.storyRow} key={s.key}>
+                      <span className={styles.storyRail}>
+                        <span className={`${styles.storyDot} ${styles[`storyDot_${s.tone}`]}`} />
+                        {(i < story.length - 1 || isOpen) && <span className={styles.storyLine} />}
+                      </span>
+                      <span className={styles.storyText}>
+                        <span className={styles.storyItemTitle}>{s.title}</span>
+                        <span className={styles.storyItemSub}>{s.sub}</span>
+                      </span>
+                    </div>
+                  ))}
+                  {isOpen && (
+                    <div className={styles.storyRow}>
+                      <span className={styles.storyRail}>
+                        <span className={`${styles.storyDot} ${styles.storyDot_pending}`} />
+                      </span>
+                      <span className={styles.storyText}>
+                        <span className={`${styles.storyItemTitle} ${styles.storyItemWarm}`}>Tamamlanmayı bekliyor</span>
+                        <span className={styles.storyItemSub}>Ödeme ve seans kaydı</span>
+                      </span>
+                    </div>
+                  )}
+                </div>
+
+                <div className={styles.detailActions}>
+                  <button
+                    type="button"
+                    className={styles.detailAction}
+                    disabled={!a.customer_id}
+                    onClick={() => {
+                      setViewingAppt(null)
+                      navigate(`/musteriler/${a.customer_id}`)
+                    }}
+                  >
+                    <UserIcon width={18} height={18} />
+                    Müşteri
+                  </button>
+                  <button
+                    type="button"
+                    className={styles.detailAction}
+                    disabled={!rawCustomerPhone(a.customer_id)}
+                    onClick={() => {
+                      setViewingAppt(null)
+                      navigate(`/mesajlar?telefon=${encodeURIComponent(rawCustomerPhone(a.customer_id) ?? '')}`)
+                    }}
+                  >
+                    <MessagesIcon width={18} height={18} />
+                    Konuşma
+                  </button>
+                  <button
+                    type="button"
+                    className={styles.detailAction}
+                    disabled={!canEdit(a)}
+                    onClick={() => {
+                      setViewingAppt(null)
+                      openEdit(a)
+                    }}
+                  >
+                    <PencilIcon width={18} height={18} />
+                    Düzenle
+                  </button>
+                </div>
+                {phone && (
+                  <a className={styles.detailCall} href={`tel:${phone}`}>
+                    {phone} · Ara
+                  </a>
+                )}
+              </div>
+
+              {canEdit(a) && isOpen && (
+                <SwipeToConfirm
+                  label="Tamamlamak için kaydır"
+                  onConfirm={() => {
+                    setViewingAppt(null)
+                    handleStatusChange(a, 'tamamlandi')
+                  }}
+                />
+              )}
+            </div>
+          )
+        })()}
 
       {editingAppt && (
         <div className={styles.modalBackdrop} onClick={() => setEditingAppt(null)}>
@@ -2402,149 +2713,51 @@ export default function AppointmentsPage() {
       )}
 
       {viewMode === 'gunluk' && (
-        <div className="card">
-          <div className={styles.dateHeaderRow}>
-            <button type="button" className={styles.dateNavBtn} onClick={() => shiftDate(-1)} aria-label="Önceki gün">
-              ‹
-            </button>
-            <button
-              type="button"
-              className={styles.dateHeaderLabel}
-              onClick={() => dateInputRef.current?.showPicker?.()}
-            >
-              {new Date(`${viewDate}T00:00:00`).toLocaleDateString('tr-TR', {
-                day: 'numeric',
-                month: 'long',
-                year: 'numeric',
-              })}
-              , {viewWeekday}
-              <ChevronRightIcon width={13} height={13} className={styles.dateHeaderChevron} />
-            </button>
-            <button type="button" className={styles.dateNavBtn} onClick={() => shiftDate(1)} aria-label="Sonraki gün">
-              ›
-            </button>
-            <input
-              ref={dateInputRef}
-              type="date"
-              value={viewDate}
-              onChange={(e) => setViewDate(e.target.value)}
-              className={styles.hiddenDateInput}
-              tabIndex={-1}
-              aria-hidden="true"
-            />
-          </div>
-
-          <div className={styles.dayStrip}>
+        <>
+          <div
+            className={styles.weekStrip}
+            onTouchStart={(e) => {
+              weekSwipeX.current = e.touches[0].clientX
+            }}
+            onTouchEnd={(e) => {
+              // Seridi saga/sola kaydirmak bir onceki/sonraki haftaya gecer.
+              const start = weekSwipeX.current
+              weekSwipeX.current = null
+              if (start === null) return
+              const dx = e.changedTouches[0].clientX - start
+              if (Math.abs(dx) > 50) shiftWeek(dx < 0 ? 1 : -1)
+            }}
+          >
             {dayStripDates.map((d) => {
               const dk = toLocalDateString(d)
               const active = dk === viewDate
+              const dayClass = [
+                active ? styles.weekDayActive : styles.weekDay,
+                d.getDay() === 0 && !active ? styles.weekDayOff : '',
+              ]
+                .filter(Boolean)
+                .join(' ')
               return (
-                <button
-                  type="button"
-                  key={dk}
-                  className={active ? styles.dayStripBtnActive : styles.dayStripBtn}
-                  onClick={() => setViewDate(dk)}
-                >
-                  <span className={styles.dayStripWeekday}>{WEEKDAY_SHORT[d.getDay()]}</span>
-                  <span className={styles.dayStripNum}>{d.getDate()}</span>
+                <button type="button" key={dk} className={dayClass} onClick={() => setViewDate(dk)}>
+                  <span className={styles.weekDayName}>{WEEKDAY_SHORT[d.getDay()]}</span>
+                  <span className={styles.weekDayNum}>{d.getDate()}</span>
+                  <span className={apptDayKeys.has(dk) ? styles.weekDayDot : styles.weekDayDotEmpty} />
                 </button>
               )
             })}
           </div>
 
-          {diffDays !== 0 && (
-            <div className={styles.dayNavHint}>
-              <span className={styles.dayLabel}>{dayLabel}</span>
-              <button type="button" className={styles.todayButton} onClick={() => setViewDate(todayLocalDateString())}>
-                Bugüne dön
-              </button>
-            </div>
-          )}
-
-          <div className={styles.dayControlsRow}>
-            <div className={styles.plainDropdown} ref={employeeMenuRef}>
-              <button
-                type="button"
-                className={styles.plainDropdownTrigger}
-                onClick={() => setEmployeeMenuOpen((v) => !v)}
-                aria-haspopup="listbox"
-                aria-expanded={employeeMenuOpen}
-              >
-                <CalendarIcon width={14} height={14} />
-                {employeeFilter ? employeeName(employeeFilter) : 'Tüm Çalışanlar'}
-                <ChevronRightIcon width={12} height={12} className={styles.plainDropdownChevron} />
-              </button>
-              {employeeMenuOpen && (
-                <div className={styles.plainDropdownMenu} role="listbox">
-                  <button
-                    type="button"
-                    className={styles.plainDropdownMenuItem}
-                    onClick={() => {
-                      setEmployeeFilter('')
-                      setEmployeeMenuOpen(false)
-                    }}
-                  >
-                    Tüm Çalışanlar
-                  </button>
-                  {profiles.map((p) => (
-                    <button
-                      type="button"
-                      key={p.id}
-                      className={styles.plainDropdownMenuItem}
-                      onClick={() => {
-                        setEmployeeFilter(p.id)
-                        setEmployeeMenuOpen(false)
-                      }}
-                    >
-                      {p.full_name ?? '—'}
-                    </button>
-                  ))}
-                </div>
-              )}
-            </div>
-
-            <div className={`${styles.plainDropdown} ${styles.plainDropdownRight}`} ref={displayMenuRef}>
-              <button
-                type="button"
-                className={`${styles.plainDropdownTrigger} ${styles.plainDropdownTriggerSignal}`}
-                onClick={() => setDisplayMenuOpen((v) => !v)}
-                aria-haspopup="listbox"
-                aria-expanded={displayMenuOpen}
-              >
-                {dailyDisplay === 'zaman' ? 'Günlük Görünüm' : 'Liste Görünümü'}
-                <ChevronRightIcon width={12} height={12} className={styles.plainDropdownChevron} />
-              </button>
-              {displayMenuOpen && (
-                <div className={`${styles.plainDropdownMenu} ${styles.plainDropdownMenuRight}`} role="listbox">
-                  <button
-                    type="button"
-                    className={styles.plainDropdownMenuItem}
-                    onClick={() => {
-                      setDailyDisplay('zaman')
-                      setDisplayMenuOpen(false)
-                    }}
-                  >
-                    Günlük Görünüm
-                  </button>
-                  <button
-                    type="button"
-                    className={styles.plainDropdownMenuItem}
-                    onClick={() => {
-                      setDailyDisplay('liste')
-                      setDisplayMenuOpen(false)
-                    }}
-                  >
-                    Liste Görünümü
-                  </button>
-                </div>
-              )}
-            </div>
-          </div>
+          {employeeChips}
 
           {loading ? (
-            <p style={{ color: 'var(--text-dim)' }}>Yükleniyor…</p>
+            <p className={styles.emptyNote}>Yükleniyor…</p>
           ) : visible.length === 0 ? (
-            <p style={{ color: 'var(--text-dim)' }}>Bu tarihte randevu yok.</p>
+            <div className={styles.emptyCard}>
+              <span className={styles.emptyTitle}>
+                {diffDays === 0 ? 'Bugün randevu yok' : `${dayLabel} için randevu yok`}
+              </span>
+              <span className={styles.emptySub}>Eklemek için alttaki + düğmesinden “Yeni randevu”yu seç.</span>
+            </div>
           ) : dailyDisplay === 'liste' ? (
             <div className={styles.apptList}>
               <div className={styles.apptListHead}>
@@ -2557,40 +2770,15 @@ export default function AppointmentsPage() {
               {visible.map((a) => renderRow(a))}
             </div>
           ) : (
-            <div className={styles.timelineList}>
-              {timelineEntries.map((entry, i) =>
-                entry.kind === 'now' ? (
-                  <div key="now" className={styles.timelineRow}>
-                    <div className={styles.timelineRowGutter}>
-                      <span className={styles.timelineNowTime}>
-                        {now.toLocaleTimeString('tr-TR', { hour: '2-digit', minute: '2-digit' })}
-                      </span>
-                    </div>
-                    <span className={styles.timelineNowLine} />
-                  </div>
-                ) : (
-                  <div key={entry.appt.id} className={styles.timelineRow}>
-                    <span
-                      className={`${styles.timelineRowGutter} ${styles[`timelineText${i % TIMELINE_COLORS.length}`]}`}
-                    >
-                      {new Date(entry.appt.scheduled_at).toLocaleTimeString('tr-TR', {
-                        hour: '2-digit',
-                        minute: '2-digit',
-                      })}
-                    </span>
-                    {renderTimelineCard(entry.appt, i)}
-                  </div>
-                ),
-              )}
-            </div>
+            <div className={styles.timelineList}>{visible.map((a) => renderTimelineRow(a))}</div>
           )}
-        </div>
+        </>
       )}
 
       {viewMode !== 'gunluk' && (
-        <div className="card">
+        <>
           {viewMode === 'haftalik' && (
-            <div className={styles.dateHeaderRow}>
+            <div className={styles.weekNavRow}>
               <button
                 type="button"
                 className={styles.dateNavBtn}
@@ -2599,7 +2787,7 @@ export default function AppointmentsPage() {
               >
                 ‹
               </button>
-              <span className={styles.dayLabel}>
+              <span className={styles.weekNavLabel}>
                 {groupedByDate[0]?.label} – {groupedByDate[6]?.label}
               </span>
               <button
@@ -2613,37 +2801,28 @@ export default function AppointmentsPage() {
             </div>
           )}
 
+          {employeeChips}
+
           {loading ? (
-            <p style={{ color: 'var(--text-dim)' }}>Yükleniyor…</p>
+            <p className={styles.emptyNote}>Yükleniyor…</p>
+          ) : groupedByDate.length === 0 ? (
+            <div className={styles.emptyCard}>
+              <span className={styles.emptyTitle}>Bu aralıkta randevu yok</span>
+              <span className={styles.emptySub}>Başka bir dönem seçebilir ya da + düğmesinden randevu ekleyebilirsin.</span>
+            </div>
           ) : (
             groupedByDate.map((group) => (
               <div key={group.dateKey} className={styles.dateGroup}>
-                <div className={styles.dateGroupLabel}>
-                  {WEEKDAY_SHORT[new Date(group.dateKey + 'T00:00:00').getDay()]} · {group.label}
-                </div>
+                <div className={styles.dateGroupLabel}>{group.label}</div>
                 {group.items.length === 0 ? (
                   <p className={styles.sourceNote}>Randevu yok.</p>
                 ) : (
-                  <div className={styles.timelineList}>
-                    {group.items.map((a, i) => (
-                      <div key={a.id} className={styles.timelineRow}>
-                        <span
-                          className={`${styles.timelineRowGutter} ${styles[`timelineText${i % TIMELINE_COLORS.length}`]}`}
-                        >
-                          {new Date(a.scheduled_at).toLocaleTimeString('tr-TR', {
-                            hour: '2-digit',
-                            minute: '2-digit',
-                          })}
-                        </span>
-                        {renderTimelineCard(a, i)}
-                      </div>
-                    ))}
-                  </div>
+                  <div className={styles.timelineList}>{group.items.map((a) => renderTimelineRow(a))}</div>
                 )}
               </div>
             ))
           )}
-        </div>
+        </>
       )}
     </div>
   )

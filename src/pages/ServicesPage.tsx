@@ -1,18 +1,9 @@
 import { useEffect, useMemo, useRef, useState, type FormEvent } from 'react'
-import { Link } from 'react-router-dom'
+import { Link, useSearchParams } from 'react-router-dom'
 import { supabase } from '../lib/supabase'
 import { useAuth } from '../contexts/AuthContext'
-import { colorForName } from '../lib/avatarColor'
-import {
-  SearchIcon,
-  FilterIcon,
-  CheckCircleIcon,
-  ServicesIcon,
-  ClockIcon,
-  TagIcon,
-  MoreHorizontalIcon,
-  CloseIcon,
-} from '../components/icons'
+import PageHeader from '../components/PageHeader'
+import { SearchIcon, CheckCircleIcon, ChevronRightIcon } from '../components/icons'
 import { currencyWhole as currency } from '../lib/currency'
 import styles from './ServicesPage.module.css'
 
@@ -25,43 +16,75 @@ interface Service {
   description: string | null
 }
 
+interface Employee {
+  id: string
+  full_name: string | null
+}
+
+interface EmployeeService {
+  profile_id: string
+  service_id: string
+}
+
 type SortBy = 'ad' | 'fiyat' | 'sure'
 
-const SORT_OPTIONS: { value: SortBy; label: string }[] = [
-  { value: 'ad', label: 'Ada Göre (A-Z)' },
-  { value: 'fiyat', label: 'Fiyata Göre (Yüksekten)' },
-  { value: 'sure', label: 'Süreye Göre (Uzundan)' },
+const SORT_OPTIONS: { value: SortBy; label: string; short: string }[] = [
+  { value: 'ad', label: 'Ada göre (A–Z)', short: 'A–Z' },
+  { value: 'fiyat', label: 'Fiyata göre (yüksekten)', short: 'Fiyat' },
+  { value: 'sure', label: 'Süreye göre (uzundan)', short: 'Süre' },
 ]
 
+const AVATAR_TONES = ['toneNavy', 'tonePurple', 'toneGreen'] as const
+
+function firstName(name: string | null) {
+  return (name ?? '').trim().split(/\s+/)[0] || '—'
+}
 
 export default function ServicesPage() {
   const { profile } = useAuth()
+  const [searchParams, setSearchParams] = useSearchParams()
   const [services, setServices] = useState<Service[]>([])
+  const [employees, setEmployees] = useState<Employee[]>([])
+  const [links, setLinks] = useState<EmployeeService[]>([])
   const [loading, setLoading] = useState(true)
 
   const [search, setSearch] = useState('')
   const [sortBy, setSortBy] = useState<SortBy>('ad')
   const [sortMenuOpen, setSortMenuOpen] = useState(false)
-  const [expandedId, setExpandedId] = useState<string | null>(null)
-  const [addModalOpen, setAddModalOpen] = useState(false)
   const sortMenuRef = useRef<HTMLDivElement>(null)
 
+  // Duzenleme ekrani adres satirinda tutulur (?duzenle=<id> / ?yeni=1);
+  // boylece Aciklama sayfasindan geri donunce ayni hizmete donulur.
+  const editId = searchParams.get('duzenle')
+  const isNew = searchParams.get('yeni') === '1'
+  const editing = editId ? services.find((s) => s.id === editId) ?? null : null
+  const editorOpen = isNew || !!editing
+
   const [name, setName] = useState('')
-  const [duration, setDuration] = useState('60')
+  const [duration, setDuration] = useState(60)
   const [price, setPrice] = useState('')
+  const [active, setActive] = useState(true)
+  const [staff, setStaff] = useState<Set<string>>(new Set())
+  const [monthStats, setMonthStats] = useState<{ count: number; revenue: number } | null>(null)
+  const [activePackages, setActivePackages] = useState(0)
   const [submitting, setSubmitting] = useState(false)
 
   // "silent=true" bir mutasyondan sonra cagrilir — veriyi arka planda
-  // tazeler ama "loading" bayragini geri true yapmaz, boylece sayfa her
-  // islemden sonra bos "Yükleniyor…" yazisina donup yeniden cizilmiyor.
+  // tazeler ama "loading" bayragini geri true yapmaz.
   async function loadData(silent = false) {
     if (!silent) setLoading(true)
-    const { data } = await supabase
-      .from('services')
-      .select('id, name, duration_minutes, price, is_active, description')
-      .order('is_active', { ascending: false })
-      .order('name', { ascending: true })
-    setServices(data ?? [])
+    const [{ data: svc }, { data: emps }, { data: es }] = await Promise.all([
+      supabase
+        .from('services')
+        .select('id, name, duration_minutes, price, is_active, description')
+        .order('is_active', { ascending: false })
+        .order('name', { ascending: true }),
+      supabase.from('profiles').select('id, full_name').eq('is_active', true).order('full_name'),
+      supabase.from('employee_services').select('profile_id, service_id'),
+    ])
+    setServices(svc ?? [])
+    setEmployees(emps ?? [])
+    setLinks(es ?? [])
     setLoading(false)
   }
 
@@ -78,27 +101,122 @@ export default function ServicesPage() {
     return () => document.removeEventListener('mousedown', handleClick)
   }, [sortMenuOpen])
 
-  async function handleCreate(e: FormEvent) {
-    e.preventDefault()
-    if (!name.trim() || !profile?.business_id) return
-    setSubmitting(true)
-    await supabase.from('services').insert({
-      business_id: profile.business_id,
-      name: name.trim(),
-      duration_minutes: Math.max(5, Number(duration) || 60),
-      price: price === '' ? null : Math.max(0, Number(price) || 0),
-    })
-    setName('')
-    setDuration('60')
-    setPrice('')
-    await loadData(true)
-    setSubmitting(false)
-    setAddModalOpen(false)
+  // Editor acildiginda formu doldur + bu ayki kullanimi getir.
+  useEffect(() => {
+    if (isNew) {
+      setName('')
+      setDuration(60)
+      setPrice('')
+      setActive(true)
+      setStaff(new Set())
+      setMonthStats(null)
+      setActivePackages(0)
+      return
+    }
+    if (!editing) return
+    setName(editing.name)
+    setDuration(editing.duration_minutes)
+    setPrice(editing.price == null ? '' : String(editing.price))
+    setActive(editing.is_active)
+    setStaff(new Set(links.filter((l) => l.service_id === editing.id).map((l) => l.profile_id)))
+
+    let cancelled = false
+    async function loadStats(serviceId: string) {
+      const now = new Date()
+      const monthStart = new Date(now.getFullYear(), now.getMonth(), 1).toISOString()
+      const [{ data: appts }, { count: pkgCount }] = await Promise.all([
+        supabase
+          .from('appointments')
+          .select('id')
+          .eq('service_id', serviceId)
+          .eq('status', 'tamamlandi')
+          .gte('scheduled_at', monthStart)
+          .limit(1000),
+        supabase
+          .from('service_packages')
+          .select('id', { count: 'exact', head: true })
+          .eq('service_id', serviceId)
+          .eq('status', 'aktif'),
+      ])
+      const ids = (appts ?? []).map((a) => a.id)
+      let revenue = 0
+      if (ids.length) {
+        const { data: pays } = await supabase
+          .from('payments')
+          .select('amount')
+          .is('voided_at', null)
+          .in('appointment_id', ids.slice(0, 300))
+        revenue = (pays ?? []).reduce((sum, p) => sum + Number(p.amount), 0)
+      }
+      if (cancelled) return
+      setMonthStats({ count: ids.length, revenue })
+      setActivePackages(pkgCount ?? 0)
+    }
+    loadStats(editing.id)
+    return () => {
+      cancelled = true
+    }
+    // links/services degisince (kaydetten sonra) formu ezmemek icin yalnizca kimlik izleniyor.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [isNew, editing?.id])
+
+  function openEditor(target: Service | 'new') {
+    setSearchParams(target === 'new' ? { yeni: '1' } : { duzenle: target.id })
   }
 
-  async function updateService(service: Service, patch: Partial<Service>) {
-    await supabase.from('services').update(patch).eq('id', service.id)
+  function closeEditor() {
+    setSearchParams({}, { replace: true })
+  }
+
+  function toggleStaff(id: string) {
+    setStaff((prev) => {
+      const next = new Set(prev)
+      if (next.has(id)) next.delete(id)
+      else next.add(id)
+      return next
+    })
+  }
+
+  async function saveEditor(e?: FormEvent) {
+    e?.preventDefault()
+    if (!editorOpen || !name.trim() || !profile?.business_id) return
+    setSubmitting(true)
+    const fields = {
+      name: name.trim(),
+      duration_minutes: Math.max(5, duration),
+      price: price === '' ? null : Math.max(0, Number(price) || 0),
+    }
+    let serviceId = editing?.id ?? null
+    if (isNew) {
+      const { data } = await supabase
+        .from('services')
+        .insert({ business_id: profile.business_id, ...fields })
+        .select('id')
+        .single()
+      serviceId = data?.id ?? null
+    } else if (editing) {
+      await supabase
+        .from('services')
+        .update({ ...fields, is_active: active })
+        .eq('id', editing.id)
+    }
+
+    // "Kim yapiyor?" farklarini uygula.
+    if (serviceId) {
+      const before = new Set(links.filter((l) => l.service_id === serviceId).map((l) => l.profile_id))
+      const toAdd = [...staff].filter((id) => !before.has(id))
+      const toRemove = [...before].filter((id) => !staff.has(id))
+      if (toAdd.length) {
+        await supabase.from('employee_services').insert(toAdd.map((profile_id) => ({ profile_id, service_id: serviceId })))
+      }
+      if (toRemove.length) {
+        await supabase.from('employee_services').delete().eq('service_id', serviceId).in('profile_id', toRemove)
+      }
+    }
+
     await loadData(true)
+    setSubmitting(false)
+    closeEditor()
   }
 
   async function deleteService(service: Service) {
@@ -107,45 +225,209 @@ export default function ServicesPage() {
     )
     if (!ok) return
     await supabase.from('services').delete().eq('id', service.id)
+    closeEditor()
     await loadData(true)
   }
 
-  const q = search.trim().toLowerCase()
+  const staffByService = useMemo(() => {
+    const nameById = new Map(employees.map((e) => [e.id, firstName(e.full_name)]))
+    const map = new Map<string, string[]>()
+    for (const l of links) {
+      const n = nameById.get(l.profile_id)
+      if (!n) continue
+      map.set(l.service_id, [...(map.get(l.service_id) ?? []), n])
+    }
+    return map
+  }, [employees, links])
+
+  const q = search.trim().toLocaleLowerCase('tr')
   const filteredSorted = useMemo(() => {
-    let list = services.filter((s) => !q || s.name.toLowerCase().includes(q))
-    list = [...list].sort((a, b) => {
+    const list = services.filter((s) => !q || s.name.toLocaleLowerCase('tr').includes(q))
+    return [...list].sort((a, b) => {
+      if (a.is_active !== b.is_active) return a.is_active ? -1 : 1
       if (sortBy === 'ad') return a.name.localeCompare(b.name, 'tr')
       if (sortBy === 'fiyat') return (b.price ?? 0) - (a.price ?? 0)
       return b.duration_minutes - a.duration_minutes
     })
-    return list
   }, [services, q, sortBy])
 
-  if (loading) return <p style={{ color: 'var(--text-dim)' }}>Yükleniyor…</p>
+  if (loading) return <p className={styles.empty}>Yükleniyor…</p>
 
-  const totalCount = services.length
+  if (editorOpen) {
+    const descLines = editing?.description ? editing.description.split(/\n+/).filter((l) => l.trim()).length : 0
+    return (
+      <form className={styles.wrap} onSubmit={saveEditor}>
+        <PageHeader
+          back={closeEditor}
+          title={isNew ? 'Yeni hizmet' : 'Hizmeti düzenle'}
+          action={
+            editing && (
+              <button type="button" className={styles.deleteLink} onClick={() => deleteService(editing)}>
+                Sil
+              </button>
+            )
+          }
+        />
+
+        <div className={styles.card}>
+          <div className={styles.field}>
+            <label htmlFor="serviceName">Hizmet adı</label>
+            <input
+              id="serviceName"
+              className={styles.nameInput}
+              value={name}
+              onChange={(e) => setName(e.target.value)}
+              placeholder="ör. Manikür"
+              required
+            />
+          </div>
+          <div className={styles.twoCol}>
+            <div className={styles.field}>
+              <label htmlFor="servicePrice">Fiyat</label>
+              <div className={styles.priceBox}>
+                <span className={styles.priceSign}>₺</span>
+                <input
+                  id="servicePrice"
+                  type="number"
+                  inputMode="decimal"
+                  min={0}
+                  step="0.01"
+                  value={price}
+                  onChange={(e) => setPrice(e.target.value)}
+                  placeholder="0"
+                />
+              </div>
+            </div>
+            <div className={styles.field}>
+              <span className={styles.fieldLabel}>Süre</span>
+              <div className={styles.stepper}>
+                <button
+                  type="button"
+                  className={styles.stepBtn}
+                  onClick={() => setDuration((d) => Math.max(5, d - 5))}
+                  aria-label="Süreyi azalt"
+                >
+                  −
+                </button>
+                <span className={styles.stepValue}>{duration} dk</span>
+                <button type="button" className={styles.stepBtn} onClick={() => setDuration((d) => d + 5)} aria-label="Süreyi artır">
+                  +
+                </button>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <div className={styles.card}>
+          <div className={styles.cardHead}>
+            <span className={styles.cardTitle}>Kim yapıyor?</span>
+            <span className={styles.cardMeta}>{staff.size === 0 ? 'kimse seçilmedi' : `${staff.size} kişi`}</span>
+          </div>
+          {employees.length === 0 ? (
+            <span className={styles.cardMeta}>Henüz çalışan yok.</span>
+          ) : (
+            <div className={styles.staffChips}>
+              {employees.map((emp, i) => {
+                const on = staff.has(emp.id)
+                return (
+                  <button
+                    type="button"
+                    key={emp.id}
+                    className={on ? styles.staffChipOn : styles.staffChip}
+                    onClick={() => toggleStaff(emp.id)}
+                    aria-pressed={on}
+                  >
+                    <span className={`${styles.staffAvatar} ${on ? styles.toneNavy : styles[AVATAR_TONES[i % AVATAR_TONES.length]]}`}>
+                      {firstName(emp.full_name).charAt(0).toLocaleUpperCase('tr')}
+                    </span>
+                    {firstName(emp.full_name)}
+                  </button>
+                )
+              })}
+            </div>
+          )}
+          {staff.size === 0 && employees.length > 0 && (
+            <span className={styles.warnText}>Kimse seçilmezse bu hizmete randevu verilemez.</span>
+          )}
+        </div>
+
+        <div className={styles.listCard}>
+          {editing ? (
+            <Link to={`/hizmetler/${editing.id}/aciklama`} className={styles.row}>
+              <span className={styles.rowMain}>
+                <span className={styles.rowNameSm}>Açıklama</span>
+                <span className={styles.rowMeta}>
+                  {descLines > 0 ? `Bot müşteriye bunu anlatır · ${descLines} satır yazılı` : 'Henüz yok · bot bu hizmeti anlatamaz'}
+                </span>
+              </span>
+              <ChevronRightIcon width={16} height={16} className={styles.rowChevron} />
+            </Link>
+          ) : (
+            <div className={styles.row}>
+              <span className={styles.rowMain}>
+                <span className={styles.rowNameSm}>Açıklama</span>
+                <span className={styles.rowMeta}>Kaydettikten sonra ekleyebilirsin</span>
+              </span>
+            </div>
+          )}
+          {editing && (
+            <div className={styles.row}>
+              <span className={styles.rowMain}>
+                <span className={styles.rowNameSm}>Randevuda göster</span>
+                <span className={styles.rowMeta}>Kapatırsan bu hizmete yeni randevu alınmaz</span>
+              </span>
+              <label className={styles.switch}>
+                <input type="checkbox" checked={active} onChange={() => setActive((v) => !v)} aria-label="Randevuda göster" />
+                <span className={styles.switchTrack} />
+              </label>
+            </div>
+          )}
+          {editing && activePackages > 0 && (
+            <div className={styles.row}>
+              <span className={styles.rowMain}>
+                <span className={styles.rowNameSm}>Paketler</span>
+                <span className={styles.rowMeta}>{activePackages} müşteride aktif paket var</span>
+              </span>
+            </div>
+          )}
+        </div>
+
+        {editing && monthStats && (
+          <span className={styles.statLine}>
+            {monthStats.count > 0
+              ? `Bu ay ${monthStats.count} kez yapıldı · ${currency.format(monthStats.revenue)} kazandırdı`
+              : 'Bu ay henüz yapılmadı'}
+          </span>
+        )}
+
+        <div className={styles.footer}>
+          <button type="submit" className={styles.footerBtn} disabled={submitting || !name.trim()}>
+            {submitting ? 'Kaydediliyor…' : isNew ? 'Hizmeti ekle' : 'Kaydet'}
+          </button>
+        </div>
+      </form>
+    )
+  }
+
   const activeCount = services.filter((s) => s.is_active).length
-  const inactiveCount = totalCount - activeCount
-  const pricedServices = services.filter((s) => s.price != null)
-  const avgPrice = pricedServices.length
-    ? pricedServices.reduce((sum, s) => sum + (s.price ?? 0), 0) / pricedServices.length
-    : 0
 
   return (
     <div className={styles.wrap}>
-      <button type="button" className={styles.heroCta} onClick={() => setAddModalOpen(true)}>
-        + Hizmet Ekle
-      </button>
+      <PageHeader
+        back="/daha-fazla"
+        title="Hizmetler"
+        sub={`${activeCount} hizmet${services.length > activeCount ? ` · ${services.length - activeCount} pasif` : ''}`}
+        action={
+          <button type="button" className="hdr-btn-navy" onClick={() => openEditor('new')}>
+            + Hizmet
+          </button>
+        }
+      />
 
       <div className={styles.searchRow}>
         <div className={styles.searchBox}>
           <SearchIcon width={16} height={16} className={styles.searchIcon} />
-          <input
-            className={styles.searchInput}
-            placeholder="Hizmet ara…"
-            value={search}
-            onChange={(e) => setSearch(e.target.value)}
-          />
+          <input className={styles.searchInput} placeholder="Hizmet ara" value={search} onChange={(e) => setSearch(e.target.value)} />
         </div>
         <div className={styles.filterWrap} ref={sortMenuRef}>
           <button
@@ -154,9 +436,9 @@ export default function ServicesPage() {
             onClick={() => setSortMenuOpen((v) => !v)}
             aria-haspopup="listbox"
             aria-expanded={sortMenuOpen}
+            aria-label="Sıralama"
           >
-            <FilterIcon width={15} height={15} />
-            Filtrele
+            {SORT_OPTIONS.find((o) => o.value === sortBy)?.short} ▾
           </button>
           {sortMenuOpen && (
             <div className={styles.filterMenu} role="listbox">
@@ -179,191 +461,36 @@ export default function ServicesPage() {
         </div>
       </div>
 
-      <div className={styles.statsGrid}>
-        <div className={`${styles.statCard} ${styles.statCardSignal}`}>
-          <span className={`${styles.statIcon} ${styles.statIconSignal}`}>
-            <ServicesIcon width={14} height={14} />
-          </span>
-          <span className={styles.statValue}>{totalCount}</span>
-          <span className={styles.statLabel}>Toplam Hizmet</span>
-        </div>
-        <div className={`${styles.statCard} ${styles.statCardOk}`}>
-          <span className={`${styles.statIcon} ${styles.statIconOk}`}>
-            <CheckCircleIcon width={14} height={14} />
-          </span>
-          <span className={styles.statValue}>{activeCount}</span>
-          <span className={styles.statLabel}>Aktif Hizmet</span>
-        </div>
-        <div className={`${styles.statCard} ${styles.statCardWarn}`}>
-          <span className={`${styles.statIcon} ${styles.statIconWarn}`}>
-            <ClockIcon width={14} height={14} />
-          </span>
-          <span className={styles.statValue}>{inactiveCount}</span>
-          <span className={styles.statLabel}>Pasif Hizmet</span>
-        </div>
-        <div className={`${styles.statCard} ${styles.statCardInfo}`}>
-          <span className={`${styles.statIcon} ${styles.statIconInfo}`}>
-            <TagIcon width={14} height={14} />
-          </span>
-          <span className={styles.statValue}>{currency.format(avgPrice)}</span>
-          <span className={styles.statLabel}>Ortalama Fiyat</span>
-        </div>
-      </div>
-
-      <div className="card">
-        {filteredSorted.length === 0 ? (
-          <p className={styles.empty}>{q ? 'Eşleşen hizmet yok.' : 'Henüz hizmet eklenmedi.'}</p>
-        ) : (
-          <div className={styles.list}>
-            {filteredSorted.map((s) => {
-              const expanded = expandedId === s.id
-              return (
-                <div key={s.id} className={styles.rowWrap}>
-                  <div className={styles.row}>
-                    <span className={styles.thumb} style={{ background: colorForName(s.name) }}>
-                      <ServicesIcon width={19} height={19} style={{ color: '#fff' }} />
+      {filteredSorted.length === 0 ? (
+        <p className={styles.empty}>{q ? 'Aramana uyan hizmet yok.' : 'Henüz hizmet eklenmedi. “+ Hizmet” ile başla.'}</p>
+      ) : (
+        <div className={styles.listCard}>
+          {filteredSorted.map((s) => {
+            const who = staffByService.get(s.id) ?? []
+            return (
+              <button
+                type="button"
+                key={s.id}
+                className={s.is_active ? styles.row : `${styles.row} ${styles.rowInactive}`}
+                onClick={() => openEditor(s)}
+              >
+                <span className={styles.rowMain}>
+                  <span className={styles.rowName}>{s.name}</span>
+                  {!s.is_active ? (
+                    <span className={styles.rowMeta}>{s.duration_minutes} dk · pasif</span>
+                  ) : who.length === 0 ? (
+                    <span className={styles.rowMetaWarn}>{s.duration_minutes} dk · kimse atanmadı</span>
+                  ) : (
+                    <span className={styles.rowMeta}>
+                      {s.duration_minutes} dk · {who.length > 3 ? `${who.slice(0, 3).join(', ')} +${who.length - 3}` : who.join(', ')}
                     </span>
-                    <div className={styles.rowMain}>
-                      <span className={styles.rowName}>{s.name}</span>
-                    </div>
-                    <span className={styles.rowDuration}>
-                      <ClockIcon width={12} height={12} />
-                      {s.duration_minutes} dk
-                    </span>
-                    <span className={styles.rowPrice}>{s.price != null ? currency.format(s.price) : '—'}</span>
-                    <span className={s.is_active ? styles.statusPillActive : styles.statusPillInactive}>
-                      {s.is_active ? 'Aktif' : 'Pasif'}
-                    </span>
-                    <button
-                      type="button"
-                      className={styles.moreBtn}
-                      onClick={() => setExpandedId(expanded ? null : s.id)}
-                      aria-label="Hizmet seçenekleri"
-                      aria-expanded={expanded}
-                    >
-                      <MoreHorizontalIcon width={16} height={16} />
-                    </button>
-                  </div>
-
-                  {expanded && (
-                    <div className={styles.expandPanel}>
-                      <div className={styles.editGrid}>
-                        <div className={styles.editField}>
-                          <label>Hizmet adı</label>
-                          <input
-                            defaultValue={s.name}
-                            onBlur={(e) => {
-                              const value = e.target.value.trim()
-                              if (value && value !== s.name) updateService(s, { name: value })
-                              else e.target.value = s.name
-                            }}
-                          />
-                        </div>
-                        <div className={styles.editField}>
-                          <label>Süre (dk)</label>
-                          <input
-                            type="number"
-                            min={5}
-                            step={5}
-                            defaultValue={s.duration_minutes}
-                            onBlur={(e) => {
-                              const value = Math.max(5, Number(e.target.value) || s.duration_minutes)
-                              if (value !== s.duration_minutes) updateService(s, { duration_minutes: value })
-                              else e.target.value = String(s.duration_minutes)
-                            }}
-                          />
-                        </div>
-                        <div className={styles.editField}>
-                          <label>Fiyat (TL)</label>
-                          <input
-                            type="number"
-                            min={0}
-                            step="0.01"
-                            defaultValue={s.price ?? 0}
-                            onBlur={(e) => {
-                              const value = Math.max(0, Number(e.target.value) || 0)
-                              if (value !== (s.price ?? 0)) updateService(s, { price: value })
-                              else e.target.value = String(s.price ?? 0)
-                            }}
-                          />
-                        </div>
-                      </div>
-
-                      <div className={styles.editActionsRow}>
-                        <button
-                          type="button"
-                          className={s.is_active ? styles.toggleActive : styles.toggle}
-                          onClick={() => updateService(s, { is_active: !s.is_active })}
-                          aria-label={`${s.name} ${s.is_active ? 'aktif' : 'pasif'}`}
-                        />
-                        <span className={styles.toggleLabel}>{s.is_active ? 'Aktif' : 'Pasif'}</span>
-                        <Link to={`/hizmetler/${s.id}/aciklama`} className={styles.descLink}>
-                          {s.description ? 'Açıklamayı düzenle' : 'Açıklama ekle'}
-                        </Link>
-                      </div>
-
-                      <button type="button" className={styles.deleteBtn} onClick={() => deleteService(s)}>
-                        Hizmeti Sil
-                      </button>
-                    </div>
                   )}
-                </div>
-              )
-            })}
-          </div>
-        )}
-      </div>
-
-      {addModalOpen && (
-        <div className={styles.modalBackdrop} onClick={() => setAddModalOpen(false)}>
-          <div className={`card ${styles.modalCard}`} onClick={(e) => e.stopPropagation()}>
-            <div className={styles.modalHead}>
-              <h2>Yeni hizmet</h2>
-              <button type="button" className={styles.modalClose} onClick={() => setAddModalOpen(false)} aria-label="Kapat">
-                <CloseIcon width={18} height={18} />
+                </span>
+                <span className={styles.rowPrice}>{s.price != null ? currency.format(s.price) : '—'}</span>
+                <span className={styles.rowArrow}>›</span>
               </button>
-            </div>
-            <form onSubmit={handleCreate}>
-              <div className="field">
-                <label htmlFor="serviceName">Hizmet adı</label>
-                <input
-                  id="serviceName"
-                  value={name}
-                  onChange={(e) => setName(e.target.value)}
-                  placeholder="ör. Manikür"
-                  autoFocus
-                  required
-                />
-              </div>
-              <div className="field">
-                <label htmlFor="serviceDuration">Süre (dk)</label>
-                <input
-                  id="serviceDuration"
-                  type="number"
-                  min={5}
-                  step={5}
-                  value={duration}
-                  onChange={(e) => setDuration(e.target.value)}
-                  required
-                />
-              </div>
-              <div className="field">
-                <label htmlFor="servicePrice">Fiyat (TL)</label>
-                <input
-                  id="servicePrice"
-                  type="number"
-                  min={0}
-                  step="0.01"
-                  value={price}
-                  onChange={(e) => setPrice(e.target.value)}
-                  placeholder="0"
-                />
-              </div>
-              <button type="submit" className="btn-primary" disabled={submitting}>
-                {submitting ? 'Ekleniyor…' : 'Hizmet Ekle'}
-              </button>
-            </form>
-          </div>
+            )
+          })}
         </div>
       )}
     </div>

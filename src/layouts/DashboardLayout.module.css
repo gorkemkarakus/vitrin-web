@@ -18,42 +18,46 @@
   flex-shrink: 0;
   display: flex;
   align-items: center;
-  gap: 14px;
-  padding: 14px 20px;
-  background: var(--panel);
-  border-bottom: 1px solid var(--line);
+  gap: 12px;
+  padding: 14px 16px 8px;
+  background: var(--bg);
 }
 
-.topbarMark {
-  width: 27px;
-  height: 27px;
-  object-fit: contain;
-  flex-shrink: 0;
+/* Ana sayfada ust bar, sayfanin lacivert ozet blogunun devami gibi durur
+   (DashboardPage .hero ayni rengi kullanir ve hemen altindan baslar). */
+.topbarHome {
+  background: var(--signal);
+  color: #fff;
+  padding: 16px 20px 14px;
 }
 
 .greeting {
   display: flex;
   flex-direction: column;
-  gap: 1px;
-  flex-shrink: 0;
+  gap: 2px;
+  min-width: 0;
 }
 
 .greeting h1 {
-  font-size: 19px;
-  font-weight: 700;
-  color: var(--text);
+  font-size: 22px;
+  font-weight: 600;
+  color: #fff;
 }
 
 .greeting p {
-  font-size: 12.5px;
-  color: var(--text-dim);
+  font-size: 13px;
+  color: var(--navy-dim);
 }
 
 .pageTitle {
-  font-size: 19px;
-  font-weight: 700;
+  font-size: 28px;
+  letter-spacing: -0.01em;
+  font-weight: 600;
   color: var(--text);
-  flex-shrink: 0;
+  min-width: 0;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
 }
 
 /* ---------- Bildirim + Profil ---------- */
@@ -72,64 +76,65 @@
 
 .bellBtn {
   position: relative;
-  width: 38px;
-  height: 38px;
+  width: 40px;
+  height: 40px;
   border-radius: 50%;
-  background: var(--panel-2);
-  border: 1px solid var(--line);
-  color: var(--text-dim);
+  background: var(--panel);
+  border: none;
+  color: var(--text);
   display: flex;
   align-items: center;
   justify-content: center;
   cursor: pointer;
-  transition:
-    border-color 0.15s,
-    color 0.15s;
 }
 
-.bellBtn:hover {
-  color: var(--text);
-  border-color: var(--text-dim);
+.topbarHome .bellBtn {
+  background: var(--navy-2);
+  color: #fff;
 }
 
 .bellBadge {
   position: absolute;
   top: -3px;
   right: -3px;
-  min-width: 17px;
-  height: 17px;
-  padding: 0 3px;
+  min-width: 18px;
+  height: 18px;
+  padding: 0 4px;
   border-radius: 999px;
-  background: var(--danger-text);
-  color: white;
+  background: var(--accent);
+  color: #fff;
   font-size: 10px;
   font-weight: 700;
   display: flex;
   align-items: center;
   justify-content: center;
   line-height: 1;
-  border: 2px solid var(--panel);
+  border: 2px solid var(--bg);
+}
+
+.topbarHome .bellBadge {
+  border-color: var(--signal);
 }
 
 .bellDropdown {
   position: absolute;
   right: 0;
-  top: 46px;
+  top: 48px;
   width: 280px;
   background: var(--panel);
-  border: 1px solid var(--line);
+  color: var(--text);
   border-radius: var(--radius-lg);
-  box-shadow: 0 8px 24px rgba(31, 41, 55, 0.14);
+  box-shadow: 0 12px 32px rgba(17, 24, 39, 0.16);
   padding: 12px;
   z-index: 55;
 }
 
 .bellDropdownTitle {
-  font-size: 12px;
-  font-weight: 600;
+  font-size: 11px;
+  font-weight: 700;
   color: var(--text-dim);
   text-transform: uppercase;
-  letter-spacing: 0.03em;
+  letter-spacing: 0.06em;
   padding: 4px 8px 10px;
 }
 
@@ -147,8 +152,9 @@
   background: transparent;
   border: none;
   border-radius: var(--radius-sm);
-  padding: 8px;
-  font-size: 13px;
+  padding: 10px 8px;
+  font-size: 14px;
+  font-weight: 700;
   color: var(--text);
   text-align: left;
   cursor: pointer;
@@ -162,6 +168,7 @@
 .bellItemTime {
   color: var(--text-dim);
   font-size: 12px;
+  font-weight: 500;
 }
 
 .profileWrap {
@@ -177,8 +184,8 @@
 }
 
 .avatar {
-  width: 38px;
-  height: 38px;
+  width: 40px;
+  height: 40px;
   border-radius: 50%;
   background: var(--signal);
   color: var(--signal-text);
@@ -186,20 +193,27 @@
   align-items: center;
   justify-content: center;
   font-family: var(--font-heading);
-  font-weight: 700;
+  font-weight: 600;
   font-size: 14px;
   flex-shrink: 0;
+}
+
+.topbarHome .avatar {
+  width: 44px;
+  height: 44px;
+  background: var(--navy-2);
+  border: 2px solid var(--accent);
 }
 
 .profileDropdown {
   position: absolute;
   right: 0;
-  top: 48px;
+  top: 50px;
   width: 210px;
   background: var(--panel);
-  border: 1px solid var(--line);
+  color: var(--text);
   border-radius: var(--radius-lg);
-  box-shadow: 0 8px 24px rgba(31, 41, 55, 0.14);
+  box-shadow: 0 12px 32px rgba(17, 24, 39, 0.16);
   padding: 6px;
   display: flex;
   flex-direction: column;
@@ -217,13 +231,13 @@
 }
 
 .profileDropdownName {
-  font-size: 13px;
+  font-size: 14px;
   font-weight: 700;
   color: var(--text);
 }
 
 .profileDropdownRole {
-  font-size: 11px;
+  font-size: 12px;
   color: var(--text-dim);
 }
 
@@ -235,8 +249,9 @@
   background: transparent;
   border: none;
   border-radius: var(--radius-sm);
-  padding: 9px 10px;
-  font-size: 13px;
+  padding: 10px;
+  font-size: 14px;
+  font-weight: 700;
   color: var(--text);
   text-align: left;
   cursor: pointer;
@@ -260,6 +275,12 @@
   padding: 16px;
 }
 
+/* Ana sayfa disindaki sayfalar kendi basligini ciziyor; ust bosluk durum
+   cubugunun altindan baslasin. */
+.contentPage {
+  padding-top: calc(14px + env(safe-area-inset-top, 0px));
+}
+
 /* ---------- Alt sekme çubuğu ---------- */
 
 /* Eskiden position:fixed + bottom:0 idi — mobil tarayicilarda (localhost'u
@@ -274,46 +295,66 @@
 .bottomNav {
   flex-shrink: 0;
   display: flex;
-  align-items: center;
+  align-items: flex-start;
   justify-content: space-around;
-  height: 64px;
-  padding: 0 6px;
+  padding: 10px 6px calc(8px + env(safe-area-inset-bottom, 0px));
   background: var(--panel);
   border-top: 1px solid var(--line);
+}
+
+/* Hizli islem katmani (.quickOverlay, z-index: 90) acikken bar ve + dugmesi
+   onun USTUNDE kalmali ki ayni dugmeyle kapatilabilsin. Bu yukseltme SADECE
+   katman acikken uygulanir — her zaman acik olsaydi sayfa modallarinin
+   (z-index 60–90, ekranin altina kadar uzanirlar) alt dugmeleri barin
+   arkasinda kalirdi. */
+.bottomNavRaised {
+  position: relative;
+  z-index: 95;
 }
 
 .tab {
   display: flex;
   flex-direction: column;
   align-items: center;
-  justify-content: center;
-  gap: 3px;
+  gap: 4px;
   flex: 1;
-  height: 100%;
-  color: var(--text-dim);
-  font-size: 10.5px;
-  font-weight: 600;
+  min-width: 56px;
+  color: #6b7280;
+  font-size: 11px;
+  font-weight: 700;
+}
+
+.tabIcon {
+  width: 48px;
+  height: 28px;
+  border-radius: 999px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
 }
 
 .tabActive {
-  color: var(--signal);
+  color: var(--text);
+}
+
+.tabActive .tabIcon {
+  background: #edeef2;
 }
 
 .fab {
   width: 54px;
   height: 54px;
   border-radius: 50%;
-  background: var(--signal);
+  background: var(--accent);
   color: #fff;
-  border: none;
+  border: 4px solid var(--panel);
   display: flex;
   align-items: center;
   justify-content: center;
   cursor: pointer;
-  margin-top: -26px;
-  box-shadow: 0 8px 18px rgba(108, 54, 241, 0.38);
+  margin-top: -24px;
+  box-shadow: 0 8px 20px rgba(255, 106, 19, 0.3);
   flex-shrink: 0;
-  transition: opacity 0.15s;
   /* Negatif margin ile barin ustune tastigi icin, sayfalardaki sabit
      "hizli islem" seritleri (CustomersPage/TeamPage .quickRow, z-index: 40)
      gorsel olarak onun ONUNE geciyordu — normal akista, z-index'siz bir
@@ -323,105 +364,188 @@
   z-index: 45;
 }
 
-.fab:hover {
-  opacity: 0.92;
+.fab svg {
+  transition: transform 0.18s ease;
 }
 
-/* ---------- Hızlı işlem sheet'i ---------- */
+.fabOpen {
+  background: var(--text);
+  box-shadow: none;
+}
 
-.sheetBackdrop {
+.fabOpen svg {
+  transform: rotate(45deg);
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .fab svg {
+    transition: none;
+  }
+}
+
+/* ---------- Hızlı işlem katmanı (+ düğmesi) ---------- */
+
+.quickOverlay {
   position: fixed;
   inset: 0;
-  background: rgba(31, 41, 55, 0.45);
+  background: rgba(245, 246, 248, 0.92);
+  backdrop-filter: blur(4px);
+  -webkit-backdrop-filter: blur(4px);
   z-index: 90;
   display: flex;
-  align-items: flex-end;
-  justify-content: center;
+  flex-direction: column;
+  justify-content: space-between;
+  gap: 16px;
+  padding: calc(40px + env(safe-area-inset-top, 0px)) 16px calc(104px + env(safe-area-inset-bottom, 0px));
+  overflow-y: auto;
 }
 
-.sheet {
-  width: 100%;
-  max-width: 520px;
+.quickInfo {
   background: var(--panel);
-  border-radius: 22px 22px 0 0;
-  padding: 12px 20px calc(28px + env(safe-area-inset-bottom, 0px));
-  animation: sheetUp 0.22s ease;
-}
-
-@keyframes sheetUp {
-  from {
-    transform: translateY(100%);
-  }
-  to {
-    transform: translateY(0);
-  }
-}
-
-.sheetHandle {
-  width: 36px;
-  height: 4px;
-  background: var(--line);
-  border-radius: 999px;
-  margin: 0 auto 16px;
-}
-
-.sheetTitle {
-  font-size: 15px;
-  margin-bottom: 14px;
-  color: var(--text);
-}
-
-.sheetGrid {
-  display: grid;
-  grid-template-columns: repeat(2, 1fr);
-  gap: 12px;
-}
-
-.sheetItem {
-  position: relative;
+  border-radius: 22px;
+  padding: 14px;
   display: flex;
   flex-direction: column;
-  align-items: center;
-  gap: 8px;
-  background: var(--panel-2);
-  border: 1px solid var(--line);
-  border-radius: 16px;
-  padding: 16px 10px;
-  font-size: 12.5px;
-  font-weight: 600;
-  color: var(--text);
-  font-family: var(--font-body);
-  cursor: pointer;
+  box-shadow:
+    0 10px 28px rgba(17, 24, 39, 0.1),
+    inset 0 0 0 2px var(--accent-bg-2);
 }
 
-.sheetItem:disabled {
-  opacity: 0.55;
-  cursor: not-allowed;
+.quickInfoTitle {
+  font-size: 11px;
+  font-weight: 700;
+  color: var(--accent-text);
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  padding-bottom: 6px;
 }
 
-.sheetItemIcon {
-  width: 42px;
-  height: 42px;
-  border-radius: 13px;
-  background: var(--panel);
-  color: var(--text-dim);
+.quickInfoRow {
   display: flex;
   align-items: center;
-  justify-content: center;
+  gap: 12px;
+  padding: 9px 0;
+  border-bottom: 1px solid #eef0f3;
 }
 
-.sheetItemIconSignal {
+.quickInfoRow:last-child {
+  border-bottom: none;
+  padding-bottom: 2px;
+}
+
+.quickInfoText {
+  flex: 1;
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+
+.quickInfoMain {
+  font-size: 14px;
+  font-weight: 700;
+  color: var(--text);
+}
+
+.quickInfoSub {
+  font-size: 12px;
+  color: var(--text-dim);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.quickInfoBtn,
+.quickInfoBtnQuiet {
+  border: none;
+  border-radius: 10px;
+  padding: 8px 12px;
+  font-size: 12px;
+  font-weight: 700;
+  font-family: var(--font-body);
+  cursor: pointer;
+  flex-shrink: 0;
+}
+
+.quickInfoBtn {
   background: var(--signal);
   color: #fff;
 }
 
-.sheetItemIconPink {
+.quickInfoBtnQuiet {
   background: var(--panel-2);
-  color: var(--text-dim);
+  color: var(--text);
 }
 
-.sheetItemIconOk {
-  background: var(--ok-text);
+.quickStack {
+  margin-top: auto;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 10px;
+  animation: quickUp 0.2s ease;
+}
+
+@keyframes quickUp {
+  from {
+    opacity: 0;
+    transform: translateY(12px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .quickStack {
+    animation: none;
+  }
+}
+
+.quickPill {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  background: var(--panel);
+  color: var(--text);
+  border: none;
+  border-radius: 999px;
+  padding: 10px 18px 10px 10px;
+  font-size: 14px;
+  font-weight: 700;
+  font-family: var(--font-body);
+  cursor: pointer;
+  box-shadow: 0 6px 18px rgba(17, 24, 39, 0.08);
+}
+
+.quickPillIcon {
+  width: 32px;
+  height: 32px;
+  border-radius: 50%;
+  background: var(--panel-2);
+  color: var(--signal);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.quickPillPrimary {
+  background: var(--signal);
+  color: #fff;
+  padding: 12px 22px 12px 12px;
+  font-size: 15px;
+  box-shadow: 0 8px 22px rgba(19, 40, 79, 0.3);
+}
+
+.quickPillPrimary .quickPillIcon {
+  width: 34px;
+  height: 34px;
+  background: var(--navy-2);
   color: #fff;
 }
 
+.quickPillIconWarm {
+  background: var(--accent-bg);
+  color: var(--accent-text);
+}
