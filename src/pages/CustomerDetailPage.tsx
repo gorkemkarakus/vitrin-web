@@ -130,7 +130,7 @@ function humanizeDuration(days: number): string {
 export default function CustomerDetailPage() {
   const { id } = useParams<{ id: string }>()
   const navigate = useNavigate()
-  const { profile } = useAuth()
+  const { profile, can } = useAuth()
 
   const [customer, setCustomer] = useState<Customer | null>(null)
   const [appointments, setAppointments] = useState<Appointment[]>([])
@@ -618,7 +618,7 @@ export default function CustomerDetailPage() {
         <button
           type="button"
           className={styles.actionBtn}
-          disabled={!rawPhone}
+          disabled={!rawPhone || !can('mesajlar')}
           onClick={() => navigate(`/mesajlar?telefon=${encodeURIComponent(rawPhone ?? '')}`)}
         >
           <MessagesIcon width={18} height={18} />
@@ -631,6 +631,7 @@ export default function CustomerDetailPage() {
         <button
           type="button"
           className={`${styles.actionBtn} ${styles.actionBtnPrimary}`}
+          disabled={!can('odeme_al')}
           onClick={() => {
             setError(null)
             setPayModalOpen(true)

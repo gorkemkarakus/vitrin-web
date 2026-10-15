@@ -2,6 +2,7 @@ import { useEffect, useMemo, useState } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { supabase } from '../lib/supabase'
 import PageHeader from '../components/PageHeader'
+import { useAuth } from '../contexts/AuthContext'
 import { toLocalDateString } from '../lib/date'
 import styles from './TeamPage.module.css'
 
@@ -45,6 +46,9 @@ function timeOf(iso: string) {
 
 export default function TeamPage() {
   const navigate = useNavigate()
+  // Ekip yetkili calisan da bu sayfayi gorur; hesap acmak yalnizca yoneticide.
+  const { profile } = useAuth()
+  const isAdmin = profile?.role === 'admin'
   const [employees, setEmployees] = useState<Employee[]>([])
   const [timeBlocks, setTimeBlocks] = useState<TimeBlock[]>([])
   const [schedules, setSchedules] = useState<Schedule[]>([])
@@ -160,9 +164,11 @@ export default function TeamPage() {
         back="/daha-fazla"
         title="Ekip"
         action={
-          <button type="button" className="hdr-btn-navy" onClick={() => navigate('/ekip/yeni')}>
-            + Çalışan
-          </button>
+          isAdmin && (
+            <button type="button" className="hdr-btn-navy" onClick={() => navigate('/ekip/yeni')}>
+              + Çalışan
+            </button>
+          )
         }
       />
       <span className={styles.nowLine}>Şu an · {nowLabel.charAt(0).toLocaleUpperCase('tr') + nowLabel.slice(1)}</span>

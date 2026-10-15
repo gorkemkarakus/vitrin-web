@@ -595,6 +595,8 @@ export default function AccountingPage() {
         </div>
       </div>
 
+      {/* Oranlar yalnizca yoneticide (Kasa yetkili calisan sadece gorur). */}
+      {profile?.role === 'admin' && (
       <div className={styles.block}>
         <h2 className={styles.blockTitle}>Vergi ve prim oranı</h2>
         <div className={styles.rateCard}>
@@ -627,6 +629,7 @@ export default function AccountingPage() {
           </button>
         </div>
       </div>
+      )}
 
       <div className={styles.block}>
         <h2 className={styles.blockTitle}>Hizmete göre tahsilat</h2>

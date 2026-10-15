@@ -1,6 +1,8 @@
 import { createContext, useContext, useEffect, useState, type ReactNode } from 'react'
 import type { Session, User } from '@supabase/supabase-js'
 import { supabase } from '../lib/supabase'
+import { ALL_PERMISSIONS, DEFAULT_PERMISSIONS, type PermKey } from '../lib/permissions'
+import { publicSiteBase } from '../lib/bookingUrl'
 
 interface Profile {
   id: string
@@ -15,6 +17,8 @@ interface AuthContextValue {
   user: User | null
   profile: Profile | null
   loading: boolean
+  // Oturumdaki kullanicinin yetkisi var mi (yonetici icin hep true).
+  can: (perm: PermKey) => boolean
   signIn: (email: string, password: string) => Promise<{ error: string | null }>
   signOut: () => Promise<void>
   resetPassword: (email: string) => Promise<{ error: string | null }>
@@ -25,6 +29,7 @@ const AuthContext = createContext<AuthContextValue | null>(null)
 export function AuthProvider({ children }: { children: ReactNode }) {
   const [session, setSession]   = useState<Session | null>(null)
   const [profile, setProfile]   = useState<Profile | null>(null)
+  const [permissions, setPermissions] = useState<Set<PermKey>>(new Set())
   const [loading, setLoading]   = useState(true)
 
   useEffect(() => {
@@ -37,20 +42,30 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     const { data: listener } = supabase.auth.onAuthStateChange((_event, newSession) => {
       setSession(newSession)
       if (newSession) fetchProfile(newSession.user.id)
-      else { setProfile(null); setLoading(false) }
+      else { setProfile(null); setPermissions(new Set()); setLoading(false) }
     })
 
     return () => listener.subscription.unsubscribe()
   }, [])
 
   async function fetchProfile(userId: string) {
-    const { data } = await supabase
-      .from('profiles')
-      .select('id, business_id, role, full_name, is_active')
-      .eq('id', userId)
-      .maybeSingle()
+    const [{ data }, { data: perms, error: permErr }] = await Promise.all([
+      supabase
+        .from('profiles')
+        .select('id, business_id, role, full_name, is_active')
+        .eq('id', userId)
+        .maybeSingle(),
+      supabase.rpc('my_permissions'),
+    ])
     setProfile(data ?? null)
+    // RPC yoksa (migration oncesi) rol bazli eski davranis.
+    if (!permErr && Array.isArray(perms)) setPermissions(new Set(perms as PermKey[]))
+    else setPermissions(new Set(data?.role === 'admin' ? ALL_PERMISSIONS : DEFAULT_PERMISSIONS))
     setLoading(false)
+  }
+
+  function can(perm: PermKey) {
+    return profile?.role === 'admin' || permissions.has(perm)
   }
 
   async function signIn(email: string, password: string) {
@@ -64,8 +79,11 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   }
 
   async function resetPassword(email: string) {
+    // Telefonda origin "https://localhost" oldugu icin maildeki link orada
+    // calismaz; site adresi tanimliysa o kullanilir.
+    const base = publicSiteBase() ?? window.location.origin
     const { error } = await supabase.auth.resetPasswordForEmail(email, {
-      redirectTo: `${window.location.origin}/sifre-sifirla`,
+      redirectTo: `${base}/sifre-sifirla`,
     })
     if (error) return { error: error.message }
     return { error: null }
@@ -77,6 +95,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       user: session?.user ?? null,
       profile,
       loading,
+      can,
       signIn,
       signOut,
       resetPassword,

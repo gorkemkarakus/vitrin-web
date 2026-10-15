@@ -240,7 +240,10 @@ function rankEligibleByFairness(eligibleIds: string[], appointments: Appointment
 }
 
 export default function AppointmentsPage() {
-  const { profile } = useAuth()
+  const { profile, can } = useAuth()
+  // Calisan yetkileri (yoneticide hepsi acik) — bkz. lib/permissions.ts.
+  const canPay = can('odeme_al')
+  const canSeeAll = can('randevu_tumu_gor')
   const navigate = useNavigate()
   const { searchQuery, setSearchPlaceholder } = useOutletContext<LayoutOutletContext>()
   const [searchParams, setSearchParams] = useSearchParams()
@@ -476,7 +479,12 @@ export default function AppointmentsPage() {
   // Calisan: kendi actigi randevular + kendisine atanmis olanlar (bot, online
   // sayfa ya da yoneticinin actigi) — appointments_update_assigned politikasi.
   function canEdit(appt: Appointment) {
-    return profile?.role === 'admin' || appt.created_by_user_id === profile?.id || appt.employee_id === profile?.id
+    return (
+      profile?.role === 'admin' ||
+      can('randevu_tumu_duzenle') ||
+      appt.created_by_user_id === profile?.id ||
+      appt.employee_id === profile?.id
+    )
   }
 
   function openDetail(a: Appointment) {
@@ -599,13 +607,16 @@ export default function AppointmentsPage() {
 
   // Bir hizmete hic kimse atanmamissa (bkz. EmployeeDetailPage.tsx "Verdigi
   // Hizmetler") o hizmete kimse randevu alamaz — kasitli, fallback yok.
+  // "Herkesin randevularini gor" yetkisi olmayan calisan diger calisanlarin
+  // doluluğunu goremedigi icin yalnizca kendine randevu acar.
   const eligibleEmployees = useMemo(() => {
-    if (!selectedService) return profiles
+    const pool = canSeeAll ? profiles : profiles.filter((p) => p.id === profile?.id)
+    if (!selectedService) return pool
     const ids = new Set(
       employeeServices.filter((es) => es.service_id === selectedService.id).map((es) => es.profile_id),
     )
-    return profiles.filter((p) => ids.has(p.id))
-  }, [selectedService, employeeServices, profiles])
+    return pool.filter((p) => ids.has(p.id))
+  }, [selectedService, employeeServices, profiles, canSeeAll, profile?.id])
 
   function isEmployeeAvailable(employeeId: string, start: Date, durationMinutes: number, excludeApptId?: string) {
     const dayOfWeek = start.getDay()
@@ -985,7 +996,8 @@ export default function AppointmentsPage() {
       packagePaidSoFar = completeScopePaid
     }
     const remainingDue = isPackageFlow ? Math.max(0, packageExpected - packagePaidSoFar) : Math.max(0, price)
-    const rawEntered = Number(completePaymentAmount) || 0
+    // Odeme alma yetkisi yoksa tutar ne girilmis olursa olsun kaydedilmez.
+    const rawEntered = canPay ? Number(completePaymentAmount) || 0 : 0
     if (!completeFullyPaid && rawEntered > remainingDue) {
       setCompleteError('Kalan borçtan fazla tutar girilemez.')
       return
@@ -996,7 +1008,11 @@ export default function AppointmentsPage() {
     // tum kalan bakiyesi tahsil edilmis olmali (sonraki seans olmayacagi
     // icin kalan borcu tahsil edecek baska bir firsat kalmaz).
     if (isLastSession && !completeFullyPaid && Math.max(0, remainingDue - entered) > 0) {
-      setCompleteError('Son seansta paketin tüm tutarı ödenmelidir.')
+      setCompleteError(
+        canPay
+          ? 'Son seansta paketin tüm tutarı ödenmelidir.'
+          : 'Paketin son seansını ödeme alma yetkisi olan biri kapatmalı.',
+      )
       return
     }
 
@@ -1335,7 +1351,7 @@ export default function AppointmentsPage() {
       // Musteri bakiyesi/fazla odeme kavrami kaldirildi — girilen tutar
       // hicbir zaman kalan borcu asamaz, dogrudan buna gore kirpilir.
       const remainingDue = isPackageFlow ? Math.max(0, previewExpected - previewPaidSoFar) : Math.max(0, price)
-      const entered = Math.min(Number(completePaymentAmount) || 0, remainingDue)
+      const entered = canPay ? Math.min(Number(completePaymentAmount) || 0, remainingDue) : 0
       const stillOwed = Math.max(0, remainingDue - entered)
       completePaymentSummary = { price, remainingDue, entered, stillOwed }
     }
@@ -1375,7 +1391,7 @@ export default function AppointmentsPage() {
   const completeTotalSteps = completionPreview?.needsNextSession ? 3 : 2
   const completeDoneSteps =
     1 +
-    (completeFullyPaid || completePaymentSummary.entered > 0 || completePayMode === 'none' ? 1 : 0) +
+    (completeFullyPaid || completePaymentSummary.entered > 0 || completePayMode === 'none' || !canPay ? 1 : 0) +
     (completionPreview?.needsNextSession && completeFollowupDate && completeFollowupTime ? 1 : 0)
   const canSubmitCompletion = completingAppt !== null && !completeLoadingScope && completeMissing.length === 0
 
@@ -2206,6 +2222,11 @@ export default function AppointmentsPage() {
                 <p className={styles.emptyNote}>Yükleniyor…</p>
               ) : completeFullyPaid ? (
                 <p className={styles.stepOk}>Bu paket daha önce tamamen tahsil edildi.</p>
+              ) : !canPay ? (
+                <p className={styles.emptyNote}>
+                  Ödeme alma yetkin yok; {currency.format(completePaymentSummary.remainingDue)} müşterinin borcu olarak kalır,
+                  yetkili biri tahsil eder.
+                </p>
               ) : (
                 <>
                   <div className={styles.payOptions}>

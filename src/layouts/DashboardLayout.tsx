@@ -101,10 +101,11 @@ export interface LayoutOutletContext {
 export default function DashboardLayout() {
   const location = useLocation()
   const navigate = useNavigate()
-  const { profile, signOut } = useAuth()
+  const { profile, signOut, can } = useAuth()
   const isAdmin = profile?.role === 'admin'
   const isHome = location.pathname === '/dashboard'
-  const tabItems = isAdmin ? TAB_ITEMS : EMPLOYEE_TAB_ITEMS
+  // Mesajlar yetkisi kapali calisanda o sekme yerine Daha Fazla kalir.
+  const tabItems = isAdmin ? TAB_ITEMS : EMPLOYEE_TAB_ITEMS.filter((t) => t.path !== '/mesajlar' || can('mesajlar'))
   const firstName = (profile?.full_name ?? 'İşletmeniz').trim().split(/\s+/)[0]
 
   const [pending, setPending] = useState<PendingAppointment[]>([])
@@ -218,9 +219,10 @@ export default function DashboardLayout() {
     loadPending()
   }, [location.pathname])
 
-  // Giderler sadece yoneticiye acik — calisan hesabinda sorgu hic atilmaz.
+  // Giderler sadece Kasa yetkisiyle acik — yoksa sorgu hic atilmaz.
+  const canKasa = can('kasa')
   useEffect(() => {
-    if (!isAdmin) {
+    if (!canKasa) {
       setUnpaid(null)
       return
     }
@@ -248,7 +250,7 @@ export default function DashboardLayout() {
       })
     }
     loadUnpaid()
-  }, [location.pathname, isAdmin])
+  }, [location.pathname, canKasa])
 
   // + menusundeki "Once bunlara bak" kutusu icin: bugun tamamlanan ama
   // ucreti (tamami) alinmayan tek seferlik randevular ve botun birakip seni
@@ -299,9 +301,10 @@ export default function DashboardLayout() {
           .filter((r) => r.amount > 0)
       }
       if (cancelled) return
-      setUnpaidToday(rows)
+      // Yetkisi olmayana gosterilmez (dokununca acilacak ekran kapali).
+      setUnpaidToday(can('odeme_al') ? rows : [])
       setWaitingConvs(
-        (paused ?? [])
+        (can('mesajlar') ? (paused ?? []) : [])
           .filter((c) => c.phone)
           .map((c) => ({ phone: c.phone as string, name: c.full_name && c.full_name !== 'Müşteri' ? c.full_name : (c.phone as string) })),
       )
@@ -310,6 +313,7 @@ export default function DashboardLayout() {
     return () => {
       cancelled = true
     }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [actionSheetOpen])
 
   const hasQuickInfo = unpaidToday.length > 0 || waitingConvs.length > 0 || pending.length > 0 || (unpaid !== null && (unpaid.overdueCount > 0 || unpaid.soonCount > 0))
@@ -567,7 +571,7 @@ export default function DashboardLayout() {
                 Toplu mesaj
               </button>
             )}
-            {isAdmin && (
+            {canKasa && (
               <button
                 type="button"
                 role="menuitem"
@@ -583,7 +587,7 @@ export default function DashboardLayout() {
                 Gider ekle
               </button>
             )}
-            {!isAdmin && (
+            {!isAdmin && can('mesajlar') && (
             <button
               type="button"
               role="menuitem"
@@ -613,6 +617,7 @@ export default function DashboardLayout() {
               </span>
               Yeni müşteri
             </button>
+            {can('odeme_al') && (
             <button
               type="button"
               role="menuitem"
@@ -627,6 +632,7 @@ export default function DashboardLayout() {
               </span>
               Ödeme al
             </button>
+            )}
             <button
               type="button"
               role="menuitem"

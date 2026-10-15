@@ -3,6 +3,8 @@ import { useNavigate } from 'react-router-dom'
 import { useAuth } from '../contexts/AuthContext'
 import { supabase } from '../lib/supabase'
 import PageHeader from '../components/PageHeader'
+import PermissionEditor from '../components/PermissionEditor'
+import { DEFAULT_PERMISSIONS, type PermKey } from '../lib/permissions'
 import styles from './EmployeeCreatePage.module.css'
 
 const GENDER_OPTIONS: { value: '' | 'kadin' | 'erkek'; label: string }[] = [
@@ -26,7 +28,7 @@ function generatePassword() {
 
 export default function EmployeeCreatePage() {
   const navigate = useNavigate()
-  const { session } = useAuth()
+  const { session, profile } = useAuth()
 
   const [step, setStep] = useState<1 | 2>(1)
   const [fullName, setFullName] = useState('')
@@ -36,6 +38,7 @@ export default function EmployeeCreatePage() {
   const [gender, setGender] = useState<'' | 'kadin' | 'erkek'>('')
   const [services, setServices] = useState<ServiceLite[]>([])
   const [selectedServices, setSelectedServices] = useState<Set<string>>(new Set())
+  const [perms, setPerms] = useState<Set<PermKey>>(new Set(DEFAULT_PERMISSIONS))
   const [submitting, setSubmitting] = useState(false)
   const [error, setError] = useState<string | null>(null)
 
@@ -83,6 +86,17 @@ export default function EmployeeCreatePage() {
         return
       }
       const newId = body.data.id as string
+      // Yetkiler: varsayilandan farkli olsa da olmasa da satir yazilir ki
+      // calisan sayfasinda neyin acik oldugu net gorunsun.
+      if (profile?.business_id) {
+        const { error: permErr } = await supabase
+          .from('employee_permissions')
+          .insert({ profile_id: newId, business_id: profile.business_id, permissions: Array.from(perms) })
+        if (permErr && !/does not exist|could not find/i.test(permErr.message)) {
+          // Sayfa birazdan calisanin sayfasina gececegi icin hata ekranda kalmaz.
+          window.alert('Hesap açıldı ama yetkiler kaydedilemedi; çalışanın sayfasından tekrar seçebilirsin.')
+        }
+      }
       if (selectedServices.size > 0) {
         await supabase
           .from('employee_services')
@@ -103,18 +117,10 @@ export default function EmployeeCreatePage() {
       <div className={styles.wrap}>
         <PageHeader back={() => setStep(1)} title={`${firstName} uygulamada ne görsün?`} sub="Sonradan değiştirebilirsin" />
 
-        <div className={styles.roleList}>
-          <div className={styles.roleCardActive}>
-            <span className={styles.radioOn} />
-            <span className={styles.roleText}>
-              <span className={styles.roleName}>Çalışan</span>
-              <span className={styles.roleDesc}>Randevular, müşteriler ve mesajlar</span>
-            </span>
-          </div>
-        </div>
+        <PermissionEditor value={perms} onChange={setPerms} disabled={submitting} />
 
         <div className={styles.infoBox}>
-          Çalışanlar salonun gelirini, giderlerini ve diğer çalışanların kazancını <b>göremez</b>.
+          Hesap açma, yetki verme, toplu mesaj, AI analiz ve reklam her zaman <b>yalnızca yöneticide</b> kalır.
         </div>
 
         <span className={styles.groupLabel}>Yaptığı hizmetler</span>

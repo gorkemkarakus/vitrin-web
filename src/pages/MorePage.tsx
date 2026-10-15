@@ -14,20 +14,28 @@ import {
   SparkleIcon,
   SendIcon,
 } from '../components/icons'
+import type { PermKey } from '../lib/permissions'
 import styles from './MorePage.module.css'
 
 // `tint: true` olan kutu (AI İş Analizi) diger kutulardan ayri, mor zeminle
 // cizilir — yapay zeka ozelligi oldugunu renkle ayirt etmek icin.
-const MENU_ITEMS = [
-  { path: '/mesajlar', label: 'Mesajlar', adminOnly: false, icon: MessagesIcon, tint: false },
-  { path: '/toplu-mesaj', label: 'Toplu mesaj', adminOnly: true, icon: SendIcon, tint: false },
-  { path: '/muhasebe', label: 'Muhasebe', adminOnly: true, icon: AccountingIcon, tint: false },
-  { path: '/ekip', label: 'Ekip', adminOnly: true, icon: TeamIcon, tint: false },
-  { path: '/hizmetler', label: 'Hizmetler', adminOnly: true, icon: ServicesIcon, tint: false },
-  { path: '/performans-raporu', label: 'Performans', adminOnly: true, icon: TrophyIcon, tint: false },
-  { path: '/reklam', label: 'Reklam', adminOnly: true, icon: MegaphoneIcon, tint: false },
-  { path: '/ai-analiz', label: 'AI analiz', adminOnly: true, icon: SparkleIcon, tint: true },
-  { path: '/ayarlar', label: 'Ayarlar', adminOnly: false, icon: SettingsIcon, tint: false },
+// access: 'admin' = sadece yonetici, PermKey = o yetkisi olan, undefined = herkes.
+const MENU_ITEMS: {
+  path: string
+  label: string
+  access?: 'admin' | PermKey
+  icon: typeof MessagesIcon
+  tint: boolean
+}[] = [
+  { path: '/mesajlar', label: 'Mesajlar', access: 'mesajlar', icon: MessagesIcon, tint: false },
+  { path: '/toplu-mesaj', label: 'Toplu mesaj', access: 'admin', icon: SendIcon, tint: false },
+  { path: '/muhasebe', label: 'Muhasebe', access: 'kasa', icon: AccountingIcon, tint: false },
+  { path: '/ekip', label: 'Ekip', access: 'ekip_yonet', icon: TeamIcon, tint: false },
+  { path: '/hizmetler', label: 'Hizmetler', access: 'hizmet_yonet', icon: ServicesIcon, tint: false },
+  { path: '/performans-raporu', label: 'Performans', access: 'raporlar', icon: TrophyIcon, tint: false },
+  { path: '/reklam', label: 'Reklam', access: 'admin', icon: MegaphoneIcon, tint: false },
+  { path: '/ai-analiz', label: 'AI analiz', access: 'admin', icon: SparkleIcon, tint: true },
+  { path: '/ayarlar', label: 'Ayarlar', icon: SettingsIcon, tint: false },
 ]
 
 function initials(name: string) {
@@ -43,11 +51,13 @@ function initials(name: string) {
 
 export default function MorePage() {
   const navigate = useNavigate()
-  const { profile, signOut } = useAuth()
+  const { profile, signOut, can } = useAuth()
   const isAdmin = profile?.role === 'admin'
   const name = profile?.full_name ?? 'İşletmeniz'
 
-  const visibleItems = MENU_ITEMS.filter((item) => !item.adminOnly || isAdmin)
+  const visibleItems = MENU_ITEMS.filter(
+    (item) => !item.access || (item.access === 'admin' ? isAdmin : can(item.access)),
+  )
 
   // Ust kartta isletme adi + calisan sayisi, Mesajlar kutusunda seni
   // bekleyen (botun biraktigi) konusma sayisi.

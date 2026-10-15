@@ -30,9 +30,19 @@ import TopluMesajPage from './pages/TopluMesajPage'
 import PublicBookingPage from './public/PublicBookingPage'
 import NotificationsPage from './pages/NotificationsPage'
 import ResetPasswordPage from './pages/ResetPasswordPage'
+import type { PermKey } from './lib/permissions'
 
-function ProtectedRoute({ children, adminOnly = false }: { children: React.ReactNode; adminOnly?: boolean }) {
-  const { session, profile, loading } = useAuth()
+// adminOnly: sadece yonetici. perm: yoneticiye ya da o yetkisi acik calisana.
+function ProtectedRoute({
+  children,
+  adminOnly = false,
+  perm,
+}: {
+  children: React.ReactNode
+  adminOnly?: boolean
+  perm?: PermKey
+}) {
+  const { session, profile, loading, can } = useAuth()
 
   if (loading) return (
     <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', height: '100vh', color: 'var(--text-dim)' }}>
@@ -42,6 +52,7 @@ function ProtectedRoute({ children, adminOnly = false }: { children: React.React
 
   if (!session || !profile || !profile.is_active) return <Navigate to="/" replace />
   if (adminOnly && profile.role !== 'admin') return <Navigate to="/randevular" replace />
+  if (perm && !can(perm)) return <Navigate to="/randevular" replace />
 
   return <>{children}</>
 }
@@ -80,7 +91,7 @@ function AppRoutes() {
           />
           <Route element={<ProtectedRoute><DashboardLayout /></ProtectedRoute>}>
             <Route path="randevular" element={<AppointmentsPage />} />
-            <Route path="mesajlar"   element={<MessagesPage />} />
+            <Route path="mesajlar"   element={<ProtectedRoute perm="mesajlar"><MessagesPage /></ProtectedRoute>} />
             <Route path="ayarlar"    element={<SettingsPage />} />
             <Route path="bildirimler" element={<NotificationsPage />} />
             <Route path="musteriler" element={<CustomersPage />} />
@@ -92,15 +103,15 @@ function AppRoutes() {
             />
             <Route
               path="muhasebe"
-              element={<ProtectedRoute adminOnly><AccountingPage /></ProtectedRoute>}
+              element={<ProtectedRoute perm="kasa"><AccountingPage /></ProtectedRoute>}
             />
             <Route
               path="ekip"
-              element={<ProtectedRoute adminOnly><TeamPage /></ProtectedRoute>}
+              element={<ProtectedRoute perm="ekip_yonet"><TeamPage /></ProtectedRoute>}
             />
             <Route
               path="ekip/tatiller"
-              element={<ProtectedRoute adminOnly><HolidaysPage /></ProtectedRoute>}
+              element={<ProtectedRoute perm="ekip_yonet"><HolidaysPage /></ProtectedRoute>}
             />
             <Route
               path="ekip/yeni"
@@ -108,31 +119,31 @@ function AppRoutes() {
             />
             <Route
               path="ekip/:id"
-              element={<ProtectedRoute adminOnly><EmployeeDetailPage /></ProtectedRoute>}
+              element={<ProtectedRoute perm="ekip_yonet"><EmployeeDetailPage /></ProtectedRoute>}
             />
             <Route
               path="ekip/:id/saatler"
-              element={<ProtectedRoute adminOnly><EmployeeSchedulePage /></ProtectedRoute>}
+              element={<ProtectedRoute perm="ekip_yonet"><EmployeeSchedulePage /></ProtectedRoute>}
             />
             <Route
               path="ekip/:id/izinler"
-              element={<ProtectedRoute adminOnly><EmployeeLeavesPage /></ProtectedRoute>}
+              element={<ProtectedRoute perm="ekip_yonet"><EmployeeLeavesPage /></ProtectedRoute>}
             />
             <Route
               path="hizmetler"
-              element={<ProtectedRoute adminOnly><ServicesPage /></ProtectedRoute>}
+              element={<ProtectedRoute perm="hizmet_yonet"><ServicesPage /></ProtectedRoute>}
             />
             <Route
               path="hizmetler/:id/aciklama"
-              element={<ProtectedRoute adminOnly><ServiceDescriptionPage /></ProtectedRoute>}
+              element={<ProtectedRoute perm="hizmet_yonet"><ServiceDescriptionPage /></ProtectedRoute>}
             />
             <Route
               path="performans-raporu"
-              element={<ProtectedRoute adminOnly><PerformanceReportPage /></ProtectedRoute>}
+              element={<ProtectedRoute perm="raporlar"><PerformanceReportPage /></ProtectedRoute>}
             />
             <Route
               path="giderler"
-              element={<ProtectedRoute adminOnly><GiderlerPage /></ProtectedRoute>}
+              element={<ProtectedRoute perm="kasa"><GiderlerPage /></ProtectedRoute>}
             />
             <Route
               path="reklam"

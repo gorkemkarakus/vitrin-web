@@ -4,6 +4,8 @@ import { supabase } from '../lib/supabase'
 import { useAuth } from '../contexts/AuthContext'
 import Select from '../components/Select'
 import HandoverAppointments from '../components/HandoverAppointments'
+import PermissionEditor from '../components/PermissionEditor'
+import { DEFAULT_PERMISSIONS, type PermKey } from '../lib/permissions'
 import { ChevronRightIcon } from '../components/icons'
 import { toLocalDateString } from '../lib/date'
 import { currency } from '../lib/currency'
@@ -116,7 +118,11 @@ type Section = 'ana' | 'saatler' | 'hizmetler' | 'kazanc' | 'erisim'
 export default function EmployeeDetailPage() {
   const { id } = useParams<{ id: string }>()
   const navigate = useNavigate()
-  const { session, profile } = useAuth()
+  const { session, profile, can } = useAuth()
+  // Hesap/yetki/pasife alma yalnizca yoneticide; para bilgisi Kasa ya da
+  // Performans yetkisiyle gorunur (ekip_yonet yetkili calisan da bu sayfaya girer).
+  const isAdmin = profile?.role === 'admin'
+  const canMoney = can('kasa') || can('raporlar')
 
   const [employee, setEmployee] = useState<Employee | null>(null)
   const [services, setServices] = useState<ServiceLite[]>([])
@@ -146,6 +152,36 @@ export default function EmployeeDetailPage() {
   const [nameDraft, setNameDraft] = useState('')
   const [phoneDraft, setPhoneDraft] = useState('')
   const [genderDraft, setGenderDraft] = useState<'' | 'kadin' | 'erkek'>('')
+  const [permDraft, setPermDraft] = useState<Set<PermKey>>(new Set(DEFAULT_PERMISSIONS))
+  const [permSaving, setPermSaving] = useState(false)
+  const [permMsg, setPermMsg] = useState<{ type: 'ok' | 'err'; text: string } | null>(null)
+
+  // Calisanin yetkileri (satiri yoksa varsayilanlar gecerli).
+  useEffect(() => {
+    if (!isAdmin || !id) return
+    supabase
+      .from('employee_permissions')
+      .select('permissions')
+      .eq('profile_id', id)
+      .maybeSingle()
+      .then(({ data }) => setPermDraft(new Set((data?.permissions as PermKey[] | undefined) ?? DEFAULT_PERMISSIONS)))
+  }, [isAdmin, id])
+
+  async function savePermissions() {
+    if (!id || !profile?.business_id) return
+    setPermSaving(true)
+    setPermMsg(null)
+    const { error: err } = await supabase
+      .from('employee_permissions')
+      .upsert({ profile_id: id, business_id: profile.business_id, permissions: Array.from(permDraft) })
+    setPermSaving(false)
+    if (err) {
+      const missing = /does not exist|could not find/i.test(err.message)
+      setPermMsg({ type: 'err', text: missing ? 'Bu özellik için veritabanı güncellemesi bekleniyor.' : 'Kaydedilemedi: ' + err.message })
+      return
+    }
+    setPermMsg({ type: 'ok', text: 'Yetkiler kaydedildi. Çalışan uygulamayı yeniden açınca geçerli olur.' })
+  }
   const [profileReady, setProfileReady] = useState(false)
   const [savingProfile, setSavingProfile] = useState(false)
   const [profileError, setProfileError] = useState('')
@@ -797,6 +833,17 @@ export default function EmployeeDetailPage() {
           </button>
         </div>
 
+        {employee?.role === 'user' && (
+          <div className={styles.permBlock}>
+            <span className={styles.formTitle}>Neleri görsün, neye müdahale etsin?</span>
+            <PermissionEditor value={permDraft} onChange={setPermDraft} disabled={permSaving} />
+            {permMsg && <p className={permMsg.type === 'ok' ? styles.success : styles.error}>{permMsg.text}</p>}
+            <button type="button" className="btn-primary" onClick={savePermissions} disabled={permSaving}>
+              {permSaving ? 'Kaydediliyor…' : 'Yetkileri kaydet'}
+            </button>
+          </div>
+        )}
+
         <div className={styles.formCard}>
           <span className={styles.formTitle}>Uygulamaya giriş</span>
           <p className={styles.hint} style={{ textAlign: 'left' }}>
@@ -957,9 +1004,11 @@ export default function EmployeeDetailPage() {
           <button type="button" className={styles.backBtnGray} onClick={() => navigate('/ekip')} aria-label="Ekibe dön">
             <ChevronRightIcon width={16} height={16} className={styles.backIcon} />
           </button>
-          <button type="button" className={styles.editBtn} onClick={() => setSection('erisim')}>
-            Düzenle
-          </button>
+          {isAdmin && (
+            <button type="button" className={styles.editBtn} onClick={() => setSection('erisim')}>
+              Düzenle
+            </button>
+          )}
         </div>
         <div className={styles.hero}>
           <span className={styles.heroAvatar}>{name.trim().charAt(0).toLocaleUpperCase('tr')}</span>
@@ -975,7 +1024,7 @@ export default function EmployeeDetailPage() {
             <span className={styles.statLabel}>randevu · {monthCap}</span>
           </div>
           <div className={styles.statItem}>
-            <span className={styles.statValue}>{currency.format(monthCollected)}</span>
+            <span className={styles.statValue}>{canMoney ? currency.format(monthCollected) : '—'}</span>
             <span className={styles.statLabel}>ciro</span>
           </div>
           <div className={styles.statItem}>
@@ -1030,27 +1079,31 @@ export default function EmployeeDetailPage() {
             </span>
             <span className={styles.navChevron}>›</span>
           </button>
-          <button type="button" className={styles.navRow} onClick={() => setSection('kazanc')}>
-            <span className={styles.navText}>
-              <span className={styles.navTitle}>Kazanç ve prim</span>
-              <span className={styles.navSub}>
-                %{commissionPct} prim · {monthCap} {currency.format(primAmount)}
+          {canMoney && (
+            <button type="button" className={styles.navRow} onClick={() => setSection('kazanc')}>
+              <span className={styles.navText}>
+                <span className={styles.navTitle}>Kazanç ve prim</span>
+                <span className={styles.navSub}>
+                  %{commissionPct} prim · {monthCap} {currency.format(primAmount)}
+                </span>
               </span>
-            </span>
-            <span className={styles.navChevron}>›</span>
-          </button>
-          <button type="button" className={styles.navRow} onClick={() => setSection('erisim')}>
-            <span className={styles.navText}>
-              <span className={styles.navTitle}>Uygulama erişimi</span>
-              <span className={styles.navSub}>
-                {employee.role === 'admin' ? 'Yönetici · her şeyi görür' : 'Kendi takvimini ve müşterileri görebilir'}
+              <span className={styles.navChevron}>›</span>
+            </button>
+          )}
+          {isAdmin && (
+            <button type="button" className={styles.navRow} onClick={() => setSection('erisim')}>
+              <span className={styles.navText}>
+                <span className={styles.navTitle}>Uygulama erişimi ve yetkiler</span>
+                <span className={styles.navSub}>
+                  {employee.role === 'admin' ? 'Yönetici · her şeyi görür' : `${permDraft.size} / 8 yetki açık`}
+                </span>
               </span>
-            </span>
-            <span className={styles.navChevron}>›</span>
-          </button>
+              <span className={styles.navChevron}>›</span>
+            </button>
+          )}
         </div>
 
-        {profile?.id !== employee.id && (
+        {isAdmin && profile?.id !== employee.id && (
           <button type="button" className={styles.deactivateBtn} onClick={toggleActive}>
             {employee.is_active ? 'Çalışanı pasife al' : 'Çalışanı tekrar aktif et'}
           </button>
