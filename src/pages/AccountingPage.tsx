@@ -42,6 +42,7 @@ interface Expense {
   due_date: string | null
   is_recurring: boolean
   is_paid: boolean
+  payment_method?: string | null
 }
 
 interface ServicePackage {
@@ -138,7 +139,7 @@ export default function AccountingPage() {
         supabase.from('business_finance_settings').select('commission_pct, tax_pct').maybeSingle(),
         supabase
           .from('business_expenses')
-          .select('id, description, amount, expense_date, due_date, is_recurring, is_paid')
+          .select('*')
           .gte('expense_date', rangeStart)
           .lte('expense_date', rangeEnd)
           .order('expense_date', { ascending: false }),
@@ -326,7 +327,11 @@ export default function AccountingPage() {
     total: payments.filter((p) => p.method === m).reduce((sum, p) => sum + p.amount, 0),
   })).filter((m) => m.total > 0)
   const methodMax = Math.max(1, ...methodTotals.map((m) => m.total))
-  const cashTotal = methodTotals.find((m) => m.method === 'nakit')?.total ?? 0
+  // Kasadaki nakit = nakit tahsilat − nakitle odenen giderler (odeme sekli
+  // girilmemis eski giderler hesaba katilmaz).
+  const cashIncome = methodTotals.find((m) => m.method === 'nakit')?.total ?? 0
+  const cashExpenses = paidExpenses.filter((e) => e.payment_method === 'nakit').reduce((sum, e) => sum + e.amount, 0)
+  const cashTotal = cashIncome - cashExpenses
   const unpaidTotal = unpaidExpenses.reduce((sum, e) => sum + e.amount, 0)
 
   const servicePriceById = new Map(services.map((s) => [s.id, s.price ?? 0]))
@@ -500,7 +505,7 @@ export default function AccountingPage() {
         <div className={`${styles.tile} ${styles.tileNavy}`}>
           <span className={styles.tileLabel}>Kasadaki nakit</span>
           <span className={styles.tileValue}>{currency.format(cashTotal)}</span>
-          <span className={styles.tileHint}>Nakit tahsilat</span>
+          <span className={styles.tileHint}>Nakit gelir − nakit gider</span>
         </div>
         <button
           type="button"

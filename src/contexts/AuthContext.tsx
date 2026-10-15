@@ -10,6 +10,8 @@ interface Profile {
   role: 'admin' | 'user'
   full_name: string | null
   is_active: boolean
+  // Yonetici "ilk giriste kendi sifresini belirlesin" dediyse true.
+  must_change_password?: boolean
 }
 
 interface AuthContextValue {
@@ -19,6 +21,7 @@ interface AuthContextValue {
   loading: boolean
   // Oturumdaki kullanicinin yetkisi var mi (yonetici icin hep true).
   can: (perm: PermKey) => boolean
+  refreshProfile: () => Promise<void>
   signIn: (email: string, password: string) => Promise<{ error: string | null }>
   signOut: () => Promise<void>
   resetPassword: (email: string) => Promise<{ error: string | null }>
@@ -52,7 +55,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     const [{ data }, { data: perms, error: permErr }] = await Promise.all([
       supabase
         .from('profiles')
-        .select('id, business_id, role, full_name, is_active')
+        .select('*')
         .eq('id', userId)
         .maybeSingle(),
       supabase.rpc('my_permissions'),
@@ -62,6 +65,10 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     if (!permErr && Array.isArray(perms)) setPermissions(new Set(perms as PermKey[]))
     else setPermissions(new Set(data?.role === 'admin' ? ALL_PERMISSIONS : DEFAULT_PERMISSIONS))
     setLoading(false)
+  }
+
+  async function refreshProfile() {
+    if (session) await fetchProfile(session.user.id)
   }
 
   function can(perm: PermKey) {
@@ -96,6 +103,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       profile,
       loading,
       can,
+      refreshProfile,
       signIn,
       signOut,
       resetPassword,

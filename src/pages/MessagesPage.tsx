@@ -28,6 +28,8 @@ interface Conversation {
   lastMessage: string
   lastMessageAt: string
   lastRole: 'user' | 'assistant'
+  // Konusmanin sonucu (tasarimdaki etiket): 'Randevu alındı', 'Randevu değişti'...
+  outcome?: string
 }
 
 type ListFilter = 'tumu' | 'sende' | 'bot'
@@ -165,7 +167,39 @@ export default function MessagesPage() {
         lastRole: m.role,
       })
     }
-    setConversations(Array.from(byPhone.values()).sort((a, b) => (a.lastMessageAt < b.lastMessageAt ? 1 : -1)))
+    // Konusma sonucu: son mesaj civarinda (1 gun once – 1 saat sonra) bot
+    // randevu actiysa "Randevu alındı"; randevusu tasindi/iptal edildiyse
+    // ona gore; hic randevusu olmayan kisi "Bilgi aldı · yeni kişi".
+    const convs = Array.from(byPhone.values())
+    const custIds = [...new Set(convs.map((c) => c.customer?.id).filter((v): v is string => !!v))]
+    if (custIds.length) {
+      const weekAgo = new Date(Date.now() - 8 * 86400000).toISOString()
+      const [{ data: appts }, { data: events }] = await Promise.all([
+        supabase.from('appointments').select('customer_id, source, created_at').in('customer_id', custIds.slice(0, 200)),
+        supabase
+          .from('appointment_events')
+          .select('customer_id, kind, new_status, created_at')
+          .in('customer_id', custIds.slice(0, 200))
+          .gte('created_at', weekAgo),
+      ])
+      for (const c of convs) {
+        const cid = c.customer?.id
+        if (!cid) continue
+        const t = new Date(c.lastMessageAt).getTime()
+        const near = (iso: string) => {
+          const x = new Date(iso).getTime()
+          return x >= t - 86400000 && x <= t + 3600000
+        }
+        const mine = (appts ?? []).filter((a) => a.customer_id === cid)
+        const ev = (events ?? []).filter((e) => e.customer_id === cid && near(e.created_at))
+        if (mine.some((a) => a.source === 'chatbot' && near(a.created_at))) c.outcome = 'Randevu alındı'
+        else if (ev.some((e) => e.kind === 'durum' && e.new_status === 'iptal')) c.outcome = 'Randevu iptal edildi'
+        else if (ev.some((e) => e.kind === 'saat')) c.outcome = 'Randevu değişti'
+        else if (mine.length === 0) c.outcome = 'Bilgi aldı · yeni kişi'
+        else c.outcome = 'Bilgi aldı'
+      }
+    }
+    setConversations(convs.sort((a, b) => (a.lastMessageAt < b.lastMessageAt ? 1 : -1)))
     setBotBookingsToday(botBookings ?? 0)
     setLoading(false)
   }
@@ -437,6 +471,8 @@ export default function MessagesPage() {
                   </span>
                   {paused ? (
                     <span className={styles.convStatusWarm}>Bot devretti · yanıt bekliyor</span>
+                  ) : c.outcome ? (
+                    <span className={c.outcome === 'Randevu alındı' ? styles.convStatusOk : styles.convStatus}>{c.outcome}</span>
                   ) : isKnown ? (
                     <span className={styles.convStatus}>Bot yanıtlıyor</span>
                   ) : (

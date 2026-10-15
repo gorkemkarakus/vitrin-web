@@ -14,6 +14,9 @@ interface Service {
   price: number | null
   is_active: boolean
   description: string | null
+  online_bookable?: boolean
+  package_sessions?: number | null
+  package_price?: number | null
 }
 
 interface Employee {
@@ -64,6 +67,10 @@ export default function ServicesPage() {
   const [duration, setDuration] = useState(60)
   const [price, setPrice] = useState('')
   const [active, setActive] = useState(true)
+  const [onlineBookable, setOnlineBookable] = useState(true)
+  const [packageOn, setPackageOn] = useState(false)
+  const [packageSessions, setPackageSessions] = useState('10')
+  const [packagePrice, setPackagePrice] = useState('')
   const [staff, setStaff] = useState<Set<string>>(new Set())
   const [monthStats, setMonthStats] = useState<{ count: number; revenue: number } | null>(null)
   const [activePackages, setActivePackages] = useState(0)
@@ -76,7 +83,7 @@ export default function ServicesPage() {
     const [{ data: svc }, { data: emps }, { data: es }] = await Promise.all([
       supabase
         .from('services')
-        .select('id, name, duration_minutes, price, is_active, description')
+        .select('*')
         .order('is_active', { ascending: false })
         .order('name', { ascending: true }),
       supabase.from('profiles').select('id, full_name').eq('is_active', true).order('full_name'),
@@ -108,6 +115,10 @@ export default function ServicesPage() {
       setDuration(60)
       setPrice('')
       setActive(true)
+      setOnlineBookable(true)
+      setPackageOn(false)
+      setPackageSessions('10')
+      setPackagePrice('')
       setStaff(new Set())
       setMonthStats(null)
       setActivePackages(0)
@@ -118,6 +129,10 @@ export default function ServicesPage() {
     setDuration(editing.duration_minutes)
     setPrice(editing.price == null ? '' : String(editing.price))
     setActive(editing.is_active)
+    setOnlineBookable(editing.online_bookable ?? true)
+    setPackageOn(editing.package_sessions != null)
+    setPackageSessions(String(editing.package_sessions ?? 10))
+    setPackagePrice(editing.package_price != null ? String(editing.package_price) : '')
     setStaff(new Set(links.filter((l) => l.service_id === editing.id).map((l) => l.profile_id)))
 
     let cancelled = false
@@ -181,10 +196,20 @@ export default function ServicesPage() {
     e?.preventDefault()
     if (!editorOpen || !name.trim() || !profile?.business_id) return
     setSubmitting(true)
+    const pkgSessions = Math.round(Number(packageSessions))
+    const pkgPrice = Number(packagePrice)
+    if (packageOn && (!(pkgSessions >= 2 && pkgSessions <= 100) || !(pkgPrice >= 0) || packagePrice === '')) {
+      setSubmitting(false)
+      window.alert('Paket için 2–100 arası seans sayısı ve toplam fiyat girin.')
+      return
+    }
     const fields = {
       name: name.trim(),
       duration_minutes: Math.max(5, duration),
       price: price === '' ? null : Math.max(0, Number(price) || 0),
+      online_bookable: onlineBookable,
+      package_sessions: packageOn ? pkgSessions : null,
+      package_price: packageOn ? pkgPrice : null,
     }
     let serviceId = editing?.id ?? null
     if (isNew) {
@@ -373,13 +398,72 @@ export default function ServicesPage() {
           {editing && (
             <div className={styles.row}>
               <span className={styles.rowMain}>
-                <span className={styles.rowNameSm}>Randevuda göster</span>
+                <span className={styles.rowNameSm}>Hizmet aktif</span>
                 <span className={styles.rowMeta}>Kapatırsan bu hizmete yeni randevu alınmaz</span>
               </span>
               <label className={styles.switch}>
-                <input type="checkbox" checked={active} onChange={() => setActive((v) => !v)} aria-label="Randevuda göster" />
+                <input type="checkbox" checked={active} onChange={() => setActive((v) => !v)} aria-label="Hizmet aktif" />
                 <span className={styles.switchTrack} />
               </label>
+            </div>
+          )}
+          <div className={styles.row}>
+            <span className={styles.rowMain}>
+              <span className={styles.rowNameSm}>Online randevuda göster</span>
+              <span className={styles.rowMeta}>Kapalıysa müşteri online sayfadan seçemez; salondan randevusu açılır</span>
+            </span>
+            <label className={styles.switch}>
+              <input
+                type="checkbox"
+                checked={onlineBookable}
+                onChange={() => setOnlineBookable((v) => !v)}
+                aria-label="Online randevuda göster"
+              />
+              <span className={styles.switchTrack} />
+            </label>
+          </div>
+          <div className={styles.row}>
+            <span className={styles.rowMain}>
+              <span className={styles.rowNameSm}>Paket olarak satılabilir</span>
+              <span className={styles.rowMeta}>
+                {packageOn && packageSessions && packagePrice
+                  ? `${packageSessions} seans · ${currency.format(Number(packagePrice) || 0)}`
+                  : 'Randevu kapanışında “Seanslı” seçilince bu değerler gelir'}
+              </span>
+            </span>
+            <label className={styles.switch}>
+              <input type="checkbox" checked={packageOn} onChange={() => setPackageOn((v) => !v)} aria-label="Paket olarak satılabilir" />
+              <span className={styles.switchTrack} />
+            </label>
+          </div>
+          {packageOn && (
+            <div className={styles.packageFields}>
+              <div className={styles.field}>
+                <label htmlFor="pkgSessions">Seans sayısı</label>
+                <input
+                  id="pkgSessions"
+                  className={styles.smallInput}
+                  type="number"
+                  inputMode="numeric"
+                  min={2}
+                  max={100}
+                  value={packageSessions}
+                  onChange={(e) => setPackageSessions(e.target.value)}
+                />
+              </div>
+              <div className={styles.field}>
+                <label htmlFor="pkgPrice">Paket fiyatı (toplam ₺)</label>
+                <input
+                  id="pkgPrice"
+                  className={styles.smallInput}
+                  type="number"
+                  inputMode="decimal"
+                  min={0}
+                  value={packagePrice}
+                  onChange={(e) => setPackagePrice(e.target.value)}
+                  placeholder="0"
+                />
+              </div>
             </div>
           )}
           {editing && activePackages > 0 && (

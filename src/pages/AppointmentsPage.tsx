@@ -7,6 +7,7 @@ import { TIME_OPTIONS } from '../lib/timeOptions'
 import { formatPersonName } from '../lib/formatName'
 import { currency } from '../lib/currency'
 import { toLocalDateString } from '../lib/date'
+import { computeDebtItems, type DebtItem } from '../lib/customerDebts'
 import Avatar from '../components/Avatar'
 import StatusDropdown, { type StatusDropdownOption } from '../components/StatusDropdown'
 import Select from '../components/Select'
@@ -35,6 +36,9 @@ interface Service {
   name: string
   duration_minutes: number
   price: number | null
+  // "Paket olarak satilabilir" sablonu (Hizmetler > hizmet ayarlari).
+  package_sessions?: number | null
+  package_price?: number | null
 }
 
 interface Profile {
@@ -281,6 +285,9 @@ export default function AppointmentsPage() {
   // Kapanis ekrani
   const [completeTypeOpen, setCompleteTypeOpen] = useState(false)
   const [completePayMode, setCompletePayMode] = useState<'full' | 'custom' | 'none'>('full')
+  // Musterinin bu randevu/paket disindaki onceki borcu ("Hepsini kapat").
+  const [oldDebtItems, setOldDebtItems] = useState<DebtItem[]>([])
+  const [includeOldDebt, setIncludeOldDebt] = useState(true)
 
   // Gorunum menusu disina dokununca kapansin.
   useEffect(() => {
@@ -441,7 +448,7 @@ export default function AppointmentsPage() {
       fetchAll(() => supabase.from('service_packages').select('id, customer_id, service_id, total_sessions, session_offset, status').order('id')),
       supabase
         .from('services')
-        .select('id, name, duration_minutes, price')
+        .select('*')
         .eq('is_active', true)
         .order('name'),
       supabase.from('profiles').select('id, full_name'),
@@ -869,6 +876,9 @@ export default function AppointmentsPage() {
       setCompleteNextSessionExpanded(false)
       setCompleteNote('')
       setCompleteError(null)
+      setOldDebtItems([])
+      setIncludeOldDebt(true)
+      if (appt.customer_id && canPay) loadOldDebt(appt)
 
       if (appt.package_id) {
         // Paket zaten varsa (ilk seans degil), fiyat ILK SEANSTA belirlenmis
@@ -904,6 +914,51 @@ export default function AppointmentsPage() {
       }
     } else {
       updateStatus(appt, status)
+    }
+  }
+
+  // Musterinin bu kapanisin disindaki borclari (kalem kalem): Musteriler ve
+  // Kasa ile ayni hesap (computeDebtItems). Bu randevu ve bagli oldugu paket
+  // haric tutulur — onlar kapanisin kendi odeme adiminda.
+  async function loadOldDebt(appt: Appointment) {
+    const cid = appt.customer_id
+    if (!cid) return
+    const [{ data: apps }, { data: pkgs }, { data: pays }, { data: svcs }] = await Promise.all([
+      supabase
+        .from('appointments')
+        .select('id, customer_id, service_id, status, scheduled_at, package_id, price_override')
+        .eq('customer_id', cid),
+      supabase.from('service_packages').select('id, customer_id, service_id, total_sessions, session_offset').eq('customer_id', cid),
+      supabase.from('payments').select('customer_id, amount, appointment_id, package_id').eq('customer_id', cid).is('voided_at', null),
+      supabase.from('services').select('id, price'),
+    ])
+    const priceById = new Map((svcs ?? []).map((x) => [x.id as string, Number(x.price ?? 0)]))
+    const items = computeDebtItems(pkgs ?? [], apps ?? [], pays ?? [], priceById).filter(
+      (it) => !(it.kind === 'appointment' && it.id === appt.id) && !(it.kind === 'package' && it.id === appt.package_id),
+    )
+    setOldDebtItems(items)
+  }
+
+  // Islem turu degisince fiyat/seans: hizmetin paket sablonu varsa seansli
+  // secimde seans sayisi ve seans basi ucret oradan gelir; tek seferlige
+  // donulunce normal ucrete geri doner. "Hepsini al" secili ise tahsil
+  // edilecek tutar da yeni toplama esitlenir.
+  function chooseCompleteType(type: 'tek' | 'seansli') {
+    setCompleteTransactionType(type)
+    if (!completingAppt || completingAppt.package_id) return
+    const svc = services.find((x) => x.id === completingAppt.service_id)
+    if (type === 'seansli' && svc?.package_sessions && svc.package_price != null) {
+      const perSession = Math.round((svc.package_price / svc.package_sessions) * 100) / 100
+      setCompletePackageTotalSessions(String(svc.package_sessions))
+      setCompletePriceOverride(String(perSession))
+      if (completePayMode === 'full') setCompletePaymentAmount(String(Math.round(perSession * svc.package_sessions * 100) / 100))
+      return
+    }
+    const single = completingAppt.price_override ?? svc?.price ?? 0
+    setCompletePriceOverride(String(single))
+    if (completePayMode === 'full') {
+      const sessions = type === 'seansli' ? Number(completePackageTotalSessions) || 1 : 1
+      setCompletePaymentAmount(String(single * sessions))
     }
   }
 
@@ -1016,8 +1071,11 @@ export default function AppointmentsPage() {
       return
     }
 
+    const oldDebtTotal = oldDebtItems.reduce((sum, it) => sum + it.remaining, 0)
+    const oldDebtApplies = canPay && !completeFullyPaid && includeOldDebt && completePayMode !== 'none' && oldDebtTotal > 0
+
     // 4) Odeme yontemi zorunlu (bir tutar tahsil ediliyorsa).
-    if (!completeFullyPaid && entered > 0 && !completePaymentMethod) {
+    if ((entered > 0 || oldDebtApplies) && !completePaymentMethod) {
       setCompleteError('Ödeme yöntemini seçin.')
       return
     }
@@ -1087,6 +1145,29 @@ export default function AppointmentsPage() {
           // modal kapatilip hata ana sayfadaki banner'da gosterilir, boylece
           // "hicbir sey olmamis gibi" hissettirmez.
           setError('Randevu tamamlandı ama ödeme kaydedilemedi: ' + payErr.message)
+          setCompletingAppt(null)
+          await loadData(true)
+          return
+        }
+      }
+
+      // "Hepsini kapat": onceki borclarin her biri kendi paketine/randevusuna
+      // ayri odeme olarak yazilir (borc hesabi kalem bazli eslestiriyor).
+      if (oldDebtApplies) {
+        const { error: oldErr } = await supabase.from('payments').insert(
+          oldDebtItems.map((it) => ({
+            paid_at: toLocalDateString(new Date()),
+            business_id: profile?.business_id,
+            customer_id: completingAppt.customer_id,
+            appointment_id: it.kind === 'appointment' ? it.id : null,
+            package_id: it.kind === 'package' ? it.id : null,
+            amount: it.remaining,
+            method: completePaymentMethod,
+            created_by_user_id: profile?.id,
+          })),
+        )
+        if (oldErr) {
+          setError('Randevu kapandı ama önceki borcun ödemesi kaydedilemedi: ' + oldErr.message)
           setCompletingAppt(null)
           await loadData(true)
           return
@@ -2113,14 +2194,14 @@ export default function AppointmentsPage() {
                   <button
                     type="button"
                     className={completeTransactionType === 'tek' ? styles.miniSegActive : styles.miniSegBtn}
-                    onClick={() => setCompleteTransactionType('tek')}
+                    onClick={() => chooseCompleteType('tek')}
                   >
                     Tek seferlik
                   </button>
                   <button
                     type="button"
                     className={completeTransactionType === 'seansli' ? styles.miniSegActive : styles.miniSegBtn}
-                    onClick={() => setCompleteTransactionType('seansli')}
+                    onClick={() => chooseCompleteType('seansli')}
                   >
                     Seanslı (paket)
                   </button>
@@ -2222,7 +2303,42 @@ export default function AppointmentsPage() {
                 <p className={styles.emptyNote}>Yükleniyor…</p>
               ) : completeFullyPaid ? (
                 <p className={styles.stepOk}>Bu paket daha önce tamamen tahsil edildi.</p>
-              ) : !canPay ? (
+              ) : null}
+              {!completeLoadingScope && !completeFullyPaid && canPay && oldDebtItems.length > 0 && (
+                <div className={styles.oldDebtBox}>
+                  <span className={styles.oldDebtTitle}>
+                    Müşterinin önceki borcu: {currency.format(oldDebtItems.reduce((sum, it) => sum + it.remaining, 0))}
+                  </span>
+                  <div className={styles.payOptions}>
+                    <button
+                      type="button"
+                      className={includeOldDebt ? styles.payOptionActive : styles.payOption}
+                      onClick={() => setIncludeOldDebt(true)}
+                    >
+                      <span className={includeOldDebt ? styles.radioOn : styles.radio} />
+                      <span className={styles.payOptionLabel}>Hepsini kapat</span>
+                      <span className={styles.payOptionAmount}>
+                        {currency.format(
+                          completePaymentSummary.remainingDue +
+                            oldDebtItems.reduce((sum, it) => sum + it.remaining, 0),
+                        )}
+                      </span>
+                    </button>
+                    <button
+                      type="button"
+                      className={!includeOldDebt ? styles.payOptionActive : styles.payOption}
+                      onClick={() => setIncludeOldDebt(false)}
+                    >
+                      <span className={!includeOldDebt ? styles.radioOn : styles.radio} />
+                      <span className={styles.payOptionLabel}>Sadece bugünkü</span>
+                      <span className={styles.payOptionAmount}>
+                        {currency.format(completePaymentSummary.remainingDue)}
+                      </span>
+                    </button>
+                  </div>
+                </div>
+              )}
+              {completeLoadingScope ? null : completeFullyPaid ? null : !canPay ? (
                 <p className={styles.emptyNote}>
                   Ödeme alma yetkin yok; {currency.format(completePaymentSummary.remainingDue)} müşterinin borcu olarak kalır,
                   yetkili biri tahsil eder.
@@ -2287,7 +2403,8 @@ export default function AppointmentsPage() {
                     )}
                   </div>
 
-                  {completePaymentSummary.entered > 0 && (
+                  {(completePaymentSummary.entered > 0 ||
+                    (includeOldDebt && completePayMode !== 'none' && oldDebtItems.length > 0)) && (
                     <div className={styles.methodChips}>
                       {PAYMENT_METHOD_OPTIONS.map((m) => (
                         <button

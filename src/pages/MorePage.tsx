@@ -33,6 +33,7 @@ const MENU_ITEMS: {
   { path: '/ekip', label: 'Ekip', access: 'ekip_yonet', icon: TeamIcon, tint: false },
   { path: '/hizmetler', label: 'Hizmetler', access: 'hizmet_yonet', icon: ServicesIcon, tint: false },
   { path: '/performans-raporu', label: 'Performans', access: 'raporlar', icon: TrophyIcon, tint: false },
+  { path: '/kazancim', label: 'Kazancım', access: 'kendi_kazanc', icon: AccountingIcon, tint: false },
   { path: '/reklam', label: 'Reklam', access: 'admin', icon: MegaphoneIcon, tint: false },
   { path: '/ai-analiz', label: 'AI analiz', access: 'admin', icon: SparkleIcon, tint: true },
   { path: '/ayarlar', label: 'Ayarlar', icon: SettingsIcon, tint: false },
@@ -56,7 +57,10 @@ export default function MorePage() {
   const name = profile?.full_name ?? 'İşletmeniz'
 
   const visibleItems = MENU_ITEMS.filter(
-    (item) => !item.access || (item.access === 'admin' ? isAdmin : can(item.access)),
+    (item) =>
+      // Kazancim calisan icindir; yonetici zaten Ekip > calisan > Kazanc'tan bakar.
+      (item.path !== '/kazancim' || !isAdmin) &&
+      (!item.access || (item.access === 'admin' ? isAdmin : can(item.access))),
   )
 
   // Ust kartta isletme adi + calisan sayisi, Mesajlar kutusunda seni

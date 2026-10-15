@@ -30,6 +30,7 @@ import TopluMesajPage from './pages/TopluMesajPage'
 import PublicBookingPage from './public/PublicBookingPage'
 import NotificationsPage from './pages/NotificationsPage'
 import ResetPasswordPage from './pages/ResetPasswordPage'
+import ForcePasswordPage from './pages/ForcePasswordPage'
 import type { PermKey } from './lib/permissions'
 
 // adminOnly: sadece yonetici. perm: yoneticiye ya da o yetkisi acik calisana.
@@ -51,6 +52,8 @@ function ProtectedRoute({
   )
 
   if (!session || !profile || !profile.is_active) return <Navigate to="/" replace />
+  // Ilk giriste sifre degistirme zorunluysa uygulama acilmadan once.
+  if (profile.must_change_password) return <ForcePasswordPage />
   if (adminOnly && profile.role !== 'admin') return <Navigate to="/randevular" replace />
   if (perm && !can(perm)) return <Navigate to="/randevular" replace />
 
@@ -136,6 +139,10 @@ function AppRoutes() {
             <Route
               path="hizmetler/:id/aciklama"
               element={<ProtectedRoute perm="hizmet_yonet"><ServiceDescriptionPage /></ProtectedRoute>}
+            />
+            <Route
+              path="kazancim"
+              element={<ProtectedRoute perm="kendi_kazanc"><EmployeeDetailPage selfEarnings /></ProtectedRoute>}
             />
             <Route
               path="performans-raporu"

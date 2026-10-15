@@ -31,13 +31,22 @@ export interface DebtPayment {
   package_id: string | null
 }
 
-export function computeCustomerDebts(
+// Borcun kalem kalem dokumu: odeme alirken hangi pakete / randevuya
+// yazilacagini bilmek icin (randevu kapanisinda "eski borcu da kapat").
+export interface DebtItem {
+  kind: 'package' | 'appointment'
+  id: string
+  customerId: string
+  remaining: number
+}
+
+export function computeDebtItems(
   packages: DebtPackage[],
   appointments: DebtAppointment[],
   payments: DebtPayment[],
   servicePriceById: Map<string, number>,
-): Map<string, number> {
-  const map = new Map<string, number>()
+): DebtItem[] {
+  const items: DebtItem[] = []
   for (const pkg of packages) {
     const standardPrice = pkg.service_id ? (servicePriceById.get(pkg.service_id) ?? 0) : 0
     // Paketin seans basi ucreti, ILK seansta belirlenen ozel fiyata
@@ -53,14 +62,27 @@ export function computeCustomerDebts(
     const expected = knownSessionsTotal + remainingSessionsEstimate
     const paid = payments.filter((p) => p.package_id === pkg.id).reduce((sum, p) => sum + p.amount, 0)
     const remaining = Math.max(0, expected - paid)
-    if (remaining > 0) map.set(pkg.customer_id, (map.get(pkg.customer_id) ?? 0) + remaining)
+    if (remaining > 0) items.push({ kind: 'package', id: pkg.id, customerId: pkg.customer_id, remaining })
   }
   for (const a of appointments) {
     if (!a.customer_id || a.package_id || a.status !== 'tamamlandi') continue
     const expected = a.price_override ?? (a.service_id ? (servicePriceById.get(a.service_id) ?? 0) : 0)
     const paid = payments.filter((p) => p.appointment_id === a.id).reduce((sum, p) => sum + p.amount, 0)
     const remaining = Math.max(0, expected - paid)
-    if (remaining > 0) map.set(a.customer_id, (map.get(a.customer_id) ?? 0) + remaining)
+    if (remaining > 0) items.push({ kind: 'appointment', id: a.id, customerId: a.customer_id, remaining })
+  }
+  return items
+}
+
+export function computeCustomerDebts(
+  packages: DebtPackage[],
+  appointments: DebtAppointment[],
+  payments: DebtPayment[],
+  servicePriceById: Map<string, number>,
+): Map<string, number> {
+  const map = new Map<string, number>()
+  for (const it of computeDebtItems(packages, appointments, payments, servicePriceById)) {
+    map.set(it.customerId, (map.get(it.customerId) ?? 0) + it.remaining)
   }
   return map
 }

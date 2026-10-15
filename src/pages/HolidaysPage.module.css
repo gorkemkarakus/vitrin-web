@@ -398,3 +398,49 @@
   font-size: 18px;
   line-height: 1;
 }
+
+.nameChips {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+}
+
+.nameChip,
+.nameChipOn {
+  border: none;
+  background: var(--bg);
+  color: var(--text);
+  border-radius: 999px;
+  padding: 7px 11px;
+  font-family: var(--font-body);
+  font-size: 12px;
+  font-weight: 600;
+  cursor: pointer;
+}
+
+.nameChipOn {
+  background: var(--signal);
+  color: #fff;
+  font-weight: 700;
+}
+
+.eveRow {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  background: var(--bg);
+  border-radius: 14px;
+  padding: 12px;
+}
+
+.eveTime {
+  border: none;
+  outline: none;
+  background: var(--panel);
+  border-radius: 10px;
+  padding: 8px;
+  font-family: var(--font-body);
+  font-size: 14px;
+  font-weight: 700;
+  color: var(--text);
+}

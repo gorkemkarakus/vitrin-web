@@ -5,7 +5,8 @@ import { useAuth } from '../contexts/AuthContext'
 import Select from '../components/Select'
 import HandoverAppointments from '../components/HandoverAppointments'
 import PermissionEditor from '../components/PermissionEditor'
-import { DEFAULT_PERMISSIONS, type PermKey } from '../lib/permissions'
+import RoleCards from '../components/RoleCards'
+import { ALL_PERMISSIONS, DEFAULT_PERMISSIONS, ROLE_PRESETS, presetFor, type PermKey, type RolePreset } from '../lib/permissions'
 import { ChevronRightIcon } from '../components/icons'
 import { toLocalDateString } from '../lib/date'
 import { currency } from '../lib/currency'
@@ -25,6 +26,7 @@ interface Employee {
   whatsapp_phone: string | null
   gender: 'kadin' | 'erkek' | null
   updated_at: string
+  online_bookable?: boolean
 }
 
 interface ServiceLite {
@@ -115,10 +117,13 @@ function computeDayInfo(day: number, schedules: Schedule[], timeBlocks: TimeBloc
 type Section = 'ana' | 'saatler' | 'hizmetler' | 'kazanc' | 'erisim'
 
 
-export default function EmployeeDetailPage() {
-  const { id } = useParams<{ id: string }>()
+// selfEarnings: calisanin "Kazancim" ekrani (kendi_kazanc yetkisi) — ayni
+// sayfanin yalnizca kazanc bolumu, kendi hesabi icin.
+export default function EmployeeDetailPage({ selfEarnings = false }: { selfEarnings?: boolean }) {
+  const params = useParams<{ id: string }>()
   const navigate = useNavigate()
   const { session, profile, can } = useAuth()
+  const id = selfEarnings ? profile?.id : params.id
   // Hesap/yetki/pasife alma yalnizca yoneticide; para bilgisi Kasa ya da
   // Performans yetkisiyle gorunur (ekip_yonet yetkili calisan da bu sayfaya girer).
   const isAdmin = profile?.role === 'admin'
@@ -133,7 +138,7 @@ export default function EmployeeDetailPage() {
   const [todayCustomerNames, setTodayCustomerNames] = useState<Map<string, string>>(new Map())
   const [loading, setLoading] = useState(true)
 
-  const [section, setSection] = useState<Section>('ana')
+  const [section, setSection] = useState<Section>(selfEarnings ? 'kazanc' : 'ana')
   const [myPayments, setMyPayments] = useState<{ amount: number; paid_at: string; service_id: string | null }[]>([])
   const [weekAppts, setWeekAppts] = useState<WeekAppt[]>([])
   const [weekCustomerNames, setWeekCustomerNames] = useState<Map<string, string>>(new Map())
@@ -154,6 +159,59 @@ export default function EmployeeDetailPage() {
   const [genderDraft, setGenderDraft] = useState<'' | 'kadin' | 'erkek'>('')
   const [permDraft, setPermDraft] = useState<Set<PermKey>>(new Set(DEFAULT_PERMISSIONS))
   const [permSaving, setPermSaving] = useState(false)
+  // Erisim ekranindaki taslaklar: rol (yonetici/calisan) ve online randevuda gorunme.
+  const [roleDraft, setRoleDraft] = useState<'admin' | 'user'>('user')
+  const [onlineDraft, setOnlineDraft] = useState(true)
+  const [fineTuneOpen, setFineTuneOpen] = useState(false)
+  // Bu ayin primi odendi mi (commission_payouts).
+  const [payout, setPayout] = useState<{ id: string; amount: number; paid_at: string } | null>(null)
+  const [payoutBusy, setPayoutBusy] = useState(false)
+  const monthKey = toLocalDateString(new Date(new Date().getFullYear(), new Date().getMonth(), 1))
+
+  useEffect(() => {
+    if (!id) return
+    supabase
+      .from('commission_payouts')
+      .select('id, amount, paid_at')
+      .eq('profile_id', id)
+      .eq('period_month', monthKey)
+      .maybeSingle()
+      .then(({ data, error: err }) => setPayout(err ? null : data ? { ...data, amount: Number(data.amount) } : null))
+  }, [id, monthKey])
+
+  async function markPayout(amount: number) {
+    if (!id || !profile?.business_id) return
+    setPayoutBusy(true)
+    const { data, error: err } = await supabase
+      .from('commission_payouts')
+      .upsert(
+        {
+          business_id: profile.business_id,
+          profile_id: id,
+          period_month: monthKey,
+          amount: Math.round(amount * 100) / 100,
+          paid_at: toLocalDateString(new Date()),
+          created_by: profile.id,
+        },
+        { onConflict: 'profile_id,period_month' },
+      )
+      .select('id, amount, paid_at')
+      .single()
+    setPayoutBusy(false)
+    if (err) {
+      window.alert(/does not exist|could not find/i.test(err.message) ? 'Bu özellik için veritabanı güncellemesi bekleniyor.' : 'Kaydedilemedi: ' + err.message)
+      return
+    }
+    setPayout({ ...data, amount: Number(data.amount) })
+  }
+
+  async function undoPayout() {
+    if (!payout || !window.confirm('Bu ayın prim ödemesi kaydı geri alınsın mı?')) return
+    setPayoutBusy(true)
+    const { error: err } = await supabase.from('commission_payouts').delete().eq('id', payout.id)
+    setPayoutBusy(false)
+    if (!err) setPayout(null)
+  }
   const [permMsg, setPermMsg] = useState<{ type: 'ok' | 'err'; text: string } | null>(null)
 
   // Calisanin yetkileri (satiri yoksa varsayilanlar gecerli).
@@ -167,13 +225,39 @@ export default function EmployeeDetailPage() {
       .then(({ data }) => setPermDraft(new Set((data?.permissions as PermKey[] | undefined) ?? DEFAULT_PERMISSIONS)))
   }, [isAdmin, id])
 
+  function choosePreset(key: RolePreset) {
+    if (key === 'yonetici') {
+      setRoleDraft('admin')
+      return
+    }
+    setRoleDraft('user')
+    setPermDraft(new Set(ROLE_PRESETS.find((r) => r.key === key)?.perms ?? DEFAULT_PERMISSIONS))
+  }
+
   async function savePermissions() {
-    if (!id || !profile?.business_id) return
+    if (!id || !profile?.business_id || !employee) return
     setPermSaving(true)
     setPermMsg(null)
-    const { error: err } = await supabase
-      .from('employee_permissions')
-      .upsert({ profile_id: id, business_id: profile.business_id, permissions: Array.from(permDraft) })
+    // Rol ve online gorunurluk profilde (yonetici guncelleyebilir), yetkiler
+    // employee_permissions'ta.
+    const profilePatch: Record<string, unknown> = {}
+    if (roleDraft !== employee.role) profilePatch.role = roleDraft
+    if (onlineDraft !== (employee.online_bookable ?? true)) profilePatch.online_bookable = onlineDraft
+    if (Object.keys(profilePatch).length > 0) {
+      const { error: profErr } = await supabase.from('profiles').update(profilePatch).eq('id', id)
+      if (profErr) {
+        setPermSaving(false)
+        setPermMsg({ type: 'err', text: 'Kaydedilemedi: ' + profErr.message })
+        return
+      }
+      setEmployee({ ...employee, role: roleDraft, online_bookable: onlineDraft })
+    }
+    const { error: err } =
+      roleDraft === 'user'
+        ? await supabase
+            .from('employee_permissions')
+            .upsert({ profile_id: id, business_id: profile.business_id, permissions: Array.from(permDraft) })
+        : { error: null }
     setPermSaving(false)
     if (err) {
       const missing = /does not exist|could not find/i.test(err.message)
@@ -215,7 +299,7 @@ export default function EmployeeDetailPage() {
     ] = await Promise.all([
       supabase
         .from('profiles')
-        .select('id, full_name, role, is_active, whatsapp_phone, gender, updated_at')
+        .select('*')
         .eq('id', id)
         .maybeSingle(),
       supabase.from('services').select('id, name, duration_minutes, price').eq('is_active', true).order('name'),
@@ -279,6 +363,10 @@ export default function EmployeeDetailPage() {
     const { data: others } = await supabase.from('profiles').select('id, full_name').eq('is_active', true).neq('id', id)
     setOtherEmployees(others ?? [])
     setEmployee(emp ?? null)
+    if (emp) {
+      setRoleDraft(emp.role)
+      setOnlineDraft(emp.online_bookable ?? true)
+    }
     setServices(svcs ?? [])
     setEmployeeServices(empSvcs ?? [])
     setSchedules(scheds ?? [])
@@ -716,7 +804,7 @@ export default function EmployeeDetailPage() {
     return (
       <div className={styles.wrap}>
         <div className={styles.subHead}>
-          <button type="button" className={styles.backBtn} onClick={() => setSection('ana')} aria-label="Geri">
+          <button type="button" className={styles.backBtn} onClick={() => (selfEarnings ? navigate('/daha-fazla') : setSection('ana'))} aria-label="Geri">
             <ChevronRightIcon width={16} height={16} className={styles.backIcon} />
           </button>
           <div className={styles.subHeadText}>
@@ -739,9 +827,34 @@ export default function EmployeeDetailPage() {
           </div>
           <div className={styles.earnBox}>
             <span className={styles.earnBoxText}>
-              <span className={styles.earnBoxLabel}>Hak ettiği prim · %{commissionPct}</span>
-              <span className={styles.earnBoxValue}>{currency.format(primAmount)}</span>
+              <span className={styles.earnBoxLabel}>
+                {payout
+                  ? `Ödendi · ${new Date(`${payout.paid_at}T00:00:00`).toLocaleDateString('tr-TR', { day: 'numeric', month: 'long' })}`
+                  : `Hak ettiği prim · %${commissionPct}`}
+              </span>
+              <span className={styles.earnBoxValue}>{currency.format(payout ? payout.amount : primAmount)}</span>
+              {payout && primAmount - payout.amount >= 1 && (
+                <span className={styles.earnBoxLabel}>Sonradan {currency.format(primAmount - payout.amount)} daha birikti</span>
+              )}
             </span>
+            {can('kasa') &&
+              (payout ? (
+                primAmount - payout.amount >= 1 ? (
+                  <button type="button" className={styles.payoutBtn} onClick={() => markPayout(primAmount)} disabled={payoutBusy}>
+                    Farkı da öde
+                  </button>
+                ) : (
+                  <button type="button" className={styles.payoutBtnGhost} onClick={undoPayout} disabled={payoutBusy}>
+                    Geri al
+                  </button>
+                )
+              ) : (
+                primAmount > 0 && (
+                  <button type="button" className={styles.payoutBtn} onClick={() => markPayout(primAmount)} disabled={payoutBusy}>
+                    {payoutBusy ? '…' : 'Ödendi yap'}
+                  </button>
+                )
+              ))}
           </div>
         </div>
 
@@ -833,13 +946,31 @@ export default function EmployeeDetailPage() {
           </button>
         </div>
 
-        {employee?.role === 'user' && (
+        {employee && profile?.id !== employee.id && (
           <div className={styles.permBlock}>
             <span className={styles.formTitle}>Neleri görsün, neye müdahale etsin?</span>
-            <PermissionEditor value={permDraft} onChange={setPermDraft} disabled={permSaving} />
+            <RoleCards value={presetFor(roleDraft, permDraft)} onChange={choosePreset} disabled={permSaving} />
+            {roleDraft === 'user' && (
+              <>
+                <button type="button" className={styles.fineTuneBtn} onClick={() => setFineTuneOpen((v) => !v)}>
+                  {fineTuneOpen ? 'İnce ayarı gizle' : 'İnce ayar'} ›
+                </button>
+                {fineTuneOpen && <PermissionEditor value={permDraft} onChange={setPermDraft} disabled={permSaving} />}
+              </>
+            )}
+            <label className={styles.onlineRow}>
+              <span className={styles.navText}>
+                <span className={styles.navTitle}>Online randevuda görünür</span>
+                <span className={styles.navSub}>Müşteri online sayfadan bu kişiyi seçebilir</span>
+              </span>
+              <span className={styles.switch}>
+                <input type="checkbox" checked={onlineDraft} onChange={() => setOnlineDraft((v) => !v)} disabled={permSaving} />
+                <span className={styles.switchTrack} />
+              </span>
+            </label>
             {permMsg && <p className={permMsg.type === 'ok' ? styles.success : styles.error}>{permMsg.text}</p>}
             <button type="button" className="btn-primary" onClick={savePermissions} disabled={permSaving}>
-              {permSaving ? 'Kaydediliyor…' : 'Yetkileri kaydet'}
+              {permSaving ? 'Kaydediliyor…' : 'Erişimi kaydet'}
             </button>
           </div>
         )}
@@ -1095,7 +1226,9 @@ export default function EmployeeDetailPage() {
               <span className={styles.navText}>
                 <span className={styles.navTitle}>Uygulama erişimi ve yetkiler</span>
                 <span className={styles.navSub}>
-                  {employee.role === 'admin' ? 'Yönetici · her şeyi görür' : `${permDraft.size} / 8 yetki açık`}
+                  {employee.role === 'admin'
+                    ? 'Yönetici · her şeyi görür'
+                    : `${permDraft.size} / ${ALL_PERMISSIONS.length} yetki açık${employee.online_bookable === false ? ' · online randevuda gizli' : ''}`}
                 </span>
               </span>
               <span className={styles.navChevron}>›</span>

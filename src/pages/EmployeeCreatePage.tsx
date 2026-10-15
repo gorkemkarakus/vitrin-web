@@ -3,8 +3,12 @@ import { useNavigate } from 'react-router-dom'
 import { useAuth } from '../contexts/AuthContext'
 import { supabase } from '../lib/supabase'
 import PageHeader from '../components/PageHeader'
+import { Share } from '@capacitor/share'
 import PermissionEditor from '../components/PermissionEditor'
-import { DEFAULT_PERMISSIONS, type PermKey } from '../lib/permissions'
+import RoleCards from '../components/RoleCards'
+import { ROLE_PRESETS, presetFor, type PermKey, type RolePreset } from '../lib/permissions'
+import { publicSiteBase } from '../lib/bookingUrl'
+import { toLocalDateString } from '../lib/date'
 import styles from './EmployeeCreatePage.module.css'
 
 const GENDER_OPTIONS: { value: '' | 'kadin' | 'erkek'; label: string }[] = [
@@ -12,6 +16,9 @@ const GENDER_OPTIONS: { value: '' | 'kadin' | 'erkek'; label: string }[] = [
   { value: 'kadin', label: 'Kadın' },
   { value: 'erkek', label: 'Erkek' },
 ]
+
+// Tatiller sayfasindaki etiketle ayni (employee_time_blocks.label).
+const HOLIDAY_LABEL = 'Resmi Tatil'
 
 interface ServiceLite {
   id: string
@@ -30,7 +37,7 @@ export default function EmployeeCreatePage() {
   const navigate = useNavigate()
   const { session, profile } = useAuth()
 
-  const [step, setStep] = useState<1 | 2>(1)
+  const [step, setStep] = useState<1 | 2 | 3>(1)
   const [fullName, setFullName] = useState('')
   const [email, setEmail] = useState('')
   const [phone, setPhone] = useState('')
@@ -38,7 +45,15 @@ export default function EmployeeCreatePage() {
   const [gender, setGender] = useState<'' | 'kadin' | 'erkek'>('')
   const [services, setServices] = useState<ServiceLite[]>([])
   const [selectedServices, setSelectedServices] = useState<Set<string>>(new Set())
-  const [perms, setPerms] = useState<Set<PermKey>>(new Set(DEFAULT_PERMISSIONS))
+  const [preset, setPreset] = useState<RolePreset | null>('calisan')
+  const [perms, setPerms] = useState<Set<PermKey>>(
+    new Set(ROLE_PRESETS.find((r) => r.key === 'calisan')?.perms ?? []),
+  )
+  const [fineTuneOpen, setFineTuneOpen] = useState(false)
+  const [onlineBookable, setOnlineBookable] = useState(true)
+  const [mustChangePassword, setMustChangePassword] = useState(true)
+  const [createdId, setCreatedId] = useState<string | null>(null)
+  const [shared, setShared] = useState<'paylasildi' | 'kopyalandi' | null>(null)
   const [submitting, setSubmitting] = useState(false)
   const [error, setError] = useState<string | null>(null)
 
@@ -60,11 +75,24 @@ export default function EmployeeCreatePage() {
     })
   }
 
+  function choosePreset(key: RolePreset) {
+    setPreset(key)
+    const found = ROLE_PRESETS.find((r) => r.key === key)
+    if (found && key !== 'yonetici') setPerms(new Set(found.perms))
+  }
+
+  function changePerms(next: Set<PermKey>) {
+    setPerms(next)
+    setPreset(presetFor('user', next))
+  }
+
   function goToStep2(e: FormEvent) {
     e.preventDefault()
     setError(null)
     setStep(2)
   }
+
+  const isAdminRole = preset === 'yonetici'
 
   async function handleCreate() {
     setError(null)
@@ -77,7 +105,16 @@ export default function EmployeeCreatePage() {
           Authorization: `Bearer ${session?.access_token}`,
           apikey: import.meta.env.VITE_SUPABASE_ANON_KEY,
         },
-        body: JSON.stringify({ email, password, full_name: fullName, phone, gender: gender || null }),
+        body: JSON.stringify({
+          email,
+          password,
+          full_name: fullName,
+          phone,
+          gender: gender || null,
+          role: isAdminRole ? 'admin' : 'user',
+          must_change_password: mustChangePassword,
+          online_bookable: onlineBookable,
+        }),
       })
       const body = await res.json()
       if (!res.ok) {
@@ -86,14 +123,12 @@ export default function EmployeeCreatePage() {
         return
       }
       const newId = body.data.id as string
-      // Yetkiler: varsayilandan farkli olsa da olmasa da satir yazilir ki
-      // calisan sayfasinda neyin acik oldugu net gorunsun.
-      if (profile?.business_id) {
+      // Yetkiler (yoneticide gerek yok, her seyi yapar).
+      if (profile?.business_id && !isAdminRole) {
         const { error: permErr } = await supabase
           .from('employee_permissions')
           .insert({ profile_id: newId, business_id: profile.business_id, permissions: Array.from(perms) })
         if (permErr && !/does not exist|could not find/i.test(permErr.message)) {
-          // Sayfa birazdan calisanin sayfasina gececegi icin hata ekranda kalmaz.
           window.alert('Hesap açıldı ama yetkiler kaydedilemedi; çalışanın sayfasından tekrar seçebilirsin.')
         }
       }
@@ -102,7 +137,23 @@ export default function EmployeeCreatePage() {
           .from('employee_services')
           .insert(Array.from(selectedServices).map((service_id) => ({ profile_id: newId, service_id })))
       }
-      navigate(`/ekip/${newId}`, { replace: true })
+      // Daha once girilmis (bugunden sonraki) tatiller yeni calisana da
+      // uygulanir — yoksa bot/online sayfa tatil gunu ona randevu verirdi.
+      const { data: holidayBlocks } = await supabase
+        .from('employee_time_blocks')
+        .select('block_date, end_date, starts_at, ends_at')
+        .eq('label', HOLIDAY_LABEL)
+        .is('day_of_week', null)
+        .gte('end_date', toLocalDateString(new Date()))
+      const uniq = new Map<string, { block_date: string; end_date: string | null; starts_at: string; ends_at: string }>()
+      for (const b of holidayBlocks ?? []) uniq.set(`${b.block_date}|${b.end_date}|${b.starts_at}|${b.ends_at}`, b)
+      if (uniq.size > 0) {
+        await supabase
+          .from('employee_time_blocks')
+          .insert(Array.from(uniq.values()).map((b) => ({ ...b, profile_id: newId, day_of_week: null, label: HOLIDAY_LABEL })))
+      }
+      setCreatedId(newId)
+      setStep(3)
     } catch {
       setError('Sunucuya ulaşılamadı, tekrar deneyin.')
     } finally {
@@ -111,16 +162,108 @@ export default function EmployeeCreatePage() {
   }
 
   const firstName = fullName.trim().split(/\s+/)[0] || 'Çalışan'
+  const site = publicSiteBase()
+  const inviteText =
+    `Merhaba ${firstName}, Adapptiv hesabın açıldı.\n` +
+    `E-posta: ${email}\n` +
+    `Geçici şifre: ${password}\n` +
+    (mustChangePassword ? 'İlk girişte kendi şifreni belirleyeceksin.\n' : '') +
+    (site ? `Giriş: ${site}` : '')
+
+  async function shareInvite() {
+    try {
+      await Share.share({ title: 'Adapptiv hesabın', text: inviteText })
+      setShared('paylasildi')
+    } catch {
+      try {
+        await navigator.clipboard.writeText(inviteText)
+        setShared('kopyalandi')
+      } catch {
+        window.alert(inviteText)
+      }
+    }
+  }
+
+  if (step === 3) {
+    return (
+      <div className={styles.wrap}>
+        <PageHeader back={() => navigate(createdId ? `/ekip/${createdId}` : '/ekip', { replace: true })} title="Hesap açıldı" />
+        <div className={styles.formCard}>
+          <span className={styles.doneTitle}>{fullName} artık uygulamaya girebilir</span>
+          <div className={styles.credBox}>
+            <span>E-posta: <b>{email}</b></span>
+            <span>Geçici şifre: <b>{password}</b></span>
+          </div>
+          <span className={styles.fieldHint}>
+            {mustChangePassword
+              ? 'İlk girişte kendi şifresini belirlemesi istenecek.'
+              : 'Bu şifreyle girer; sonra Ayarlar’dan değiştirebilir.'}
+          </span>
+        </div>
+        <span className={styles.note}>Giriş bilgilerini WhatsApp, SMS ya da e-postayla gönderebilirsin.</span>
+        <div className={styles.footer}>
+          <button type="button" className={styles.footerBtn} onClick={shareInvite}>
+            {shared === 'kopyalandi' ? 'Kopyalandı ✓ · tekrar paylaş' : shared === 'paylasildi' ? 'Paylaşıldı ✓ · tekrar paylaş' : 'Giriş bilgilerini gönder'}
+          </button>
+          <button
+            type="button"
+            className={styles.footerGhost}
+            onClick={() => navigate(createdId ? `/ekip/${createdId}` : '/ekip', { replace: true })}
+          >
+            {firstName}’in sayfasına git
+          </button>
+        </div>
+      </div>
+    )
+  }
 
   if (step === 2) {
     return (
       <div className={styles.wrap}>
         <PageHeader back={() => setStep(1)} title={`${firstName} uygulamada ne görsün?`} sub="Sonradan değiştirebilirsin" />
 
-        <PermissionEditor value={perms} onChange={setPerms} disabled={submitting} />
+        <RoleCards value={preset} onChange={choosePreset} disabled={submitting} />
+
+        {!isAdminRole && (
+          <>
+            <button type="button" className={styles.fineTuneBtn} onClick={() => setFineTuneOpen((v) => !v)}>
+              {fineTuneOpen ? 'İnce ayarı gizle' : 'İnce ayar'} ›
+            </button>
+            {fineTuneOpen && <PermissionEditor value={perms} onChange={changePerms} disabled={submitting} />}
+          </>
+        )}
+
+        <div className={styles.listCard}>
+          <label className={styles.toggleRow}>
+            <span className={styles.toggleText}>
+              <span className={styles.checkLabel}>Online randevuda görünür</span>
+              <span className={styles.fieldHint}>Müşteri online sayfadan {firstName}’i seçebilir</span>
+            </span>
+            <span className={styles.switch}>
+              <input type="checkbox" checked={onlineBookable} onChange={() => setOnlineBookable((v) => !v)} />
+              <span className={styles.switchTrack} />
+            </span>
+          </label>
+          <label className={styles.toggleRow}>
+            <span className={styles.toggleText}>
+              <span className={styles.checkLabel}>İlk girişte kendi şifresini belirlesin</span>
+              <span className={styles.fieldHint}>Geçici şifreyle girer, hemen yenisini koyar</span>
+            </span>
+            <span className={styles.switch}>
+              <input type="checkbox" checked={mustChangePassword} onChange={() => setMustChangePassword((v) => !v)} />
+              <span className={styles.switchTrack} />
+            </span>
+          </label>
+        </div>
 
         <div className={styles.infoBox}>
-          Hesap açma, yetki verme, toplu mesaj, AI analiz ve reklam her zaman <b>yalnızca yöneticide</b> kalır.
+          {isAdminRole ? (
+            <>Yönetici her şeyi görür ve değiştirir: kasa, ekip, ayarlar, yetkiler.</>
+          ) : (
+            <>
+              Hesap açma, yetki verme, toplu mesaj, AI analiz ve reklam her zaman <b>yalnızca yöneticide</b> kalır.
+            </>
+          )}
         </div>
 
         <span className={styles.groupLabel}>Yaptığı hizmetler</span>
@@ -145,7 +288,7 @@ export default function EmployeeCreatePage() {
 
         <div className={styles.footer}>
           <button type="button" className={styles.footerBtn} onClick={handleCreate} disabled={submitting}>
-            {submitting ? 'Oluşturuluyor…' : 'Kaydet ve hesabı oluştur'}
+            {submitting ? 'Oluşturuluyor…' : 'Kaydet ve davet hazırla'}
           </button>
         </div>
       </div>
@@ -197,7 +340,7 @@ export default function EmployeeCreatePage() {
               Üret
             </button>
           </div>
-          <span className={styles.fieldHint}>Bu şifreyi çalışana ilet; sonra Ayarlar’dan değiştirebilir</span>
+          <span className={styles.fieldHint}>İlk girişte kendi şifresini belirler (bir sonraki adımda değiştirebilirsin)</span>
         </div>
         <div className={styles.field}>
           <span className={styles.fieldLabel}>Cinsiyet (isteğe bağlı)</span>

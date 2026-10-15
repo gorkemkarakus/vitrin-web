@@ -3278,3 +3278,16 @@
   opacity: 0.5;
   cursor: default;
 }
+
+.oldDebtBox {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  margin-bottom: 10px;
+}
+
+.oldDebtTitle {
+  font-size: 12px;
+  font-weight: 700;
+  color: var(--warn-text);
+}

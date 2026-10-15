@@ -12,16 +12,20 @@ import styles from './NotificationsPage.module.css'
 // devralinan konusmalar, odenmemis giderler, dunun ozeti) o an hesaplanir.
 // Tercihler ve "okundu" bilgisi sadece bu cihazda (localStorage) tutulur;
 // WhatsApp/sunucu bildirimlerini etkilemez.
-type Kind = 'mesaj' | 'bot' | 'onay' | 'gelmedi' | 'odeme' | 'ozet'
+type Kind = 'mesaj' | 'bot' | 'onay' | 'degisiklik' | 'gelmedi' | 'tahsilat' | 'odeme' | 'ozet'
 
 const PREFS_KEY = 'adapptiv.notificationPrefs'
+
+const METHOD_LABEL: Record<string, string> = { nakit: 'Nakit', kart: 'Kart', havale: 'Havale', diger: 'Diğer', bakiye: 'Bakiye' }
 const SEEN_KEY = 'adapptiv.notificationsSeenAt'
 
 const KIND_INFO: Record<Kind, { title: string; sub?: string; adminOnly: boolean }> = {
   mesaj: { title: 'Bot konuşmayı bana bıraktı', sub: 'Devraldığın, botun sustuğu konuşmalar', adminOnly: false },
   bot: { title: 'Yeni randevu', sub: 'Chatbot ya da online sayfadan gelenler', adminOnly: false },
   onay: { title: 'Onay bekleyen randevu', sub: 'Durumu “bekliyor” kalanlar', adminOnly: false },
+  degisiklik: { title: 'İptal, onay veya taşıma', sub: 'Müşteri, bot ya da başka biri randevuyu değiştirince', adminOnly: false },
   gelmedi: { title: 'Müşteri gelmedi', adminOnly: false },
+  tahsilat: { title: 'Ödeme alındı', sub: 'Başka birinin aldığı ödemeler (Kasa yetkisiyle)', adminOnly: false },
   odeme: { title: 'Ödenmemiş gider', sub: 'Geciken ve 3 gün içinde ödenecekler', adminOnly: true },
   ozet: { title: 'Gün sonu özeti', sub: 'Dünün randevu ve tahsilatı', adminOnly: true },
 }
@@ -41,7 +45,17 @@ interface Item {
 }
 
 function readPrefs(): Prefs {
-  const fallback: Prefs = { mesaj: true, bot: true, onay: true, gelmedi: true, odeme: true, ozet: true, onlyMine: false }
+  const fallback: Prefs = {
+    mesaj: true,
+    bot: true,
+    onay: true,
+    degisiklik: true,
+    gelmedi: true,
+    tahsilat: true,
+    odeme: true,
+    ozet: true,
+    onlyMine: false,
+  }
   try {
     const raw = localStorage.getItem(PREFS_KEY)
     return raw ? { ...fallback, ...JSON.parse(raw) } : fallback
@@ -89,7 +103,8 @@ function ago(iso: string) {
 
 export default function NotificationsPage() {
   const navigate = useNavigate()
-  const { profile } = useAuth()
+  const { profile, can } = useAuth()
+  const canKasa = can('kasa')
   const isAdmin = profile?.role === 'admin'
   const [searchParams] = useSearchParams()
   const fromSettings = searchParams.get('tercihler') === '1'
@@ -237,12 +252,82 @@ export default function NotificationsPage() {
           to: '/muhasebe',
         })
       }
+      // Randevu olaylari (appointment_events): kendi yaptiklarim haric.
+      // actor_id bos = bot / online sayfa / musterinin kendisi (WhatsApp).
+      const myId = profile?.id ?? ''
+      const [{ data: events }, { data: recentPays }] = await Promise.all([
+        supabase
+          .from('appointment_events')
+          .select('id, appointment_id, customer_id, employee_id, kind, new_status, old_scheduled_at, new_scheduled_at, actor_id, created_at, appointments(scheduled_at)')
+          .gte('created_at', twoDaysAgo)
+          .order('created_at', { ascending: false })
+          .limit(40),
+        canKasa
+          ? supabase
+              .from('payments')
+              .select('id, customer_id, amount, method, created_at, created_by_user_id')
+              .is('voided_at', null)
+              .gte('created_at', twoDaysAgo)
+              .order('created_at', { ascending: false })
+              .limit(30)
+          : Promise.resolve({ data: [] as { id: string; customer_id: string; amount: number; method: string; created_at: string; created_by_user_id: string | null }[] }),
+      ])
+      const evs = (events ?? []).filter((e) => e.actor_id !== myId)
+      const pays = (recentPays ?? []).filter((x) => x.created_by_user_id !== myId)
+      const extraCust = [...new Set([...evs.map((e) => e.customer_id), ...pays.map((x) => x.customer_id)].filter((v): v is string => !!v))]
+      const extraActors = [...new Set([...evs.map((e) => e.actor_id), ...pays.map((x) => x.created_by_user_id)].filter((v): v is string => !!v))]
+      const [{ data: c2 }, { data: actors }] = await Promise.all([
+        extraCust.length ? supabase.from('customers').select('id, full_name').in('id', extraCust.slice(0, 200)) : Promise.resolve({ data: [] as { id: string; full_name: string }[] }),
+        extraActors.length ? supabase.from('profiles').select('id, full_name').in('id', extraActors) : Promise.resolve({ data: [] as { id: string; full_name: string | null }[] }),
+      ])
+      const custName = (id: string | null) => c2?.find((c) => c.id === id)?.full_name ?? 'Müşteri'
+      const actorName = (id: string | null) => (actors?.find((a) => a.id === id)?.full_name ?? '').split(' ')[0] || 'Bir çalışan'
+      for (const e of evs) {
+        const who = e.actor_id ? actorName(e.actor_id) : null
+        const cust = custName(e.customer_id)
+        const appt = (Array.isArray(e.appointments) ? e.appointments[0] : e.appointments) as { scheduled_at: string } | null
+        let title = ''
+        let sub = ''
+        if (e.kind === 'saat' && e.old_scheduled_at && e.new_scheduled_at) {
+          title = who ? `${who}, ${cust} randevusunu taşıdı` : `${cust} randevusunu taşıdı`
+          sub = `${when(e.old_scheduled_at)} → ${when(e.new_scheduled_at)}.`
+        } else if (e.kind === 'durum' && (e.new_status === 'onaylandi' || e.new_status === 'iptal')) {
+          const verb = e.new_status === 'onaylandi' ? 'onayladı' : 'iptal etti'
+          title = who ? `${who}, ${cust} randevusunu ${verb}` : `${cust} randevusunu ${verb}`
+          sub = appt ? `Randevu ${when(appt.scheduled_at)}.` : ''
+        } else {
+          continue
+        }
+        const dateIso = e.new_scheduled_at ?? appt?.scheduled_at ?? e.created_at
+        out.push({
+          key: `degisiklik:${e.id}`,
+          kind: 'degisiklik',
+          title,
+          sub,
+          at: e.created_at,
+          employeeId: e.employee_id,
+          to: `/randevular?tarih=${dateKey(dateIso)}`,
+        })
+      }
+      for (const x of pays) {
+        out.push({
+          key: `tahsilat:${x.id}`,
+          kind: 'tahsilat',
+          title: `${custName(x.customer_id)} · ${currencyWhole.format(Number(x.amount))} ödeme`,
+          sub: `${METHOD_LABEL[x.method] ?? x.method}${x.created_by_user_id ? ` · alan: ${actorName(x.created_by_user_id)}` : ''}.`,
+          at: x.created_at,
+          employeeId: null,
+          to: `/musteriler/${x.customer_id}`,
+        })
+      }
+
       out.sort((x, y) => y.at.localeCompare(x.at))
       setItems(out)
       setLoading(false)
     }
     load()
-  }, [isAdmin])
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [isAdmin, canKasa])
 
   function updatePrefs(patch: Partial<Prefs>) {
     setPrefs((prev) => {
@@ -288,7 +373,9 @@ export default function NotificationsPage() {
   const isUnread = (i: Item) => !seenAt || i.at > seenAt
   const unreadCount = visible.filter(isUnread).length
 
-  const kinds = (Object.keys(KIND_INFO) as Kind[]).filter((k) => !KIND_INFO[k].adminOnly || isAdmin)
+  const kinds = (Object.keys(KIND_INFO) as Kind[]).filter(
+    (k) => (!KIND_INFO[k].adminOnly || isAdmin) && (k !== 'tahsilat' || canKasa),
+  )
 
   if (showPrefs) {
     return (

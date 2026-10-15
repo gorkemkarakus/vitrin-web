@@ -452,3 +452,24 @@
 .footerBtn:disabled {
   opacity: 0.6;
 }
+
+.packageFields {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 10px;
+  padding: 4px 0 14px;
+  border-bottom: 1px solid #eef0f3;
+}
+
+.smallInput {
+  width: 100%;
+  border: none;
+  outline: none;
+  background: var(--bg);
+  border-radius: 12px;
+  padding: 11px 12px;
+  font-family: var(--font-body);
+  font-size: 15px;
+  font-weight: 700;
+  color: var(--text);
+}
