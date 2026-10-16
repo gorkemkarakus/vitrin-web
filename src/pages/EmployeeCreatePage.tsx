@@ -33,6 +33,10 @@ function generatePassword() {
   return out
 }
 
+const DEFAULT_WORK_DAYS = [1, 2, 3, 4, 5, 6]
+const DEFAULT_START = '09:00'
+const DEFAULT_END = '18:00'
+
 export default function EmployeeCreatePage() {
   const navigate = useNavigate()
   const { profile } = useAuth()
@@ -45,6 +49,9 @@ export default function EmployeeCreatePage() {
   const [gender, setGender] = useState<'' | 'kadin' | 'erkek'>('')
   const [services, setServices] = useState<ServiceLite[]>([])
   const [selectedServices, setSelectedServices] = useState<Set<string>>(new Set())
+  // Saatsiz acilan calisanin her gunu "kapali" gorunur ve randevu alamaz;
+  // varsayilan olarak standart saatlerle baslar, sonra duzenlenir.
+  const [useDefaultHours, setUseDefaultHours] = useState(true)
   const [preset, setPreset] = useState<RolePreset | null>('calisan')
   const [perms, setPerms] = useState<Set<PermKey>>(new Set(ROLE_PRESETS.find((r) => r.key === 'calisan')?.perms ?? []))
   const [fineTuneOpen, setFineTuneOpen] = useState(false)
@@ -125,6 +132,16 @@ export default function EmployeeCreatePage() {
         await supabase
           .from('employee_services')
           .insert(Array.from(selectedServices).map((service_id) => ({ profile_id: newId, service_id })))
+      }
+      if (useDefaultHours) {
+        await supabase.from('employee_schedules').insert(
+          DEFAULT_WORK_DAYS.map((day_of_week) => ({
+            profile_id: newId,
+            day_of_week,
+            starts_at: DEFAULT_START,
+            ends_at: DEFAULT_END,
+          })),
+        )
       }
       // Daha once girilmis (bugunden sonraki) tatiller yeni calisana da
       // uygulanir — yoksa bot/online sayfa tatil gunu ona randevu verirdi.
@@ -213,6 +230,15 @@ export default function EmployeeCreatePage() {
                 ? 'Paylaşıldı ✓ · tekrar paylaş'
                 : 'Giriş bilgilerini gönder'}
           </button>
+          {createdId && (
+            <button
+              type="button"
+              className={styles.footerGhost}
+              onClick={() => navigate(`/ekip/${createdId}/saatler`, { replace: true })}
+            >
+              Çalışma saatlerini düzenle
+            </button>
+          )}
           <button
             type="button"
             className={styles.footerGhost}
@@ -301,6 +327,25 @@ export default function EmployeeCreatePage() {
           </div>
         )}
         <p className={styles.hint}>Seçmediğin hizmetler için {firstName}’e randevu verilmez.</p>
+
+        <span className={styles.groupLabel}>Çalışma saatleri</span>
+        <div className={styles.listCard}>
+          <label className={styles.toggleRow}>
+            <span className={styles.toggleText}>
+              <span className={styles.checkLabel}>Standart saatlerle başlasın</span>
+              <span className={styles.fieldHint}>
+                Pazartesi–Cumartesi 09:00–18:00. Sonra {firstName}’in sayfasından değiştirebilirsin.
+              </span>
+            </span>
+            <span className={styles.switch}>
+              <input type="checkbox" checked={useDefaultHours} onChange={() => setUseDefaultHours((v) => !v)} />
+              <span className={styles.switchTrack} />
+            </span>
+          </label>
+        </div>
+        {!useDefaultHours && (
+          <p className={styles.hint}>Saat girilene kadar {firstName}’e randevu açılamaz; her gün kapalı görünür.</p>
+        )}
 
         {error && <p className={styles.error}>{error}</p>}
 
