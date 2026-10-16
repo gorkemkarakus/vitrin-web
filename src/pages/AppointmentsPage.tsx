@@ -263,6 +263,8 @@ export default function AppointmentsPage() {
   const [customerQuery, setCustomerQuery] = useState('')
   const [customerListOpen, setCustomerListOpen] = useState(false)
   const [showAllServices, setShowAllServices] = useState(false)
+  // Form uzun; kayit hatasi en ustte kalip gorunmeyebilir, hataya kaydirilir.
+  const formErrorRef = useRef<HTMLDivElement>(null)
   const [formWeekOffset, setFormWeekOffset] = useState(0)
   const [noteOpen, setNoteOpen] = useState(false)
   const [sourcePickerOpen, setSourcePickerOpen] = useState(false)
@@ -333,6 +335,9 @@ export default function AppointmentsPage() {
   const [sourceNote, setSourceNote] = useState('')
   const [submitting, setSubmitting] = useState(false)
   const [error, setError] = useState<string | null>(null)
+  useEffect(() => {
+    if (error) formErrorRef.current?.scrollIntoView({ block: 'nearest', behavior: 'smooth' })
+  }, [error])
   const [success, setSuccess] = useState<string | null>(null)
 
   // "Tamamlandi" isaretlenince acilan odeme + sonraki seans mini-sihirbazi.
@@ -621,6 +626,17 @@ export default function AppointmentsPage() {
     return pool.filter((p) => ids.has(p.id))
   }, [selectedService, employeeServices, profiles, canSeeAll, profile?.id])
 
+  // Yalnizca kendine randevu acabilen calisana yapamadigi hizmetler gosterilmez.
+  const formServices = useMemo(
+    () =>
+      canSeeAll
+        ? services
+        : services.filter((s) =>
+            employeeServices.some((es) => es.profile_id === profile?.id && es.service_id === s.id),
+          ),
+    [canSeeAll, services, employeeServices, profile?.id],
+  )
+
   function isEmployeeAvailable(employeeId: string, start: Date, durationMinutes: number, excludeApptId?: string) {
     const dayOfWeek = start.getDay()
     const startMinutes = start.getHours() * 60 + start.getMinutes()
@@ -684,6 +700,26 @@ export default function AppointmentsPage() {
 
   // Yeni randevu penceresi verisi (tasarim: Sec-YeniRandevu).
   const formCandidateIds = employeeId ? [employeeId] : eligibleEmployees.map((p) => p.id)
+  // Bos aday listesi isDayOpenForCandidates/buildTimeOptions'ta "kisitlama yok"
+  // demektir (calisansiz eski randevular icin); yeni randevuda ise hizmeti yapan
+  // kimse yoksa hicbir gun/saat acik degildir.
+  const formNoEligible = !!selectedService && eligibleEmployees.length === 0
+  const formUnscheduled =
+    !!selectedService &&
+    formCandidateIds.length > 0 &&
+    formCandidateIds.every((id) => !schedules.some((sc) => sc.profile_id === id))
+  const formOnlySelf = formCandidateIds.length === 1 && formCandidateIds[0] === profile?.id
+  const formEmptyMessage = !serviceId
+    ? 'Önce hizmeti seç.'
+    : formNoEligible
+      ? canSeeAll
+        ? 'Bu hizmeti yapan çalışan yok. Ekip sayfasından bir çalışana bu hizmeti ata.'
+        : 'Bu hizmet sana atanmamış.'
+      : formUnscheduled
+        ? formOnlySelf
+          ? 'Çalışma saatlerin girilmemiş. Yöneticin Ekip sayfasından ekleyebilir.'
+          : `${employeeName(formCandidateIds[0]).split(' ')[0]} için çalışma saati girilmemiş. Ekip sayfasından ekleyebilirsin.`
+        : 'Bu gün için müsait saat yok, başka bir gün seç.'
   const formDuration = selectedService?.duration_minutes ?? SLOT_MINUTES
   const selectedCustomer = customerId ? (customers.find((c) => c.id === customerId) ?? null) : null
   const cq = customerQuery.trim().toLocaleLowerCase('tr')
@@ -698,9 +734,9 @@ export default function AppointmentsPage() {
         .slice(0, 6)
     : []
   const visibleFormServices = (() => {
-    if (showAllServices || services.length <= FORM_SERVICE_LIMIT) return services
-    const first = services.slice(0, FORM_SERVICE_LIMIT)
-    const sel = services.find((x) => x.id === serviceId)
+    if (showAllServices || formServices.length <= FORM_SERVICE_LIMIT) return formServices
+    const first = formServices.slice(0, FORM_SERVICE_LIMIT)
+    const sel = formServices.find((x) => x.id === serviceId)
     return sel && !first.includes(sel) ? [sel, ...first.slice(0, FORM_SERVICE_LIMIT - 1)] : first
   })()
   // 6'li gun izgarasi: bugunden itibaren, oklarla 6'sar gun ileri.
@@ -709,7 +745,7 @@ export default function AppointmentsPage() {
         const d = new Date()
         d.setDate(d.getDate() + formWeekOffset * 6 + i)
         const key = toLocalDateString(d)
-        const open = isDayOpenForCandidates(key, formCandidateIds)
+        const open = !formNoEligible && isDayOpenForCandidates(key, formCandidateIds)
         const free =
           selectedService && open
             ? buildTimeOptions(key, formCandidateIds, formDuration).filter((o) => !('disabled' in o && o.disabled))
@@ -724,7 +760,7 @@ export default function AppointmentsPage() {
     : ''
   // Saat izgarasi: ilk ve son musait saat arasi; aradaki dolu saatler soluk.
   const formTimeOptions = (() => {
-    if (!showForm || !serviceId) return [] as { value: string; disabled: boolean }[]
+    if (!showForm || !serviceId || formNoEligible) return [] as { value: string; disabled: boolean }[]
     const all = buildTimeOptions(apptDate, formCandidateIds, formDuration).map((o) => ({
       value: o.value,
       disabled: 'disabled' in o ? !!o.disabled : false,
@@ -766,7 +802,7 @@ export default function AppointmentsPage() {
       }
     } else {
       if (eligibleEmployees.length === 0) {
-        setError('Bu hizmete atanmış çalışan yok. Önce Ekip sayfasından bir çalışana bu hizmeti atayın.')
+        setError(formEmptyMessage)
         return
       }
       const candidates = eligibleEmployees.filter((p) => isEmployeeAvailable(p.id, start, duration))
@@ -1845,7 +1881,7 @@ export default function AppointmentsPage() {
             </div>
 
             {error && (
-              <div className={`${styles.banner} ${styles.bannerError}`}>
+              <div className={`${styles.banner} ${styles.bannerError}`} ref={formErrorRef} role="alert">
                 <span>{error}</span>
                 <button type="button" className={styles.bannerClose} onClick={() => setError(null)}>
                   ✕
@@ -1949,6 +1985,11 @@ export default function AppointmentsPage() {
             {/* ---- Hizmet ---- */}
             <div className={styles.fGroup}>
               <span className={styles.fLabel}>Hizmet</span>
+              {formServices.length === 0 && (
+                <p className={styles.formNote}>
+                  {canSeeAll ? 'Henüz hizmet yok.' : 'Sana atanmış hizmet yok. Yöneticin Ekip sayfasından ekleyebilir.'}
+                </p>
+              )}
               <div className={styles.serviceChips}>
                 {visibleFormServices.map((s) => (
                   <button
@@ -1964,7 +2005,7 @@ export default function AppointmentsPage() {
                     {s.id === serviceId ? `${s.name} · ${s.duration_minutes} dk` : s.name}
                   </button>
                 ))}
-                {services.length > FORM_SERVICE_LIMIT && (
+                {formServices.length > FORM_SERVICE_LIMIT && (
                   <button
                     type="button"
                     className={styles.serviceChipMore}
@@ -2074,9 +2115,7 @@ export default function AppointmentsPage() {
                 </span>
               </div>
               {formTimeOptions.length === 0 ? (
-                <p className={styles.formNote}>
-                  {serviceId ? 'Bu gün için müsait saat yok, başka bir gün seç.' : 'Önce hizmeti seç.'}
-                </p>
+                <p className={styles.formNote}>{formEmptyMessage}</p>
               ) : (
                 <div className={styles.timeGrid}>
                   {formTimeOptions.map((t) => (
