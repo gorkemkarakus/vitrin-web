@@ -1,6 +1,7 @@
-import { useEffect, useMemo, useRef, useState, type FormEvent } from 'react'
+import { useCallback, useEffect, useMemo, useRef, useState, type FormEvent } from 'react'
 import { Link, useSearchParams } from 'react-router-dom'
 import { supabase } from '../lib/supabase'
+import { useDismiss } from '../hooks/useDismiss'
 import { useAuth } from '../contexts/AuthContext'
 import PageHeader from '../components/PageHeader'
 import { SearchIcon, CheckCircleIcon, ChevronRightIcon } from '../components/icons'
@@ -95,14 +96,8 @@ export default function ServicesPage() {
     loadData()
   }, [])
 
-  useEffect(() => {
-    if (!sortMenuOpen) return
-    function handleClick(e: MouseEvent) {
-      if (sortMenuRef.current && !sortMenuRef.current.contains(e.target as Node)) setSortMenuOpen(false)
-    }
-    document.addEventListener('mousedown', handleClick)
-    return () => document.removeEventListener('mousedown', handleClick)
-  }, [sortMenuOpen])
+  const closeSortMenu = useCallback(() => setSortMenuOpen(false), [])
+  useDismiss(sortMenuRef, sortMenuOpen, closeSortMenu)
 
   // Editor acildiginda formu doldur + bu ayki kullanimi getir.
   useEffect(() => {
