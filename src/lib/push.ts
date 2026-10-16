@@ -1,6 +1,7 @@
 import { Capacitor } from '@capacitor/core'
 import { PushNotifications } from '@capacitor/push-notifications'
 import { supabase } from './supabase'
+import { logger } from './logger'
 
 // Telefon bildirimleri. Firebase dosyalari (android/app/google-services.json,
 // iOS'ta GoogleService-Info.plist + APNs) eklenmeden register() uygulamayi
@@ -32,9 +33,9 @@ export async function startPush(onOpen: (route: string) => void) {
         p_token: value,
         p_platform: Capacitor.getPlatform(),
       })
-      if (error) console.warn('Bildirim cihazi kaydedilemedi', error.message)
+      if (error) logger.warn('Bildirim cihazi kaydedilemedi', error.message)
     })
-    await PushNotifications.addListener('registrationError', (e) => console.warn('Bildirim kaydi basarisiz', e.error))
+    await PushNotifications.addListener('registrationError', (e) => logger.warn('Bildirim kaydi basarisiz', e.error))
     await PushNotifications.addListener('pushNotificationActionPerformed', ({ notification }) => {
       const route = (notification.data as { route?: string } | undefined)?.route
       if (route && route.startsWith('/')) onOpen(route)
@@ -56,7 +57,7 @@ export async function startPush(onOpen: (route: string) => void) {
     }
     if (perm.receive === 'granted') await PushNotifications.register()
   } catch (e) {
-    console.warn('Bildirimler baslatilamadi', e)
+    logger.warn('Bildirimler baslatilamadi', e)
   }
 }
 

@@ -20,6 +20,7 @@
     "@capacitor/share": "^8.0.1",
     "@capacitor/splash-screen": "^8.0.2",
     "@supabase/supabase-js": "^2.110.0",
+    "capacitor-secure-storage-plugin": "^0.13.0",
     "fflate": "^0.8.3",
     "jspdf": "^4.2.1",
     "jspdf-autotable": "^5.0.8",
