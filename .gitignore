@@ -25,3 +25,6 @@ dist-ssr
 *.sw?
 
 jdk21-portable/
+
+# Supabase CLI yerel onbellegi
+supabase/.temp/
