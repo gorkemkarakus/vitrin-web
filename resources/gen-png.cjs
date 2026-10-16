@@ -2,8 +2,8 @@ const sharp = require('sharp')
 const path = require('path')
 
 // Kaynak: src/assets/brand/logo-mark.png (yaziyi olmayan, seffaf zeminli
-// marka ikonu). Buradan capacitor-assets'in bekledigi 5 dosya uretilir
-// (bkz. node_modules/@capacitor/assets README'deki "Custom Mode").
+// marka ikonu). Buradan @capacitor/assets'in bekledigi 5 dosya uretilir;
+// ardindan: npx @capacitor/assets generate (README > Ikonlar).
 const MARK = path.join(__dirname, '..', 'src', 'assets', 'brand', 'logo-mark.png')
 
 async function run() {
