@@ -2021,29 +2021,32 @@ export default function AppointmentsPage() {
             <div className={styles.fGroup}>
               <span className={styles.fLabel}>Çalışan</span>
               <div className={styles.staffRow}>
-                <button
-                  type="button"
-                  className={employeeId === '' ? styles.staffBtnActive : styles.staffBtn}
-                  onClick={() => {
-                    setEmployeeId('')
-                    setApptTime('')
-                  }}
-                >
-                  <span className={`${styles.staffAvatar} ${styles.staffAvatarAny}`}>Hepsi</span>
-                  Fark etmez
-                </button>
+                {/* Yalnizca kendine randevu acabilen calisanda secim yok: randevu ona yazilir. */}
+                {canSeeAll && (
+                  <button
+                    type="button"
+                    className={employeeId === '' ? styles.staffBtnActive : styles.staffBtn}
+                    onClick={() => {
+                      setEmployeeId('')
+                      setApptTime('')
+                    }}
+                  >
+                    <span className={`${styles.staffAvatar} ${styles.staffAvatarAny}`}>Hepsi</span>
+                    Fark etmez
+                  </button>
+                )}
                 {eligibleEmployees.map((p, i) => (
                   <button
                     type="button"
                     key={p.id}
-                    className={employeeId === p.id ? styles.staffBtnActive : styles.staffBtn}
+                    className={employeeId === p.id || !canSeeAll ? styles.staffBtnActive : styles.staffBtn}
                     onClick={() => {
                       setEmployeeId(p.id)
                       setApptTime('')
                     }}
                   >
                     <span
-                      className={`${styles.staffAvatar} ${employeeId === p.id ? styles.staffAvatarActive : styles[`staffTone${i % 3}`]}`}
+                      className={`${styles.staffAvatar} ${employeeId === p.id || !canSeeAll ? styles.staffAvatarActive : styles[`staffTone${i % 3}`]}`}
                     >
                       {(p.full_name ?? '?').trim().charAt(0).toLocaleUpperCase('tr')}
                     </span>
