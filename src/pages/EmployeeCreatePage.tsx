@@ -140,16 +140,14 @@ export default function EmployeeCreatePage() {
       >()
       for (const b of holidayBlocks ?? []) uniq.set(`${b.block_date}|${b.end_date}|${b.starts_at}|${b.ends_at}`, b)
       if (uniq.size > 0) {
-        await supabase
-          .from('employee_time_blocks')
-          .insert(
-            Array.from(uniq.values()).map((b) => ({
-              ...b,
-              profile_id: newId,
-              day_of_week: null,
-              label: HOLIDAY_LABEL,
-            })),
-          )
+        await supabase.from('employee_time_blocks').insert(
+          Array.from(uniq.values()).map((b) => ({
+            ...b,
+            profile_id: newId,
+            day_of_week: null,
+            label: HOLIDAY_LABEL,
+          })),
+        )
       }
       setCreatedId(newId)
       setStep(3)

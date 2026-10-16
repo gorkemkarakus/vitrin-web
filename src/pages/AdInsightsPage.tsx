@@ -9,6 +9,7 @@ import PageHeader from '../components/PageHeader'
 import { currencyWhole as currency } from '../lib/currency'
 import { SOURCE_LABEL } from '../lib/sourceLabels'
 import styles from './AdInsightsPage.module.css'
+import { DAY_MS } from '../lib/date'
 
 type ConnectionStatus = 'pending' | 'connected' | 'error'
 
@@ -76,7 +77,7 @@ export default function AdInsightsPage() {
 
   useEffect(() => {
     let cancelled = false
-    const since = new Date(Date.now() - (rangeDays - 1) * 86400000)
+    const since = new Date(Date.now() - (rangeDays - 1) * DAY_MS)
     since.setHours(0, 0, 0, 0)
     // fetchAll: tek istekte en fazla 1000 satir doner, yogun bir ayda kesilmesin.
     fetchAll(() =>

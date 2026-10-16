@@ -9,6 +9,7 @@ import { MessagesIcon, ChevronRightIcon, SendIcon } from '../components/icons'
 import PageHeader from '../components/PageHeader'
 import type { LayoutOutletContext } from '../layouts/DashboardLayout'
 import styles from './MessagesPage.module.css'
+import { DAY_MS } from '../lib/date'
 
 interface RawMessage {
   role: 'user' | 'assistant'
@@ -204,7 +205,7 @@ export default function MessagesPage() {
     const convs = Array.from(byPhone.values())
     const custIds = [...new Set(convs.map((c) => c.customer?.id).filter((v): v is string => !!v))]
     if (custIds.length) {
-      const weekAgo = new Date(Date.now() - 8 * 86400000).toISOString()
+      const weekAgo = new Date(Date.now() - 8 * DAY_MS).toISOString()
       const [{ data: appts }, { data: events }] = await Promise.all([
         supabase
           .from('appointments')
@@ -222,7 +223,7 @@ export default function MessagesPage() {
         const t = new Date(c.lastMessageAt).getTime()
         const near = (iso: string) => {
           const x = new Date(iso).getTime()
-          return x >= t - 86400000 && x <= t + 3600000
+          return x >= t - DAY_MS && x <= t + 3600000
         }
         const mine = (appts ?? []).filter((a) => a.customer_id === cid)
         const ev = (events ?? []).filter((e) => e.customer_id === cid && near(e.created_at))

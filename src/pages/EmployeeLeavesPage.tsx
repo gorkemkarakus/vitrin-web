@@ -2,7 +2,7 @@ import { useEffect, useState } from 'react'
 import { useNavigate, useParams, useSearchParams } from 'react-router-dom'
 import { supabase } from '../lib/supabase'
 import { TIME_OPTIONS } from '../lib/timeOptions'
-import { toLocalDateString, todayLocalDateString, timeToMinutes } from '../lib/date'
+import { toLocalDateString, todayLocalDateString, timeToMinutes, DAY_MS } from '../lib/date'
 import PageHeader from '../components/PageHeader'
 import PickerSheet from '../components/PickerSheet'
 import styles from './EmployeeLeavesPage.module.css'
@@ -528,8 +528,7 @@ export default function EmployeeLeavesPage() {
 
   function rowDays(r: Row) {
     return (
-      Math.round((new Date(`${r.endDate}T00:00:00`).getTime() - new Date(`${r.date}T00:00:00`).getTime()) / 86400000) +
-      1
+      Math.round((new Date(`${r.endDate}T00:00:00`).getTime() - new Date(`${r.date}T00:00:00`).getTime()) / DAY_MS) + 1
     )
   }
 

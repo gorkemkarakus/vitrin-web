@@ -17,7 +17,7 @@ import {
   type RolePreset,
 } from '../lib/permissions'
 import { ChevronRightIcon } from '../components/icons'
-import { toLocalDateString, todayLocalDateString, timeToMinutes, WEEK_ORDER, DAY_SHORT } from '../lib/date'
+import { toLocalDateString, todayLocalDateString, timeToMinutes, WEEK_ORDER, DAY_SHORT, DAY_MS } from '../lib/date'
 import { currency } from '../lib/currency'
 import styles from './EmployeeDetailPage.module.css'
 import { BREAK_LABEL } from '../lib/scheduleLabels'
@@ -1112,7 +1112,7 @@ export default function EmployeeDetailPage({ selfEarnings = false }: { selfEarni
     .reduce((sum, b) => {
       const s = new Date(`${b.block_date}T00:00:00`).getTime()
       const e = new Date(`${b.end_date ?? b.block_date}T00:00:00`).getTime()
-      return sum + Math.round((e - s) / 86400000) + 1
+      return sum + Math.round((e - s) / DAY_MS) + 1
     }, 0)
   const nextLeave = upcomingLeaves.find((b) => b.label !== 'Resmi Tatil')
 

@@ -8,7 +8,7 @@ import { SearchIcon, RobotIcon, ReceiptIcon, CheckCircleIcon } from '../componen
 import { SOURCE_LABEL } from '../lib/sourceLabels'
 import { generatePerformanceReportPdf } from '../lib/pdf/performanceReportPdf'
 import { currencyWhole as currency } from '../lib/currency'
-import { toLocalDateString, presetDateRange, timeToMinutes, WEEK_ORDER, DAY_SHORT, DAY_LONG } from '../lib/date'
+import { toLocalDateString, presetDateRange, timeToMinutes, WEEK_ORDER, DAY_SHORT, DAY_LONG, DAY_MS } from '../lib/date'
 import styles from './PerformanceReportPage.module.css'
 import { firstName } from '../lib/formatName'
 import { AVATAR_TONES } from '../lib/avatarColor'
@@ -108,8 +108,7 @@ function previousRange(preset: Preset, start: string, end: string): { start: str
     const ps = toLocalDateString(prevStart)
     return { start: ps, end: toLocalDateString(prevEnd), label: monthName(ps) }
   }
-  const len =
-    Math.round((new Date(`${end}T00:00:00`).getTime() - new Date(`${start}T00:00:00`).getTime()) / 86400000) + 1
+  const len = Math.round((new Date(`${end}T00:00:00`).getTime() - new Date(`${start}T00:00:00`).getTime()) / DAY_MS) + 1
   const prevEnd = shiftDays(start, -1)
   const label = preset === 'bugun' ? 'Dün' : preset === 'bu_hafta' ? 'Geçen hafta' : 'Önceki dönem'
   return { start: shiftDays(prevEnd, -(len - 1)), end: prevEnd, label }
@@ -121,7 +120,7 @@ function datesInRange(startStr: string, endStr: string): string[] {
   const end = new Date(`${endStr}T00:00:00`)
   while (cur <= end) {
     out.push(toLocalDateString(cur))
-    cur = new Date(cur.getTime() + 86400000)
+    cur = new Date(cur.getTime() + DAY_MS)
   }
   return out
 }

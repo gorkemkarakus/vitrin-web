@@ -1,3 +1,5 @@
+export const DAY_MS = 24 * 60 * 60 * 1000
+
 export function toLocalDateString(d: Date): string {
   return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`
 }

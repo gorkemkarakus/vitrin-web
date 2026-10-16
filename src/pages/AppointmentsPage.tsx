@@ -7,7 +7,7 @@ import { useAuth } from '../contexts/AuthContext'
 import { TIME_OPTIONS } from '../lib/timeOptions'
 import { formatPersonName } from '../lib/formatName'
 import { currency } from '../lib/currency'
-import { toLocalDateString, todayLocalDateString, timeToMinutes, DAY_SHORT } from '../lib/date'
+import { toLocalDateString, todayLocalDateString, timeToMinutes, DAY_SHORT, DAY_MS } from '../lib/date'
 import { computeDebtItems, type DebtItem } from '../lib/customerDebts'
 import Avatar from '../components/Avatar'
 import StatusDropdown, { type StatusDropdownOption } from '../components/StatusDropdown'
@@ -1223,7 +1223,7 @@ export default function AppointmentsPage() {
   }
 
   const diffDays = Math.round(
-    (new Date(viewDate + 'T00:00:00').getTime() - new Date(todayLocalDateString() + 'T00:00:00').getTime()) / 86400000,
+    (new Date(viewDate + 'T00:00:00').getTime() - new Date(todayLocalDateString() + 'T00:00:00').getTime()) / DAY_MS,
   )
   const viewWeekday = new Date(viewDate + 'T00:00:00').toLocaleDateString('tr-TR', { weekday: 'long' })
   let dayLabel: string

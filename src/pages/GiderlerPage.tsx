@@ -7,7 +7,7 @@ import PageHeader from '../components/PageHeader'
 import PickerSheet from '../components/PickerSheet'
 import { CalendarIcon } from '../components/icons'
 import { currency } from '../lib/currency'
-import { toLocalDateString, presetDateRange, type DateRangePreset } from '../lib/date'
+import { toLocalDateString, presetDateRange, type DateRangePreset, DAY_MS } from '../lib/date'
 import styles from './GiderlerPage.module.css'
 
 interface Expense {
@@ -51,7 +51,7 @@ function shortDate(dateStr: string) {
 function previousRange(start: string, end: string) {
   const s = new Date(`${start}T00:00:00`)
   const e = new Date(`${end}T00:00:00`)
-  const days = Math.round((e.getTime() - s.getTime()) / 86400000) + 1
+  const days = Math.round((e.getTime() - s.getTime()) / DAY_MS) + 1
   const pe = new Date(s)
   pe.setDate(pe.getDate() - 1)
   const ps = new Date(pe)

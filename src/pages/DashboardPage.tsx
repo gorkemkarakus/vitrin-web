@@ -6,7 +6,7 @@ import { fetchAll } from '../lib/fetchAll'
 import { useAuth } from '../contexts/AuthContext'
 import { WalletIcon, ReceiptIcon, ChevronRightIcon, CreditCardIcon } from '../components/icons'
 import { currency, currencyWhole } from '../lib/currency'
-import { toLocalDateString, timeOf } from '../lib/date'
+import { toLocalDateString, timeOf, DAY_MS } from '../lib/date'
 import { bookingUrl as bookingLink } from '../lib/bookingUrl'
 import styles from './DashboardPage.module.css'
 import { initials } from '../lib/formatName'
@@ -287,7 +287,7 @@ export default function DashboardPage() {
     .sort((a, b) => b[1] - a[1])
     .slice(0, 4)
 
-  const periodDays = Math.max(1, Math.round((rangeEnd.getTime() - rangeStart.getTime()) / 86400000) + 1)
+  const periodDays = Math.max(1, Math.round((rangeEnd.getTime() - rangeStart.getTime()) / DAY_MS) + 1)
   const prevEnd = new Date(rangeStart)
   prevEnd.setDate(prevEnd.getDate() - 1)
   const prevStart = new Date(prevEnd)
@@ -312,7 +312,7 @@ export default function DashboardPage() {
 
   function daysUntil(dateStr: string) {
     const d = atMidnight(new Date(`${dateStr}T00:00:00`))
-    return Math.round((d.getTime() - today.getTime()) / 86400000)
+    return Math.round((d.getTime() - today.getTime()) / DAY_MS)
   }
 
   const todaysAppointments = appointments

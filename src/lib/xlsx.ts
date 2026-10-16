@@ -1,4 +1,5 @@
 import { strToU8, zipSync } from 'fflate'
+import { DAY_MS } from './date'
 
 // Kucuk bir .xlsx yazici: birden cok sayfa, lacivert baslik satiri, sabit
 // (dondurulmus) baslik, filtre, kolon genislikleri; para / tarih hucreleri
@@ -60,7 +61,7 @@ function colName(i: number) {
 // Excel seri tarihi (yerel saat bilesenleriyle; 1899-12-30 = 0).
 function excelSerial(d: Date) {
   const ms = Date.UTC(d.getFullYear(), d.getMonth(), d.getDate(), d.getHours(), d.getMinutes(), d.getSeconds())
-  return (ms - Date.UTC(1899, 11, 30)) / 86400000
+  return (ms - Date.UTC(1899, 11, 30)) / DAY_MS
 }
 
 function cellXml(ref: string, v: CellValue, type: ColumnType) {

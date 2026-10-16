@@ -1,4 +1,5 @@
 import { supabase } from './supabase'
+import { DAY_MS } from './date'
 
 // Gun sonu kasa kapanisi icin bir gunun ozeti (ekran ve PDF ayni veriyi kullanir).
 
@@ -71,7 +72,7 @@ export function longDate(dateStr: string) {
 
 export async function loadDaySummary(date: string): Promise<DaySummary> {
   const start = new Date(`${date}T00:00:00`)
-  const end = new Date(start.getTime() + 86400000)
+  const end = new Date(start.getTime() + DAY_MS)
   const [{ data: pays }, { data: exps }, { data: appts }] = await Promise.all([
     supabase
       .from('payments')

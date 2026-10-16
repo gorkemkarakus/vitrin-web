@@ -3,7 +3,7 @@ import { useAuth } from '../contexts/AuthContext'
 import { supabase } from '../lib/supabase'
 import { AlertTriangleIcon } from '../components/icons'
 import PageHeader from '../components/PageHeader'
-import { toLocalDateString, todayLocalDateString } from '../lib/date'
+import { toLocalDateString, todayLocalDateString, DAY_MS } from '../lib/date'
 import styles from './HolidaysPage.module.css'
 import { HOLIDAY_LABEL } from '../lib/scheduleLabels'
 
@@ -339,7 +339,7 @@ export default function HolidaysPage() {
               {others.map((h) => {
                 const days =
                   Math.round(
-                    (new Date(`${h.endDate}T00:00:00`).getTime() - new Date(`${h.date}T00:00:00`).getTime()) / 86400000,
+                    (new Date(`${h.endDate}T00:00:00`).getTime() - new Date(`${h.date}T00:00:00`).getTime()) / DAY_MS,
                   ) + 1
                 const biz = bizHolidays.find((b) => b.start_date === h.date && b.end_date === h.endDate)
                 return (

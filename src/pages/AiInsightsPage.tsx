@@ -12,7 +12,7 @@ import { SOURCE_LABEL } from '../lib/sourceLabels'
 import DonutChart from '../components/DonutChart'
 import LineChart from '../components/LineChart'
 import { currencyWhole as currency } from '../lib/currency'
-import { toLocalDateString, firstOfMonth, DAY_LONG } from '../lib/date'
+import { toLocalDateString, firstOfMonth, DAY_LONG, DAY_MS } from '../lib/date'
 import { segmentForStats } from '../lib/customerSegments'
 import styles from './AiInsightsPage.module.css'
 
@@ -162,7 +162,7 @@ const PERIOD_LABEL_FOR_AI: Partial<Record<Preset, string>> = {
 }
 
 function daysBetween(start: string, end: string) {
-  return Math.round((new Date(`${end}T00:00:00`).getTime() - new Date(`${start}T00:00:00`).getTime()) / 86400000) + 1
+  return Math.round((new Date(`${end}T00:00:00`).getTime() - new Date(`${start}T00:00:00`).getTime()) / DAY_MS) + 1
 }
 
 function inRange(dateStr: string, start: string, end: string) {
@@ -173,7 +173,7 @@ function inRange(dateStr: string, start: string, end: string) {
 function prevPeriodBounds(start: string, end: string): { start: string; end: string } {
   const s = new Date(`${start}T00:00:00`)
   const lengthMs = new Date(`${end}T00:00:00`).getTime() - s.getTime()
-  const prevEnd = new Date(s.getTime() - 86400000)
+  const prevEnd = new Date(s.getTime() - DAY_MS)
   const prevStart = new Date(prevEnd.getTime() - lengthMs)
   return { start: toLocalDateString(prevStart), end: toLocalDateString(prevEnd) }
 }

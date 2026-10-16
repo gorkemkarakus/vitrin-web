@@ -8,6 +8,7 @@ import SendCampaignModal from '../components/SendCampaignModal'
 import TemplateModal from '../components/TemplateModal'
 import PageHeader from '../components/PageHeader'
 import styles from './TopluMesajPage.module.css'
+import { DAY_MS } from '../lib/date'
 
 export interface Customer {
   id: string
@@ -51,7 +52,7 @@ export interface UiGroup {
 }
 
 function daysAgoIso(n: number) {
-  return new Date(Date.now() - n * 86400000).toISOString()
+  return new Date(Date.now() - n * DAY_MS).toISOString()
 }
 
 export default function TopluMesajPage() {

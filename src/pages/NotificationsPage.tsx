@@ -4,7 +4,7 @@ import { supabase } from '../lib/supabase'
 import { useAuth } from '../contexts/AuthContext'
 import PageHeader from '../components/PageHeader'
 import { currencyWhole } from '../lib/currency'
-import { toLocalDateString } from '../lib/date'
+import { toLocalDateString, DAY_MS } from '../lib/date'
 import styles from './NotificationsPage.module.css'
 
 // Uygulamada ayri bir bildirim tablosu yok — liste mevcut verilerden
@@ -89,8 +89,8 @@ function dateKey(iso: string) {
 function when(iso: string) {
   const d = new Date(iso)
   const today = toLocalDateString(new Date())
-  const tomorrow = toLocalDateString(new Date(Date.now() + 86400000))
-  const yesterday = toLocalDateString(new Date(Date.now() - 86400000))
+  const tomorrow = toLocalDateString(new Date(Date.now() + DAY_MS))
+  const yesterday = toLocalDateString(new Date(Date.now() - DAY_MS))
   const time = d.toLocaleTimeString('tr-TR', { hour: '2-digit', minute: '2-digit' })
   const k = toLocalDateString(d)
   if (k === today) return `bugün ${time}`
@@ -105,7 +105,7 @@ function ago(iso: string) {
   const d = new Date(iso)
   if (diff >= 0 && diff < 60 * 60000) return `${Math.max(1, Math.round(diff / 60000))} dk`
   if (diff >= 0 && toLocalDateString(d) === toLocalDateString(new Date())) return `${Math.round(diff / 3600000)} sa`
-  if (toLocalDateString(d) === toLocalDateString(new Date(Date.now() - 86400000))) {
+  if (toLocalDateString(d) === toLocalDateString(new Date(Date.now() - DAY_MS))) {
     return d.toLocaleTimeString('tr-TR', { hour: '2-digit', minute: '2-digit' })
   }
   return d.toLocaleDateString('tr-TR', { day: 'numeric', month: 'short' })
@@ -127,10 +127,10 @@ export default function NotificationsPage() {
   useEffect(() => {
     async function load() {
       const nowIso = new Date().toISOString()
-      const twoDaysAgo = new Date(Date.now() - 2 * 86400000).toISOString()
-      const yesterday = new Date(Date.now() - 86400000)
+      const twoDaysAgo = new Date(Date.now() - 2 * DAY_MS).toISOString()
+      const yesterday = new Date(Date.now() - DAY_MS)
       const yStart = new Date(yesterday.getFullYear(), yesterday.getMonth(), yesterday.getDate())
-      const yEnd = new Date(yStart.getTime() + 86400000)
+      const yEnd = new Date(yStart.getTime() + DAY_MS)
       const [
         { data: pending },
         { data: botAppts },
@@ -144,7 +144,7 @@ export default function NotificationsPage() {
           .from('appointments')
           .select('id, scheduled_at, customer_id, created_at, employee_id')
           .eq('status', 'bekliyor')
-          .gte('scheduled_at', new Date(Date.now() - 30 * 86400000).toISOString())
+          .gte('scheduled_at', new Date(Date.now() - 30 * DAY_MS).toISOString())
           .order('scheduled_at')
           .limit(20),
         supabase
@@ -253,7 +253,7 @@ export default function NotificationsPage() {
         })
       }
       const today = toLocalDateString(new Date())
-      const soon = toLocalDateString(new Date(Date.now() + 3 * 86400000))
+      const soon = toLocalDateString(new Date(Date.now() + 3 * DAY_MS))
       for (const e of expenses ?? []) {
         const due = e.due_date ?? e.expense_date
         if (due > soon) continue
@@ -416,7 +416,7 @@ export default function NotificationsPage() {
     [items, prefs, profile?.id],
   )
   const todayKey = toLocalDateString(new Date())
-  const yesterdayKey = toLocalDateString(new Date(Date.now() - 86400000))
+  const yesterdayKey = toLocalDateString(new Date(Date.now() - DAY_MS))
   const groups = useMemo(() => {
     const keyOf = (i: Item) => toLocalDateString(new Date(i.at))
     return [

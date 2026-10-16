@@ -8,6 +8,7 @@ import PageHeader from '../components/PageHeader'
 import { bookingUrl } from '../lib/bookingUrl'
 import { exportBusinessData } from '../lib/dataExport'
 import styles from './SettingsPage.module.css'
+import { DAY_MS } from '../lib/date'
 
 const REMINDER_OPTIONS = [
   { value: '1', label: '1 saat önce' },
@@ -98,7 +99,7 @@ export default function SettingsPage() {
       .maybeSingle()
       .then(({ data, error }) => setBookingEnabled(error ? null : (data?.online_booking_enabled ?? null)))
     if (isAdmin) {
-      const since = new Date(Date.now() - 30 * 86400000).toISOString()
+      const since = new Date(Date.now() - 30 * DAY_MS).toISOString()
       supabase
         .from('notification_log')
         .select('id', { count: 'exact', head: true })

@@ -17,7 +17,7 @@ import {
   MessagesIcon,
 } from '../components/icons'
 import { segmentForStats } from '../lib/customerSegments'
-import { toLocalDateString } from '../lib/date'
+import { toLocalDateString, DAY_MS } from '../lib/date'
 import styles from './CustomerDetailPage.module.css'
 import { PAYMENT_METHOD_OPTIONS } from '../lib/paymentMethods'
 
@@ -294,7 +294,7 @@ export default function CustomerDetailPage() {
     if (completedAppts.length >= 2) {
       const mostRecent = new Date(completedAppts[0].scheduled_at).getTime()
       const oldest = new Date(completedAppts[completedAppts.length - 1].scheduled_at).getTime()
-      avgIntervalDays = (mostRecent - oldest) / (completedAppts.length - 1) / 86400000
+      avgIntervalDays = (mostRecent - oldest) / (completedAppts.length - 1) / DAY_MS
     }
 
     function pickFavorite(getKey: (a: Appointment) => string | null): string | null {
@@ -328,13 +328,13 @@ export default function CustomerDetailPage() {
       const t = new Date(lastRelevantAppt.scheduled_at).getTime()
       if (t > now.getTime()) lastVisitLabel = 'Yaklaşan randevu var'
       else {
-        const daysAgo = (now.getTime() - t) / 86400000
+        const daysAgo = (now.getTime() - t) / DAY_MS
         lastVisitLabel = daysAgo < 1 ? 'Bugün' : `${humanizeDuration(daysAgo)} önce`
       }
     }
 
     const tenureLabel = customer
-      ? humanizeDuration((now.getTime() - new Date(customer.created_at).getTime()) / 86400000)
+      ? humanizeDuration((now.getTime() - new Date(customer.created_at).getTime()) / DAY_MS)
       : '—'
 
     return {
