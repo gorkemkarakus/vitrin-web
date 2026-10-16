@@ -1,0 +1,11 @@
+# Depoda ve calisma klasorunde LF (Windows'ta core.autocrlf'den bagimsiz)
+* text=auto eol=lf
+
+*.png binary
+*.jpg binary
+*.webp binary
+*.ico binary
+*.jar binary
+*.keystore binary
+*.bat text eol=crlf
+*.cmd text eol=crlf
