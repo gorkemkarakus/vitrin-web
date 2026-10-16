@@ -93,7 +93,7 @@ export default function ExpensesPage() {
   const [expenseDate, setExpenseDate] = useState(() => toLocalDateString(new Date()))
   const [expenseDueDate, setExpenseDueDate] = useState('')
   const [expenseRecurring, setExpenseRecurring] = useState(false)
-  const [expensePaid, setExpensePaid] = useState(true)
+  const [expensePaid, setExpensePaid] = useState(false)
   const [addingExpense, setAddingExpense] = useState(false)
   const [addError, setAddError] = useState<string | null>(null)
 
@@ -175,7 +175,7 @@ export default function ExpensesPage() {
     setExpenseAmount('')
     setExpenseDueDate('')
     setExpenseRecurring(false)
-    setExpensePaid(true)
+    setExpensePaid(false)
     await loadAll()
     setAddingExpense(false)
     setAddOpen(false)

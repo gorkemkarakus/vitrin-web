@@ -211,7 +211,7 @@ export default function AdInsightsPage() {
             <span className={styles.stepSub}>Randevu kaynağını elle seçmeye devam edebilirsin</span>
           </span>
           <button type="button" className={styles.linkBtn} onClick={() => setShowSources((v) => !v)}>
-            {showSources ? 'Gizle' : 'Kaynakları gör ›'}
+            {showSources ? 'Gizle' : 'Randevu kaynaklarını gör ›'}
           </button>
         </div>
         {showSources && sourcesCard}
