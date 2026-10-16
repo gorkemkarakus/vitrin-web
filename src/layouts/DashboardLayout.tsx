@@ -452,6 +452,11 @@ export default function DashboardLayout() {
             </NavLink>
           )
         })}
+        {/* Sekme sayisi tekse (ör. Mesajlar yetkisi olmayan calisan) + dugmesi
+            ortada kalsin diye sag taraf bos bir yuvayla tamamlanir. */}
+        {Array.from({ length: Math.max(0, 2 - tabItems.slice(2).length) }, (_, i) => (
+          <span key={`bos-${i}`} className={styles.tab} aria-hidden="true" />
+        ))}
       </nav>
 
       {actionSheetOpen && (
