@@ -2,7 +2,7 @@ import { useState } from 'react'
 import { supabase } from '../lib/supabase'
 import { SearchIcon, PlusIcon, XCircleIcon, TrashIcon, PencilIcon } from './icons'
 import Avatar from './Avatar'
-import type { Customer, UiGroup } from '../pages/TopluMesajPage'
+import type { Customer, UiGroup } from '../pages/BulkMessagePage'
 import styles from './GroupMembersModal.module.css'
 
 export default function GroupMembersModal({

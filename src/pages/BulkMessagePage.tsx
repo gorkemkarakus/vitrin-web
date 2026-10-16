@@ -7,7 +7,7 @@ import GroupMembersModal from '../components/GroupMembersModal'
 import SendCampaignModal from '../components/SendCampaignModal'
 import TemplateModal from '../components/TemplateModal'
 import PageHeader from '../components/PageHeader'
-import styles from './TopluMesajPage.module.css'
+import styles from './BulkMessagePage.module.css'
 import { DAY_MS } from '../lib/date'
 
 export interface Customer {
@@ -55,7 +55,7 @@ function daysAgoIso(n: number) {
   return new Date(Date.now() - n * DAY_MS).toISOString()
 }
 
-export default function TopluMesajPage() {
+export default function BulkMessagePage() {
   const [selectedKey, setSelectedKey] = useState<string | null>(null)
   const [message, setMessage] = useState('')
   const [loading, setLoading] = useState(true)

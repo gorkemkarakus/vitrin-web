@@ -2,7 +2,7 @@ import { useState } from 'react'
 import { useAuth } from '../contexts/AuthContext'
 import { supabase } from '../lib/supabase'
 import AiMessageGenerator from './AiMessageGenerator'
-import type { Template } from '../pages/TopluMesajPage'
+import type { Template } from '../pages/BulkMessagePage'
 import styles from './TemplateModal.module.css'
 
 export default function TemplateModal({

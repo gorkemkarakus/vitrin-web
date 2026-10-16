@@ -3,7 +3,7 @@ import { callEdgeFunction } from '../lib/edgeFunctions'
 import { NETWORK_ERROR } from '../lib/messages'
 import AiMessageGenerator from './AiMessageGenerator'
 import Select from './Select'
-import type { Template } from '../pages/TopluMesajPage'
+import type { Template } from '../pages/BulkMessagePage'
 import styles from './SendCampaignModal.module.css'
 
 export default function SendCampaignModal({

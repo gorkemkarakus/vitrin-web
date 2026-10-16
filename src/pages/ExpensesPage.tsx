@@ -8,7 +8,7 @@ import PickerSheet from '../components/PickerSheet'
 import { CalendarIcon } from '../components/icons'
 import { currency } from '../lib/currency'
 import { toLocalDateString, presetDateRange, type DateRangePreset, DAY_MS } from '../lib/date'
-import styles from './GiderlerPage.module.css'
+import styles from './ExpensesPage.module.css'
 
 interface Expense {
   id: string
@@ -63,7 +63,7 @@ function isMissingColumn(message: string | undefined) {
   return !!message && /column|schema cache/i.test(message)
 }
 
-export default function GiderlerPage() {
+export default function ExpensesPage() {
   const { profile } = useAuth()
   const [searchParams, setSearchParams] = useSearchParams()
 

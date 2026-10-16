@@ -22,11 +22,11 @@ import EmployeeSchedulePage from './pages/EmployeeSchedulePage'
 import EmployeeLeavesPage from './pages/EmployeeLeavesPage'
 import HolidaysPage from './pages/HolidaysPage'
 import PerformanceReportPage from './pages/PerformanceReportPage'
-import GiderlerPage from './pages/GiderlerPage'
+import ExpensesPage from './pages/ExpensesPage'
 import AdInsightsPage from './pages/AdInsightsPage'
 import AiInsightsPage from './pages/AiInsightsPage'
 import AdOAuthCallbackPage from './pages/AdOAuthCallbackPage'
-import TopluMesajPage from './pages/TopluMesajPage'
+import BulkMessagePage from './pages/BulkMessagePage'
 import PublicBookingPage from './public/PublicBookingPage'
 import NotificationsPage from './pages/NotificationsPage'
 import ResetPasswordPage from './pages/ResetPasswordPage'
@@ -233,7 +233,7 @@ function AppRoutes() {
               path="giderler"
               element={
                 <ProtectedRoute perm="kasa">
-                  <GiderlerPage />
+                  <ExpensesPage />
                 </ProtectedRoute>
               }
             />
@@ -265,7 +265,7 @@ function AppRoutes() {
               path="toplu-mesaj"
               element={
                 <ProtectedRoute adminOnly>
-                  <TopluMesajPage />
+                  <BulkMessagePage />
                 </ProtectedRoute>
               }
             />

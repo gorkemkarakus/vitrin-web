@@ -10,7 +10,7 @@ export function firstOfMonth(d: Date): Date {
 
 export type DateRangePreset = 'bugun' | 'bu_hafta' | 'bu_ay' | 'gecen_ay' | 'ozel'
 
-// AccountingPage/GiderlerPage/PerformanceReportPage'in ortak tarih preset
+// AccountingPage/ExpensesPage/PerformanceReportPage'in ortak tarih preset
 // mantığı — 'ozel' (ozel tarih araligi) her sayfada kendi input'larindan
 // okundugu icin bu fonksiyona hic ulaşmaz, buradaki default sadece
 // tip-tamlik guvencesi.

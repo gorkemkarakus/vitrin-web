@@ -3,7 +3,7 @@ import { useAuth } from '../contexts/AuthContext'
 import { supabase } from '../lib/supabase'
 import { SearchIcon, CheckCircleIcon } from './icons'
 import Avatar from './Avatar'
-import type { Customer } from '../pages/TopluMesajPage'
+import type { Customer } from '../pages/BulkMessagePage'
 import styles from './CreateGroupModal.module.css'
 
 export default function CreateGroupModal({
