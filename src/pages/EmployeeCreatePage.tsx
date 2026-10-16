@@ -29,7 +29,7 @@ interface ServiceLite {
 function generatePassword() {
   const chars = 'abcdefghjkmnpqrstuvwxyz23456789'
   let out = ''
-  for (let i = 0; i < 8; i++) out += chars[Math.floor(Math.random() * chars.length)]
+  for (let i = 0; i < 10; i++) out += chars[Math.floor(Math.random() * chars.length)]
   return out
 }
 
@@ -332,9 +332,9 @@ export default function EmployeeCreatePage() {
               type="text"
               value={password}
               onChange={(e) => setPassword(e.target.value)}
-              placeholder="en az 6 karakter"
+              placeholder="en az 8 karakter"
               required
-              minLength={6}
+              minLength={8}
             />
             <button type="button" className={styles.genBtn} onClick={() => setPassword(generatePassword())}>
               Üret

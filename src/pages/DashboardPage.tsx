@@ -1,5 +1,6 @@
 import { useEffect, useMemo, useState } from 'react'
 import { useNavigate } from 'react-router-dom'
+import SetupCard from '../components/SetupCard'
 import { supabase } from '../lib/supabase'
 import { fetchAll } from '../lib/fetchAll'
 import { useAuth } from '../contexts/AuthContext'
@@ -376,6 +377,8 @@ export default function DashboardPage() {
       </section>
 
       <div className={styles.sheet}>
+        <SetupCard />
+
         {/* ---- Donem secimi ---- */}
         <div className={styles.segmented} role="group" aria-label="Dönem">
           {DATE_FILTERS.map((f) => (

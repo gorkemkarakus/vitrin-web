@@ -437,3 +437,40 @@ button.tile {
   font-weight: 700;
   cursor: pointer;
 }
+
+.closureCard {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  width: 100%;
+  border: none;
+  background: var(--panel);
+  border-radius: 20px;
+  padding: 14px 16px;
+  font-family: var(--font-body);
+  color: var(--text);
+  text-align: left;
+  cursor: pointer;
+}
+
+.closureText {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+
+.closureTitle {
+  font-size: 15px;
+  font-weight: 700;
+}
+
+.closureSub {
+  font-size: 12px;
+  color: var(--text-dim);
+}
+
+.closureArrow {
+  color: #9ca3af;
+  font-size: 18px;
+}

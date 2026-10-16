@@ -1,0 +1,377 @@
+.wrap {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.hint {
+  font-size: 12px;
+  color: var(--text-dim);
+}
+
+.error {
+  font-size: 13px;
+  color: var(--danger-text);
+  background: var(--danger-bg);
+  border-radius: 12px;
+  padding: 10px 12px;
+}
+
+.dateBtn {
+  position: relative;
+  flex-shrink: 0;
+  background: var(--panel);
+  color: var(--text);
+  border-radius: 12px;
+  padding: 9px 12px;
+  font-size: 13px;
+  font-weight: 700;
+  cursor: pointer;
+}
+
+.dateBtn input {
+  position: absolute;
+  inset: 0;
+  opacity: 0;
+  width: 100%;
+  cursor: pointer;
+}
+
+.closedBanner {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+  background: var(--ok-bg);
+  color: var(--ok-text);
+  border-radius: 14px;
+  padding: 10px 14px;
+  font-size: 13px;
+  font-weight: 700;
+}
+
+.hero {
+  background: var(--signal);
+  color: #fff;
+  border-radius: 22px;
+  padding: 18px;
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.heroLabel {
+  font-size: 12px;
+  color: var(--navy-dim);
+}
+
+.heroValue {
+  font-family: var(--font-heading);
+  font-size: 32px;
+  font-weight: 600;
+  letter-spacing: -0.02em;
+}
+
+.heroSub {
+  font-size: 12px;
+  color: var(--navy-dim);
+}
+
+.methodGrid {
+  margin-top: 10px;
+  display: grid;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  background: var(--navy-2);
+  border-radius: 14px;
+}
+
+.methodItem {
+  padding: 10px 8px;
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  min-width: 0;
+}
+
+.methodItem + .methodItem {
+  border-left: 1px solid var(--navy-line);
+}
+
+.methodValue {
+  font-family: var(--font-heading);
+  font-size: 14px;
+  font-weight: 600;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.methodLabel {
+  font-size: 11px;
+  color: var(--navy-dim);
+}
+
+.statRow {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+}
+
+.stat {
+  background: var(--panel);
+  border-radius: 999px;
+  padding: 7px 11px;
+  font-size: 12px;
+  color: var(--text-dim);
+}
+
+.stat b {
+  color: var(--text);
+}
+
+.statWarn {
+  background: var(--warn-bg);
+  color: var(--warn-text);
+}
+
+.statWarn b {
+  color: var(--warn-text);
+}
+
+.unpaidRow {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  border: none;
+  background: var(--warn-bg);
+  color: var(--warn-text);
+  border-radius: 14px;
+  padding: 11px 14px;
+  font-family: var(--font-body);
+  font-size: 13px;
+  font-weight: 700;
+  text-align: left;
+  cursor: pointer;
+}
+
+.card {
+  background: var(--panel);
+  border-radius: 22px;
+  padding: 16px;
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+.cardTitle {
+  font-family: var(--font-heading);
+  font-size: 16px;
+  font-weight: 600;
+}
+
+.countRow {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+  font-size: 14px;
+  color: var(--text-dim);
+}
+
+.countRow b {
+  color: var(--text);
+  font-family: var(--font-heading);
+  font-weight: 600;
+  font-size: 15px;
+}
+
+.countRow label {
+  color: var(--text);
+  font-weight: 700;
+}
+
+.countStrong {
+  border-top: 1px solid #eef0f3;
+  padding-top: 10px;
+  color: var(--text);
+  font-weight: 700;
+}
+
+.textBad {
+  color: var(--danger-text) !important;
+}
+
+.moneyInput {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  background: var(--bg);
+  border-radius: 12px;
+  padding: 8px 10px;
+  font-weight: 700;
+  color: var(--text-dim);
+}
+
+.moneyInput input {
+  width: 110px;
+  border: none;
+  outline: none;
+  background: transparent;
+  font-family: var(--font-heading);
+  font-size: 16px;
+  font-weight: 600;
+  color: var(--text);
+  text-align: right;
+}
+
+.diffBox {
+  border-radius: 12px;
+  padding: 10px 12px;
+  font-size: 14px;
+  font-weight: 700;
+  text-align: center;
+}
+
+.diffOk,
+.diffBad,
+.diffWarn {
+  font-size: 12px;
+  font-weight: 700;
+  border-radius: 999px;
+  padding: 4px 10px;
+  white-space: nowrap;
+  color: var(--ok-text);
+  background: var(--ok-bg);
+}
+
+.diffBad {
+  color: var(--danger-text);
+  background: var(--danger-bg);
+}
+
+.diffWarn {
+  color: var(--warn-text);
+  background: var(--warn-bg);
+}
+
+.diffBox.diffOk,
+.diffBox.diffBad,
+.diffBox.diffWarn {
+  border-radius: 12px;
+  font-size: 14px;
+  padding: 10px 12px;
+}
+
+.note {
+  width: 100%;
+  border: none;
+  outline: none;
+  resize: vertical;
+  background: var(--bg);
+  border-radius: 12px;
+  padding: 10px 12px;
+  font-family: var(--font-body);
+  font-size: 14px;
+  color: var(--text);
+}
+
+.listToggle {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  border: none;
+  background: none;
+  padding: 0;
+  font-family: var(--font-body);
+  color: var(--text-dim);
+  cursor: pointer;
+}
+
+.payRow,
+.histRow {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 8px 0;
+  border-top: 1px solid #eef0f3;
+}
+
+.histRow {
+  width: 100%;
+  border-left: none;
+  border-right: none;
+  border-bottom: none;
+  background: none;
+  font-family: var(--font-body);
+  color: var(--text);
+  text-align: left;
+  cursor: pointer;
+}
+
+.payTime {
+  font-size: 12px;
+  font-weight: 700;
+  color: var(--text-dim);
+  width: 40px;
+  flex-shrink: 0;
+}
+
+.payText {
+  flex: 1;
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 1px;
+}
+
+.payName {
+  font-size: 14px;
+  font-weight: 700;
+}
+
+.payMeta {
+  font-size: 12px;
+  color: var(--text-dim);
+}
+
+.payAmount {
+  font-family: var(--font-heading);
+  font-size: 14px;
+  font-weight: 600;
+  white-space: nowrap;
+}
+
+.footer {
+  position: sticky;
+  bottom: -16px;
+  margin: auto -16px -16px;
+  padding: 14px 16px;
+  background: var(--panel);
+  border-top: 1px solid #eef0f3;
+  display: flex;
+  gap: 8px;
+  z-index: 5;
+}
+
+.footerBtn,
+.pdfBtn {
+  flex: 1;
+  border: none;
+  border-radius: 16px;
+  padding: 15px 0;
+  font-family: var(--font-body);
+  font-size: 15px;
+  font-weight: 700;
+  cursor: pointer;
+  background: var(--signal);
+  color: #fff;
+}
+
+.pdfBtn {
+  background: var(--accent);
+}
+
+.footerBtn:disabled,
+.pdfBtn:disabled {
+  opacity: 0.5;
+}

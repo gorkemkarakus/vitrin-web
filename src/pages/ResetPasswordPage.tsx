@@ -37,8 +37,8 @@ export default function ResetPasswordPage() {
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault()
     setError(null)
-    if (password.length < 6) {
-      setError('Şifre en az 6 karakter olmalı.')
+    if (password.length < 8) {
+      setError('Şifre en az 8 karakter olmalı.')
       return
     }
     if (password !== confirmPassword) {
@@ -56,7 +56,7 @@ export default function ResetPasswordPage() {
     navigate('/', { replace: true })
   }
 
-  const longEnough = password.length >= 6
+  const longEnough = password.length >= 8
   const lettersAndDigits = /[a-zA-ZçğıöşüÇĞİÖŞÜ]/.test(password) && /\d/.test(password)
   const hasUpper = /[A-ZÇĞİÖŞÜ]/.test(password)
   const strength = [longEnough, lettersAndDigits, hasUpper, password.length >= 10].filter(Boolean).length
@@ -113,7 +113,7 @@ export default function ResetPasswordPage() {
               ))}
             </div>
             <div className={styles.rules}>
-              <span className={longEnough ? styles.ruleOk : styles.ruleTodo}>{longEnough ? '✓' : '○'} En az 6 karakter</span>
+              <span className={longEnough ? styles.ruleOk : styles.ruleTodo}>{longEnough ? '✓' : '○'} En az 8 karakter</span>
               <span className={lettersAndDigits ? styles.ruleOk : styles.ruleTodo}>
                 {lettersAndDigits ? '✓' : '○'} Harf ve rakam içeriyor
               </span>

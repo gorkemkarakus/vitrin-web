@@ -82,6 +82,9 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   }
 
   async function signOut() {
+    // Bu cihaz bildirim listesinden cikarilir (oturum hala acikken).
+    const { stopPush } = await import('../lib/push')
+    await stopPush()
     await supabase.auth.signOut()
   }
 

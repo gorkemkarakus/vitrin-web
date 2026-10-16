@@ -547,6 +547,14 @@ export default function AccountingPage() {
         </button>
       </div>
 
+      <button type="button" className={styles.closureCard} onClick={() => navigate('/kasa/gun-sonu')}>
+        <span className={styles.closureText}>
+          <span className={styles.closureTitle}>Gün sonu kasa kapanışı</span>
+          <span className={styles.closureSub}>Kasayı say, farkı gör, PDF olarak indir</span>
+        </span>
+        <span className={styles.closureArrow}>›</span>
+      </button>
+
       <div className={styles.movesCard}>
         <div className={styles.movesHead}>
           <span className={styles.movesTitle}>Son hareketler</span>

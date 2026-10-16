@@ -997,7 +997,7 @@ export default function EmployeeDetailPage({ selfEarnings = false }: { selfEarni
               type="text"
               value={accountPassword}
               onChange={(e) => setAccountPassword(e.target.value)}
-              placeholder="en az 6 karakter"
+              placeholder="en az 8 karakter"
             />
           </div>
           {accountError && <p className={styles.error}>{accountError}</p>}

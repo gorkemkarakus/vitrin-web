@@ -1,5 +1,5 @@
 import { useEffect, useRef, useState } from 'react'
-import { BrowserRouter, Navigate, Route, Routes } from 'react-router-dom'
+import { BrowserRouter, Navigate, Route, Routes, useNavigate } from 'react-router-dom'
 import { SplashScreen } from '@capacitor/splash-screen'
 import { AuthProvider, useAuth } from './contexts/AuthContext'
 import AppSplash from './components/AppSplash'
@@ -31,6 +31,9 @@ import PublicBookingPage from './public/PublicBookingPage'
 import NotificationsPage from './pages/NotificationsPage'
 import ResetPasswordPage from './pages/ResetPasswordPage'
 import ForcePasswordPage from './pages/ForcePasswordPage'
+import CashClosurePage from './pages/CashClosurePage'
+import SetupPage from './pages/SetupPage'
+import { startPush } from './lib/push'
 import type { PermKey } from './lib/permissions'
 
 // adminOnly: sadece yonetici. perm: yoneticiye ya da o yetkisi acik calisana.
@@ -68,6 +71,14 @@ function AppRoutes() {
   const [splashVisible, setSplashVisible] = useState(true)
   const [splashFadingOut, setSplashFadingOut] = useState(false)
   const mountedAt = useRef(Date.now())
+  const navigate = useNavigate()
+
+  // Telefon bildirimleri: giris yapilinca cihaz kaydedilir; bildirime
+  // dokununca ilgili ekran acilir (bkz. lib/push.ts).
+  const profileId = profile?.id
+  useEffect(() => {
+    if (session && profileId) startPush((route) => navigate(route))
+  }, [session, profileId, navigate])
 
   // Auth kontrolu genelde cok hizli bitiyor (~100ms) — splash animasyonun
   // gorunur olmasi icin gercek ekran altta hazir olsa bile en az
@@ -139,6 +150,14 @@ function AppRoutes() {
             <Route
               path="hizmetler/:id/aciklama"
               element={<ProtectedRoute perm="hizmet_yonet"><ServiceDescriptionPage /></ProtectedRoute>}
+            />
+            <Route
+              path="kurulum"
+              element={<ProtectedRoute adminOnly><SetupPage /></ProtectedRoute>}
+            />
+            <Route
+              path="kasa/gun-sonu"
+              element={<ProtectedRoute perm="kasa"><CashClosurePage /></ProtectedRoute>}
             />
             <Route
               path="kazancim"

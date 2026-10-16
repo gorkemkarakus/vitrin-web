@@ -4,6 +4,7 @@ import { supabase } from '../lib/supabase'
 import { useAuth } from '../contexts/AuthContext'
 import PageHeader from '../components/PageHeader'
 import { bookingUrl } from '../lib/bookingUrl'
+import { exportBusinessData } from '../lib/dataExport'
 import styles from './SettingsPage.module.css'
 
 const REMINDER_OPTIONS = [
@@ -15,7 +16,7 @@ const REMINDER_OPTIONS = [
   { value: '48', label: '2 gün önce' },
 ]
 
-type Section = 'ana' | 'hatirlatma' | 'whatsapp' | 'salon' | 'sifre' | 'online' | 'sil'
+type Section = 'ana' | 'hatirlatma' | 'whatsapp' | 'salon' | 'sifre' | 'online' | 'sil' | 'veri'
 
 function normalizePhone(raw: string): string {
   const digits = raw.replace(/\D/g, '')
@@ -60,6 +61,8 @@ export default function SettingsPage() {
   const [deleteScope, setDeleteScope] = useState<{ scope: 'account' | 'business'; business_name: string | null } | null>(null)
   const [deletePassword, setDeletePassword] = useState('')
   const [deleteBizName, setDeleteBizName] = useState('')
+  const [exportStep, setExportStep] = useState<string | null>(null)
+  const [exportResult, setExportResult] = useState<{ name: string; count: number }[] | null>(null)
 
   const [whatsappPhone, setWhatsappPhone] = useState('')
   const [savedPhone, setSavedPhone] = useState('')
@@ -228,8 +231,8 @@ export default function SettingsPage() {
 
   async function savePassword(e: FormEvent) {
     e.preventDefault()
-    if (newPassword.length < 6) {
-      setMsg({ type: 'err', text: 'Şifre en az 6 karakter olmalı.' })
+    if (newPassword.length < 8) {
+      setMsg({ type: 'err', text: 'Şifre en az 8 karakter olmalı.' })
       return
     }
     if (newPassword !== newPassword2) {
@@ -274,6 +277,20 @@ export default function SettingsPage() {
     }
     setBookingEnabled(next)
     setMsg({ type: 'ok', text: next ? 'Online randevu açıldı.' : 'Online randevu kapatıldı.' })
+  }
+
+  async function downloadData() {
+    setMsg(null)
+    setExportResult(null)
+    setExportStep('Başlatılıyor…')
+    try {
+      const result = await exportBusinessData(business?.name ?? '', setExportStep)
+      setExportResult(result)
+    } catch (e) {
+      setMsg({ type: 'err', text: 'Dosya hazırlanamadı: ' + (e instanceof Error ? e.message : '') })
+    } finally {
+      setExportStep(null)
+    }
   }
 
   const back = () => {
@@ -499,6 +516,40 @@ export default function SettingsPage() {
     )
   }
 
+  if (section === 'veri') {
+    return (
+      <div className={styles.wrap}>
+        <PageHeader back={back} title="Verilerimi indir" sub="Tüm kayıtların tek bir Excel dosyasında" />
+        <div className={styles.formCard}>
+          <span className={styles.rowLabel}>Dosyada neler var?</span>
+          <ul className={styles.exportList}>
+            <li>Müşteriler — telefon, e-posta, bakiye, notlar</li>
+            <li>Randevular — tarih, hizmet, çalışan, durum, ücret</li>
+            <li>Ödemeler ve giderler</li>
+            <li>Hizmetler, paketler ve ekip</li>
+            <li>Kasa kapanışları ve prim ödemeleri</li>
+          </ul>
+          <span className={styles.hint}>
+            Her biri ayrı sayfada; tutarlar ve tarihler Excel'de toplanabilir, sıralanabilir. Dosyayı kimseyle paylaşma —
+            müşterilerinin kişisel bilgilerini içerir.
+          </span>
+        </div>
+        {exportResult && (
+          <div className={styles.exportDone}>
+            <b>Dosya hazır ✓</b>
+            <span>{exportResult.map((r) => `${r.name} ${r.count}`).join(' · ')}</span>
+          </div>
+        )}
+        {msgLine}
+        <div className={styles.footer}>
+          <button type="button" className={styles.footerBtn} onClick={downloadData} disabled={!!exportStep}>
+            {exportStep ?? (exportResult ? 'Tekrar indir' : 'Excel olarak indir')}
+          </button>
+        </div>
+      </div>
+    )
+  }
+
   if (section === 'sifre') {
     return (
       <form className={styles.wrap} onSubmit={savePassword}>
@@ -512,7 +563,7 @@ export default function SettingsPage() {
               autoComplete="new-password"
               value={newPassword}
               onChange={(e) => setNewPassword(e.target.value)}
-              placeholder="en az 6 karakter"
+              placeholder="en az 8 karakter"
             />
           </div>
           <div className={styles.field}>
@@ -560,6 +611,7 @@ export default function SettingsPage() {
           <div className={styles.group}>
             {row('Salon bilgileri', business?.name || '…', () => open('salon'))}
             {row('Ekip ve çalışma saatleri', 'Ekip', () => navigate('/ekip'))}
+            {row('Verilerimi indir', 'Excel', () => open('veri'), 'muted')}
             {business?.slug
               ? row(
                   'Online randevu sayfası',
