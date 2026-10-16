@@ -3,6 +3,8 @@ import { useParams } from 'react-router-dom'
 import { supabase } from '../lib/supabase'
 import PageHeader from '../components/PageHeader'
 import styles from './EmployeeSchedulePage.module.css'
+import { timeToMinutes, WEEK_ORDER, DAY_LONG } from '../lib/date'
+import { BREAK_LABEL } from '../lib/scheduleLabels'
 
 interface Employee {
   id: string
@@ -44,15 +46,6 @@ interface DayDraft {
   start: string
   end: string
   breaks: BreakDraft[]
-}
-
-const BREAK_LABEL = 'Öğle molası'
-const DAY_LABELS = ['Pazar', 'Pazartesi', 'Salı', 'Çarşamba', 'Perşembe', 'Cuma', 'Cumartesi']
-const WEEK_ORDER = [1, 2, 3, 4, 5, 6, 0]
-
-function timeToMinutes(t: string) {
-  const [h, m] = t.split(':').map(Number)
-  return h * 60 + m
 }
 
 function dayHours(draft: DayDraft): number {
@@ -287,7 +280,7 @@ export default function EmployeeSchedulePage() {
                     toggleDayEnabled(day)
                     if (!draft.enabled) setOpenDay(day)
                   }}
-                  aria-label={`${DAY_LABELS[day]} açık`}
+                  aria-label={`${DAY_LONG[day]} açık`}
                 />
                 <span className={styles.switchTrack} />
               </label>
@@ -297,7 +290,7 @@ export default function EmployeeSchedulePage() {
               return (
                 <div className={styles.dayRow} key={day}>
                   {toggle}
-                  <span className={styles.dayRowNameOff}>{DAY_LABELS[day]}</span>
+                  <span className={styles.dayRowNameOff}>{DAY_LONG[day]}</span>
                   <span className={styles.dayRowOff}>Çalışmıyor</span>
                 </div>
               )
@@ -309,7 +302,7 @@ export default function EmployeeSchedulePage() {
                   {toggle}
                   <button type="button" className={styles.dayRowMain} onClick={() => setOpenDay(day)}>
                     <span className={styles.dayRowText}>
-                      <span className={styles.dayRowName}>{DAY_LABELS[day]}</span>
+                      <span className={styles.dayRowName}>{DAY_LONG[day]}</span>
                       <span className={styles.dayRowSub}>
                         {draft.breaks.length > 0 ? `${draft.breaks.length} mola` : 'molasız'}
                       </span>
@@ -326,7 +319,7 @@ export default function EmployeeSchedulePage() {
               <div className={styles.dayCardOpen} key={day}>
                 <div className={styles.dayOpenHead}>
                   {toggle}
-                  <span className={styles.dayOpenName}>{DAY_LABELS[day]}</span>
+                  <span className={styles.dayOpenName}>{DAY_LONG[day]}</span>
                   <span className={styles.dayOpenHours}>{hoursText(dayHours(draft))} saat</span>
                 </div>
 
@@ -337,7 +330,7 @@ export default function EmployeeSchedulePage() {
                     className={styles.timeBtn}
                     value={draft.start}
                     onChange={(e) => updateDay(day, { start: e.target.value })}
-                    aria-label={`${DAY_LABELS[day]} başlangıç`}
+                    aria-label={`${DAY_LONG[day]} başlangıç`}
                   />
                   <span className={styles.timeDash}>–</span>
                   <input
@@ -345,7 +338,7 @@ export default function EmployeeSchedulePage() {
                     className={styles.timeBtn}
                     value={draft.end}
                     onChange={(e) => updateDay(day, { end: e.target.value })}
-                    aria-label={`${DAY_LABELS[day]} bitiş`}
+                    aria-label={`${DAY_LONG[day]} bitiş`}
                   />
                 </div>
 

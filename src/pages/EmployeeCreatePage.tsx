@@ -12,15 +12,13 @@ import { ROLE_PRESETS, presetFor, type PermKey, type RolePreset } from '../lib/p
 import { publicSiteBase } from '../lib/bookingUrl'
 import { toLocalDateString } from '../lib/date'
 import styles from './EmployeeCreatePage.module.css'
+import { HOLIDAY_LABEL } from '../lib/scheduleLabels'
 
 const GENDER_OPTIONS: { value: '' | 'kadin' | 'erkek'; label: string }[] = [
   { value: '', label: 'Belirtilmesin' },
   { value: 'kadin', label: 'Kadın' },
   { value: 'erkek', label: 'Erkek' },
 ]
-
-// Tatiller sayfasindaki etiketle ayni (employee_time_blocks.label).
-const HOLIDAY_LABEL = 'Resmi Tatil'
 
 interface ServiceLite {
   id: string

@@ -12,7 +12,7 @@ import { SOURCE_LABEL } from '../lib/sourceLabels'
 import DonutChart from '../components/DonutChart'
 import LineChart from '../components/LineChart'
 import { currencyWhole as currency } from '../lib/currency'
-import { toLocalDateString, firstOfMonth } from '../lib/date'
+import { toLocalDateString, firstOfMonth, DAY_LONG } from '../lib/date'
 import { segmentForStats } from '../lib/customerSegments'
 import styles from './AiInsightsPage.module.css'
 
@@ -108,8 +108,6 @@ const PERIOD_PHRASE: Partial<Record<Preset, string>> = {
   son_yil: 'Son 1 yılda',
   tum_zamanlar: 'Bugüne kadar',
 }
-
-const DAY_LONG = ['Pazar', 'Pazartesi', 'Salı', 'Çarşamba', 'Perşembe', 'Cuma', 'Cumartesi']
 
 // Sohbette sorulabilen hazir sorular. Cevaplar kayitlardan yerel olarak
 // hesaplanir; yeni bir yapay zeka cagrisi YAPMAZ. 'iyi' / 'risk' / 'oneri'

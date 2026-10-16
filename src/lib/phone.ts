@@ -18,3 +18,9 @@ export function phoneLengthError(digits: string): string | null {
     ? `Telefon en fazla ${PHONE_MAX_DIGITS} rakam olabilir (05xx xxx xx xx) — şu an ${digits.length} rakam.`
     : null
 }
+
+// "phone" bazen chatbot kanal kimligi olabilir (ör. Instagram IGSID); gercek
+// numara (contact_phone) varsa her zaman o gosterilir.
+export function customerPhone(c: { phone: string | null; contact_phone: string | null }): string | null {
+  return c.contact_phone || c.phone || null
+}

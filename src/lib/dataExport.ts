@@ -3,19 +3,14 @@ import { fetchAll } from './fetchAll'
 import { buildXlsx, type Sheet } from './xlsx'
 import { saveAndShareFile } from './saveFile'
 import { SOURCE_LABEL } from './sourceLabels'
-import { METHOD_LABEL, todayString } from './cashClosure'
+import { METHOD_LABEL } from './cashClosure'
+import { STATUS_LABEL } from './appointmentStatus'
+import { todayLocalDateString } from './date'
 
 // "Verilerimi indir": isletmenin tum kayitlari tek bir Excel dosyasinda
 // (her tablo ayri sayfa). Yalnizca yonetici kullanir; RLS zaten yalnizca
 // kendi isletmesinin satirlarini dondurur.
 
-const STATUS_LABEL: Record<string, string> = {
-  bekliyor: 'Bekliyor',
-  onaylandi: 'Onaylandı',
-  tamamlandi: 'Tamamlandı',
-  iptal: 'İptal',
-  gelmedi: 'Gelmedi',
-}
 const PACKAGE_STATUS: Record<string, string> = { aktif: 'Aktif', tamamlandi: 'Tamamlandı', iptal: 'İptal' }
 const ROLE_LABEL: Record<string, string> = { admin: 'Yönetici', user: 'Çalışan' }
 
@@ -258,7 +253,7 @@ export async function exportBusinessData(businessName: string, onProgress?: (tex
   onProgress?.('Dosya kaydediliyor…')
   await saveAndShareFile(
     bytes,
-    `${slug}-verileri-${todayString()}.xlsx`,
+    `${slug}-verileri-${todayLocalDateString()}.xlsx`,
     'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
     'Verilerim (Excel)',
   )

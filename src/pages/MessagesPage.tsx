@@ -3,6 +3,7 @@ import { useNavigate, useOutletContext, useSearchParams } from 'react-router-dom
 import { supabase } from '../lib/supabase'
 import { fetchAll } from '../lib/fetchAll'
 import { normalizeTrPhone } from '../lib/phone'
+import { initials } from '../lib/formatName'
 import { useAuth } from '../contexts/AuthContext'
 import { MessagesIcon, ChevronRightIcon, SendIcon } from '../components/icons'
 import PageHeader from '../components/PageHeader'
@@ -67,17 +68,11 @@ function displayName(c: Conversation) {
   return c.customer?.full_name && c.customer.full_name !== 'Müşteri' ? c.customer.full_name : c.phone
 }
 
-function initials(name: string) {
-  const parts = name.trim().split(/\s+/)
-  // Kayitli olmayan numaralarda isim yerine telefon gosterilir; rakamdan
-  // bas harf cikarmak yerine son iki haneyi kullan.
+// Kayitli olmayan numaralarda isim yerine telefon gosterilir; rakamdan
+// bas harf cikarmak yerine son iki hane kullanilir.
+function avatarText(name: string) {
   if (/^[+\d]/.test(name)) return name.replace(/\D/g, '').slice(-2) || '?'
-  return (
-    parts
-      .slice(0, 2)
-      .map((w) => w[0]?.toLocaleUpperCase('tr') ?? '')
-      .join('') || '?'
-  )
+  return initials(name)
 }
 
 function shortTime(iso: string) {
@@ -335,7 +330,7 @@ export default function MessagesPage() {
             <ChevronRightIcon width={16} height={16} className={styles.backIcon} />
           </button>
           <span className={`${styles.avatar} ${styles.avatarSmall} ${paused ? styles.avatarWarm : isKnown ? '' : styles.avatarGray}`}>
-            {initials(name)}
+            {avatarText(name)}
           </span>
           <div className={styles.threadWho}>
             <span className={styles.threadName}>{name}</span>
@@ -495,7 +490,7 @@ export default function MessagesPage() {
             return (
               <button key={c.phone} type="button" className={styles.convRow} onClick={() => openConversation(c.phone)}>
                 <span className={`${styles.avatar} ${paused ? styles.avatarWarm : isKnown ? '' : styles.avatarGray}`}>
-                  {isKnown ? initials(name) : '+90'}
+                  {isKnown ? avatarText(name) : '+90'}
                 </span>
                 <span className={styles.convText}>
                   <span className={styles.convTop}>

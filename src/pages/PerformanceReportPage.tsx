@@ -8,8 +8,10 @@ import { SearchIcon, RobotIcon, ReceiptIcon, CheckCircleIcon } from '../componen
 import { SOURCE_LABEL } from '../lib/sourceLabels'
 import { generatePerformanceReportPdf } from '../lib/pdf/performanceReportPdf'
 import { currencyWhole as currency } from '../lib/currency'
-import { toLocalDateString, presetDateRange } from '../lib/date'
+import { toLocalDateString, presetDateRange, timeToMinutes, WEEK_ORDER, DAY_SHORT, DAY_LONG } from '../lib/date'
 import styles from './PerformanceReportPage.module.css'
+import { firstName } from '../lib/formatName'
+import { AVATAR_TONES } from '../lib/avatarColor'
 
 interface Profile {
   id: string
@@ -72,16 +74,6 @@ const PRESETS: { value: Exclude<Preset, 'ozel'>; label: string }[] = [
   { value: 'gecen_ay', label: 'Geçen ay' },
 ]
 
-const AVATAR_TONES = ['toneNavy', 'tonePurple', 'toneGreen'] as const
-// Pazartesiden baslayan gun sirasi (getDay degerleri).
-const WEEK_ORDER = [1, 2, 3, 4, 5, 6, 0]
-const DAY_SHORT = ['Paz', 'Pzt', 'Sal', 'Çar', 'Per', 'Cum', 'Cmt']
-const DAY_LONG = ['Pazar', 'Pazartesi', 'Salı', 'Çarşamba', 'Perşembe', 'Cuma', 'Cumartesi']
-
-function firstName(name: string | null) {
-  return (name ?? '').trim().split(/\s+/)[0] || '—'
-}
-
 function monthName(dateStr: string) {
   const s = new Date(`${dateStr}T00:00:00`).toLocaleDateString('tr-TR', { month: 'long' })
   return s.charAt(0).toLocaleUpperCase('tr') + s.slice(1)
@@ -120,11 +112,6 @@ function previousRange(preset: Preset, start: string, end: string): { start: str
   const prevEnd = shiftDays(start, -1)
   const label = preset === 'bugun' ? 'Dün' : preset === 'bu_hafta' ? 'Geçen hafta' : 'Önceki dönem'
   return { start: shiftDays(prevEnd, -(len - 1)), end: prevEnd, label }
-}
-
-function timeStringToMinutes(t: string) {
-  const [h, m] = t.split(':').map(Number)
-  return h * 60 + m
 }
 
 function datesInRange(startStr: string, endStr: string): string[] {
@@ -166,13 +153,13 @@ function scheduledMinutesInRange(profileId: string, schedules: Schedule[], block
     const dow = new Date(`${d}T00:00:00`).getDay()
     const daySchedules = mySchedules.filter((s) => s.day_of_week === dow)
     for (const s of daySchedules) {
-      let minutes = timeStringToMinutes(s.ends_at.slice(0, 5)) - timeStringToMinutes(s.starts_at.slice(0, 5))
+      let minutes = timeToMinutes(s.ends_at.slice(0, 5)) - timeToMinutes(s.starts_at.slice(0, 5))
       for (const b of myBlocks) {
         const blockAppliesToday =
           b.day_of_week === dow || (b.block_date !== null && b.block_date <= d && d <= (b.end_date ?? b.block_date))
         if (!blockAppliesToday) continue
-        const bs = Math.max(timeStringToMinutes(s.starts_at.slice(0, 5)), timeStringToMinutes(b.starts_at.slice(0, 5)))
-        const be = Math.min(timeStringToMinutes(s.ends_at.slice(0, 5)), timeStringToMinutes(b.ends_at.slice(0, 5)))
+        const bs = Math.max(timeToMinutes(s.starts_at.slice(0, 5)), timeToMinutes(b.starts_at.slice(0, 5)))
+        const be = Math.min(timeToMinutes(s.ends_at.slice(0, 5)), timeToMinutes(b.ends_at.slice(0, 5)))
         if (be > bs) minutes -= be - bs
       }
       total += Math.max(0, minutes)

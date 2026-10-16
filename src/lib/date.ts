@@ -34,3 +34,24 @@ export function presetDateRange(preset: DateRangePreset, today: Date = new Date(
       return { start: toLocalDateString(firstOfMonth(today)), end: toLocalDateString(today) }
   }
 }
+
+export function todayLocalDateString(): string {
+  return toLocalDateString(new Date())
+}
+
+// "HH:MM" -> gun basindan itibaren dakika
+export function timeToMinutes(t: string): number {
+  const [h, m] = t.split(':').map(Number)
+  return h * 60 + m
+}
+
+// ISO zaman damgasindan yerel saat ("14:30")
+export function timeOf(iso: string): string {
+  return new Date(iso).toLocaleTimeString('tr-TR', { hour: '2-digit', minute: '2-digit' })
+}
+
+// Date.getDay() sirasiyla (0 = Pazar)
+export const DAY_SHORT = ['Paz', 'Pzt', 'Sal', 'Çar', 'Per', 'Cum', 'Cmt']
+export const DAY_LONG = ['Pazar', 'Pazartesi', 'Salı', 'Çarşamba', 'Perşembe', 'Cuma', 'Cumartesi']
+// Pazartesiden baslayan hafta (getDay degerleri)
+export const WEEK_ORDER = [1, 2, 3, 4, 5, 6, 0]

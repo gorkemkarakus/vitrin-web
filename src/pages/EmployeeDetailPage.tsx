@@ -10,9 +10,10 @@ import PermissionEditor from '../components/PermissionEditor'
 import RoleCards from '../components/RoleCards'
 import { ALL_PERMISSIONS, DEFAULT_PERMISSIONS, ROLE_PRESETS, presetFor, type PermKey, type RolePreset } from '../lib/permissions'
 import { ChevronRightIcon } from '../components/icons'
-import { toLocalDateString } from '../lib/date'
+import { toLocalDateString, todayLocalDateString, timeToMinutes, WEEK_ORDER, DAY_SHORT } from '../lib/date'
 import { currency } from '../lib/currency'
 import styles from './EmployeeDetailPage.module.css'
+import { BREAK_LABEL } from '../lib/scheduleLabels'
 
 const GENDER_OPTIONS = [
   { value: '', label: 'Belirtilmesin' },
@@ -80,21 +81,8 @@ interface Appointment {
   duration_minutes: number | null
 }
 
-const BREAK_LABEL = 'Öğle molası'
-const DAY_SHORT = ['Paz', 'Pzt', 'Sal', 'Çar', 'Per', 'Cum', 'Cmt']
-const WEEK_ORDER = [1, 2, 3, 4, 5, 6, 0]
-
-function todayLocalDateString() {
-  return toLocalDateString(new Date())
-}
-
 function roleLabel(role: Employee['role']) {
   return role === 'admin' ? 'Yönetici' : 'Çalışan'
-}
-
-function timeToMinutes(t: string) {
-  const [h, m] = t.split(':').map(Number)
-  return h * 60 + m
 }
 
 

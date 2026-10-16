@@ -16,6 +16,7 @@ import {
 } from '../components/icons'
 import type { PermKey } from '../lib/permissions'
 import styles from './MorePage.module.css'
+import { initials } from '../lib/formatName'
 
 // `tint: true` olan kutu (AI İş Analizi) diger kutulardan ayri, mor zeminle
 // cizilir — yapay zeka ozelligi oldugunu renkle ayirt etmek icin.
@@ -38,17 +39,6 @@ const MENU_ITEMS: {
   { path: '/ai-analiz', label: 'AI analiz', access: 'admin', icon: SparkleIcon, tint: true },
   { path: '/ayarlar', label: 'Ayarlar', icon: SettingsIcon, tint: false },
 ]
-
-function initials(name: string) {
-  return (
-    name
-      .trim()
-      .split(/\s+/)
-      .slice(0, 2)
-      .map((w) => w[0]?.toUpperCase() ?? '')
-      .join('') || '?'
-  )
-}
 
 export default function MorePage() {
   const navigate = useNavigate()

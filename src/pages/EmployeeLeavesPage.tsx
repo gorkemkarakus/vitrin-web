@@ -2,7 +2,7 @@ import { useEffect, useState } from 'react'
 import { useNavigate, useParams, useSearchParams } from 'react-router-dom'
 import { supabase } from '../lib/supabase'
 import { TIME_OPTIONS } from '../lib/timeOptions'
-import { toLocalDateString } from '../lib/date'
+import { toLocalDateString, todayLocalDateString, timeToMinutes } from '../lib/date'
 import PageHeader from '../components/PageHeader'
 import PickerSheet from '../components/PickerSheet'
 import styles from './EmployeeLeavesPage.module.css'
@@ -100,15 +100,6 @@ interface UpcomingAppt {
   duration_minutes: number | null
 }
 
-
-function todayLocalDateString() {
-  return toLocalDateString(new Date())
-}
-
-function timeStringToMinutes(t: string) {
-  const [h, m] = t.split(':').map(Number)
-  return h * 60 + m
-}
 
 export default function EmployeeLeavesPage() {
   const { id } = useParams<{ id: string }>()
@@ -307,7 +298,7 @@ export default function EmployeeLeavesPage() {
       return newDrafts.some((d) => {
         const dEnd = d.endDate || d.date
         if (dateStr < d.date || dateStr > dEnd) return false
-        return timeStringToMinutes(d.start) < endMinutes && timeStringToMinutes(d.end) > startMinutes
+        return timeToMinutes(d.start) < endMinutes && timeToMinutes(d.end) > startMinutes
       })
     })
     if (inRange.length === 0) return []
@@ -373,8 +364,8 @@ export default function EmployeeLeavesPage() {
       (s) =>
         s.profile_id === profileId &&
         s.day_of_week === dayOfWeek &&
-        timeStringToMinutes(s.starts_at.slice(0, 5)) <= startMinutes &&
-        timeStringToMinutes(s.ends_at.slice(0, 5)) >= endMinutes,
+        timeToMinutes(s.starts_at.slice(0, 5)) <= startMinutes &&
+        timeToMinutes(s.ends_at.slice(0, 5)) >= endMinutes,
     )
     if (!worksThen) return false
 
@@ -384,8 +375,8 @@ export default function EmployeeLeavesPage() {
         b.profile_id === profileId &&
         (b.day_of_week === dayOfWeek ||
           (b.block_date !== null && b.block_date <= dateStr && dateStr <= (b.end_date ?? b.block_date))) &&
-        timeStringToMinutes(b.starts_at.slice(0, 5)) < endMinutes &&
-        timeStringToMinutes(b.ends_at.slice(0, 5)) > startMinutes,
+        timeToMinutes(b.starts_at.slice(0, 5)) < endMinutes &&
+        timeToMinutes(b.ends_at.slice(0, 5)) > startMinutes,
     )
     if (isBlocked) return false
 
@@ -526,7 +517,7 @@ export default function EmployeeLeavesPage() {
       if (ds < r.date || ds > r.endDate) return false
       if (r.allDay) return true
       const s = d.getHours() * 60 + d.getMinutes()
-      return timeStringToMinutes(r.start) < s + (a.duration_minutes ?? 30) && timeStringToMinutes(r.end) > s
+      return timeToMinutes(r.start) < s + (a.duration_minutes ?? 30) && timeToMinutes(r.end) > s
     }).length
   }
 
@@ -541,7 +532,7 @@ export default function EmployeeLeavesPage() {
       if (leaveKind !== 'saat') return true
       if (!leaveStart || !leaveEnd) return false
       const s = d.getHours() * 60 + d.getMinutes()
-      return timeStringToMinutes(leaveStart) < s + (a.duration_minutes ?? 30) && timeStringToMinutes(leaveEnd) > s
+      return timeToMinutes(leaveStart) < s + (a.duration_minutes ?? 30) && timeToMinutes(leaveEnd) > s
     })
     .sort((a, b) => a.scheduled_at.localeCompare(b.scheduled_at))
 

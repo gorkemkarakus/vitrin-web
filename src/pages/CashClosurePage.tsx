@@ -4,9 +4,10 @@ import { supabase } from '../lib/supabase'
 import { useAuth } from '../contexts/AuthContext'
 import PageHeader from '../components/PageHeader'
 import { currency, currencyWhole } from '../lib/currency'
-import { METHOD_LABEL, loadDaySummary, longDate, todayString, type CashClosure, type DaySummary } from '../lib/cashClosure'
+import { METHOD_LABEL, loadDaySummary, longDate, type CashClosure, type DaySummary } from '../lib/cashClosure'
 import { generateCashClosurePdf } from '../lib/pdf/cashClosurePdf'
 import styles from './CashClosurePage.module.css'
+import { todayLocalDateString } from '../lib/date'
 
 // Gun sonu kasa kapanisi: gunun tahsilati (yonteme gore), nakit giderler,
 // acilis kasasi + sayilan nakit → fark; kaydedilir ve PDF olarak indirilir.
@@ -14,7 +15,7 @@ export default function CashClosurePage() {
   const navigate = useNavigate()
   const { profile } = useAuth()
   const [searchParams, setSearchParams] = useSearchParams()
-  const date = searchParams.get('tarih') || todayString()
+  const date = searchParams.get('tarih') || todayLocalDateString()
 
   const [summary, setSummary] = useState<DaySummary | null>(null)
   const [closure, setClosure] = useState<CashClosure | null>(null)
@@ -133,7 +134,7 @@ export default function CashClosurePage() {
     return d < 0 ? styles.diffBad : styles.diffWarn
   }
 
-  const isToday = date === todayString()
+  const isToday = date === todayLocalDateString()
 
   return (
     <div className={styles.wrap}>
@@ -147,7 +148,7 @@ export default function CashClosurePage() {
             <input
               type="date"
               value={date}
-              max={todayString()}
+              max={todayLocalDateString()}
               onChange={(e) => e.target.value && setSearchParams({ tarih: e.target.value }, { replace: true })}
               aria-label="Gün seç"
             />

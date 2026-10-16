@@ -3,8 +3,10 @@ import { useNavigate } from 'react-router-dom'
 import { supabase } from '../lib/supabase'
 import PageHeader from '../components/PageHeader'
 import { useAuth } from '../contexts/AuthContext'
-import { toLocalDateString } from '../lib/date'
+import { toLocalDateString, timeOf } from '../lib/date'
 import styles from './TeamPage.module.css'
+import { HOLIDAY_LABEL } from '../lib/scheduleLabels'
+import { AVATAR_TONES } from '../lib/avatarColor'
 
 interface Employee {
   id: string
@@ -35,13 +37,6 @@ interface Appointment {
   status: 'bekliyor' | 'onaylandi' | 'tamamlandi' | 'iptal' | 'gelmedi'
   scheduled_at: string
   duration_minutes: number | null
-}
-
-const HOLIDAY_LABEL = 'Resmi Tatil'
-const AVATAR_TONES = ['toneNavy', 'tonePurple', 'toneGreen'] as const
-
-function timeOf(iso: string) {
-  return new Date(iso).toLocaleTimeString('tr-TR', { hour: '2-digit', minute: '2-digit' })
 }
 
 export default function TeamPage() {

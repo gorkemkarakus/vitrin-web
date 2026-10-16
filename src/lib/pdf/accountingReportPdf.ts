@@ -5,24 +5,12 @@ import { currency } from '../currency'
 import { PdfReport } from './pdfDoc'
 import { saveAndSharePdf } from './savePdf'
 import { yieldToUI } from './yieldToUI'
+import { formatDateLabel, formatPeriodLabel, formatGeneratedLabel } from './labels'
 
 const METHOD_LABEL: Record<string, string> = {
   nakit: 'Nakit',
   kart: 'Kredi Kartı',
   diger: 'Diğer',
-}
-
-function formatDateLabel(d: string) {
-  return new Date(`${d}T00:00:00`).toLocaleDateString('tr-TR', { day: 'numeric', month: 'long', year: 'numeric' })
-}
-
-function formatPeriodLabel(start: string, end: string) {
-  return start === end ? formatDateLabel(start) : `${formatDateLabel(start)} – ${formatDateLabel(end)}`
-}
-
-function formatGeneratedLabel() {
-  const now = new Date()
-  return `Oluşturulma: ${now.toLocaleDateString('tr-TR', { day: 'numeric', month: 'long', year: 'numeric' })} ${now.toLocaleTimeString('tr-TR', { hour: '2-digit', minute: '2-digit' })}`
 }
 
 interface RankedStat {

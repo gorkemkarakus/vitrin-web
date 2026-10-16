@@ -1,8 +1,7 @@
-import { toLocalDateString } from '../../lib/date'
+import { toLocalDateString, DAY_SHORT } from '../../lib/date'
 import styles from '../PublicBookingPage.module.css'
 
 const SEARCH_DAYS = 14
-const WEEKDAY_SHORT = ['Paz', 'Pzt', 'Sal', 'Çar', 'Per', 'Cum', 'Cmt']
 
 export default function DateStrip({
   selectedDate,
@@ -16,7 +15,7 @@ export default function DateStrip({
   for (let i = 0; i < SEARCH_DAYS; i++) {
     const d = new Date(today)
     d.setDate(today.getDate() + i)
-    days.push({ key: toLocalDateString(d), dayNum: d.getDate(), weekday: WEEKDAY_SHORT[d.getDay()] })
+    days.push({ key: toLocalDateString(d), dayNum: d.getDate(), weekday: DAY_SHORT[d.getDay()] })
   }
 
   return (

@@ -1,5 +1,4 @@
 import { supabase } from './supabase'
-import { toLocalDateString } from './date'
 
 // Gun sonu kasa kapanisi icin bir gunun ozeti (ekran ve PDF ayni veriyi kullanir).
 
@@ -176,6 +175,3 @@ export async function loadDaySummary(date: string): Promise<DaySummary> {
   }
 }
 
-export function todayString() {
-  return toLocalDateString(new Date())
-}

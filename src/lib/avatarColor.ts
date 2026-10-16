@@ -5,3 +5,6 @@ export function colorForName(name: string) {
   for (let i = 0; i < name.length; i++) hash = (hash * 31 + name.charCodeAt(i)) >>> 0
   return PALETTE[hash % PALETTE.length]
 }
+
+// Listelerde sirayla kullanilan avatar tonlari (sayfa CSS modulundeki sinif adlari).
+export const AVATAR_TONES = ['toneNavy', 'tonePurple', 'toneGreen'] as const

@@ -2,14 +2,15 @@ import { useEffect, useMemo, useState, type FormEvent } from 'react'
 import { useNavigate, useParams } from 'react-router-dom'
 import { supabase } from '../lib/supabase'
 import { useAuth } from '../contexts/AuthContext'
-import { formatPersonName } from '../lib/formatName'
+import { formatPersonName, initials } from '../lib/formatName'
 import { currency } from '../lib/currency'
 import Select from '../components/Select'
-import { phoneLengthError } from '../lib/phone'
+import { phoneLengthError, customerPhone } from '../lib/phone'
 import { ChevronRightIcon, PhoneIcon, WalletIcon, PencilIcon, TrashIcon, CalendarIcon, MessagesIcon } from '../components/icons'
 import { segmentForStats } from '../lib/customerSegments'
 import { toLocalDateString } from '../lib/date'
 import styles from './CustomerDetailPage.module.css'
+import { PAYMENT_METHOD_OPTIONS } from '../lib/paymentMethods'
 
 interface Customer {
   id: string
@@ -77,12 +78,6 @@ const SESSION_STATUS_LABEL: Record<Appointment['status'], string> = {
   iptal: 'İptal',
   gelmedi: 'Gelmedi',
 }
-const PAYMENT_METHOD_OPTIONS = [
-  { value: 'nakit', label: 'Nakit' },
-  { value: 'kart', label: 'Kredi Kartı' },
-  { value: 'havale', label: 'Havale / EFT' },
-  { value: 'diger', label: 'Diğer' },
-]
 
 type DetailTab = 'ozet' | 'randevular' | 'odemeler' | 'paket'
 
@@ -92,23 +87,6 @@ const DETAIL_TABS: { value: DetailTab; label: string }[] = [
   { value: 'odemeler', label: 'Ödemeler' },
   { value: 'paket', label: 'Paket' },
 ]
-
-function initials(name: string) {
-  return (
-    name
-      .trim()
-      .split(/\s+/)
-      .slice(0, 2)
-      .map((w) => w[0]?.toLocaleUpperCase('tr') ?? '')
-      .join('') || '?'
-  )
-}
-
-// "phone" bazen chatbot kanal kimligi olabilir — gercek numara varsa
-// (contact_phone) her zaman ona oncelik ver.
-function customerPhone(c: Customer) {
-  return c.contact_phone || c.phone || null
-}
 
 // remaining = beklenen - odenen. Pozitifse borc, negatifse musteri fazla
 // odemis (alacakli) — bu durum sessizce "Ödendi" diye gosterilmek yerine

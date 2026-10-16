@@ -6,9 +6,10 @@ import { fetchAll } from '../lib/fetchAll'
 import { useAuth } from '../contexts/AuthContext'
 import { WalletIcon, ReceiptIcon, ChevronRightIcon, CreditCardIcon } from '../components/icons'
 import { currency, currencyWhole } from '../lib/currency'
-import { toLocalDateString } from '../lib/date'
+import { toLocalDateString, timeOf } from '../lib/date'
 import { bookingUrl as bookingLink } from '../lib/bookingUrl'
 import styles from './DashboardPage.module.css'
+import { initials } from '../lib/formatName'
 
 interface Appointment {
   id: string
@@ -104,21 +105,6 @@ function atMidnight(d: Date) {
 
 function money(n: number) {
   return Number.isInteger(n) ? currencyWhole.format(n) : currency.format(n)
-}
-
-function initials(name: string) {
-  return (
-    name
-      .trim()
-      .split(/\s+/)
-      .slice(0, 2)
-      .map((w) => w[0]?.toUpperCase() ?? '')
-      .join('') || '?'
-  )
-}
-
-function timeOf(iso: string) {
-  return new Date(iso).toLocaleTimeString('tr-TR', { hour: '2-digit', minute: '2-digit' })
 }
 
 function relativeLabel(iso: string) {

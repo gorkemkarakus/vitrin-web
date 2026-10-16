@@ -6,7 +6,7 @@ import { useAuth } from '../contexts/AuthContext'
 import { TIME_OPTIONS } from '../lib/timeOptions'
 import { formatPersonName } from '../lib/formatName'
 import { currency } from '../lib/currency'
-import { toLocalDateString } from '../lib/date'
+import { toLocalDateString, todayLocalDateString, timeToMinutes, DAY_SHORT } from '../lib/date'
 import { computeDebtItems, type DebtItem } from '../lib/customerDebts'
 import Avatar from '../components/Avatar'
 import StatusDropdown, { type StatusDropdownOption } from '../components/StatusDropdown'
@@ -23,6 +23,7 @@ import {
 import type { LayoutOutletContext } from '../layouts/DashboardLayout'
 import PageHeader from '../components/PageHeader'
 import styles from './AppointmentsPage.module.css'
+import { PAYMENT_METHOD_OPTIONS } from '../lib/paymentMethods'
 
 interface Customer {
   id: string
@@ -94,13 +95,6 @@ interface ServicePackage {
   session_offset: number
   status: 'aktif' | 'tamamlandi'
 }
-
-const PAYMENT_METHOD_OPTIONS = [
-  { value: 'nakit', label: 'Nakit' },
-  { value: 'kart', label: 'Kredi Kartı' },
-  { value: 'havale', label: 'Havale / EFT' },
-  { value: 'diger', label: 'Diğer' },
-]
 
 // Kapanis ekranindaki odeme yontemi cipleri ve alt dugme metni icin kisa adlar.
 const METHOD_SHORT: Record<string, string> = { nakit: 'Nakit', kart: 'Kart', havale: 'Havale', diger: 'Diğer' }
@@ -210,18 +204,8 @@ const STATUS_DROPDOWN_OPTIONS: StatusDropdownOption[] = [
 ]
 
 const SLOT_MINUTES = 30
-const WEEKDAY_SHORT = ['Paz', 'Pzt', 'Sal', 'Çar', 'Per', 'Cum', 'Cmt']
 
 type ViewMode = 'gunluk' | 'liste' | 'haftalik' | 'ozel'
-
-function todayLocalDateString() {
-  return toLocalDateString(new Date())
-}
-
-function timeStringToMinutes(t: string) {
-  const [h, m] = t.split(':').map(Number)
-  return h * 60 + m
-}
 
 // Chatbot (book-appointment) ve herkese açık randevu sayfasındaki
 // (public-book-appointment) rankEligibleByFairness ile AYNI algoritma —
@@ -636,8 +620,8 @@ export default function AppointmentsPage() {
       (s) =>
         s.profile_id === employeeId &&
         s.day_of_week === dayOfWeek &&
-        timeStringToMinutes(s.starts_at.slice(0, 5)) <= startMinutes &&
-        timeStringToMinutes(s.ends_at.slice(0, 5)) >= endMinutes,
+        timeToMinutes(s.starts_at.slice(0, 5)) <= startMinutes &&
+        timeToMinutes(s.ends_at.slice(0, 5)) >= endMinutes,
     )
     if (!worksThen) return false
 
@@ -647,8 +631,8 @@ export default function AppointmentsPage() {
         b.profile_id === employeeId &&
         (b.day_of_week === dayOfWeek ||
           (b.block_date !== null && b.block_date <= dateStr && dateStr <= (b.end_date ?? b.block_date))) &&
-        timeStringToMinutes(b.starts_at.slice(0, 5)) < endMinutes &&
-        timeStringToMinutes(b.ends_at.slice(0, 5)) > startMinutes,
+        timeToMinutes(b.starts_at.slice(0, 5)) < endMinutes &&
+        timeToMinutes(b.ends_at.slice(0, 5)) > startMinutes,
     )
     if (isBlocked) return false
 
@@ -720,7 +704,7 @@ export default function AppointmentsPage() {
             ? buildTimeOptions(key, formCandidateIds, formDuration).filter((o) => !('disabled' in o && o.disabled)).length
             : null
         const isToday = formWeekOffset === 0 && i === 0
-        return { key, weekday: isToday ? 'Bugün' : WEEKDAY_SHORT[d.getDay()], day: d.getDate(), open, free }
+        return { key, weekday: isToday ? 'Bugün' : DAY_SHORT[d.getDay()], day: d.getDate(), open, free }
       })
     : []
   const formMonthLabel = formDayOptions.length
@@ -2880,7 +2864,7 @@ export default function AppointmentsPage() {
                 .join(' ')
               return (
                 <button type="button" key={dk} className={dayClass} onClick={() => setViewDate(dk)}>
-                  <span className={styles.weekDayName}>{WEEKDAY_SHORT[d.getDay()]}</span>
+                  <span className={styles.weekDayName}>{DAY_SHORT[d.getDay()]}</span>
                   <span className={styles.weekDayNum}>{d.getDate()}</span>
                   <span className={apptDayKeys.has(dk) ? styles.weekDayDot : styles.weekDayDotEmpty} />
                 </button>

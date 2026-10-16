@@ -6,6 +6,8 @@ import PageHeader from '../components/PageHeader'
 import { SearchIcon, CheckCircleIcon, ChevronRightIcon } from '../components/icons'
 import { currencyWhole as currency } from '../lib/currency'
 import styles from './ServicesPage.module.css'
+import { firstName } from '../lib/formatName'
+import { AVATAR_TONES } from '../lib/avatarColor'
 
 interface Service {
   id: string
@@ -36,12 +38,6 @@ const SORT_OPTIONS: { value: SortBy; label: string; short: string }[] = [
   { value: 'fiyat', label: 'Fiyata göre (yüksekten)', short: 'Fiyat' },
   { value: 'sure', label: 'Süreye göre (uzundan)', short: 'Süre' },
 ]
-
-const AVATAR_TONES = ['toneNavy', 'tonePurple', 'toneGreen'] as const
-
-function firstName(name: string | null) {
-  return (name ?? '').trim().split(/\s+/)[0] || '—'
-}
 
 export default function ServicesPage() {
   const { profile } = useAuth()

@@ -3,18 +3,9 @@ import { useAuth } from '../contexts/AuthContext'
 import { supabase } from '../lib/supabase'
 import { AlertTriangleIcon } from '../components/icons'
 import PageHeader from '../components/PageHeader'
-import { toLocalDateString } from '../lib/date'
+import { toLocalDateString, todayLocalDateString } from '../lib/date'
 import styles from './HolidaysPage.module.css'
-
-// Resmi tatiller ayri bir tablo yerine mevcut employee_time_blocks
-// altyapisi uzerinden, HER AKTIF CALISAN icin ayni tarih/etiketle tek tek
-// satir eklenerek uygulaniyor — boylece randevu musaitligini kontrol eden
-// tum edge function'lar (booking, public-booking-info...) hicbir degisiklik
-// gerekmeden bu tatilleri otomatik olarak dikkate aliyor (zaten calisan
-// bazli employee_time_blocks okuyorlar). "Resmi Tatil" etiketi bu satirlari
-// kisisel izinlerden (Yillik Izin/Mazeret Izni) ayirt etmek icin kullanilir;
-// liste bu etikete gore okundugu icin her tatil HEP bu etiketle kaydedilir.
-const HOLIDAY_LABEL = 'Resmi Tatil'
+import { HOLIDAY_LABEL } from '../lib/scheduleLabels'
 
 // Tarihi her yil ayni olan resmi tatiller. Bayramlar (ay takvimine gore
 // her yil kaydigi icin) burada yok — "Başka gün ekle" ile tarih araligi
@@ -63,10 +54,6 @@ interface HolidayConflict {
   customerName: string
   serviceName: string
   scheduled_at: string
-}
-
-function todayLocalDateString() {
-  return toLocalDateString(new Date())
 }
 
 function pad(n: number) {

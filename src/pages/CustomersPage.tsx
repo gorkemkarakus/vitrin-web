@@ -14,6 +14,8 @@ import { toLocalDateString } from '../lib/date'
 import { computeCustomerDebts } from '../lib/customerDebts'
 import { segmentForStats, type CustomerSegment } from '../lib/customerSegments'
 import styles from './CustomersPage.module.css'
+import { initials } from '../lib/formatName'
+import { customerPhone } from '../lib/phone'
 
 interface Customer {
   id: string
@@ -91,25 +93,8 @@ const SEGMENT_BADGE: Record<Segment, { label: string; className: string }> = {
   yeni: { label: 'Yeni', className: 'badgeYeni' },
 }
 
-function initials(name: string) {
-  return (
-    name
-      .trim()
-      .split(/\s+/)
-      .slice(0, 2)
-      .map((w) => w[0]?.toLocaleUpperCase('tr') ?? '')
-      .join('') || '?'
-  )
-}
-
 function monthStart(d: Date) {
   return new Date(d.getFullYear(), d.getMonth(), 1)
-}
-
-// "phone" bazen chatbot kanal kimligi olabilir (ör. Instagram IGSID) —
-// gercek numara varsa (contact_phone) her zaman ona oncelik ver.
-function customerPhone(c: Customer) {
-  return c.contact_phone || c.phone || null
 }
 
 export default function CustomersPage() {
