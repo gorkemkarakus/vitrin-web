@@ -1,6 +1,8 @@
 import { useEffect, useState, type FormEvent, type ReactNode } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { supabase } from '../lib/supabase'
+import { callEdgeFunction } from '../lib/edgeFunctions'
+import { NETWORK_ERROR } from '../lib/messages'
 import { useAuth } from '../contexts/AuthContext'
 import PageHeader from '../components/PageHeader'
 import { bookingUrl } from '../lib/bookingUrl'
@@ -184,18 +186,14 @@ export default function SettingsPage() {
     setMsg({ type: 'ok', text: 'Kaydedildi.' })
   }
 
+  type DeleteScope = { scope: 'account' | 'business'; business_name: string | null }
+
   async function callDeleteAccount(payload: Record<string, unknown>) {
-    const res = await fetch(`${import.meta.env.VITE_SUPABASE_URL}/functions/v1/delete-account`, {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-        Authorization: `Bearer ${session?.access_token}`,
-        apikey: import.meta.env.VITE_SUPABASE_ANON_KEY,
-      },
-      body: JSON.stringify(payload),
-    })
-    const body = await res.json().catch(() => ({}))
-    return { ok: res.ok, body }
+    try {
+      return await callEdgeFunction<DeleteScope>('delete-account', payload)
+    } catch {
+      return { ok: false as const, status: 0, error: NETWORK_ERROR }
+    }
   }
 
   async function openDelete() {
@@ -203,9 +201,9 @@ export default function SettingsPage() {
     setDeleteScope(null)
     setDeletePassword('')
     setDeleteBizName('')
-    const { ok, body } = await callDeleteAccount({ dry_run: true })
-    if (ok) setDeleteScope(body.data)
-    else setMsg({ type: 'err', text: body.error ?? 'Hesap bilgisi alınamadı.' })
+    const res = await callDeleteAccount({ dry_run: true })
+    if (res.ok) setDeleteScope(res.data)
+    else setMsg({ type: 'err', text: res.error ?? 'Hesap bilgisi alınamadı.' })
   }
 
   async function confirmDelete(e: FormEvent) {
@@ -220,10 +218,10 @@ export default function SettingsPage() {
       setMsg({ type: 'err', text: 'Şifre yanlış.' })
       return
     }
-    const { ok, body } = await callDeleteAccount({ confirm_business_name: deleteBizName })
+    const res = await callDeleteAccount({ confirm_business_name: deleteBizName })
     setSaving(false)
-    if (!ok) {
-      setMsg({ type: 'err', text: body.error ?? 'Hesap silinemedi.' })
+    if (!res.ok) {
+      setMsg({ type: 'err', text: res.error ?? 'Hesap silinemedi.' })
       return
     }
     await signOut()

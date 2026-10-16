@@ -3,6 +3,8 @@ import { useNavigate } from 'react-router-dom'
 import { App as CapacitorApp } from '@capacitor/app'
 import { Browser } from '@capacitor/browser'
 import { useAuth } from '../contexts/AuthContext'
+import { callEdgeFunction, edgeFunctionUrl } from '../lib/edgeFunctions'
+import { NETWORK_ERROR } from '../lib/messages'
 import styles from './AdOAuthCallbackPage.module.css'
 
 interface AdAccount {
@@ -42,7 +44,7 @@ export default function AdOAuthCallbackPage() {
 
     const state = crypto.randomUUID()
     sessionStorage.setItem('meta_oauth_state', state)
-    const redirectUri = `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/meta-oauth-bridge`
+    const redirectUri = edgeFunctionUrl('meta-oauth-bridge')
     Browser.open({ url: buildOAuthUrl(state, redirectUri) })
 
     const listenerHandle = CapacitorApp.addListener('appUrlOpen', ({ url }) => {
@@ -91,26 +93,17 @@ export default function AdOAuthCallbackPage() {
 
     setStep('exchanging')
     try {
-      const res = await fetch(`${import.meta.env.VITE_SUPABASE_URL}/functions/v1/meta-oauth-callback`, {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          Authorization: `Bearer ${session?.access_token}`,
-          apikey: import.meta.env.VITE_SUPABASE_ANON_KEY,
-        },
-        body: JSON.stringify({
-          code,
-          redirect_uri: `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/meta-oauth-bridge`,
-        }),
+      const res = await callEdgeFunction<{ ad_accounts: AdAccount[] }>('meta-oauth-callback', {
+        code,
+        redirect_uri: edgeFunctionUrl('meta-oauth-bridge'),
       })
-      const body = await res.json()
       if (!res.ok) {
         setStep('error')
-        setError(body.error ?? 'Bağlantı kurulamadı.')
+        setError(res.error ?? 'Bağlantı kurulamadı.')
         return
       }
 
-      const adAccounts: AdAccount[] = body.data.ad_accounts
+      const adAccounts = res.data.ad_accounts
       if (adAccounts.length === 1) {
         await finalizeSelection(adAccounts[0])
       } else {
@@ -119,32 +112,23 @@ export default function AdOAuthCallbackPage() {
       }
     } catch {
       setStep('error')
-      setError('Sunucuya ulaşılamadı, tekrar deneyin.')
+      setError(NETWORK_ERROR)
     }
   }
 
   async function finalizeSelection(account: AdAccount) {
     setStep('finalizing')
     try {
-      const res = await fetch(`${import.meta.env.VITE_SUPABASE_URL}/functions/v1/select-ad-account`, {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          Authorization: `Bearer ${session?.access_token}`,
-          apikey: import.meta.env.VITE_SUPABASE_ANON_KEY,
-        },
-        body: JSON.stringify({ ad_account_id: account.id }),
-      })
-      const body = await res.json()
+      const res = await callEdgeFunction('select-ad-account', { ad_account_id: account.id })
       if (!res.ok) {
         setStep('error')
-        setError(body.error ?? 'Reklam hesabı bağlanamadı.')
+        setError(res.error ?? 'Reklam hesabı bağlanamadı.')
         return
       }
       navigate('/reklam', { replace: true })
     } catch {
       setStep('error')
-      setError('Sunucuya ulaşılamadı, tekrar deneyin.')
+      setError(NETWORK_ERROR)
     }
   }
 

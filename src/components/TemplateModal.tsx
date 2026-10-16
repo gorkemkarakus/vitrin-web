@@ -1,7 +1,7 @@
 import { useState } from 'react'
 import { useAuth } from '../contexts/AuthContext'
 import { supabase } from '../lib/supabase'
-import { SparkleIcon } from './icons'
+import AiMessageGenerator from './AiMessageGenerator'
 import type { Template } from '../pages/TopluMesajPage'
 import styles from './TemplateModal.module.css'
 
@@ -16,40 +16,11 @@ export default function TemplateModal({
   onSaved: () => void
   onDeleted: () => void
 }) {
-  const { profile, session } = useAuth()
+  const { profile } = useAuth()
   const [title, setTitle] = useState(template?.title ?? '')
   const [message, setMessage] = useState(template?.message ?? '')
   const [saving, setSaving] = useState(false)
   const [error, setError] = useState<string | null>(null)
-  const [aiPrompt, setAiPrompt] = useState('')
-  const [aiGenerating, setAiGenerating] = useState(false)
-
-  async function handleGenerateAi() {
-    if (!session || !aiPrompt.trim() || aiGenerating) return
-    setAiGenerating(true)
-    setError(null)
-    try {
-      const res = await fetch(`${import.meta.env.VITE_SUPABASE_URL}/functions/v1/generate-campaign-message`, {
-        method: 'POST',
-        headers: {
-          Authorization: `Bearer ${session.access_token}`,
-          apikey: import.meta.env.VITE_SUPABASE_ANON_KEY,
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify({ prompt: aiPrompt.trim() }),
-      })
-      const body = await res.json()
-      if (!res.ok) {
-        setError(body.error ?? 'Mesaj oluşturulamadı.')
-        return
-      }
-      setMessage(body.data.message)
-    } catch {
-      setError('Sunucuya ulaşılamadı, tekrar deneyin.')
-    } finally {
-      setAiGenerating(false)
-    }
-  }
 
   async function handleSave() {
     if (!title.trim() || !message.trim()) {
@@ -104,29 +75,7 @@ export default function TemplateModal({
           <label htmlFor="templateTitle">Başlık</label>
           <input id="templateTitle" value={title} onChange={(e) => setTitle(e.target.value)} placeholder="Örn. İptal Edenler için hatırlatma" />
         </div>
-        <div className={styles.aiBlock}>
-          <span className={styles.aiLabel}>
-            <SparkleIcon width={13} height={13} />
-            AI ile Oluştur
-          </span>
-          <div className={styles.aiRow}>
-            <input
-              className={styles.aiInput}
-              value={aiPrompt}
-              onChange={(e) => setAiPrompt(e.target.value)}
-              placeholder="Ör. %15 indirim mesajı"
-              onKeyDown={(e) => {
-                if (e.key === 'Enter') {
-                  e.preventDefault()
-                  handleGenerateAi()
-                }
-              }}
-            />
-            <button type="button" className={styles.aiBtn} onClick={handleGenerateAi} disabled={aiGenerating || !aiPrompt.trim()}>
-              {aiGenerating ? 'Yazılıyor…' : 'Oluştur'}
-            </button>
-          </div>
-        </div>
+        <AiMessageGenerator onGenerated={setMessage} onError={setError} />
 
         <div className="field">
           <label htmlFor="templateMessage">Mesaj</label>

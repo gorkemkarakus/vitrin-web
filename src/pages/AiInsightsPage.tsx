@@ -2,6 +2,8 @@ import { useEffect, useMemo, useRef, useState } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { useAuth } from '../contexts/AuthContext'
 import { supabase } from '../lib/supabase'
+import { callEdgeFunction } from '../lib/edgeFunctions'
+import { NETWORK_ERROR } from '../lib/messages'
 import { fetchAll } from '../lib/fetchAll'
 import { CheckCircleIcon, SendIcon } from '../components/icons'
 import PageHeader from '../components/PageHeader'
@@ -253,23 +255,14 @@ export default function AiInsightsPage() {
     setError(null)
     try {
       const periodLabel = PERIOD_LABEL_FOR_AI[preset] ?? 'Bu Dönem'
-      const res = await fetch(`${import.meta.env.VITE_SUPABASE_URL}/functions/v1/generate-ai-insights`, {
-        method: 'POST',
-        headers: {
-          Authorization: `Bearer ${session.access_token}`,
-          apikey: import.meta.env.VITE_SUPABASE_ANON_KEY,
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify({ rangeStart, rangeEnd, periodLabel, periodKey: preset }),
-      })
-      const body = await res.json()
+      const res = await callEdgeFunction<Insight>('generate-ai-insights', { rangeStart, rangeEnd, periodLabel, periodKey: preset })
       if (!res.ok) {
-        setError(body.error ?? 'Analiz oluşturulamadı.')
+        setError(res.error ?? 'Analiz oluşturulamadı.')
         return
       }
-      setInsight(body.data)
+      setInsight(res.data)
     } catch {
-      setError('Sunucuya ulaşılamadı, tekrar deneyin.')
+      setError(NETWORK_ERROR)
     } finally {
       setGenerating(false)
     }

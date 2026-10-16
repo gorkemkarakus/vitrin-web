@@ -2,6 +2,8 @@ import { useEffect, useState, type FormEvent } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { useAuth } from '../contexts/AuthContext'
 import { supabase } from '../lib/supabase'
+import { callEdgeFunction } from '../lib/edgeFunctions'
+import { NETWORK_ERROR } from '../lib/messages'
 import PageHeader from '../components/PageHeader'
 import { Share } from '@capacitor/share'
 import PermissionEditor from '../components/PermissionEditor'
@@ -35,7 +37,7 @@ function generatePassword() {
 
 export default function EmployeeCreatePage() {
   const navigate = useNavigate()
-  const { session, profile } = useAuth()
+  const { profile } = useAuth()
 
   const [step, setStep] = useState<1 | 2 | 3>(1)
   const [fullName, setFullName] = useState('')
@@ -98,14 +100,7 @@ export default function EmployeeCreatePage() {
     setError(null)
     setSubmitting(true)
     try {
-      const res = await fetch(`${import.meta.env.VITE_SUPABASE_URL}/functions/v1/create-team-member`, {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          Authorization: `Bearer ${session?.access_token}`,
-          apikey: import.meta.env.VITE_SUPABASE_ANON_KEY,
-        },
-        body: JSON.stringify({
+      const res = await callEdgeFunction<{ id: string }>('create-team-member', {
           email,
           password,
           full_name: fullName,
@@ -114,15 +109,13 @@ export default function EmployeeCreatePage() {
           role: isAdminRole ? 'admin' : 'user',
           must_change_password: mustChangePassword,
           online_bookable: onlineBookable,
-        }),
-      })
-      const body = await res.json()
+        })
       if (!res.ok) {
-        setError(body.error ?? 'Hesap oluşturulamadı.')
+        setError(res.error ?? 'Hesap oluşturulamadı.')
         setStep(1)
         return
       }
-      const newId = body.data.id as string
+      const newId = res.data.id as string
       // Yetkiler (yoneticide gerek yok, her seyi yapar).
       if (profile?.business_id && !isAdminRole) {
         const { error: permErr } = await supabase
@@ -155,7 +148,7 @@ export default function EmployeeCreatePage() {
       setCreatedId(newId)
       setStep(3)
     } catch {
-      setError('Sunucuya ulaşılamadı, tekrar deneyin.')
+      setError(NETWORK_ERROR)
     } finally {
       setSubmitting(false)
     }

@@ -3,6 +3,8 @@ import { useNavigate } from 'react-router-dom'
 import { useAuth } from '../contexts/AuthContext'
 import { supabase } from '../lib/supabase'
 import { fetchAll } from '../lib/fetchAll'
+import { callEdgeFunction } from '../lib/edgeFunctions'
+import { NETWORK_ERROR } from '../lib/messages'
 import PageHeader from '../components/PageHeader'
 import { currencyWhole as currency } from '../lib/currency'
 import { SOURCE_LABEL } from '../lib/sourceLabels'
@@ -94,24 +96,15 @@ export default function AdInsightsPage() {
       setInsightsLoading(true)
       setError(null)
       try {
-        const res = await fetch(`${import.meta.env.VITE_SUPABASE_URL}/functions/v1/get-ad-insights`, {
-          method: 'POST',
-          headers: {
-            'Content-Type': 'application/json',
-            Authorization: `Bearer ${session?.access_token}`,
-            apikey: import.meta.env.VITE_SUPABASE_ANON_KEY,
-          },
-          body: JSON.stringify({ range_days: rangeDays }),
-        })
-        const body = await res.json()
+        const res = await callEdgeFunction<Insights>('get-ad-insights', { range_days: rangeDays })
         if (cancelled) return
         if (!res.ok) {
-          setError(body.error ?? 'Veriler alınamadı.')
+          setError(res.error ?? 'Veriler alınamadı.')
           return
         }
-        setInsights(body.data)
+        setInsights(res.data)
       } catch {
-        if (!cancelled) setError('Sunucuya ulaşılamadı, tekrar deneyin.')
+        if (!cancelled) setError(NETWORK_ERROR)
       } finally {
         if (!cancelled) setInsightsLoading(false)
       }
@@ -129,22 +122,15 @@ export default function AdInsightsPage() {
     setError(null)
     setDisconnecting(true)
     try {
-      const res = await fetch(`${import.meta.env.VITE_SUPABASE_URL}/functions/v1/disconnect-ad-account`, {
-        method: 'POST',
-        headers: {
-          Authorization: `Bearer ${session.access_token}`,
-          apikey: import.meta.env.VITE_SUPABASE_ANON_KEY,
-        },
-      })
+      const res = await callEdgeFunction('disconnect-ad-account')
       if (!res.ok) {
-        const body = await res.json().catch(() => ({}))
-        setError(body.error ?? 'Bağlantı kaldırılamadı.')
+        setError(res.error ?? 'Bağlantı kaldırılamadı.')
         return
       }
       setConnection(null)
       setInsights(null)
     } catch {
-      setError('Sunucuya ulaşılamadı, tekrar deneyin.')
+      setError(NETWORK_ERROR)
     } finally {
       setDisconnecting(false)
     }

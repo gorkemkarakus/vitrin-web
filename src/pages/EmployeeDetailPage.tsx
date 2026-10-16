@@ -1,6 +1,8 @@
 import { useEffect, useMemo, useState } from 'react'
 import { useNavigate, useParams } from 'react-router-dom'
 import { supabase } from '../lib/supabase'
+import { callEdgeFunction } from '../lib/edgeFunctions'
+import { NETWORK_ERROR } from '../lib/messages'
 import { useAuth } from '../contexts/AuthContext'
 import Select from '../components/Select'
 import HandoverAppointments from '../components/HandoverAppointments'
@@ -122,7 +124,7 @@ type Section = 'ana' | 'saatler' | 'hizmetler' | 'kazanc' | 'erisim'
 export default function EmployeeDetailPage({ selfEarnings = false }: { selfEarnings?: boolean }) {
   const params = useParams<{ id: string }>()
   const navigate = useNavigate()
-  const { session, profile, can } = useAuth()
+  const { profile, can } = useAuth()
   const id = selfEarnings ? profile?.id : params.id
   // Hesap/yetki/pasife alma yalnizca yoneticide; para bilgisi Kasa ya da
   // Performans yetkisiyle gorunur (ekip_yonet yetkili calisan da bu sayfaya girer).
@@ -430,29 +432,20 @@ export default function EmployeeDetailPage({ selfEarnings = false }: { selfEarni
     setAccountError('')
     setAccountSuccess('')
     try {
-      const res = await fetch(`${import.meta.env.VITE_SUPABASE_URL}/functions/v1/update-team-member`, {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          Authorization: `Bearer ${session?.access_token}`,
-          apikey: import.meta.env.VITE_SUPABASE_ANON_KEY,
-        },
-        body: JSON.stringify({
+      const res = await callEdgeFunction('update-team-member', {
           id,
           email: accountEmail.trim() || undefined,
           password: accountPassword.trim() || undefined,
-        }),
-      })
-      const body = await res.json()
+        })
       if (!res.ok) {
-        setAccountError(body.error ?? 'Hesap güncellenemedi.')
+        setAccountError(res.error ?? 'Hesap güncellenemedi.')
         return
       }
       setAccountSuccess('Hesap bilgileri güncellendi.')
       setAccountEmail('')
       setAccountPassword('')
     } catch {
-      setAccountError('Sunucuya ulaşılamadı, tekrar deneyin.')
+      setAccountError(NETWORK_ERROR)
     } finally {
       setSavingAccount(false)
     }

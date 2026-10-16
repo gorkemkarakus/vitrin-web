@@ -1,6 +1,7 @@
 import { useState } from 'react'
-import { useAuth } from '../contexts/AuthContext'
-import { SparkleIcon } from './icons'
+import { callEdgeFunction } from '../lib/edgeFunctions'
+import { NETWORK_ERROR } from '../lib/messages'
+import AiMessageGenerator from './AiMessageGenerator'
 import Select from './Select'
 import type { Template } from '../pages/TopluMesajPage'
 import styles from './SendCampaignModal.module.css'
@@ -18,14 +19,11 @@ export default function SendCampaignModal({
   templates: Template[]
   onClose: () => void
 }) {
-  const { session } = useAuth()
   const [message, setMessage] = useState(initialMessage ?? '')
   const [selectedTemplateId, setSelectedTemplateId] = useState('')
   const [sending, setSending] = useState(false)
   const [error, setError] = useState<string | null>(null)
   const [result, setResult] = useState<{ sent: number; failed: number } | null>(null)
-  const [aiPrompt, setAiPrompt] = useState('')
-  const [aiGenerating, setAiGenerating] = useState(false)
 
   function handlePickTemplate(templateId: string) {
     setSelectedTemplateId(templateId)
@@ -33,55 +31,22 @@ export default function SendCampaignModal({
     if (t) setMessage(t.message)
   }
 
-  async function handleGenerateAi() {
-    if (!session || !aiPrompt.trim() || aiGenerating) return
-    setAiGenerating(true)
-    setError(null)
-    try {
-      const res = await fetch(`${import.meta.env.VITE_SUPABASE_URL}/functions/v1/generate-campaign-message`, {
-        method: 'POST',
-        headers: {
-          Authorization: `Bearer ${session.access_token}`,
-          apikey: import.meta.env.VITE_SUPABASE_ANON_KEY,
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify({ prompt: aiPrompt.trim() }),
-      })
-      const body = await res.json()
-      if (!res.ok) {
-        setError(body.error ?? 'Mesaj oluşturulamadı.')
-        return
-      }
-      setMessage(body.data.message)
-    } catch {
-      setError('Sunucuya ulaşılamadı, tekrar deneyin.')
-    } finally {
-      setAiGenerating(false)
-    }
-  }
-
   async function handleSend() {
-    if (!session || !message.trim()) return
+    if (!message.trim()) return
     setSending(true)
     setError(null)
     try {
-      const res = await fetch(`${import.meta.env.VITE_SUPABASE_URL}/functions/v1/send-bulk-campaign`, {
-        method: 'POST',
-        headers: {
-          Authorization: `Bearer ${session.access_token}`,
-          apikey: import.meta.env.VITE_SUPABASE_ANON_KEY,
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify({ customerIds: memberIds, message: message.trim() }),
+      const res = await callEdgeFunction<{ sent: number; failed: number }>('send-bulk-campaign', {
+        customerIds: memberIds,
+        message: message.trim(),
       })
-      const body = await res.json()
       if (!res.ok) {
-        setError(body.error ?? 'Gönderilemedi.')
+        setError(res.error ?? 'Gönderilemedi.')
         return
       }
-      setResult(body.data)
+      setResult(res.data)
     } catch {
-      setError('Sunucuya ulaşılamadı, tekrar deneyin.')
+      setError(NETWORK_ERROR)
     } finally {
       setSending(false)
     }
@@ -125,29 +90,7 @@ export default function SendCampaignModal({
                 />
               </div>
             )}
-            <div className={styles.aiBlock}>
-              <span className={styles.aiLabel}>
-                <SparkleIcon width={13} height={13} />
-                AI ile Oluştur
-              </span>
-              <div className={styles.aiRow}>
-                <input
-                  className={styles.aiInput}
-                  value={aiPrompt}
-                  onChange={(e) => setAiPrompt(e.target.value)}
-                  placeholder="Ör. %15 indirim mesajı"
-                  onKeyDown={(e) => {
-                    if (e.key === 'Enter') {
-                      e.preventDefault()
-                      handleGenerateAi()
-                    }
-                  }}
-                />
-                <button type="button" className={styles.aiBtn} onClick={handleGenerateAi} disabled={aiGenerating || !aiPrompt.trim()}>
-                  {aiGenerating ? 'Yazılıyor…' : 'Oluştur'}
-                </button>
-              </div>
-            </div>
+            <AiMessageGenerator onGenerated={setMessage} onError={setError} />
             <div className="field">
               <label htmlFor="campaignMessage">Mesaj</label>
               <textarea
