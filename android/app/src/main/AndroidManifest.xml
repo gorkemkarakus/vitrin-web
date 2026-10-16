@@ -37,6 +37,18 @@
             android:grantUriPermissions="true">
             <meta-data android:name="android.support.FILE_PROVIDER_PATHS" android:resource="@xml/file_paths" />
         </provider>
+
+        <!-- Bildirim kucuk ikonu: tek renk siluet (renkli uygulama ikonu siyah
+             kare gorunuyordu). Uretim: resources/gen-notification-icon.cjs -->
+        <meta-data
+            android:name="com.google.firebase.messaging.default_notification_icon"
+            android:resource="@drawable/ic_stat_adapptiv" />
+        <meta-data
+            android:name="com.google.firebase.messaging.default_notification_color"
+            android:resource="@color/notification_accent" />
+        <meta-data
+            android:name="com.google.firebase.messaging.default_notification_channel_id"
+            android:value="randevular" />
     </application>
 
     <!-- Permissions -->
