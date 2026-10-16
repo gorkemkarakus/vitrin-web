@@ -1,0 +1,9 @@
+dist
+android
+ios
+node_modules
+jdk21-portable
+supabase
+src/lib/pdf/fonts
+package-lock.json
+*.md

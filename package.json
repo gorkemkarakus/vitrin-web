@@ -9,7 +9,10 @@
     "lint": "oxlint",
     "preview": "vite preview",
     "test": "vitest run",
-    "test:watch": "vitest"
+    "test:watch": "vitest",
+    "format": "prettier --write .",
+    "format:check": "prettier --check .",
+    "check": "tsc -b && oxlint && vitest run && prettier --check ."
   },
   "dependencies": {
     "@capacitor/android": "^8.4.1",
@@ -37,6 +40,7 @@
     "@types/react-dom": "^19.2.3",
     "@vitejs/plugin-react": "^6.0.3",
     "oxlint": "^1.71.0",
+    "prettier": "^3.9.9",
     "sharp": "^0.35.5",
     "typescript": "~6.0.2",
     "vite": "^8.1.1",
