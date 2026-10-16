@@ -2,7 +2,7 @@ import { useEffect } from 'react'
 import { createPortal } from 'react-dom'
 import styles from './PickerSheet.module.css'
 
-export interface PickerOption {
+interface PickerOption {
   value: string
   label: string
   sub?: string

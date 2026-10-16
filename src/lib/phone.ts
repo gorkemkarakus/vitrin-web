@@ -11,7 +11,7 @@ export function normalizeTrPhone(raw: string | null | undefined): string {
 }
 
 // Form alanlari icin: 0 ile 11 hane (05xx xxx xx xx). Fazlasi hata.
-export const PHONE_MAX_DIGITS = 11
+const PHONE_MAX_DIGITS = 11
 
 export function phoneLengthError(digits: string): string | null {
   return digits.length > PHONE_MAX_DIGITS

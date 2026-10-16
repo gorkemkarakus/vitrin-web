@@ -3,7 +3,7 @@ import { toLocalDateString } from './date'
 
 // Gun sonu kasa kapanisi icin bir gunun ozeti (ekran ve PDF ayni veriyi kullanir).
 
-export type PayMethod = 'nakit' | 'kart' | 'havale' | 'diger' | 'bakiye'
+type PayMethod = 'nakit' | 'kart' | 'havale' | 'diger' | 'bakiye'
 
 export const METHOD_LABEL: Record<string, string> = {
   nakit: 'Nakit',
@@ -13,7 +13,7 @@ export const METHOD_LABEL: Record<string, string> = {
   bakiye: 'Bakiye',
 }
 
-export interface DayPayment {
+interface DayPayment {
   id: string
   time: string
   customer: string
@@ -23,7 +23,7 @@ export interface DayPayment {
   by: string
 }
 
-export interface DayExpense {
+interface DayExpense {
   id: string
   description: string
   category: string

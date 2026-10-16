@@ -6,7 +6,7 @@ import { logger } from './logger'
 // Telefon bildirimleri. Firebase dosyalari (android/app/google-services.json,
 // iOS'ta GoogleService-Info.plist + APNs) eklenmeden register() uygulamayi
 // cokertebilecegi icin yalnizca VITE_PUSH_ENABLED=1 ile derlenen surumde acilir.
-export const pushEnabled = Capacitor.isNativePlatform() && import.meta.env.VITE_PUSH_ENABLED === '1'
+const pushEnabled = Capacitor.isNativePlatform() && import.meta.env.VITE_PUSH_ENABLED === '1'
 
 const TOKEN_KEY = 'adapptiv.push.token'
 let started = false

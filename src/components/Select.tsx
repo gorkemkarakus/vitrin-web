@@ -1,7 +1,7 @@
 import { useEffect, useRef, useState } from 'react'
 import styles from './Select.module.css'
 
-export interface SelectOption {
+interface SelectOption {
   value: string
   label: string
   sub?: string // ikinci satır (ör. telefon numarası, süre/fiyat)

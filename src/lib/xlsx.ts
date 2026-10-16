@@ -6,15 +6,15 @@ import { strToU8, zipSync } from 'fflate'
 // SheetJS'in npm surumunde duzeltilmemis guvenlik acigi oldugu icin, jsPDF'in
 // zaten getirdigi fflate (zip) ile elle uretiliyor.
 
-export type ColumnType = 'text' | 'int' | 'money' | 'date' | 'datetime'
+type ColumnType = 'text' | 'int' | 'money' | 'date' | 'datetime'
 
-export interface Column {
+interface Column {
   header: string
   width?: number
   type?: ColumnType
 }
 
-export type CellValue = string | number | boolean | Date | null | undefined
+type CellValue = string | number | boolean | Date | null | undefined
 
 export interface Sheet {
   name: string
