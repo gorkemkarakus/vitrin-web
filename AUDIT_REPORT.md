@@ -68,3 +68,42 @@ Kaynak kodda ve git geçmişinde gizli anahtar, token ya da şifre bulunmadı. U
 - **`AppointmentsPage.tsx` bölünmeyecek:** Ürün sahibinin önceki kararı. Biçimlendirme ve yorum temizliği yapılır, yapısı korunur.
 - **`supabase/functions` ve `supabase/migrations`:** Web paneli reposundan aynalanıyor ve oradan yayınlanıyor. Burada değiştirmek iki repoyu ayrıştırır; sunucu bulguları (S1, S2) raporda listelendi.
 - **Davranış değiştiren düzeltmeler** (G6 uzunluk sınırları, hook bağımlılık listeleri): ayrıca onaya bırakıldı.
+
+## 5. Uygulanan düzeltmeler
+
+Dal: `refactor/professional-cleanup`. Her adımda `tsc`, lint, birim testler ve 31 ekranın görsel karşılaştırması (önceki hâliyle piksel piksel) çalıştırıldı.
+
+| Bulgu | Durum | Commit |
+| --- | --- | --- |
+| G1 Oturum düz localStorage'da | Giderildi: Keystore/Keychain, eski oturum kullanıcı çıkış yapmadan taşınıyor, eklenti hatasında geri dönüş | `72c81c9` |
+| G2 Elle yazılmış edge function çağrıları | Giderildi: `lib/edgeFunctions.ts`, 12 çağrı tek istemcide; hesap silme ekranında ağ hatası artık yakalanıyor | `9df9313` |
+| G3 Geliştirme bağımlılıklarında açık | Giderildi: `npm audit` 0 açık (önce 1 kritik, 3 yüksek, 3 orta) | `cfbf19c` |
+| G4 `supabase/.temp` git'te | Giderildi | `ca8738c` |
+| G5 Üretimde `console.warn` | Giderildi: `lib/logger.ts` | `72c81c9` |
+| G6 Form uzunluk sınırları | Açık: davranış değişikliği, onaya bırakıldı | — |
+| K1 Test yok | Giderildi: Vitest, 56 birim test | `63ea396` |
+| K2 Biçimlendirici yok | Giderildi: Prettier, `.editorconfig`, `.gitattributes`, `npm run check` | `758d0a6`, `808288e`, `ac26ac7` |
+| K3 Tekrar eden yardımcılar | Giderildi (aynı davranışlı olanlar); farklı davrananlar bilerek ayrı | `52cbd77`, `23de616` |
+| K4 Blok tekrarları | Giderildi: şifre formu, AI mesaj üretici, menü kapanma hook'u | `1cea72d`, `9df9313`, `5f7b29f` |
+| K5 Kullanılmayan kod | Giderildi | `0303841` |
+| K6 Ölü kod | Giderildi (README'ye taşındı) | `d541978` |
+| K7 Sabit renkler | 215 kullanım tema değişkenine bağlandı; kalanlar bağlama göre farklı anlam taşıyan ya da az kullanılan tonlar | `8d39ae7` |
+| K8 Satır içi stiller | 59 → 29; kalanlar dinamik değerler ve grafik bileşenleri | `5f96bc4` |
+| K10 Uzun dosyalar | Açık: `AppointmentsPage` ürün kararıyla bölünmedi; diğerleri için öneri aşağıda | — |
+| Y1–Y3 Yorumlar ve emojiler | Giderildi | `71f1b2d`, `e732efe` |
+| Y4 Metinlerin tek dosyada toplanması | Kısmen: ortak hata metni `lib/messages.ts`'te; tüm metinlerin taşınması ayrı iş | `71f1b2d` |
+| Y5 README | Giderildi | `d541978` |
+
+Denetim sırasında bulunan ve düzeltilen hatalar:
+- `4ac69e4` Toplu Mesaj ekranı her açılışta 400 alıyor, özel grupların üyeleri boş geliyordu (sorgu var olmayan bir sütuna göre sıralıyordu). **Aynı hata web panelinde de var.**
+- `c2e8292` iOS paket dosyası Windows yollarıyla yazılmıştı (Mac'te derleme kırılırdı); bildirim ve güvenli depolama eklentileri iOS projesine eklenmemişti.
+- `0a153f4` Excel'de aynı adlı ikinci sayfa geçersiz adla yazılıyordu (birim test yakaladı).
+
+## 6. Kalan riskler ve öneriler
+
+1. **Uzun sayfaların bölünmesi:** `EmployeeDetailPage` (1.267 satır), `CustomerDetailPage` (~1.000), `EmployeeLeavesPage`, `AiInsightsPage`. Önce bileşen testleri (React Testing Library) eklenip sonra bağımsız bölümler (prim ödemeleri, erişim ayarları, paketler) ayrı bileşene alınmalı.
+2. **Online randevu formunda bot koruması kapalı:** `VITE_TURNSTILE_SITE_KEY` ve sunucudaki Turnstile secret'ı tanımlı değil; şu an yalnızca sunucudaki istek sınırı koruyor. Site yayına alınırken Cloudflare Turnstile kurulmalı.
+3. **PDF raporlarında düzen:** Performans raporunda dar sütun başlıkları ve isimler kelime ortasından bölünüyor, kaynak satırı sayfadan taşıyor (önceden var olan durum).
+4. **iOS bildirimleri:** Xcode'da Push Notifications yeteneği ve APNs anahtarı eklenmeden iOS'ta bildirim izni istenir ama token alınamaz.
+5. **Sunucu tarafı (S1, S2):** WhatsApp yeniden kurulurken bot fonksiyonlarına gizli başlık eklenmeli; Pro plana geçilirse sızdırılmış şifre koruması açılmalı.
+6. **Form uzunluk sınırları (G6)** ve **arayüz metinlerinin tek dosyada toplanması (Y4)** ayrıca planlanmalı.
