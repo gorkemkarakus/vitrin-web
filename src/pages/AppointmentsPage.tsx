@@ -326,6 +326,8 @@ export default function AppointmentsPage() {
   const [newCustomerName, setNewCustomerName] = useState('')
   const [newCustomerPhone, setNewCustomerPhone] = useState('')
   const [serviceId, setServiceId] = useState('')
+  // Yeni randevunun ucreti: hizmet secilince fiyatiyla dolar, degistirilebilir.
+  const [apptPrice, setApptPrice] = useState('')
   const [employeeId, setEmployeeId] = useState('')
   const [apptDate, setApptDate] = useState(todayLocalDateString())
   const [apptTime, setApptTime] = useState('')
@@ -603,6 +605,13 @@ export default function AppointmentsPage() {
   }
 
   const selectedService = services.find((s) => s.id === serviceId) ?? null
+  const selectedServicePrice = selectedService?.price ?? null
+  useEffect(() => {
+    setApptPrice(selectedServicePrice != null ? String(selectedServicePrice) : '')
+  }, [serviceId, selectedServicePrice])
+  const apptPriceValue = apptPrice.trim() === '' ? null : Math.max(0, Number(apptPrice))
+  const effectiveApptPrice =
+    apptPriceValue != null && Number.isFinite(apptPriceValue) ? apptPriceValue : selectedServicePrice
 
   // Bir hizmete hic kimse atanmamissa (bkz. EmployeeDetailPage.tsx "Verdigi
   // Hizmetler") o hizmete kimse randevu alamaz — kasitli, fallback yok.
@@ -849,6 +858,8 @@ export default function AppointmentsPage() {
         source,
         source_note: sourceNote.trim() || null,
         package_id: null,
+        price_override:
+          effectiveApptPrice != null && effectiveApptPrice !== selectedServicePrice ? effectiveApptPrice : null,
       })
 
       if (apptErr) {
@@ -2152,6 +2163,26 @@ export default function AppointmentsPage() {
               />
             </div>
 
+            {/* ---- Ucret ---- */}
+            {selectedService && (
+              <label className={styles.infoRow}>
+                <span className={styles.infoRowLabel}>Ücret</span>
+                <span className={styles.priceField}>
+                  ₺
+                  <input
+                    className={styles.priceInput}
+                    type="number"
+                    inputMode="decimal"
+                    min={0}
+                    step="any"
+                    value={apptPrice}
+                    onChange={(e) => setApptPrice(e.target.value)}
+                    aria-label="Ücret"
+                  />
+                </span>
+              </label>
+            )}
+
             {/* ---- Kaynak + not ---- */}
             <button type="button" className={styles.infoRow} onClick={() => setSourcePickerOpen(true)}>
               <span className={styles.infoRowLabel}>Kaynak</span>
@@ -2185,7 +2216,7 @@ export default function AppointmentsPage() {
             <button type="submit" className={styles.sheetSubmit} disabled={submitting}>
               {submitting
                 ? 'Kaydediliyor…'
-                : `Randevuyu kaydet${selectedService?.price ? ` · ${currency.format(selectedService.price)}` : ''}`}
+                : `Randevuyu kaydet${effectiveApptPrice ? ` · ${currency.format(effectiveApptPrice)}` : ''}`}
             </button>
           </form>
         </div>
