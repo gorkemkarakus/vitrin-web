@@ -19,10 +19,11 @@ vi.stubGlobal('localStorage', {
   removeItem: (k: string) => void legacy.delete(k),
 })
 
-const { secureSessionStorage } = await import('./secureStorage')
+const { secureSessionStorage, resetSecureStorageCacheForTests } = await import('./secureStorage')
 const KEY = 'sb-test-auth-token'
 
 beforeEach(() => {
+  resetSecureStorageCacheForTests()
   store.clear()
   legacy.clear()
   vi.clearAllMocks()
@@ -69,5 +70,26 @@ describe('secureSessionStorage', () => {
     await secureSessionStorage.removeItem(KEY)
     expect(store.has(KEY)).toBe(false)
     expect(legacy.has(KEY)).toBe(false)
+  })
+
+  it('ilk okumadan sonra guvenli depoya tekrar gitmez (her istekte okunur)', async () => {
+    store.set(KEY, 'oturum')
+    for (let i = 0; i < 5; i++) expect(await secureSessionStorage.getItem(KEY)).toBe('oturum')
+    expect(plugin.get).toHaveBeenCalledTimes(1)
+  })
+
+  it('ayni anda gelen ilk okumalar tek cihaz okumasini paylasir', async () => {
+    store.set(KEY, 'oturum')
+    const values = await Promise.all([1, 2, 3].map(() => secureSessionStorage.getItem(KEY)))
+    expect(values).toEqual(['oturum', 'oturum', 'oturum'])
+    expect(plugin.keys).toHaveBeenCalledTimes(1)
+  })
+
+  it('yazma ve silme bellekteki degeri de gunceller', async () => {
+    await secureSessionStorage.setItem(KEY, 'yeni')
+    expect(await secureSessionStorage.getItem(KEY)).toBe('yeni')
+    await secureSessionStorage.removeItem(KEY)
+    expect(await secureSessionStorage.getItem(KEY)).toBeNull()
+    expect(plugin.get).not.toHaveBeenCalled()
   })
 })
