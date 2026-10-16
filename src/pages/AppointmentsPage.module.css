@@ -3303,27 +3303,3 @@
   font-size: 13px;
   margin-bottom: 16px;
 }
-
-.priceField {
-  display: flex;
-  align-items: center;
-  gap: 2px;
-  font-weight: 700;
-  color: var(--text-dim);
-}
-
-.priceInput {
-  width: 96px;
-  border: none;
-  outline: none;
-  background: transparent;
-  font-family: var(--font-heading);
-  font-size: 15px;
-  font-weight: 600;
-  color: var(--text);
-  text-align: right;
-}
-
-.priceInput:focus {
-  border-bottom: 1.5px solid var(--signal);
-}
