@@ -102,12 +102,17 @@ function sheetXml(sheet: Sheet) {
 </worksheet>`
 }
 
+// Excel sayfa adi: en fazla 31 karakter, [ ] : * ? / \ yasak, buyuk-kucuk
+// harf duyarsiz benzersiz.
 function safeSheetName(name: string, used: Set<string>) {
-  let base = name.replace(/[[\]:*?/\\]/g, ' ').slice(0, 31) || 'Sayfa'
-  let n = 2
-  while (used.has(base.toLowerCase())) base = `${name.slice(0, 28)} ${n++}`
-  used.add(base.toLowerCase())
-  return base
+  const clean = name.replace(/[[\]:*?/\\]/g, ' ') || 'Sayfa'
+  let candidate = clean.slice(0, 31)
+  for (let n = 2; used.has(candidate.toLowerCase()); n++) {
+    const suffix = ` ${n}`
+    candidate = clean.slice(0, 31 - suffix.length) + suffix
+  }
+  used.add(candidate.toLowerCase())
+  return candidate
 }
 
 export function buildXlsx(sheets: Sheet[]): Uint8Array {
