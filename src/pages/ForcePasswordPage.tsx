@@ -2,6 +2,8 @@ import { useState } from 'react'
 import logoMark from '../assets/brand/logo-mark.png'
 import { supabase } from '../lib/supabase'
 import { useAuth } from '../contexts/AuthContext'
+import NewPasswordFields from '../components/NewPasswordFields'
+import { newPasswordError } from '../lib/passwordRules'
 import styles from './LoginPage.module.css'
 
 // Yonetici hesabi "ilk giriste kendi sifresini belirlesin" diye actiysa
@@ -10,19 +12,15 @@ export default function ForcePasswordPage() {
   const { profile, refreshProfile, signOut } = useAuth()
   const [password, setPassword] = useState('')
   const [confirmPassword, setConfirmPassword] = useState('')
-  const [showPassword, setShowPassword] = useState(false)
   const [error, setError] = useState<string | null>(null)
   const [loading, setLoading] = useState(false)
 
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault()
     setError(null)
-    if (password.length < 8) {
-      setError('Şifre en az 8 karakter olmalı.')
-      return
-    }
-    if (password !== confirmPassword) {
-      setError('Şifreler eşleşmiyor.')
+    const invalid = newPasswordError(password, confirmPassword)
+    if (invalid) {
+      setError(invalid)
       return
     }
     setLoading(true)
@@ -37,10 +35,6 @@ export default function ForcePasswordPage() {
     setLoading(false)
   }
 
-  const longEnough = password.length >= 8
-  const lettersAndDigits = /[a-zA-ZçğıöşüÇĞİÖŞÜ]/.test(password) && /\d/.test(password)
-  const hasUpper = /[A-ZÇĞİÖŞÜ]/.test(password)
-  const strength = [longEnough, lettersAndDigits, hasUpper, password.length >= 10].filter(Boolean).length
   const firstName = (profile?.full_name ?? '').trim().split(/\s+/)[0]
 
   return (
@@ -55,55 +49,14 @@ export default function ForcePasswordPage() {
       </div>
 
       <form className={styles.lightForm} onSubmit={handleSubmit}>
-        <div className={styles.field}>
-          <label htmlFor="newPassword">Yeni şifre</label>
-          <div className={`${styles.passwordBox} ${styles.passwordBoxWhite}`}>
-            <input
-              id="newPassword"
-              type={showPassword ? 'text' : 'password'}
-              autoComplete="new-password"
-              value={password}
-              onChange={(e) => setPassword(e.target.value)}
-              required
-            />
-            <button
-              type="button"
-              className={styles.showBtn}
-              onClick={() => setShowPassword((v) => !v)}
-              aria-label={showPassword ? 'Şifreyi gizle' : 'Şifreyi göster'}
-            >
-              {showPassword ? 'Gizle' : 'Göster'}
-            </button>
-          </div>
-        </div>
-        <div className={styles.strength}>
-          <div className={styles.strengthBars} aria-hidden="true">
-            {[0, 1, 2, 3].map((i) => (
-              <span key={i} className={i < strength ? styles.barOn : styles.bar} />
-            ))}
-          </div>
-          <div className={styles.rules}>
-            <span className={longEnough ? styles.ruleOk : styles.ruleTodo}>{longEnough ? '✓' : '○'} En az 8 karakter</span>
-            <span className={lettersAndDigits ? styles.ruleOk : styles.ruleTodo}>
-              {lettersAndDigits ? '✓' : '○'} Harf ve rakam içeriyor
-            </span>
-            <span className={hasUpper ? styles.ruleOk : styles.ruleTodo}>
-              {hasUpper ? '✓' : '○'} Büyük harf eklersen daha güçlü olur
-            </span>
-          </div>
-        </div>
-        <div className={styles.field}>
-          <label htmlFor="newPassword2">Yeni şifre (tekrar)</label>
-          <input
-            id="newPassword2"
-            className={styles.inputWhite}
-            type={showPassword ? 'text' : 'password'}
-            autoComplete="new-password"
-            value={confirmPassword}
-            onChange={(e) => setConfirmPassword(e.target.value)}
-            required
-          />
-        </div>
+        <NewPasswordFields
+          password={password}
+          onPasswordChange={setPassword}
+          confirm={confirmPassword}
+          onConfirmChange={setConfirmPassword}
+          passwordId="newPassword"
+          confirmId="newPassword2"
+        />
 
         {error && <p className={styles.error}>{error}</p>}
 
