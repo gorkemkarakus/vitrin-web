@@ -267,7 +267,9 @@ export default function AdInsightsPage() {
                 ? `Güncellendi ${new Date(connection.last_synced_at).toLocaleString('tr-TR', { day: 'numeric', month: 'short', hour: '2-digit', minute: '2-digit' })}`
                 : 'Henüz veri çekilmedi'}
             </span>
-            {verdict && <span className={verdict.tone === 'ok' ? styles.pillOk : styles.pillWarn}>{verdict.label}</span>}
+            {verdict && (
+              <span className={verdict.tone === 'ok' ? styles.pillOk : styles.pillWarn}>{verdict.label}</span>
+            )}
           </span>
         </div>
         {insightsLoading ? (

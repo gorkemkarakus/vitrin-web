@@ -59,8 +59,6 @@ function dayHours(draft: DayDraft): number {
 // ör. Cumartesi 10:00-15:00 gibi yarim gun mesailer icin.
 const SHORT_DAY_THRESHOLD_HOURS = 6
 
-
-
 function buildDayDrafts(schedules: Schedule[], timeBlocks: TimeBlock[]): Record<number, DayDraft> {
   const map: Record<number, DayDraft> = {}
   for (const day of WEEK_ORDER) {
@@ -99,7 +97,10 @@ export default function EmployeeSchedulePage() {
     if (!silent) setLoading(true)
     const [{ data: emp }, { data: scheds }, { data: blocks }] = await Promise.all([
       supabase.from('profiles').select('id, full_name').eq('id', id).maybeSingle(),
-      supabase.from('employee_schedules').select('id, profile_id, day_of_week, starts_at, ends_at').eq('profile_id', id),
+      supabase
+        .from('employee_schedules')
+        .select('id, profile_id, day_of_week, starts_at, ends_at')
+        .eq('profile_id', id),
       supabase
         .from('employee_time_blocks')
         .select('id, profile_id, day_of_week, block_date, end_date, starts_at, ends_at, label')
@@ -159,7 +160,10 @@ export default function EmployeeSchedulePage() {
     setDayDrafts((prev) => {
       const current = prev[day]
       if (!current) return prev
-      return { ...prev, [day]: { ...current, breaks: current.breaks.map((b) => (b.id === breakId ? { ...b, ...patch } : b)) } }
+      return {
+        ...prev,
+        [day]: { ...current, breaks: current.breaks.map((b) => (b.id === breakId ? { ...b, ...patch } : b)) },
+      }
     })
   }
 
@@ -182,11 +186,16 @@ export default function EmployeeSchedulePage() {
 
       if (existingSchedule) {
         ops.push(
-          supabase.from('employee_schedules').update({ starts_at: draft.start, ends_at: draft.end }).eq('id', existingSchedule.id),
+          supabase
+            .from('employee_schedules')
+            .update({ starts_at: draft.start, ends_at: draft.end })
+            .eq('id', existingSchedule.id),
         )
       } else {
         ops.push(
-          supabase.from('employee_schedules').insert({ profile_id: id, day_of_week: day, starts_at: draft.start, ends_at: draft.end }),
+          supabase
+            .from('employee_schedules')
+            .insert({ profile_id: id, day_of_week: day, starts_at: draft.start, ends_at: draft.end }),
         )
       }
 
@@ -198,7 +207,9 @@ export default function EmployeeSchedulePage() {
         if (b.blockId) {
           const existing = existingBreaks.find((x) => x.id === b.blockId)
           if (existing && (existing.starts_at.slice(0, 5) !== b.start || existing.ends_at.slice(0, 5) !== b.end)) {
-            ops.push(supabase.from('employee_time_blocks').update({ starts_at: b.start, ends_at: b.end }).eq('id', b.blockId))
+            ops.push(
+              supabase.from('employee_time_blocks').update({ starts_at: b.start, ends_at: b.end }).eq('id', b.blockId),
+            )
           }
         } else {
           ops.push(
@@ -306,9 +317,13 @@ export default function EmployeeSchedulePage() {
                         {draft.breaks.length > 0 ? `${draft.breaks.length} mola` : 'molasız'}
                       </span>
                     </span>
-                    <span className={short ? `${styles.timeTag} ${styles.timeTagWarm}` : styles.timeTag}>{draft.start}</span>
+                    <span className={short ? `${styles.timeTag} ${styles.timeTagWarm}` : styles.timeTag}>
+                      {draft.start}
+                    </span>
                     <span className={short ? styles.timeDashWarm : styles.timeDash}>–</span>
-                    <span className={short ? `${styles.timeTag} ${styles.timeTagWarm}` : styles.timeTag}>{draft.end}</span>
+                    <span className={short ? `${styles.timeTag} ${styles.timeTagWarm}` : styles.timeTag}>
+                      {draft.end}
+                    </span>
                   </button>
                 </div>
               )

@@ -341,7 +341,9 @@ export default function GiderlerPage() {
         <p className={styles.empty}>Yükleniyor…</p>
       ) : visibleExpenses.length === 0 ? (
         <p className={styles.empty}>
-          {categoryFilter !== 'Tümü' || statusFilter !== 'tumu' ? 'Bu süzgece uyan gider yok.' : 'Bu dönemde gider kaydı yok.'}
+          {categoryFilter !== 'Tümü' || statusFilter !== 'tumu'
+            ? 'Bu süzgece uyan gider yok.'
+            : 'Bu dönemde gider kaydı yok.'}
         </p>
       ) : (
         <div className={styles.listCard}>
@@ -479,7 +481,11 @@ export default function GiderlerPage() {
                 type="text"
                 value={expenseDesc}
                 onChange={(e) => setExpenseDesc(e.target.value)}
-                placeholder={expenseCategory ? `ör. ${expenseCategory === 'Malzeme' ? 'Oje ve aseton' : expenseCategory}` : 'ör. Oje ve aseton'}
+                placeholder={
+                  expenseCategory
+                    ? `ör. ${expenseCategory === 'Malzeme' ? 'Oje ve aseton' : expenseCategory}`
+                    : 'ör. Oje ve aseton'
+                }
               />
             </div>
 
@@ -500,31 +506,45 @@ export default function GiderlerPage() {
               <div className={styles.formRow}>
                 <span className={styles.formRowLabel}>Ödendi</span>
                 <label className={styles.switch}>
-                  <input type="checkbox" checked={expensePaid} onChange={() => setExpensePaid((v) => !v)} aria-label="Ödendi" />
+                  <input
+                    type="checkbox"
+                    checked={expensePaid}
+                    onChange={() => setExpensePaid((v) => !v)}
+                    aria-label="Ödendi"
+                  />
                   <span className={styles.switchTrack} />
                 </label>
               </div>
               {expensePaid ? (
                 <>
-                <button type="button" className={`${styles.formRow} ${styles.formRowBtn}`} onClick={() => setMethodPickerOpen(true)}>
-                  <span className={styles.formRowLabel}>Ödeme şekli</span>
-                  <span className={styles.formRowValue}>{METHODS.find((m) => m.value === expenseMethod)?.label} ›</span>
-                </button>
-                <PickerSheet
-                  open={methodPickerOpen}
-                  title="Nasıl ödendi?"
-                  options={METHODS}
-                  value={expenseMethod}
-                  onSelect={setExpenseMethod}
-                  onClose={() => setMethodPickerOpen(false)}
-                />
+                  <button
+                    type="button"
+                    className={`${styles.formRow} ${styles.formRowBtn}`}
+                    onClick={() => setMethodPickerOpen(true)}
+                  >
+                    <span className={styles.formRowLabel}>Ödeme şekli</span>
+                    <span className={styles.formRowValue}>
+                      {METHODS.find((m) => m.value === expenseMethod)?.label} ›
+                    </span>
+                  </button>
+                  <PickerSheet
+                    open={methodPickerOpen}
+                    title="Nasıl ödendi?"
+                    options={METHODS}
+                    value={expenseMethod}
+                    onSelect={setExpenseMethod}
+                    onClose={() => setMethodPickerOpen(false)}
+                  />
                 </>
               ) : (
                 <label className={styles.formRow}>
                   <span className={styles.formRowLabel}>Son ödeme tarihi</span>
                   <span className={styles.formRowValue}>
                     {expenseDueDate
-                      ? new Date(`${expenseDueDate}T00:00:00`).toLocaleDateString('tr-TR', { day: 'numeric', month: 'long' })
+                      ? new Date(`${expenseDueDate}T00:00:00`).toLocaleDateString('tr-TR', {
+                          day: 'numeric',
+                          month: 'long',
+                        })
                       : 'Seç'}{' '}
                     ›
                   </span>
@@ -585,7 +605,9 @@ export default function GiderlerPage() {
       {deleteConfirm && (
         <ConfirmModal
           title="Gideri sil"
-          message={<>"{deleteConfirm.description}" giderini silmek istediğinize emin misiniz? Bu işlem geri alınamaz.</>}
+          message={
+            <>"{deleteConfirm.description}" giderini silmek istediğinize emin misiniz? Bu işlem geri alınamaz.</>
+          }
           confirmLabel="Evet, sil"
           danger
           onConfirm={confirmDeleteExpense}

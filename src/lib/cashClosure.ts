@@ -93,23 +93,43 @@ export async function loadDaySummary(date: string): Promise<DaySummary> {
   const userIds = [...new Set((pays ?? []).map((p) => p.created_by_user_id).filter((v): v is string => !!v))]
   const completedIds = (appts ?? []).filter((a) => a.status === 'tamamlandi' && !a.package_id).map((a) => a.id)
 
-  const [{ data: payAppts }, { data: pkgs }, { data: custs }, { data: users }, { data: services }, { data: completedPays }] =
-    await Promise.all([
-      apptIds.length ? supabase.from('appointments').select('id, service_id').in('id', apptIds) : Promise.resolve({ data: [] }),
-      pkgIds.length ? supabase.from('service_packages').select('id, service_id').in('id', pkgIds) : Promise.resolve({ data: [] }),
-      custIds.length ? supabase.from('customers').select('id, full_name').in('id', custIds.slice(0, 300)) : Promise.resolve({ data: [] }),
-      userIds.length ? supabase.from('profiles').select('id, full_name').in('id', userIds) : Promise.resolve({ data: [] }),
-      supabase.from('services').select('id, name, price'),
-      completedIds.length
-        ? supabase.from('payments').select('appointment_id, amount').is('voided_at', null).in('appointment_id', completedIds.slice(0, 300))
-        : Promise.resolve({ data: [] }),
-    ])
+  const [
+    { data: payAppts },
+    { data: pkgs },
+    { data: custs },
+    { data: users },
+    { data: services },
+    { data: completedPays },
+  ] = await Promise.all([
+    apptIds.length
+      ? supabase.from('appointments').select('id, service_id').in('id', apptIds)
+      : Promise.resolve({ data: [] }),
+    pkgIds.length
+      ? supabase.from('service_packages').select('id, service_id').in('id', pkgIds)
+      : Promise.resolve({ data: [] }),
+    custIds.length
+      ? supabase.from('customers').select('id, full_name').in('id', custIds.slice(0, 300))
+      : Promise.resolve({ data: [] }),
+    userIds.length
+      ? supabase.from('profiles').select('id, full_name').in('id', userIds)
+      : Promise.resolve({ data: [] }),
+    supabase.from('services').select('id, name, price'),
+    completedIds.length
+      ? supabase
+          .from('payments')
+          .select('appointment_id, amount')
+          .is('voided_at', null)
+          .in('appointment_id', completedIds.slice(0, 300))
+      : Promise.resolve({ data: [] }),
+  ])
 
   const svcById = new Map((services ?? []).map((s: { id: string; name: string; price: number | null }) => [s.id, s]))
   const apptSvc = new Map((payAppts ?? []).map((a: { id: string; service_id: string | null }) => [a.id, a.service_id]))
   const pkgSvc = new Map((pkgs ?? []).map((p: { id: string; service_id: string | null }) => [p.id, p.service_id]))
   const custName = new Map((custs ?? []).map((c: { id: string; full_name: string }) => [c.id, c.full_name]))
-  const userName = new Map((users ?? []).map((u: { id: string; full_name: string | null }) => [u.id, u.full_name ?? '']))
+  const userName = new Map(
+    (users ?? []).map((u: { id: string; full_name: string | null }) => [u.id, u.full_name ?? '']),
+  )
 
   const byMethod: Record<PayMethod, number> = { nakit: 0, kart: 0, havale: 0, diger: 0, bakiye: 0 }
   const payments: DayPayment[] = (pays ?? []).map((p) => {
@@ -130,7 +150,13 @@ export async function loadDaySummary(date: string): Promise<DaySummary> {
   })
 
   const expenses: DayExpense[] = (exps ?? []).map(
-    (e: { id: string; description: string; category?: string | null; payment_method?: string | null; amount: number }) => ({
+    (e: {
+      id: string
+      description: string
+      category?: string | null
+      payment_method?: string | null
+      amount: number
+    }) => ({
       id: e.id,
       description: e.description,
       category: e.category ?? 'Diğer',
@@ -174,4 +200,3 @@ export async function loadDaySummary(date: string): Promise<DaySummary> {
     unpaidAmount,
   }
 }
-

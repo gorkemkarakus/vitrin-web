@@ -48,11 +48,7 @@ function ProtectedRoute({
 }) {
   const { session, profile, loading, can } = useAuth()
 
-  if (loading) return (
-    <div className="loading-screen muted">
-      Yükleniyor…
-    </div>
-  )
+  if (loading) return <div className="loading-screen muted">Yükleniyor…</div>
 
   if (!session || !profile || !profile.is_active) return <Navigate to="/" replace />
   // Ilk giriste sifre degistirme zorunluysa uygulama acilmadan once.
@@ -99,93 +95,179 @@ function AppRoutes() {
     <>
       {!loading && (
         <Routes>
+          <Route path="/" element={session && profile ? <Navigate to="/dashboard" replace /> : <LoginPage />} />
           <Route
-            path="/"
-            element={session && profile ? <Navigate to="/dashboard" replace /> : <LoginPage />}
-          />
-          <Route element={<ProtectedRoute><DashboardLayout /></ProtectedRoute>}>
+            element={
+              <ProtectedRoute>
+                <DashboardLayout />
+              </ProtectedRoute>
+            }
+          >
             <Route path="randevular" element={<AppointmentsPage />} />
-            <Route path="mesajlar"   element={<ProtectedRoute perm="mesajlar"><MessagesPage /></ProtectedRoute>} />
-            <Route path="ayarlar"    element={<SettingsPage />} />
+            <Route
+              path="mesajlar"
+              element={
+                <ProtectedRoute perm="mesajlar">
+                  <MessagesPage />
+                </ProtectedRoute>
+              }
+            />
+            <Route path="ayarlar" element={<SettingsPage />} />
             <Route path="bildirimler" element={<NotificationsPage />} />
             <Route path="musteriler" element={<CustomersPage />} />
             <Route path="musteriler/:id" element={<CustomerDetailPage />} />
             <Route path="daha-fazla" element={<MorePage />} />
             <Route
               path="dashboard"
-              element={<ProtectedRoute adminOnly><DashboardPage /></ProtectedRoute>}
+              element={
+                <ProtectedRoute adminOnly>
+                  <DashboardPage />
+                </ProtectedRoute>
+              }
             />
             <Route
               path="muhasebe"
-              element={<ProtectedRoute perm="kasa"><AccountingPage /></ProtectedRoute>}
+              element={
+                <ProtectedRoute perm="kasa">
+                  <AccountingPage />
+                </ProtectedRoute>
+              }
             />
             <Route
               path="ekip"
-              element={<ProtectedRoute perm="ekip_yonet"><TeamPage /></ProtectedRoute>}
+              element={
+                <ProtectedRoute perm="ekip_yonet">
+                  <TeamPage />
+                </ProtectedRoute>
+              }
             />
             <Route
               path="ekip/tatiller"
-              element={<ProtectedRoute perm="ekip_yonet"><HolidaysPage /></ProtectedRoute>}
+              element={
+                <ProtectedRoute perm="ekip_yonet">
+                  <HolidaysPage />
+                </ProtectedRoute>
+              }
             />
             <Route
               path="ekip/yeni"
-              element={<ProtectedRoute adminOnly><EmployeeCreatePage /></ProtectedRoute>}
+              element={
+                <ProtectedRoute adminOnly>
+                  <EmployeeCreatePage />
+                </ProtectedRoute>
+              }
             />
             <Route
               path="ekip/:id"
-              element={<ProtectedRoute perm="ekip_yonet"><EmployeeDetailPage /></ProtectedRoute>}
+              element={
+                <ProtectedRoute perm="ekip_yonet">
+                  <EmployeeDetailPage />
+                </ProtectedRoute>
+              }
             />
             <Route
               path="ekip/:id/saatler"
-              element={<ProtectedRoute perm="ekip_yonet"><EmployeeSchedulePage /></ProtectedRoute>}
+              element={
+                <ProtectedRoute perm="ekip_yonet">
+                  <EmployeeSchedulePage />
+                </ProtectedRoute>
+              }
             />
             <Route
               path="ekip/:id/izinler"
-              element={<ProtectedRoute perm="ekip_yonet"><EmployeeLeavesPage /></ProtectedRoute>}
+              element={
+                <ProtectedRoute perm="ekip_yonet">
+                  <EmployeeLeavesPage />
+                </ProtectedRoute>
+              }
             />
             <Route
               path="hizmetler"
-              element={<ProtectedRoute perm="hizmet_yonet"><ServicesPage /></ProtectedRoute>}
+              element={
+                <ProtectedRoute perm="hizmet_yonet">
+                  <ServicesPage />
+                </ProtectedRoute>
+              }
             />
             <Route
               path="hizmetler/:id/aciklama"
-              element={<ProtectedRoute perm="hizmet_yonet"><ServiceDescriptionPage /></ProtectedRoute>}
+              element={
+                <ProtectedRoute perm="hizmet_yonet">
+                  <ServiceDescriptionPage />
+                </ProtectedRoute>
+              }
             />
             <Route
               path="kurulum"
-              element={<ProtectedRoute adminOnly><SetupPage /></ProtectedRoute>}
+              element={
+                <ProtectedRoute adminOnly>
+                  <SetupPage />
+                </ProtectedRoute>
+              }
             />
             <Route
               path="kasa/gun-sonu"
-              element={<ProtectedRoute perm="kasa"><CashClosurePage /></ProtectedRoute>}
+              element={
+                <ProtectedRoute perm="kasa">
+                  <CashClosurePage />
+                </ProtectedRoute>
+              }
             />
             <Route
               path="kazancim"
-              element={<ProtectedRoute perm="kendi_kazanc"><EmployeeDetailPage selfEarnings /></ProtectedRoute>}
+              element={
+                <ProtectedRoute perm="kendi_kazanc">
+                  <EmployeeDetailPage selfEarnings />
+                </ProtectedRoute>
+              }
             />
             <Route
               path="performans-raporu"
-              element={<ProtectedRoute perm="raporlar"><PerformanceReportPage /></ProtectedRoute>}
+              element={
+                <ProtectedRoute perm="raporlar">
+                  <PerformanceReportPage />
+                </ProtectedRoute>
+              }
             />
             <Route
               path="giderler"
-              element={<ProtectedRoute perm="kasa"><GiderlerPage /></ProtectedRoute>}
+              element={
+                <ProtectedRoute perm="kasa">
+                  <GiderlerPage />
+                </ProtectedRoute>
+              }
             />
             <Route
               path="reklam"
-              element={<ProtectedRoute adminOnly><AdInsightsPage /></ProtectedRoute>}
+              element={
+                <ProtectedRoute adminOnly>
+                  <AdInsightsPage />
+                </ProtectedRoute>
+              }
             />
             <Route
               path="reklam-callback"
-              element={<ProtectedRoute adminOnly><AdOAuthCallbackPage /></ProtectedRoute>}
+              element={
+                <ProtectedRoute adminOnly>
+                  <AdOAuthCallbackPage />
+                </ProtectedRoute>
+              }
             />
             <Route
               path="ai-analiz"
-              element={<ProtectedRoute adminOnly><AiInsightsPage /></ProtectedRoute>}
+              element={
+                <ProtectedRoute adminOnly>
+                  <AiInsightsPage />
+                </ProtectedRoute>
+              }
             />
             <Route
               path="toplu-mesaj"
-              element={<ProtectedRoute adminOnly><TopluMesajPage /></ProtectedRoute>}
+              element={
+                <ProtectedRoute adminOnly>
+                  <TopluMesajPage />
+                </ProtectedRoute>
+              }
             />
           </Route>
           <Route path="*" element={<Navigate to="/" replace />} />

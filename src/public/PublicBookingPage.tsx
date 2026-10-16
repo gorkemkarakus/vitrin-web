@@ -109,7 +109,7 @@ export default function PublicBookingPage() {
   }
 
   const employeeName = selectedEmployeeId
-    ? employees.find((e) => e.id === selectedEmployeeId)?.full_name ?? 'Uzman'
+    ? (employees.find((e) => e.id === selectedEmployeeId)?.full_name ?? 'Uzman')
     : 'Fark Etmez'
 
   const dateLabel = new Date(selectedDate + 'T00:00:00').toLocaleDateString('tr-TR', {
@@ -188,7 +188,10 @@ export default function PublicBookingPage() {
             {bookingClosed ? (
               <>
                 <h1>Online randevu şu an kapalı</h1>
-                <p>Bu salon şu anda internetten randevu almıyor. Randevu için salonu arayabilir ya da mesaj atabilirsiniz.</p>
+                <p>
+                  Bu salon şu anda internetten randevu almıyor. Randevu için salonu arayabilir ya da mesaj
+                  atabilirsiniz.
+                </p>
               </>
             ) : (
               <>
@@ -201,12 +204,21 @@ export default function PublicBookingPage() {
 
         {step === 'service' && (
           <>
-            <ServicePicker services={services} selectedId={selectedService?.id ?? null} onSelect={handleSelectService} />
+            <ServicePicker
+              services={services}
+              selectedId={selectedService?.id ?? null}
+              onSelect={handleSelectService}
+            />
             <div className={styles.continueBar}>
               <span className={styles.continueBarText}>
                 {selectedService ? selectedService.name : 'Henüz seçim yapılmadı'}
               </span>
-              <button type="button" className="btn-primary btn-inline" disabled={!selectedService} onClick={handleContinueFromService}>
+              <button
+                type="button"
+                className="btn-primary btn-inline"
+                disabled={!selectedService}
+                onClick={handleContinueFromService}
+              >
                 Devam Et
               </button>
             </div>

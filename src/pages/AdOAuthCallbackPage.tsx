@@ -135,9 +135,7 @@ export default function AdOAuthCallbackPage() {
   return (
     <div className={styles.wrap}>
       {(step === 'waiting' || step === 'exchanging' || step === 'finalizing') && (
-        <p className="muted">
-          {step === 'waiting' ? "Facebook'ta oturum açıp izin verin…" : 'Bağlanıyor…'}
-        </p>
+        <p className="muted">{step === 'waiting' ? "Facebook'ta oturum açıp izin verin…" : 'Bağlanıyor…'}</p>
       )}
 
       {step === 'error' && (

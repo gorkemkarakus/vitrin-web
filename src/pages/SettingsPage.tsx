@@ -60,7 +60,10 @@ export default function SettingsPage() {
   const [newPassword, setNewPassword] = useState('')
   const [newPassword2, setNewPassword2] = useState('')
   // Hesap silme: sunucu once kapsami soyler (sadece hesap / isletme dahil).
-  const [deleteScope, setDeleteScope] = useState<{ scope: 'account' | 'business'; business_name: string | null } | null>(null)
+  const [deleteScope, setDeleteScope] = useState<{
+    scope: 'account' | 'business'
+    business_name: string | null
+  } | null>(null)
   const [deletePassword, setDeletePassword] = useState('')
   const [deleteBizName, setDeleteBizName] = useState('')
   const [exportStep, setExportStep] = useState<string | null>(null)
@@ -179,7 +182,10 @@ export default function SettingsPage() {
     if (error) {
       // businesses tablosunda sutun bazli yazma izni var; 'name' acik degilse.
       const denied = /permission denied/i.test(error.message)
-      setMsg({ type: 'err', text: denied ? 'Salon adı şu an değiştirilemiyor (veritabanı izni eksik).' : error.message })
+      setMsg({
+        type: 'err',
+        text: denied ? 'Salon adı şu an değiştirilemiyor (veritabanı izni eksik).' : error.message,
+      })
       return
     }
     setBusiness((b) => (b ? { ...b, name } : b))
@@ -212,7 +218,10 @@ export default function SettingsPage() {
     setSaving(true)
     setMsg(null)
     // Yanlislikla silmeye karsi sifre yeniden dogrulanir.
-    const { error: pwErr } = await supabase.auth.signInWithPassword({ email: session.user.email, password: deletePassword })
+    const { error: pwErr } = await supabase.auth.signInWithPassword({
+      email: session.user.email,
+      password: deletePassword,
+    })
     if (pwErr) {
       setSaving(false)
       setMsg({ type: 'err', text: 'Şifre yanlış.' })
@@ -426,7 +435,13 @@ export default function SettingsPage() {
               </span>
             </span>
             <label className={styles.switch}>
-              <input type="checkbox" checked={enabled} onChange={toggleBooking} disabled={saving} aria-label="Randevu almaya açık" />
+              <input
+                type="checkbox"
+                checked={enabled}
+                onChange={toggleBooking}
+                disabled={saving}
+                aria-label="Randevu almaya açık"
+              />
               <span className={styles.switchTrack} />
             </label>
           </div>
@@ -528,8 +543,8 @@ export default function SettingsPage() {
             <li>Kasa kapanışları ve prim ödemeleri</li>
           </ul>
           <span className={styles.hint}>
-            Her biri ayrı sayfada; tutarlar ve tarihler Excel'de toplanabilir, sıralanabilir. Dosyayı kimseyle paylaşma —
-            müşterilerinin kişisel bilgilerini içerir.
+            Her biri ayrı sayfada; tutarlar ve tarihler Excel'de toplanabilir, sıralanabilir. Dosyayı kimseyle paylaşma
+            — müşterilerinin kişisel bilgilerini içerir.
           </span>
         </div>
         {exportResult && (
@@ -625,7 +640,9 @@ export default function SettingsPage() {
       <span className={styles.groupLabel}>Mesajlaşma</span>
       <div className={styles.group}>
         {isAdmin && row('Randevu hatırlatması', reminderLabel, () => open('hatirlatma'))}
-        {row('WhatsApp numaram', phoneLoading ? '…' : savedPhone ? formatPhone(savedPhone) : 'Kayıtlı değil', () => open('whatsapp'))}
+        {row('WhatsApp numaram', phoneLoading ? '…' : savedPhone ? formatPhone(savedPhone) : 'Kayıtlı değil', () =>
+          open('whatsapp'),
+        )}
         {isAdmin &&
           botLive !== null &&
           row('Chatbot', botLive ? 'Çalışıyor' : 'Bağlı değil', () => navigate('/mesajlar'), botLive ? 'ok' : 'muted')}
@@ -642,7 +659,9 @@ export default function SettingsPage() {
       <button type="button" className={styles.signOut} onClick={() => signOut()}>
         Çıkış yap
       </button>
-      <span className={styles.version}>Adapptiv · {profile?.full_name ?? ''} · {isAdmin ? 'Yönetici' : 'Çalışan'}</span>
+      <span className={styles.version}>
+        Adapptiv · {profile?.full_name ?? ''} · {isAdmin ? 'Yönetici' : 'Çalışan'}
+      </span>
     </div>
   )
 }

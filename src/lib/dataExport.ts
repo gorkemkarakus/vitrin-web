@@ -21,19 +21,26 @@ const s = (v: unknown) => (v === null || v === undefined ? '' : String(v))
 
 export async function exportBusinessData(businessName: string, onProgress?: (text: string) => void) {
   onProgress?.('Kayıtlar okunuyor…')
-  const q = (table: string, order = 'created_at') => fetchAll<Row>(() => supabase.from(table).select('*').order(order).order('id'))
-  const [customers, appointments, payments, expenses, services, packages, profiles, closures, payouts] = await Promise.all([
-    q('customers'),
-    q('appointments', 'scheduled_at'),
-    q('payments', 'paid_at'),
-    q('business_expenses', 'expense_date'),
-    q('services'),
-    q('service_packages'),
-    supabase.from('profiles').select('id, full_name, role, is_active, online_bookable, created_at').order('created_at'),
-    q('cash_closures', 'closure_date'),
-    q('commission_payouts', 'period_month'),
-  ])
-  const failed = [customers, appointments, payments, expenses, services, packages, profiles, closures, payouts].find((r) => r.error)
+  const q = (table: string, order = 'created_at') =>
+    fetchAll<Row>(() => supabase.from(table).select('*').order(order).order('id'))
+  const [customers, appointments, payments, expenses, services, packages, profiles, closures, payouts] =
+    await Promise.all([
+      q('customers'),
+      q('appointments', 'scheduled_at'),
+      q('payments', 'paid_at'),
+      q('business_expenses', 'expense_date'),
+      q('services'),
+      q('service_packages'),
+      supabase
+        .from('profiles')
+        .select('id, full_name, role, is_active, online_bookable, created_at')
+        .order('created_at'),
+      q('cash_closures', 'closure_date'),
+      q('commission_payouts', 'period_month'),
+    ])
+  const failed = [customers, appointments, payments, expenses, services, packages, profiles, closures, payouts].find(
+    (r) => r.error,
+  )
   // Sonradan eklenen tablolar (kasa kapanisi, prim odemeleri) eski kurulumlarda
   // olmayabilir; yalnizca ana tablolarda hata durdurur.
   if ([customers, appointments, payments, expenses, services].some((r) => r.error)) {
@@ -108,7 +115,9 @@ export async function exportBusinessData(businessName: string, onProgress?: (tex
         { header: 'İptal edildi', width: 16, type: 'datetime' },
       ],
       rows: (payments.data ?? []).map((p) => {
-        const sid = p.appointment_id ? appt.get(p.appointment_id as string)?.service_id : pkg.get(p.package_id as string)?.service_id
+        const sid = p.appointment_id
+          ? appt.get(p.appointment_id as string)?.service_id
+          : pkg.get(p.package_id as string)?.service_id
         return [
           d(p.paid_at),
           cust.get(p.customer_id as string) ?? '',
@@ -237,7 +246,12 @@ export async function exportBusinessData(businessName: string, onProgress?: (tex
         { header: 'Tutar', width: 12, type: 'money' },
         { header: 'Ödeme tarihi', width: 13, type: 'date' },
       ],
-      rows: payouts.data.map((p) => [d(p.period_month), people.get(p.profile_id as string) ?? '', n(p.amount), d(p.paid_at)]),
+      rows: payouts.data.map((p) => [
+        d(p.period_month),
+        people.get(p.profile_id as string) ?? '',
+        n(p.amount),
+        d(p.paid_at),
+      ]),
     })
   }
 

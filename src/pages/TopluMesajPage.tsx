@@ -101,13 +101,22 @@ export default function TopluMesajPage() {
     const [{ data: custs }, { data: appts }, { data: svcs }, { data: groups }, { data: members }, { data: tmpls }] =
       await Promise.all([
         fetchAll(() => supabase.from('customers').select('id, full_name, phone, contact_phone').order('id')),
-        fetchAll(() => supabase.from('appointments').select('customer_id, service_id, status, scheduled_at').order('id')),
+        fetchAll(() =>
+          supabase.from('appointments').select('customer_id, service_id, status, scheduled_at').order('id'),
+        ),
         supabase.from('services').select('id, name'),
         supabase.from('customer_groups').select('id, name, description').order('created_at', { ascending: false }),
         fetchAll(() =>
-          supabase.from('customer_group_members').select('group_id, customer_id').order('group_id').order('customer_id'),
+          supabase
+            .from('customer_group_members')
+            .select('group_id, customer_id')
+            .order('group_id')
+            .order('customer_id'),
         ),
-        supabase.from('campaign_message_templates').select('id, title, message').order('created_at', { ascending: false }),
+        supabase
+          .from('campaign_message_templates')
+          .select('id, title, message')
+          .order('created_at', { ascending: false }),
       ])
     setCustomers(custs ?? [])
     setAppointments(appts ?? [])
@@ -290,7 +299,12 @@ export default function TopluMesajPage() {
               <div className={styles.historyRow} key={h.key}>
                 <span className={styles.historyText}>{h.message}</span>
                 <span className={styles.historyMeta}>
-                  {new Date(h.at).toLocaleString('tr-TR', { day: 'numeric', month: 'short', hour: '2-digit', minute: '2-digit' })}
+                  {new Date(h.at).toLocaleString('tr-TR', {
+                    day: 'numeric',
+                    month: 'short',
+                    hour: '2-digit',
+                    minute: '2-digit',
+                  })}
                   {' · '}
                   {h.count} kişi
                 </span>
@@ -429,7 +443,11 @@ export default function TopluMesajPage() {
           disabled={!selectedGroup || selectedGroup.memberIds.length === 0}
           onClick={() => {
             if (!selectedGroup) return
-            setSendTarget({ name: selectedGroup.name, memberIds: selectedGroup.memberIds, prefill: message || undefined })
+            setSendTarget({
+              name: selectedGroup.name,
+              memberIds: selectedGroup.memberIds,
+              prefill: message || undefined,
+            })
           }}
         >
           {!selectedGroup
@@ -448,7 +466,9 @@ export default function TopluMesajPage() {
               <span className={styles.previewBubble}>{message.trim() || '…'}</span>
             </div>
             <span className={styles.hint}>
-              {selectedGroup ? `${previewName} ve diğer ${Math.max(0, selectedGroup.memberIds.length - 1)} kişiye gider.` : 'Henüz kişi seçilmedi.'}
+              {selectedGroup
+                ? `${previewName} ve diğer ${Math.max(0, selectedGroup.memberIds.length - 1)} kişiye gider.`
+                : 'Henüz kişi seçilmedi.'}
             </span>
             <button type="button" className={styles.previewBtn} onClick={() => setPreviewOpen(false)}>
               Kapat

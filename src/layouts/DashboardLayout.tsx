@@ -108,7 +108,9 @@ export default function DashboardLayout() {
 
   const [pending, setPending] = useState<PendingAppointment[]>([])
   const [unpaid, setUnpaid] = useState<UnpaidSummary | null>(null)
-  const [unpaidToday, setUnpaidToday] = useState<{ customerId: string | null; name: string; time: string; amount: number }[]>([])
+  const [unpaidToday, setUnpaidToday] = useState<
+    { customerId: string | null; name: string; time: string; amount: number }[]
+  >([])
   const [waitingConvs, setWaitingConvs] = useState<{ phone: string; name: string }[]>([])
   const [bellOpen, setBellOpen] = useState(false)
   const [profileMenuOpen, setProfileMenuOpen] = useState(false)
@@ -234,7 +236,11 @@ export default function DashboardLayout() {
       soonLimit.setDate(soonLimit.getDate() + 3)
       const soonLimitStr = toLocalDateString(soonLimit)
       const rows = (data ?? [])
-        .map((e) => ({ description: e.description as string, amount: e.amount as number, date: (e.due_date ?? e.expense_date) as string }))
+        .map((e) => ({
+          description: e.description as string,
+          amount: e.amount as number,
+          date: (e.due_date ?? e.expense_date) as string,
+        }))
         .sort((a, b) => a.date.localeCompare(b.date))
       const overdue = rows.filter((e) => e.date < today)
       const soon = rows.filter((e) => e.date >= today && e.date <= soonLimitStr)
@@ -269,11 +275,7 @@ export default function DashboardLayout() {
           .is('package_id', null)
           .gte('scheduled_at', start.toISOString())
           .lt('scheduled_at', end.toISOString()),
-        supabase
-          .from('customers')
-          .select('full_name, phone')
-          .gt('bot_paused_until', new Date().toISOString())
-          .limit(5),
+        supabase.from('customers').select('full_name, phone').gt('bot_paused_until', new Date().toISOString()).limit(5),
       ])
       const appts = done ?? []
       let rows: { customerId: string | null; name: string; time: string; amount: number }[] = []
@@ -281,9 +283,20 @@ export default function DashboardLayout() {
         const serviceIds = [...new Set(appts.map((a) => a.service_id).filter(Boolean))] as string[]
         const customerIds = [...new Set(appts.map((a) => a.customer_id).filter(Boolean))] as string[]
         const [{ data: svcs }, { data: pays }, { data: custs }] = await Promise.all([
-          serviceIds.length ? supabase.from('services').select('id, price').in('id', serviceIds) : Promise.resolve({ data: [] as { id: string; price: number | null }[] }),
-          supabase.from('payments').select('appointment_id, amount').is('voided_at', null).in('appointment_id', appts.map((a) => a.id)),
-          customerIds.length ? supabase.from('customers').select('id, full_name').in('id', customerIds) : Promise.resolve({ data: [] as { id: string; full_name: string }[] }),
+          serviceIds.length
+            ? supabase.from('services').select('id, price').in('id', serviceIds)
+            : Promise.resolve({ data: [] as { id: string; price: number | null }[] }),
+          supabase
+            .from('payments')
+            .select('appointment_id, amount')
+            .is('voided_at', null)
+            .in(
+              'appointment_id',
+              appts.map((a) => a.id),
+            ),
+          customerIds.length
+            ? supabase.from('customers').select('id, full_name').in('id', customerIds)
+            : Promise.resolve({ data: [] as { id: string; full_name: string }[] }),
         ])
         rows = appts
           .map((a) => {
@@ -304,7 +317,10 @@ export default function DashboardLayout() {
       setWaitingConvs(
         (can('mesajlar') ? (paused ?? []) : [])
           .filter((c) => c.phone)
-          .map((c) => ({ phone: c.phone as string, name: c.full_name && c.full_name !== 'Müşteri' ? c.full_name : (c.phone as string) })),
+          .map((c) => ({
+            phone: c.phone as string,
+            name: c.full_name && c.full_name !== 'Müşteri' ? c.full_name : (c.phone as string),
+          })),
       )
     }
     loadQuickExtras()
@@ -314,75 +330,79 @@ export default function DashboardLayout() {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [actionSheetOpen])
 
-  const hasQuickInfo = unpaidToday.length > 0 || waitingConvs.length > 0 || pending.length > 0 || (unpaid !== null && (unpaid.overdueCount > 0 || unpaid.soonCount > 0))
+  const hasQuickInfo =
+    unpaidToday.length > 0 ||
+    waitingConvs.length > 0 ||
+    pending.length > 0 ||
+    (unpaid !== null && (unpaid.overdueCount > 0 || unpaid.soonCount > 0))
 
   return (
     <div className={styles.shell}>
       {/* Ortak ust bar sadece ana sayfada; diger sayfalar kendi basligini
           (PageHeader) ciziyor — tasarimdaki gibi. */}
       {isHome && (
-      <header className={`${styles.topbar} ${styles.topbarHome}`}>
-        <div className={styles.greeting}>
-          <p>{todayLabel()}</p>
-          <h1>
-            {timeGreeting()}, {firstName}
-          </h1>
-        </div>
-        <div className={styles.topbarRight}>
-          <div className={styles.bellWrap} ref={bellRef}>
-            <button
-              type="button"
-              className={styles.bellBtn}
-              onClick={() => navigate('/bildirimler')}
-              aria-label="Bildirimler"
-            >
-              <BellIcon />
-              {pending.length > 0 && <span className={styles.bellBadge}>{pending.length}</span>}
-            </button>
+        <header className={`${styles.topbar} ${styles.topbarHome}`}>
+          <div className={styles.greeting}>
+            <p>{todayLabel()}</p>
+            <h1>
+              {timeGreeting()}, {firstName}
+            </h1>
           </div>
-          <div className={styles.profileWrap} ref={profileRef}>
-            <button
-              type="button"
-              className={styles.profile}
-              onClick={() => setProfileMenuOpen((v) => !v)}
-              aria-haspopup="menu"
-              aria-expanded={profileMenuOpen}
-            >
-              <span className={styles.avatar}>{profileInitials(profile?.full_name ?? 'İşletme')}</span>
-            </button>
-            {profileMenuOpen && (
-              <div className={styles.profileDropdown} role="menu">
-                <div className={styles.profileDropdownHead}>
-                  <span className={styles.profileDropdownName}>{profile?.full_name ?? 'İşletmeniz'}</span>
-                  <span className={styles.profileDropdownRole}>{isAdmin ? 'Yönetici' : 'Çalışan'}</span>
+          <div className={styles.topbarRight}>
+            <div className={styles.bellWrap} ref={bellRef}>
+              <button
+                type="button"
+                className={styles.bellBtn}
+                onClick={() => navigate('/bildirimler')}
+                aria-label="Bildirimler"
+              >
+                <BellIcon />
+                {pending.length > 0 && <span className={styles.bellBadge}>{pending.length}</span>}
+              </button>
+            </div>
+            <div className={styles.profileWrap} ref={profileRef}>
+              <button
+                type="button"
+                className={styles.profile}
+                onClick={() => setProfileMenuOpen((v) => !v)}
+                aria-haspopup="menu"
+                aria-expanded={profileMenuOpen}
+              >
+                <span className={styles.avatar}>{profileInitials(profile?.full_name ?? 'İşletme')}</span>
+              </button>
+              {profileMenuOpen && (
+                <div className={styles.profileDropdown} role="menu">
+                  <div className={styles.profileDropdownHead}>
+                    <span className={styles.profileDropdownName}>{profile?.full_name ?? 'İşletmeniz'}</span>
+                    <span className={styles.profileDropdownRole}>{isAdmin ? 'Yönetici' : 'Çalışan'}</span>
+                  </div>
+                  <button
+                    type="button"
+                    className={styles.profileDropdownItem}
+                    onClick={() => {
+                      setProfileMenuOpen(false)
+                      navigate('/ayarlar')
+                    }}
+                  >
+                    <SettingsIcon width={15} height={15} />
+                    Ayarlar
+                  </button>
+                  <button
+                    type="button"
+                    className={`${styles.profileDropdownItem} ${styles.profileDropdownItemDanger}`}
+                    onClick={() => {
+                      setProfileMenuOpen(false)
+                      signOut()
+                    }}
+                  >
+                    <LogOutIcon width={15} height={15} />
+                    Çıkış yap
+                  </button>
                 </div>
-                <button
-                  type="button"
-                  className={styles.profileDropdownItem}
-                  onClick={() => {
-                    setProfileMenuOpen(false)
-                    navigate('/ayarlar')
-                  }}
-                >
-                  <SettingsIcon width={15} height={15} />
-                  Ayarlar
-                </button>
-                <button
-                  type="button"
-                  className={`${styles.profileDropdownItem} ${styles.profileDropdownItemDanger}`}
-                  onClick={() => {
-                    setProfileMenuOpen(false)
-                    signOut()
-                  }}
-                >
-                  <LogOutIcon width={15} height={15} />
-                  Çıkış yap
-                </button>
-              </div>
-            )}
+              )}
+            </div>
           </div>
-        </div>
-      </header>
+        </header>
       )}
 
       <main className={isHome ? styles.content : `${styles.content} ${styles.contentPage}`} ref={contentRef}>
@@ -442,7 +462,9 @@ export default function DashboardLayout() {
               {unpaid !== null && unpaid.overdueCount > 0 && (
                 <div className={styles.quickInfoRow}>
                   <span className={styles.quickInfoText}>
-                    <span className={styles.quickInfoMain}>Geciken ödemeler · {currencyWhole.format(unpaid.overdueTotal)}</span>
+                    <span className={styles.quickInfoMain}>
+                      Geciken ödemeler · {currencyWhole.format(unpaid.overdueTotal)}
+                    </span>
                     <span className={styles.quickInfoSub}>
                       {unpaid.overdueCount} ödeme · en eskisi {unpaid.overdueOldest}
                     </span>
@@ -462,7 +484,9 @@ export default function DashboardLayout() {
               {unpaid !== null && unpaid.soonCount > 0 && (
                 <div className={styles.quickInfoRow}>
                   <span className={styles.quickInfoText}>
-                    <span className={styles.quickInfoMain}>Yaklaşan ödemeler · {currencyWhole.format(unpaid.soonTotal)}</span>
+                    <span className={styles.quickInfoMain}>
+                      Yaklaşan ödemeler · {currencyWhole.format(unpaid.soonTotal)}
+                    </span>
                     <span className={styles.quickInfoSub}>
                       3 gün içinde {unpaid.soonCount} ödeme · {unpaid.soonFirst}
                     </span>
@@ -507,7 +531,9 @@ export default function DashboardLayout() {
                 <div className={styles.quickInfoRow}>
                   <span className={styles.quickInfoText}>
                     <span className={styles.quickInfoMain}>
-                      {waitingConvs.length === 1 ? `${waitingConvs[0].name} yanıt bekliyor` : `${waitingConvs.length} konuşma yanıt bekliyor`}
+                      {waitingConvs.length === 1
+                        ? `${waitingConvs[0].name} yanıt bekliyor`
+                        : `${waitingConvs.length} konuşma yanıt bekliyor`}
                     </span>
                     <span className={styles.quickInfoSub}>Bot konuşmayı sana bıraktı</span>
                   </span>
@@ -586,20 +612,20 @@ export default function DashboardLayout() {
               </button>
             )}
             {!isAdmin && can('mesajlar') && (
-            <button
-              type="button"
-              role="menuitem"
-              className={styles.quickPill}
-              onClick={() => {
-                setActionSheetOpen(false)
-                navigate('/mesajlar')
-              }}
-            >
-              <span className={styles.quickPillIcon}>
-                <MessagesIcon width={16} height={16} />
-              </span>
-              Mesajlar
-            </button>
+              <button
+                type="button"
+                role="menuitem"
+                className={styles.quickPill}
+                onClick={() => {
+                  setActionSheetOpen(false)
+                  navigate('/mesajlar')
+                }}
+              >
+                <span className={styles.quickPillIcon}>
+                  <MessagesIcon width={16} height={16} />
+                </span>
+                Mesajlar
+              </button>
             )}
             <button
               type="button"
@@ -616,20 +642,20 @@ export default function DashboardLayout() {
               Yeni müşteri
             </button>
             {can('odeme_al') && (
-            <button
-              type="button"
-              role="menuitem"
-              className={styles.quickPill}
-              onClick={() => {
-                setActionSheetOpen(false)
-                navigate('/musteriler?sekme=borclu')
-              }}
-            >
-              <span className={`${styles.quickPillIcon} ${styles.quickPillIconWarm}`}>
-                <WalletIcon width={16} height={16} />
-              </span>
-              Ödeme al
-            </button>
+              <button
+                type="button"
+                role="menuitem"
+                className={styles.quickPill}
+                onClick={() => {
+                  setActionSheetOpen(false)
+                  navigate('/musteriler?sekme=borclu')
+                }}
+              >
+                <span className={`${styles.quickPillIcon} ${styles.quickPillIconWarm}`}>
+                  <WalletIcon width={16} height={16} />
+                </span>
+                Ödeme al
+              </button>
             )}
             <button
               type="button"

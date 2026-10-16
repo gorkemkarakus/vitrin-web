@@ -100,7 +100,6 @@ interface UpcomingAppt {
   duration_minutes: number | null
 }
 
-
 export default function EmployeeLeavesPage() {
   const { id } = useParams<{ id: string }>()
   const navigate = useNavigate()
@@ -331,18 +330,25 @@ export default function EmployeeLeavesPage() {
   // aktif calisanlar + onlarin musaitligini hesaplamak icin gereken veriler.
   // Cakisma yoksa hic cagrilmiyor (gereksiz sorgu yok).
   async function loadResolutionPool(range: { min: string; max: string }) {
-    const [{ data: profs }, { data: svcAssignments }, { data: scheds }, { data: blocks }, { data: appts }] = await Promise.all([
-      supabase.from('profiles').select('id, full_name').eq('is_active', true).neq('id', id ?? ''),
-      supabase.from('employee_services').select('profile_id, service_id'),
-      supabase.from('employee_schedules').select('profile_id, day_of_week, starts_at, ends_at'),
-      supabase.from('employee_time_blocks').select('profile_id, day_of_week, block_date, end_date, starts_at, ends_at'),
-      supabase
-        .from('appointments')
-        .select('id, employee_id, scheduled_at, duration_minutes, status')
-        .neq('status', 'iptal')
-        .gte('scheduled_at', `${range.min}T00:00:00`)
-        .lte('scheduled_at', `${range.max}T23:59:59`),
-    ])
+    const [{ data: profs }, { data: svcAssignments }, { data: scheds }, { data: blocks }, { data: appts }] =
+      await Promise.all([
+        supabase
+          .from('profiles')
+          .select('id, full_name')
+          .eq('is_active', true)
+          .neq('id', id ?? ''),
+        supabase.from('employee_services').select('profile_id, service_id'),
+        supabase.from('employee_schedules').select('profile_id, day_of_week, starts_at, ends_at'),
+        supabase
+          .from('employee_time_blocks')
+          .select('profile_id, day_of_week, block_date, end_date, starts_at, ends_at'),
+        supabase
+          .from('appointments')
+          .select('id, employee_id, scheduled_at, duration_minutes, status')
+          .neq('status', 'iptal')
+          .gte('scheduled_at', `${range.min}T00:00:00`)
+          .lte('scheduled_at', `${range.max}T23:59:59`),
+      ])
     setOtherProfiles(profs ?? [])
     setEmployeeServices(svcAssignments ?? [])
     setOtherSchedules(scheds ?? [])
@@ -402,7 +408,9 @@ export default function EmployeeLeavesPage() {
   }
 
   function availableCandidatesFor(conflict: ConflictAppointment) {
-    return candidatesFor(conflict).filter((p) => isCandidateAvailable(p.id, conflict.scheduled_at, conflict.duration_minutes))
+    return candidatesFor(conflict).filter((p) =>
+      isCandidateAvailable(p.id, conflict.scheduled_at, conflict.duration_minutes),
+    )
   }
 
   async function handleSaveClick() {
@@ -431,7 +439,10 @@ export default function EmployeeLeavesPage() {
     for (const c of conflicts) {
       const choice = choices[c.id] ?? 'keep'
       if (choice.startsWith('to:')) {
-        await supabase.from('appointments').update({ employee_id: choice.slice(3) }).eq('id', c.id)
+        await supabase
+          .from('appointments')
+          .update({ employee_id: choice.slice(3) })
+          .eq('id', c.id)
       } else if (choice === 'cancel') {
         await supabase.from('appointments').update({ status: 'iptal' }).eq('id', c.id)
       }
@@ -475,7 +486,17 @@ export default function EmployeeLeavesPage() {
   // Liste: "Herkes" secilirse tum ekibin izinleri, degilse secili calisaninki.
   // Secili calisan bu sayfanin calisaniysa taslaklar (henuz kaydedilmemis
   // degisiklikler dahil) gosterilir.
-  type Row = { key: string; pid: string; date: string; endDate: string; allDay: boolean; start: string; end: string; label: string; draftId?: string }
+  type Row = {
+    key: string
+    pid: string
+    date: string
+    endDate: string
+    allDay: boolean
+    start: string
+    end: string
+    label: string
+    draftId?: string
+  }
   const ownRows: Row[] = leaveDrafts.map((d) => ({
     key: d.id,
     pid: id as string,
@@ -499,14 +520,17 @@ export default function EmployeeLeavesPage() {
       end: b.ends_at.slice(0, 5),
       label: b.label ?? '',
     }))
-  const rows = (who === 'herkes' ? [...ownRows, ...otherRows] : who === id ? ownRows : otherRows.filter((r) => r.pid === who)).sort(
-    (a, b) => a.date.localeCompare(b.date),
-  )
+  const rows = (
+    who === 'herkes' ? [...ownRows, ...otherRows] : who === id ? ownRows : otherRows.filter((r) => r.pid === who)
+  ).sort((a, b) => a.date.localeCompare(b.date))
   const upcoming = rows.filter((r) => r.endDate >= todayStr)
   const past = rows.filter((r) => r.endDate < todayStr).reverse()
 
   function rowDays(r: Row) {
-    return Math.round((new Date(`${r.endDate}T00:00:00`).getTime() - new Date(`${r.date}T00:00:00`).getTime()) / 86400000) + 1
+    return (
+      Math.round((new Date(`${r.endDate}T00:00:00`).getTime() - new Date(`${r.date}T00:00:00`).getTime()) / 86400000) +
+      1
+    )
   }
 
   function conflictCount(r: Row) {
@@ -558,9 +582,7 @@ export default function EmployeeLeavesPage() {
         />
 
         <div className={styles.resolveHero}>
-          <span className={styles.resolveTitle}>
-            O tarihte {conflicts.length} randevusu var. Ne yapalım?
-          </span>
+          <span className={styles.resolveTitle}>O tarihte {conflicts.length} randevusu var. Ne yapalım?</span>
           <div className={styles.resolveProgress}>
             <span className={styles.resolveTrack}>
               <span style={{ width: `${conflicts.length ? (resolvedCount / conflicts.length) * 100 : 0}%` }} />
@@ -576,13 +598,16 @@ export default function EmployeeLeavesPage() {
           const choice = choices[c.id] ?? 'keep'
           const set = (v: string) => setChoices((prev) => ({ ...prev, [c.id]: v }))
           return (
-            <div className={choice === 'keep' ? `${styles.resolveCard} ${styles.resolveCardOpen}` : styles.resolveCard} key={c.id}>
+            <div
+              className={choice === 'keep' ? `${styles.resolveCard} ${styles.resolveCardOpen}` : styles.resolveCard}
+              key={c.id}
+            >
               <span className={styles.resolveWho}>
                 <span className={styles.resolveName}>{c.customerName}</span>
                 <span className={styles.resolveMeta}>
                   {new Date(c.scheduled_at).toLocaleDateString('tr-TR', { day: 'numeric', month: 'short' })}{' '}
-                  {new Date(c.scheduled_at).toLocaleTimeString('tr-TR', { hour: '2-digit', minute: '2-digit' })} · {c.serviceName} ·{' '}
-                  {c.duration_minutes ?? 30} dk
+                  {new Date(c.scheduled_at).toLocaleTimeString('tr-TR', { hour: '2-digit', minute: '2-digit' })} ·{' '}
+                  {c.serviceName} · {c.duration_minutes ?? 30} dk
                 </span>
               </span>
               <div className={styles.optionList}>
@@ -600,7 +625,9 @@ export default function EmployeeLeavesPage() {
                     </span>
                   </button>
                 ))}
-                {cands.length === 0 && <span className={styles.optionNote}>Bu saatte bu hizmeti yapabilecek boş kimse yok.</span>}
+                {cands.length === 0 && (
+                  <span className={styles.optionNote}>Bu saatte bu hizmeti yapabilecek boş kimse yok.</span>
+                )}
                 <button
                   type="button"
                   className={choice === 'cancel' ? styles.optionActive : styles.option}
@@ -642,7 +669,11 @@ export default function EmployeeLeavesPage() {
       <PageHeader back={`/ekip/${id}`} title="İzinler" />
 
       <div className={styles.whoChips}>
-        <button type="button" className={who === 'herkes' ? styles.whoChipActive : styles.whoChip} onClick={() => setWho('herkes')}>
+        <button
+          type="button"
+          className={who === 'herkes' ? styles.whoChipActive : styles.whoChip}
+          onClick={() => setWho('herkes')}
+        >
           Herkes
         </button>
         {allProfiles.map((p) => (
@@ -724,7 +755,9 @@ export default function EmployeeLeavesPage() {
                     <b>{nameOf(r.pid)}</b>{' '}
                     <span className={styles.pastMeta}>
                       · {start.toLocaleDateString('tr-TR', { day: 'numeric', month: 'short' })}
-                      {days > 1 ? ` – ${new Date(`${r.endDate}T00:00:00`).toLocaleDateString('tr-TR', { day: 'numeric', month: 'short' })}` : ''}
+                      {days > 1
+                        ? ` – ${new Date(`${r.endDate}T00:00:00`).toLocaleDateString('tr-TR', { day: 'numeric', month: 'short' })}`
+                        : ''}
                       {r.label ? ` · ${r.label.toLocaleLowerCase('tr')}` : ''}
                     </span>
                   </span>
@@ -800,18 +833,31 @@ export default function EmployeeLeavesPage() {
                 <span className={styles.formRowLabel}>{leaveKind === 'gun' ? 'Başlangıç' : 'Gün'}</span>
                 <span className={styles.formRowValue}>
                   {leaveDate
-                    ? new Date(`${leaveDate}T00:00:00`).toLocaleDateString('tr-TR', { weekday: 'long', day: 'numeric', month: 'long' })
+                    ? new Date(`${leaveDate}T00:00:00`).toLocaleDateString('tr-TR', {
+                        weekday: 'long',
+                        day: 'numeric',
+                        month: 'long',
+                      })
                     : 'Seç'}{' '}
                   ›
                 </span>
-                <input className={styles.formRowInput} type="date" value={leaveDate} onChange={(e) => setLeaveDate(e.target.value)} />
+                <input
+                  className={styles.formRowInput}
+                  type="date"
+                  value={leaveDate}
+                  onChange={(e) => setLeaveDate(e.target.value)}
+                />
               </label>
               {leaveKind === 'gun' && (
                 <label className={styles.formRow}>
                   <span className={styles.formRowLabel}>Bitiş</span>
                   <span className={styles.formRowValue}>
                     {leaveEndDate
-                      ? new Date(`${leaveEndDate}T00:00:00`).toLocaleDateString('tr-TR', { weekday: 'long', day: 'numeric', month: 'long' })
+                      ? new Date(`${leaveEndDate}T00:00:00`).toLocaleDateString('tr-TR', {
+                          weekday: 'long',
+                          day: 'numeric',
+                          month: 'long',
+                        })
                       : 'Seç'}{' '}
                     ›
                   </span>
@@ -828,7 +874,11 @@ export default function EmployeeLeavesPage() {
                 <div className={styles.formRow}>
                   <span className={styles.formRowLabel}>Saat</span>
                   <span className={styles.timePair}>
-                    <select className={styles.timeSelect} value={leaveStart} onChange={(e) => setLeaveStart(e.target.value)}>
+                    <select
+                      className={styles.timeSelect}
+                      value={leaveStart}
+                      onChange={(e) => setLeaveStart(e.target.value)}
+                    >
                       <option value="">--:--</option>
                       {TIME_OPTIONS.map((t) => (
                         <option key={t} value={t}>
@@ -837,7 +887,11 @@ export default function EmployeeLeavesPage() {
                       ))}
                     </select>
                     –
-                    <select className={styles.timeSelect} value={leaveEnd} onChange={(e) => setLeaveEnd(e.target.value)}>
+                    <select
+                      className={styles.timeSelect}
+                      value={leaveEnd}
+                      onChange={(e) => setLeaveEnd(e.target.value)}
+                    >
                       <option value="">--:--</option>
                       {TIME_OPTIONS.map((t) => (
                         <option key={t} value={t}>
@@ -848,7 +902,11 @@ export default function EmployeeLeavesPage() {
                   </span>
                 </div>
               )}
-              <button type="button" className={`${styles.formRow} ${styles.formRowBtn}`} onClick={() => setReasonPickerOpen(true)}>
+              <button
+                type="button"
+                className={`${styles.formRow} ${styles.formRowBtn}`}
+                onClick={() => setReasonPickerOpen(true)}
+              >
                 <span className={styles.formRowLabel}>Sebep</span>
                 <span className={styles.formRowValue}>{leaveLabel || 'Seç'} ›</span>
               </button>
@@ -879,7 +937,9 @@ export default function EmployeeLeavesPage() {
               </div>
             )}
 
-            <span className={styles.infoNote}>İzinli olduğu saatlerde bot ve online sayfa {employeeFirst}’e randevu vermez.</span>
+            <span className={styles.infoNote}>
+              İzinli olduğu saatlerde bot ve online sayfa {employeeFirst}’e randevu vermez.
+            </span>
 
             <button
               type="button"

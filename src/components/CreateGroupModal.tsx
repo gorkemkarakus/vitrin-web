@@ -78,11 +78,21 @@ export default function CreateGroupModal({
 
         <div className="field">
           <label htmlFor="groupName">Grup Adı</label>
-          <input id="groupName" value={name} onChange={(e) => setName(e.target.value)} placeholder="Örn. VIP Müşteriler" />
+          <input
+            id="groupName"
+            value={name}
+            onChange={(e) => setName(e.target.value)}
+            placeholder="Örn. VIP Müşteriler"
+          />
         </div>
         <div className="field">
           <label htmlFor="groupDesc">Açıklama (opsiyonel)</label>
-          <input id="groupDesc" value={description} onChange={(e) => setDescription(e.target.value)} placeholder="Bu grup ne için?" />
+          <input
+            id="groupDesc"
+            value={description}
+            onChange={(e) => setDescription(e.target.value)}
+            placeholder="Bu grup ne için?"
+          />
         </div>
 
         <div className={styles.pickerLabel}>

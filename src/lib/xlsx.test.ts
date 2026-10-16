@@ -27,7 +27,12 @@ describe('buildXlsx', () => {
     const f = files([
       {
         name: 'S',
-        columns: [{ header: 'Ad' }, { header: 'Tutar', type: 'money' }, { header: 'Gün', type: 'date' }, { header: 'Aktif' }],
+        columns: [
+          { header: 'Ad' },
+          { header: 'Tutar', type: 'money' },
+          { header: 'Gün', type: 'date' },
+          { header: 'Aktif' },
+        ],
         rows: [['A & <B>', 1250.5, new Date(2026, 9, 16), true]],
       },
     ])
@@ -41,7 +46,9 @@ describe('buildXlsx', () => {
   })
 
   it('bos hucreleri atlar', () => {
-    const xml = files([{ name: 'S', columns: [{ header: 'A' }, { header: 'B' }], rows: [[null, '']] }])['xl/worksheets/sheet1.xml']
+    const xml = files([{ name: 'S', columns: [{ header: 'A' }, { header: 'B' }], rows: [[null, '']] }])[
+      'xl/worksheets/sheet1.xml'
+    ]
     expect(xml).toContain('<row r="2"></row>')
   })
 

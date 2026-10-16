@@ -73,7 +73,12 @@ export default function TemplateModal({
 
         <div className="field">
           <label htmlFor="templateTitle">Başlık</label>
-          <input id="templateTitle" value={title} onChange={(e) => setTitle(e.target.value)} placeholder="Örn. İptal Edenler için hatırlatma" />
+          <input
+            id="templateTitle"
+            value={title}
+            onChange={(e) => setTitle(e.target.value)}
+            placeholder="Örn. İptal Edenler için hatırlatma"
+          />
         </div>
         <AiMessageGenerator onGenerated={setMessage} onError={setError} />
 

@@ -54,7 +54,6 @@ export default function ResetPasswordPage() {
     navigate('/', { replace: true })
   }
 
-
   return (
     <div className={styles.lightPage}>
       <div className={styles.lightBrand}>
@@ -63,7 +62,9 @@ export default function ResetPasswordPage() {
       </div>
       <div className={styles.lightHead}>
         <h1 className={styles.lightTitle}>Yeni şifre belirle</h1>
-        <span className={styles.lightSub}>{accountEmail ? `${accountEmail} hesabı için` : 'Hesabın için yeni bir şifre seç.'}</span>
+        <span className={styles.lightSub}>
+          {accountEmail ? `${accountEmail} hesabı için` : 'Hesabın için yeni bir şifre seç.'}
+        </span>
       </div>
 
       {!ready ? (

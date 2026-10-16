@@ -147,14 +147,20 @@ export default function MessagesPage() {
       const wanted = new Set(
         [tel, cust?.phone, cust?.contact_phone].map((p) => normalizeTrPhone(p)).filter((p) => p.length >= 10),
       )
-      const conv = conversations.find((c) => wanted.has(normalizeTrPhone(c.phone)) || (cust && c.customer?.id === cust.id))
+      const conv = conversations.find(
+        (c) => wanted.has(normalizeTrPhone(c.phone)) || (cust && c.customer?.id === cust.id),
+      )
       if (conv) {
         openConversation(conv.phone)
         return
       }
       const phone = [...wanted][0]
       if (!phone) return
-      setDirectCustomer(cust ? { id: cust.id, full_name: cust.full_name, phone: cust.phone, bot_paused_until: cust.bot_paused_until } : null)
+      setDirectCustomer(
+        cust
+          ? { id: cust.id, full_name: cust.full_name, phone: cust.phone, bot_paused_until: cust.bot_paused_until }
+          : null,
+      )
       openConversation(phone)
     })()
     // eslint-disable-next-line react-hooks/exhaustive-deps
@@ -200,7 +206,10 @@ export default function MessagesPage() {
     if (custIds.length) {
       const weekAgo = new Date(Date.now() - 8 * 86400000).toISOString()
       const [{ data: appts }, { data: events }] = await Promise.all([
-        supabase.from('appointments').select('customer_id, source, created_at').in('customer_id', custIds.slice(0, 200)),
+        supabase
+          .from('appointments')
+          .select('customer_id, source, created_at')
+          .in('customer_id', custIds.slice(0, 200)),
         supabase
           .from('appointment_events')
           .select('customer_id, kind, new_status, created_at')
@@ -287,7 +296,13 @@ export default function MessagesPage() {
   const selectedConversation =
     conversations.find((c) => c.phone === selectedPhone) ??
     (selectedPhone && directCustomer
-      ? { phone: selectedPhone, customer: directCustomer, lastMessage: '', lastMessageAt: '', lastRole: 'user' as const }
+      ? {
+          phone: selectedPhone,
+          customer: directCustomer,
+          lastMessage: '',
+          lastMessageAt: '',
+          lastRole: 'user' as const,
+        }
       : null)
 
   const todayConversationCount = useMemo(() => {
@@ -300,7 +315,8 @@ export default function MessagesPage() {
 
   const q = searchQuery.trim().toLowerCase()
   const visibleConversations = conversations.filter((c) => {
-    if (q && !(c.customer?.full_name ?? '').toLowerCase().includes(q) && !c.phone.toLowerCase().includes(q)) return false
+    if (q && !(c.customer?.full_name ?? '').toLowerCase().includes(q) && !c.phone.toLowerCase().includes(q))
+      return false
     if (listFilter === 'sende') return isPaused(c.customer)
     if (listFilter === 'bot') return !isPaused(c.customer)
     return true
@@ -328,7 +344,9 @@ export default function MessagesPage() {
           >
             <ChevronRightIcon width={16} height={16} className={styles.backIcon} />
           </button>
-          <span className={`${styles.avatar} ${styles.avatarSmall} ${paused ? styles.avatarWarm : isKnown ? '' : styles.avatarGray}`}>
+          <span
+            className={`${styles.avatar} ${styles.avatarSmall} ${paused ? styles.avatarWarm : isKnown ? '' : styles.avatarGray}`}
+          >
             {avatarText(name)}
           </span>
           <div className={styles.threadWho}>
@@ -387,7 +405,9 @@ export default function MessagesPage() {
           {threadLoading ? (
             <p className={styles.note}>Yükleniyor…</p>
           ) : thread.length === 0 ? (
-            <p className={styles.note}>Bu müşteriyle henüz WhatsApp konuşması yok. Müşteri yazınca mesajlar burada görünür.</p>
+            <p className={styles.note}>
+              Bu müşteriyle henüz WhatsApp konuşması yok. Müşteri yazınca mesajlar burada görünür.
+            </p>
           ) : (
             thread.map((m, i) => {
               const day = dayLabel(m.created_at)
@@ -446,7 +466,11 @@ export default function MessagesPage() {
           <span className={`${styles.statValue} ${styles.statValueOk}`}>{botBookingsToday}</span>
           <span className={styles.statLabel}>randevuya döndü</span>
         </div>
-        <button type="button" className={`${styles.statTile} ${styles.statTileWarm}`} onClick={() => setListFilter('sende')}>
+        <button
+          type="button"
+          className={`${styles.statTile} ${styles.statTileWarm}`}
+          onClick={() => setListFilter('sende')}
+        >
           <span className={styles.statValue}>{pausedCount}</span>
           <span className={styles.statLabel}>seni bekliyor</span>
         </button>
@@ -505,7 +529,9 @@ export default function MessagesPage() {
                   {paused ? (
                     <span className={styles.convStatusWarm}>Bot devretti · yanıt bekliyor</span>
                   ) : c.outcome ? (
-                    <span className={c.outcome === 'Randevu alındı' ? styles.convStatusOk : styles.convStatus}>{c.outcome}</span>
+                    <span className={c.outcome === 'Randevu alındı' ? styles.convStatusOk : styles.convStatus}>
+                      {c.outcome}
+                    </span>
                   ) : isKnown ? (
                     <span className={styles.convStatus}>Bot yanıtlıyor</span>
                   ) : (

@@ -115,7 +115,12 @@ export default function TeamPage() {
     )
     if (onLeave) {
       const isHoliday = onLeave.label === HOLIDAY_LABEL
-      return { pill: isHoliday ? 'Tatil' : 'İzinli', tone: 'muted', info: isHoliday ? 'Resmî tatil' : 'Bugün izinli', count }
+      return {
+        pill: isHoliday ? 'Tatil' : 'İzinli',
+        tone: 'muted',
+        info: isHoliday ? 'Resmî tatil' : 'Bugün izinli',
+        count,
+      }
     }
     const sched = schedules.find((s) => s.profile_id === emp.id && s.day_of_week === nowDow)
     if (!sched) return { pill: 'Çalışmıyor', tone: 'muted', info: 'Bugün mesaisi yok', count }
@@ -140,7 +145,8 @@ export default function TeamPage() {
     const [sh, sm] = sched.starts_at.split(':').map(Number)
     const [eh, em] = sched.ends_at.split(':').map(Number)
     const nowMin = new Date().getHours() * 60 + new Date().getMinutes()
-    if (nowMin < sh * 60 + sm) return { pill: `${sched.starts_at.slice(0, 5)}'te başlıyor`, tone: 'muted', info: nextInfo, count }
+    if (nowMin < sh * 60 + sm)
+      return { pill: `${sched.starts_at.slice(0, 5)}'te başlıyor`, tone: 'muted', info: nextInfo, count }
     if (nowMin >= eh * 60 + em) return { pill: 'Mesai bitti', tone: 'muted', info: nextInfo, count }
     return { pill: 'Boş', tone: 'ok', info: nextInfo, count }
   }
@@ -191,7 +197,11 @@ export default function TeamPage() {
                   <span className={styles.cardName}>{emp.full_name ?? '—'}</span>
                   <span className={styles.cardRole}>
                     {svc.length > 0
-                      ? svc.slice(0, 3).join(', ').toLocaleLowerCase('tr').replace(/^./, (c) => c.toLocaleUpperCase('tr')) +
+                      ? svc
+                          .slice(0, 3)
+                          .join(', ')
+                          .toLocaleLowerCase('tr')
+                          .replace(/^./, (c) => c.toLocaleUpperCase('tr')) +
                         (svc.length > 3 ? ` +${svc.length - 3}` : '')
                       : emp.role === 'admin'
                         ? 'Yönetici'
@@ -221,7 +231,8 @@ export default function TeamPage() {
         <button type="button" className={styles.linkCard} onClick={() => navigate('/performans-raporu')}>
           <span className={styles.linkTitle}>Performans raporu</span>
           <span className={styles.linkSub}>
-            {new Date().toLocaleDateString('tr-TR', { month: 'long' }).replace(/^./, (c) => c.toLocaleUpperCase('tr'))} özeti
+            {new Date().toLocaleDateString('tr-TR', { month: 'long' }).replace(/^./, (c) => c.toLocaleUpperCase('tr'))}{' '}
+            özeti
           </span>
         </button>
       </div>

@@ -33,7 +33,13 @@ export default function PickerSheet({ open, title, options, value, onSelect, onC
 
   return createPortal(
     <div className={styles.backdrop} onClick={onClose}>
-      <div className={styles.sheet} role="dialog" aria-modal="true" aria-label={title} onClick={(e) => e.stopPropagation()}>
+      <div
+        className={styles.sheet}
+        role="dialog"
+        aria-modal="true"
+        aria-label={title}
+        onClick={(e) => e.stopPropagation()}
+      >
         <span className={styles.grabber} aria-hidden="true" />
         <span className={styles.title}>{title}</span>
         <div className={styles.list} role="listbox">
@@ -58,7 +64,13 @@ export default function PickerSheet({ open, title, options, value, onSelect, onC
                 <span className={active ? styles.radioOn : styles.radio} aria-hidden="true">
                   {active && (
                     <svg width="12" height="10" viewBox="0 0 12 10" fill="none">
-                      <path d="M1 5L4.5 8.5L11 1.5" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" />
+                      <path
+                        d="M1 5L4.5 8.5L11 1.5"
+                        stroke="currentColor"
+                        strokeWidth="2"
+                        strokeLinecap="round"
+                        strokeLinejoin="round"
+                      />
                     </svg>
                   )}
                 </span>

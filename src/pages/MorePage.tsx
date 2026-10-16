@@ -63,7 +63,10 @@ export default function MorePage() {
     Promise.all([
       supabase.from('businesses').select('name').eq('id', profile.business_id).maybeSingle(),
       supabase.from('profiles').select('id', { count: 'exact', head: true }).eq('is_active', true),
-      supabase.from('customers').select('id', { count: 'exact', head: true }).gt('bot_paused_until', new Date().toISOString()),
+      supabase
+        .from('customers')
+        .select('id', { count: 'exact', head: true })
+        .gt('bot_paused_until', new Date().toISOString()),
     ]).then(([{ data: biz }, { count: staff }, { count: waiting }]) => {
       setBusinessName(biz?.name ?? null)
       setStaffCount(staff ?? null)
@@ -79,7 +82,10 @@ export default function MorePage() {
         <span className={styles.profileText}>
           <span className={styles.profileName}>{title}</span>
           <span className={styles.profileRole}>
-            {[staffCount !== null ? `${staffCount} çalışan` : null, businessName ? name : isAdmin ? 'Yönetici' : 'Çalışan']
+            {[
+              staffCount !== null ? `${staffCount} çalışan` : null,
+              businessName ? name : isAdmin ? 'Yönetici' : 'Çalışan',
+            ]
               .filter(Boolean)
               .join(' · ')}
           </span>
@@ -100,7 +106,9 @@ export default function MorePage() {
               onClick={() => navigate(item.path)}
             >
               <Icon width={24} height={24} />
-              {item.path === '/mesajlar' && waitingCount > 0 && <span className={styles.tileBadge}>{waitingCount}</span>}
+              {item.path === '/mesajlar' && waitingCount > 0 && (
+                <span className={styles.tileBadge}>{waitingCount}</span>
+              )}
               <span className={styles.tileLabel}>{item.label}</span>
             </button>
           )

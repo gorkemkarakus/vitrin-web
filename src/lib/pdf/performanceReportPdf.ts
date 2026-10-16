@@ -71,7 +71,18 @@ export async function generatePerformanceReportPdf(params: {
   onProgress(16, 'Çalışan özet tablosu hazırlanıyor…')
   report.addSectionTitle('Çalışan Özeti')
   report.addTable({
-    head: ['Çalışan', 'Randevu', 'Tamamlanan', 'Tahsilat', 'Prim Oranı', 'Prim Hakediş', 'Tamamlanma', 'Doluluk', 'İzin Günü', 'Müşteri'],
+    head: [
+      'Çalışan',
+      'Randevu',
+      'Tamamlanan',
+      'Tahsilat',
+      'Prim Oranı',
+      'Prim Hakediş',
+      'Tamamlanma',
+      'Doluluk',
+      'İzin Günü',
+      'Müşteri',
+    ],
     body: employeeStats.map((e) => [
       e.profile.full_name ?? '—',
       String(e.totalRandevu),
@@ -104,9 +115,7 @@ export async function generatePerformanceReportPdf(params: {
             .map(([src, count]) => `${SOURCE_LABEL[src] ?? src}: ${count}`)
             .join('  ·  ')
         : '—'
-    report.addSubText(
-      `En çok yapılan hizmet: ${e.topServiceName ?? '—'}     |     Kaynak dağılımı: ${sourceText}`,
-    )
+    report.addSubText(`En çok yapılan hizmet: ${e.topServiceName ?? '—'}     |     Kaynak dağılımı: ${sourceText}`)
 
     const empAppts = currentAppts
       .filter((a) => a.employee_id === e.profile.id)
@@ -119,7 +128,8 @@ export async function generatePerformanceReportPdf(params: {
         head: ['Tarih', 'Saat', 'Müşteri', 'Hizmet', 'Durum', 'Ücret'],
         body: empAppts.map((a) => {
           const d = new Date(a.scheduled_at)
-          const price = a.status === 'tamamlandi' ? (a.price_override ?? serviceById.get(a.service_id ?? '')?.price ?? 0) : null
+          const price =
+            a.status === 'tamamlandi' ? (a.price_override ?? serviceById.get(a.service_id ?? '')?.price ?? 0) : null
           return [
             d.toLocaleDateString('tr-TR', { day: '2-digit', month: '2-digit', year: 'numeric' }),
             d.toLocaleTimeString('tr-TR', { hour: '2-digit', minute: '2-digit' }),

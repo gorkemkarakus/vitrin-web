@@ -87,7 +87,10 @@ export function findDuplicateGroups(customers: DupCustomer[]): DupGroup[] {
     members.forEach((m) => inPhoneGroup.add(m.id))
     const k = phoneOf.get(members[0].id)
     groups.push({
-      key: `tel:${members.map((m) => m.id).sort().join(',')}`,
+      key: `tel:${members
+        .map((m) => m.id)
+        .sort()
+        .join(',')}`,
       reason: k ? `Aynı telefon · ${formatPhone(k)}` : 'Aynı telefon',
       members,
     })
@@ -101,7 +104,14 @@ export function findDuplicateGroups(customers: DupCustomer[]): DupGroup[] {
   }
   for (const members of byName.values()) {
     if (members.length < 2 || members.every((m) => inPhoneGroup.has(m.id))) continue
-    groups.push({ key: `ad:${members.map((m) => m.id).sort().join(',')}`, reason: 'Aynı ad', members })
+    groups.push({
+      key: `ad:${members
+        .map((m) => m.id)
+        .sort()
+        .join(',')}`,
+      reason: 'Aynı ad',
+      members,
+    })
   }
   return groups
 }

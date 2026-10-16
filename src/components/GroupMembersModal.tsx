@@ -123,10 +123,20 @@ export default function GroupMembersModal({
             </div>
             {group.isCustom && (
               <div className={styles.headActions}>
-                <button type="button" className={styles.iconBtn} onClick={() => setEditingName(true)} aria-label="Düzenle">
+                <button
+                  type="button"
+                  className={styles.iconBtn}
+                  onClick={() => setEditingName(true)}
+                  aria-label="Düzenle"
+                >
                   <PencilIcon width={15} height={15} />
                 </button>
-                <button type="button" className={`${styles.iconBtn} ${styles.iconBtnDanger}`} onClick={handleDelete} aria-label="Sil">
+                <button
+                  type="button"
+                  className={`${styles.iconBtn} ${styles.iconBtnDanger}`}
+                  onClick={handleDelete}
+                  aria-label="Sil"
+                >
                   <TrashIcon width={15} height={15} />
                 </button>
               </div>
@@ -185,9 +195,16 @@ export default function GroupMembersModal({
             <div className={styles.memberRow} key={c.id}>
               <Avatar name={c.full_name} size={32} />
               <span className={styles.memberName}>{c.full_name}</span>
-              {c.contact_phone || c.phone ? <span className={styles.memberPhone}>{c.contact_phone || c.phone}</span> : null}
+              {c.contact_phone || c.phone ? (
+                <span className={styles.memberPhone}>{c.contact_phone || c.phone}</span>
+              ) : null}
               {group.isCustom && (
-                <button type="button" className={styles.removeBtn} onClick={() => handleRemove(c.id)} aria-label="Çıkar">
+                <button
+                  type="button"
+                  className={styles.removeBtn}
+                  onClick={() => handleRemove(c.id)}
+                  aria-label="Çıkar"
+                >
                   <XCircleIcon width={16} height={16} />
                 </button>
               )}

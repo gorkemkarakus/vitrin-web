@@ -30,10 +30,10 @@ interface AuthContextValue {
 const AuthContext = createContext<AuthContextValue | null>(null)
 
 export function AuthProvider({ children }: { children: ReactNode }) {
-  const [session, setSession]   = useState<Session | null>(null)
-  const [profile, setProfile]   = useState<Profile | null>(null)
+  const [session, setSession] = useState<Session | null>(null)
+  const [profile, setProfile] = useState<Profile | null>(null)
   const [permissions, setPermissions] = useState<Set<PermKey>>(new Set())
-  const [loading, setLoading]   = useState(true)
+  const [loading, setLoading] = useState(true)
 
   useEffect(() => {
     supabase.auth.getSession().then(({ data }) => {
@@ -45,7 +45,11 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     const { data: listener } = supabase.auth.onAuthStateChange((_event, newSession) => {
       setSession(newSession)
       if (newSession) fetchProfile(newSession.user.id)
-      else { setProfile(null); setPermissions(new Set()); setLoading(false) }
+      else {
+        setProfile(null)
+        setPermissions(new Set())
+        setLoading(false)
+      }
     })
 
     return () => listener.subscription.unsubscribe()
@@ -53,11 +57,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
   async function fetchProfile(userId: string) {
     const [{ data }, { data: perms, error: permErr }] = await Promise.all([
-      supabase
-        .from('profiles')
-        .select('*')
-        .eq('id', userId)
-        .maybeSingle(),
+      supabase.from('profiles').select('*').eq('id', userId).maybeSingle(),
       supabase.rpc('my_permissions'),
     ])
     setProfile(data ?? null)
@@ -100,17 +100,19 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   }
 
   return (
-    <AuthContext.Provider value={{
-      session,
-      user: session?.user ?? null,
-      profile,
-      loading,
-      can,
-      refreshProfile,
-      signIn,
-      signOut,
-      resetPassword,
-    }}>
+    <AuthContext.Provider
+      value={{
+        session,
+        user: session?.user ?? null,
+        profile,
+        loading,
+        can,
+        refreshProfile,
+        signIn,
+        signOut,
+        resetPassword,
+      }}
+    >
       {children}
     </AuthContext.Provider>
   )

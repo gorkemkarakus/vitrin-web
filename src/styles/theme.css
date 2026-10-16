@@ -52,8 +52,8 @@
   --radius-md: 16px;
   --radius-lg: 20px;
 
-  --font-heading: "Outfit", sans-serif;
-  --font-body: "DM Sans", sans-serif;
+  --font-heading: 'Outfit', sans-serif;
+  --font-body: 'DM Sans', sans-serif;
 }
 
 * {

@@ -59,10 +59,12 @@ export default function SendCampaignModal({
           <>
             <h2 className={styles.title}>Kaydedildi</h2>
             <p className={styles.resultText}>
-              <strong>{result.sent}</strong> müşteri için mesaj kaydedildi{result.failed > 0 ? ` (${result.failed} başarısız — telefon numarası eksik olabilir)` : ''}.
+              <strong>{result.sent}</strong> müşteri için mesaj kaydedildi
+              {result.failed > 0 ? ` (${result.failed} başarısız — telefon numarası eksik olabilir)` : ''}.
             </p>
             <p className={styles.hint}>
-              WhatsApp bağlantısı henüz aktif değil — gerçek gönderim, bağlantı kurulduğunda bu mesajlar için otomatik başlayacak.
+              WhatsApp bağlantısı henüz aktif değil — gerçek gönderim, bağlantı kurulduğunda bu mesajlar için otomatik
+              başlayacak.
             </p>
             <button type="button" className="btn-primary" onClick={onClose}>
               Tamam

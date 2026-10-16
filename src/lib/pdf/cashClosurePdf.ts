@@ -39,7 +39,9 @@ export async function generateCashClosurePdf(opts: {
   })
 
   report.addSectionTitle('Ödeme yöntemine göre')
-  const methods = (['nakit', 'kart', 'havale', 'diger', 'bakiye'] as const).filter((m) => s.byMethod[m] > 0 || m === 'nakit' || m === 'kart')
+  const methods = (['nakit', 'kart', 'havale', 'diger', 'bakiye'] as const).filter(
+    (m) => s.byMethod[m] > 0 || m === 'nakit' || m === 'kart',
+  )
   report.addKpiGrid(methods.map((m) => ({ label: METHOD_LABEL[m], value: currency.format(s.byMethod[m]) })))
 
   report.addSectionTitle('Kasa sayımı')
@@ -62,7 +64,10 @@ export async function generateCashClosurePdf(opts: {
     { label: 'Tamamlanan', value: String(s.completed) },
     { label: 'İptal', value: String(s.cancelled) },
     { label: 'Gelmedi', value: String(s.noShow) },
-    { label: 'Ödemesi kalan', value: s.unpaidCount > 0 ? `${s.unpaidCount} · ${currency.format(s.unpaidAmount)}` : '0' },
+    {
+      label: 'Ödemesi kalan',
+      value: s.unpaidCount > 0 ? `${s.unpaidCount} · ${currency.format(s.unpaidAmount)}` : '0',
+    },
   ])
 
   if (s.payments.length > 0) {
@@ -78,7 +83,12 @@ export async function generateCashClosurePdf(opts: {
     report.addSectionTitle(`Giderler (${s.expenses.length})`)
     report.addTable({
       head: ['Açıklama', 'Kategori', 'Ödeme şekli', 'Tutar'],
-      body: s.expenses.map((e) => [e.description, e.category, e.method ? (METHOD_LABEL[e.method] ?? e.method) : '—', currency.format(e.amount)]),
+      body: s.expenses.map((e) => [
+        e.description,
+        e.category,
+        e.method ? (METHOD_LABEL[e.method] ?? e.method) : '—',
+        currency.format(e.amount),
+      ]),
       rightAlignFrom: 3,
     })
   }

@@ -47,7 +47,12 @@ export default function HandoverAppointments({ employeeId, employeeName, onCance
           .gte('scheduled_at', new Date().toISOString())
           .order('scheduled_at')
           .limit(500),
-        supabase.from('profiles').select('id, full_name').eq('is_active', true).neq('id', employeeId).order('full_name'),
+        supabase
+          .from('profiles')
+          .select('id, full_name')
+          .eq('is_active', true)
+          .neq('id', employeeId)
+          .order('full_name'),
         supabase.from('employee_services').select('profile_id, service_id'),
         supabase.from('services').select('id, name'),
       ])
@@ -102,7 +107,13 @@ export default function HandoverAppointments({ employeeId, employeeName, onCance
   }
 
   const when = (iso: string) =>
-    new Date(iso).toLocaleString('tr-TR', { weekday: 'short', day: 'numeric', month: 'short', hour: '2-digit', minute: '2-digit' })
+    new Date(iso).toLocaleString('tr-TR', {
+      weekday: 'short',
+      day: 'numeric',
+      month: 'short',
+      hour: '2-digit',
+      minute: '2-digit',
+    })
 
   return (
     <div className={styles.backdrop} onClick={onCancel}>
@@ -122,9 +133,12 @@ export default function HandoverAppointments({ employeeId, employeeName, onCance
                 <div className={styles.row} key={a.id}>
                   <span className={styles.rowText}>
                     <span className={styles.rowTitle}>
-                      {when(a.scheduled_at)} · {a.customer_id ? (customerName.get(a.customer_id) ?? 'Müşteri') : 'Müşteri'}
+                      {when(a.scheduled_at)} ·{' '}
+                      {a.customer_id ? (customerName.get(a.customer_id) ?? 'Müşteri') : 'Müşteri'}
                     </span>
-                    <span className={styles.rowSub}>{a.service_id ? (serviceName.get(a.service_id) ?? 'Hizmet') : 'Hizmet'}</span>
+                    <span className={styles.rowSub}>
+                      {a.service_id ? (serviceName.get(a.service_id) ?? 'Hizmet') : 'Hizmet'}
+                    </span>
                     {failed[a.id] && <span className={styles.rowError}>{failed[a.id]} — başka bir seçim yap</span>}
                   </span>
                   <select

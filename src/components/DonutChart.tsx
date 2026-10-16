@@ -68,9 +68,7 @@ export default function DonutChart({
               {centerLabel}
             </span>
           )}
-          {centerSubLabel && (
-            <span style={{ fontSize: 11, color: centerSubLabelColor }}>{centerSubLabel}</span>
-          )}
+          {centerSubLabel && <span style={{ fontSize: 11, color: centerSubLabelColor }}>{centerSubLabel}</span>}
         </div>
       )}
     </div>

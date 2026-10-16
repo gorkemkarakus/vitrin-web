@@ -46,7 +46,9 @@ describe('presetFor', () => {
 
   it('yetkiler hazir role birebir uyuyorsa o rol, degilse null', () => {
     expect(presetFor('user', new Set(['odeme_al', 'kendi_kazanc']))).toBe('calisan')
-    expect(presetFor('user', new Set(['randevu_tumu_gor', 'randevu_tumu_duzenle', 'odeme_al', 'mesajlar']))).toBe('resepsiyon')
+    expect(presetFor('user', new Set(['randevu_tumu_gor', 'randevu_tumu_duzenle', 'odeme_al', 'mesajlar']))).toBe(
+      'resepsiyon',
+    )
     expect(presetFor('user', new Set(['odeme_al']))).toBeNull()
   })
 })

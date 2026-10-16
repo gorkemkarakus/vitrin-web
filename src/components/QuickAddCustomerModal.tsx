@@ -83,7 +83,11 @@ export default function QuickAddCustomerModal({ onClose, onCreated }: QuickAddCu
               aria-invalid={!!phoneLengthError(phone)}
               style={phoneLengthError(phone) ? { borderColor: 'var(--danger-text)' } : undefined}
             />
-            {phoneLengthError(phone) && <span role="alert" className="field-error">{phoneLengthError(phone)}</span>}
+            {phoneLengthError(phone) && (
+              <span role="alert" className="field-error">
+                {phoneLengthError(phone)}
+              </span>
+            )}
           </div>
           <button type="submit" className="btn-primary" disabled={submitting || !!phoneLengthError(phone)}>
             {submitting ? 'Ekleniyor…' : 'Müşteri Ekle'}

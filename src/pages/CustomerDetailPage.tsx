@@ -7,7 +7,15 @@ import { formatPersonName, initials } from '../lib/formatName'
 import { currency } from '../lib/currency'
 import Select from '../components/Select'
 import { phoneLengthError, customerPhone } from '../lib/phone'
-import { ChevronRightIcon, PhoneIcon, WalletIcon, PencilIcon, TrashIcon, CalendarIcon, MessagesIcon } from '../components/icons'
+import {
+  ChevronRightIcon,
+  PhoneIcon,
+  WalletIcon,
+  PencilIcon,
+  TrashIcon,
+  CalendarIcon,
+  MessagesIcon,
+} from '../components/icons'
 import { segmentForStats } from '../lib/customerSegments'
 import { toLocalDateString } from '../lib/date'
 import styles from './CustomerDetailPage.module.css'
@@ -145,29 +153,30 @@ export default function CustomerDetailPage() {
   async function loadData() {
     if (!id) return
     setLoading(true)
-    const [{ data: cust }, { data: appts }, { data: pkgs }, { data: pays }, { data: svcs }, { data: emps }] = await Promise.all([
-      supabase
-        .from('customers')
-        .select('id, full_name, phone, contact_phone, email, notes, created_at')
-        .eq('id', id)
-        .maybeSingle(),
-      supabase
-        .from('appointments')
-        .select('id, service_id, employee_id, scheduled_at, status, package_id, price_override')
-        .eq('customer_id', id)
-        .order('scheduled_at', { ascending: false }),
-      supabase
-        .from('service_packages')
-        .select('id, service_id, total_sessions, session_offset, status, created_at')
-        .eq('customer_id', id),
-      supabase
-        .from('payments')
-        .select('id, amount, method, paid_at, appointment_id, package_id, note, created_by_user_id, voided_at')
-        .eq('customer_id', id)
-        .order('paid_at', { ascending: false }),
-      supabase.from('services').select('id, name, price'),
-      supabase.from('profiles').select('id, full_name'),
-    ])
+    const [{ data: cust }, { data: appts }, { data: pkgs }, { data: pays }, { data: svcs }, { data: emps }] =
+      await Promise.all([
+        supabase
+          .from('customers')
+          .select('id, full_name, phone, contact_phone, email, notes, created_at')
+          .eq('id', id)
+          .maybeSingle(),
+        supabase
+          .from('appointments')
+          .select('id, service_id, employee_id, scheduled_at, status, package_id, price_override')
+          .eq('customer_id', id)
+          .order('scheduled_at', { ascending: false }),
+        supabase
+          .from('service_packages')
+          .select('id, service_id, total_sessions, session_offset, status, created_at')
+          .eq('customer_id', id),
+        supabase
+          .from('payments')
+          .select('id, amount, method, paid_at, appointment_id, package_id, note, created_by_user_id, voided_at')
+          .eq('customer_id', id)
+          .order('paid_at', { ascending: false }),
+        supabase.from('services').select('id, name, price'),
+        supabase.from('profiles').select('id, full_name'),
+      ])
     setCustomer(cust ?? null)
     setAppointments(appts ?? [])
     setPackages(pkgs ?? [])
@@ -310,8 +319,8 @@ export default function CustomerDetailPage() {
 
     const favoriteServiceId = pickFavorite((a) => a.service_id)
     const favoriteEmployeeId = pickFavorite((a) => a.employee_id)
-    const favoriteServiceName = favoriteServiceId ? serviceById.get(favoriteServiceId)?.name ?? null : null
-    const favoriteEmployeeName = favoriteEmployeeId ? employeeById.get(favoriteEmployeeId)?.full_name ?? null : null
+    const favoriteServiceName = favoriteServiceId ? (serviceById.get(favoriteServiceId)?.name ?? null) : null
+    const favoriteEmployeeName = favoriteEmployeeId ? (employeeById.get(favoriteEmployeeId)?.full_name ?? null) : null
 
     const lastRelevantAppt = appointments.find((a) => a.status !== 'iptal' && a.status !== 'gelmedi') ?? null
     let lastVisitLabel = '—'
@@ -324,7 +333,9 @@ export default function CustomerDetailPage() {
       }
     }
 
-    const tenureLabel = customer ? humanizeDuration((now.getTime() - new Date(customer.created_at).getTime()) / 86400000) : '—'
+    const tenureLabel = customer
+      ? humanizeDuration((now.getTime() - new Date(customer.created_at).getTime()) / 86400000)
+      : '—'
 
     return {
       lastVisitLabel,
@@ -578,9 +589,7 @@ export default function CustomerDetailPage() {
         <span className={styles.heroSub}>
           {[phone, customer.email].filter(Boolean).join(' · ') || 'İletişim bilgisi yok'}
         </span>
-        {segment && (
-          <span className={styles.heroBadge}>{segment === 'sadik' ? 'Sadık müşteri' : 'Yeni müşteri'}</span>
-        )}
+        {segment && <span className={styles.heroBadge}>{segment === 'sadik' ? 'Sadık müşteri' : 'Yeni müşteri'}</span>}
       </div>
 
       <div className={styles.actions}>
@@ -647,7 +656,13 @@ export default function CustomerDetailPage() {
             </div>
             <div className={`${styles.balanceCol} ${styles.balanceColDivided}`}>
               <span className={styles.balanceLabel}>Kalan ödeme</span>
-              <span className={totalRemaining > 0 ? `${styles.balanceValue} ${styles.textWarm}` : `${styles.balanceValue} ${styles.textOk}`}>
+              <span
+                className={
+                  totalRemaining > 0
+                    ? `${styles.balanceValue} ${styles.textWarm}`
+                    : `${styles.balanceValue} ${styles.textOk}`
+                }
+              >
                 {totalRemaining > 0 ? currency.format(totalRemaining) : 'Borç yok'}
               </span>
             </div>
@@ -695,7 +710,11 @@ export default function CustomerDetailPage() {
             </button>
           ))}
 
-          <button type="button" className={customer.notes ? styles.noteCard : styles.noteCardEmpty} onClick={openEditCustomer}>
+          <button
+            type="button"
+            className={customer.notes ? styles.noteCard : styles.noteCardEmpty}
+            onClick={openEditCustomer}
+          >
             <span className={styles.noteLabel}>Müşteri notu</span>
             <span className={styles.noteText}>
               {customer.notes || 'Alerji, boya formülü, tercihler… Not eklemek için dokun.'}
@@ -753,7 +772,10 @@ export default function CustomerDetailPage() {
         ) : (
           <div className={styles.listCard}>
             {payments.map((p) => (
-              <div key={p.id} className={p.voided_at ? `${styles.paymentRow} ${styles.paymentRowVoided}` : styles.paymentRow}>
+              <div
+                key={p.id}
+                className={p.voided_at ? `${styles.paymentRow} ${styles.paymentRowVoided}` : styles.paymentRow}
+              >
                 <div className={styles.rowMain}>
                   <span className={styles.paymentAmount}>{currency.format(p.amount)}</span>
                   <span className={styles.rowMeta}>
@@ -830,7 +852,12 @@ export default function CustomerDetailPage() {
               </div>
               <div className="field">
                 <label htmlFor="payNote">Not (opsiyonel)</label>
-                <input id="payNote" value={payNote} onChange={(e) => setPayNote(e.target.value)} placeholder="ör. indirimli ödendi" />
+                <input
+                  id="payNote"
+                  value={payNote}
+                  onChange={(e) => setPayNote(e.target.value)}
+                  placeholder="ör. indirimli ödendi"
+                />
               </div>
               {error && <p className={styles.error}>{error}</p>}
               <button type="submit" className="btn-primary" disabled={paySubmitting || !payMethod}>
@@ -870,11 +897,22 @@ export default function CustomerDetailPage() {
               </div>
               <div className="field">
                 <label htmlFor="editDate">Tarih</label>
-                <input id="editDate" type="date" value={editDate} onChange={(e) => setEditDate(e.target.value)} required />
+                <input
+                  id="editDate"
+                  type="date"
+                  value={editDate}
+                  onChange={(e) => setEditDate(e.target.value)}
+                  required
+                />
               </div>
               <div className="field">
                 <label htmlFor="editNote">Not (opsiyonel)</label>
-                <input id="editNote" value={editNote} onChange={(e) => setEditNote(e.target.value)} placeholder="ör. indirimli ödendi" />
+                <input
+                  id="editNote"
+                  value={editNote}
+                  onChange={(e) => setEditNote(e.target.value)}
+                  placeholder="ör. indirimli ödendi"
+                />
               </div>
               {error && <p className={styles.error}>{error}</p>}
               <button type="submit" className="btn-primary" disabled={editSubmitting}>
@@ -917,7 +955,11 @@ export default function CustomerDetailPage() {
                   aria-invalid={!!phoneLengthError(editPhone)}
                   style={phoneLengthError(editPhone) ? { borderColor: 'var(--danger-text)' } : undefined}
                 />
-                {phoneLengthError(editPhone) && <span role="alert" className="field-error">{phoneLengthError(editPhone)}</span>}
+                {phoneLengthError(editPhone) && (
+                  <span role="alert" className="field-error">
+                    {phoneLengthError(editPhone)}
+                  </span>
+                )}
               </div>
               <div className="field">
                 <label htmlFor="editCustomerEmail">E-posta</label>
@@ -940,7 +982,11 @@ export default function CustomerDetailPage() {
                 />
               </div>
               {error && <p className={styles.error}>{error}</p>}
-              <button type="submit" className="btn-primary" disabled={editCustomerSubmitting || !!phoneLengthError(editPhone)}>
+              <button
+                type="submit"
+                className="btn-primary"
+                disabled={editCustomerSubmitting || !!phoneLengthError(editPhone)}
+              >
                 {editCustomerSubmitting ? 'Kaydediliyor…' : 'Değişiklikleri kaydet'}
               </button>
               {profile?.role === 'admin' && (

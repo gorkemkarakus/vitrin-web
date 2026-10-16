@@ -126,7 +126,11 @@ export default function LoginPage() {
             />
           </div>
           <button type="submit" className={styles.primaryBtn} disabled={forgotLoading || cooldown > 0}>
-            {forgotLoading ? 'Gönderiliyor…' : cooldown > 0 ? `Tekrar göndermek için ${cooldown} sn` : 'Bağlantı gönder'}
+            {forgotLoading
+              ? 'Gönderiliyor…'
+              : cooldown > 0
+                ? `Tekrar göndermek için ${cooldown} sn`
+                : 'Bağlantı gönder'}
           </button>
         </form>
 

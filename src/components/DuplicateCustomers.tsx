@@ -91,17 +91,31 @@ export default function DuplicateCustomers({ groups, apptCount, onClose, onChang
                       <span className={styles.rowName}>{m.full_name}</span>
                       <span className={styles.rowSub}>
                         {m.contact_phone || m.phone || 'Telefon yok'} · {apptCount.get(m.id) ?? 0} randevu · eklendi{' '}
-                        {new Date(m.created_at).toLocaleDateString('tr-TR', { day: 'numeric', month: 'short', year: 'numeric' })}
+                        {new Date(m.created_at).toLocaleDateString('tr-TR', {
+                          day: 'numeric',
+                          month: 'short',
+                          year: 'numeric',
+                        })}
                       </span>
                     </span>
                   </button>
                 ))}
               </div>
               <div className={styles.actions}>
-                <button type="button" className={styles.ghostBtn} onClick={() => dismiss(g)} disabled={busyKey !== null}>
+                <button
+                  type="button"
+                  className={styles.ghostBtn}
+                  onClick={() => dismiss(g)}
+                  disabled={busyKey !== null}
+                >
                   Farklı kişiler
                 </button>
-                <button type="button" className={styles.primaryBtn} onClick={() => merge(g)} disabled={busyKey !== null}>
+                <button
+                  type="button"
+                  className={styles.primaryBtn}
+                  onClick={() => merge(g)}
+                  disabled={busyKey !== null}
+                >
                   {busyKey === g.key ? 'Birleştiriliyor…' : 'Birleştir'}
                 </button>
               </div>

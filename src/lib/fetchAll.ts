@@ -11,7 +11,9 @@ interface RangeQuery<T> {
   range(from: number, to: number): PromiseLike<{ data: T[] | null; error: { message: string } | null }>
 }
 
-export async function fetchAll<T>(build: () => RangeQuery<T>): Promise<{ data: T[]; error: { message: string } | null }> {
+export async function fetchAll<T>(
+  build: () => RangeQuery<T>,
+): Promise<{ data: T[]; error: { message: string } | null }> {
   const rows: T[] = []
   for (let from = 0; ; from += PAGE_SIZE) {
     const { data, error } = await build().range(from, from + PAGE_SIZE - 1)

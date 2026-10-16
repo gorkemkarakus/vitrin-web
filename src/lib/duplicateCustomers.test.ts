@@ -1,7 +1,12 @@
 import { describe, expect, it } from 'vitest'
 import { findDuplicateGroups, phoneKey, type DupCustomer } from './duplicateCustomers'
 
-function c(id: string, full_name: string, phone: string | null = null, contact_phone: string | null = null): DupCustomer {
+function c(
+  id: string,
+  full_name: string,
+  phone: string | null = null,
+  contact_phone: string | null = null,
+): DupCustomer {
   return { id, full_name, phone, contact_phone, created_at: '2026-10-01T00:00:00Z' }
 }
 

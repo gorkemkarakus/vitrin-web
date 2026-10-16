@@ -22,7 +22,10 @@ async function run() {
   // Dosyadaki seffaf kenar boslugunu kirp — yoksa ikon kutuda kucuk kalir.
   // (trim() renge bakar, burada her yer beyaz; sinir saydamliktan bulunur.)
   const { data: a, info } = await sharp(alpha).raw().toBuffer({ resolveWithObject: true })
-  let left = info.width, top = info.height, right = -1, bottom = -1
+  let left = info.width,
+    top = info.height,
+    right = -1,
+    bottom = -1
   for (let y = 0; y < info.height; y++) {
     for (let x = 0; x < info.width; x++) {
       if (a[y * info.width + x] > 24) {

@@ -85,7 +85,9 @@ function sheetXml(sheet: Sheet) {
     .map((c, i) => `<col min="${i + 1}" max="${i + 1}" width="${c.width ?? 16}" customWidth="1"/>`)
     .join('')
   const head = `<row r="1">${cols
-    .map((c, i) => `<c r="${colName(i)}1" t="inlineStr" s="1"><is><t xml:space="preserve">${esc(c.header)}</t></is></c>`)
+    .map(
+      (c, i) => `<c r="${colName(i)}1" t="inlineStr" s="1"><is><t xml:space="preserve">${esc(c.header)}</t></is></c>`,
+    )
     .join('')}</row>`
   const body = sheet.rows
     .map((row, r) => {

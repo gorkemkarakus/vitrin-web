@@ -54,7 +54,10 @@ export default function ServiceDescriptionPage() {
   async function save() {
     if (!id) return
     setSaving(true)
-    await supabase.from('services').update({ description: description.trim() || null }).eq('id', id)
+    await supabase
+      .from('services')
+      .update({ description: description.trim() || null })
+      .eq('id', id)
     setSaving(false)
     setSavedHint(true)
     setTimeout(() => setSavedHint(false), 2000)
@@ -103,7 +106,9 @@ export default function ServiceDescriptionPage() {
           <span className={description.length > SOFT_LIMIT ? styles.countOver : styles.count}>
             {description.length} / {SOFT_LIMIT}
           </span>
-          {description.length > SOFT_LIMIT && <span className={styles.countHint}>Kısa tutarsan bot daha net anlatır</span>}
+          {description.length > SOFT_LIMIT && (
+            <span className={styles.countHint}>Kısa tutarsan bot daha net anlatır</span>
+          )}
         </div>
       </div>
 

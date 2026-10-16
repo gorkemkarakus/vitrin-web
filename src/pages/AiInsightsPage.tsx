@@ -114,7 +114,17 @@ const PERIOD_PHRASE: Partial<Record<Preset, string>> = {
 // mevcut yazili analizin (generate-ai-insights) ilgili bolumunu acar.
 type AskKey = 'hizmet' | 'gun' | 'borc' | 'reklam' | 'kar' | 'musteri' | 'iyi' | 'risk' | 'oneri' | 'bilinmiyor'
 
-const ASK_ORDER: Exclude<AskKey, 'bilinmiyor'>[] = ['hizmet', 'gun', 'borc', 'reklam', 'kar', 'musteri', 'iyi', 'risk', 'oneri']
+const ASK_ORDER: Exclude<AskKey, 'bilinmiyor'>[] = [
+  'hizmet',
+  'gun',
+  'borc',
+  'reklam',
+  'kar',
+  'musteri',
+  'iyi',
+  'risk',
+  'oneri',
+]
 
 const ASK_TEXT: Record<AskKey, string> = {
   hizmet: 'En çok hangi hizmetten kazandım?',
@@ -220,19 +230,37 @@ export default function AiInsightsPage() {
   useEffect(() => {
     async function loadLiveData() {
       setDataLoading(true)
-      const [{ data: appts }, { data: pays }, { data: custs }, { data: exps }, { data: settings }, { data: svcs }, { data: pkgs }] = await Promise.all([
+      const [
+        { data: appts },
+        { data: pays },
+        { data: custs },
+        { data: exps },
+        { data: settings },
+        { data: svcs },
+        { data: pkgs },
+      ] = await Promise.all([
         fetchAll(() =>
           supabase
             .from('appointments')
             .select('id, customer_id, service_id, package_id, price_override, source, status, scheduled_at')
             .order('id'),
         ),
-        fetchAll(() => supabase.from('payments').select('customer_id, amount, paid_at, voided_at, appointment_id, package_id').order('id')),
+        fetchAll(() =>
+          supabase
+            .from('payments')
+            .select('customer_id, amount, paid_at, voided_at, appointment_id, package_id')
+            .order('id'),
+        ),
         fetchAll(() => supabase.from('customers').select('id, full_name, created_at').order('id')),
         fetchAll(() => supabase.from('business_expenses').select('amount, expense_date, is_paid').order('id')),
         supabase.from('business_finance_settings').select('commission_pct, tax_pct').maybeSingle(),
         supabase.from('services').select('id, name, price'),
-        fetchAll(() => supabase.from('service_packages').select('id, customer_id, service_id, total_sessions, session_offset').order('id')),
+        fetchAll(() =>
+          supabase
+            .from('service_packages')
+            .select('id, customer_id, service_id, total_sessions, session_offset')
+            .order('id'),
+        ),
       ])
       setAppointments(appts ?? [])
       setPayments(pays ?? [])
@@ -253,7 +281,12 @@ export default function AiInsightsPage() {
     setError(null)
     try {
       const periodLabel = PERIOD_LABEL_FOR_AI[preset] ?? 'Bu Dönem'
-      const res = await callEdgeFunction<Insight>('generate-ai-insights', { rangeStart, rangeEnd, periodLabel, periodKey: preset })
+      const res = await callEdgeFunction<Insight>('generate-ai-insights', {
+        rangeStart,
+        rangeEnd,
+        periodLabel,
+        periodKey: preset,
+      })
       if (!res.ok) {
         setError(res.error ?? 'Analiz oluşturulamadı.')
         return
@@ -300,7 +333,9 @@ export default function AiInsightsPage() {
 
   function periodTotals(start: string, end: string) {
     const rev = payments.filter((p) => !p.voided_at && inRange(p.paid_at, start, end)).reduce((s, p) => s + p.amount, 0)
-    const exp = expenses.filter((e) => e.is_paid && inRange(e.expense_date, start, end)).reduce((s, e) => s + e.amount, 0)
+    const exp = expenses
+      .filter((e) => e.is_paid && inRange(e.expense_date, start, end))
+      .reduce((s, e) => s + e.amount, 0)
     const afterTax = rev * (1 - taxPct / 100)
     const afterCommission = afterTax * (1 - commissionPct / 100)
     const netProfit = afterCommission - exp
@@ -540,9 +575,21 @@ export default function AiInsightsPage() {
   if (loading) return <p className={styles.hint}>Yükleniyor…</p>
 
   const kpis = [
-    { label: 'Tahsilat', value: currency.format(current.revenue), delta: pctDelta(current.revenue, previous?.revenue ?? 0) },
-    { label: 'Net kâr', value: currency.format(current.netProfit), delta: pctDelta(current.netProfit, previous?.netProfit ?? 0) },
-    { label: 'Kâr marjı', value: `%${profitMarginPct.toFixed(1)}`, delta: pctDelta(profitMarginPct, prevProfitMarginPct) },
+    {
+      label: 'Tahsilat',
+      value: currency.format(current.revenue),
+      delta: pctDelta(current.revenue, previous?.revenue ?? 0),
+    },
+    {
+      label: 'Net kâr',
+      value: currency.format(current.netProfit),
+      delta: pctDelta(current.netProfit, previous?.netProfit ?? 0),
+    },
+    {
+      label: 'Kâr marjı',
+      value: `%${profitMarginPct.toFixed(1)}`,
+      delta: pctDelta(profitMarginPct, prevProfitMarginPct),
+    },
     { label: 'Müşteri', value: `${totalCustomers}`, delta: pctDelta(totalCustomers, prevTotalCustomers) },
   ]
 
@@ -571,7 +618,8 @@ export default function AiInsightsPage() {
     switch (key) {
       case 'hizmet': {
         const [top, second] = serviceRevenue.rows
-        if (!top) return <span className={styles.answerText}>{periodPhrase} hizmete bağlı bir tahsilat görünmüyor.</span>
+        if (!top)
+          return <span className={styles.answerText}>{periodPhrase} hizmete bağlı bir tahsilat görünmüyor.</span>
         const max = top.revenue || 1
         return (
           <>
@@ -590,7 +638,9 @@ export default function AiInsightsPage() {
                 </div>
               ))}
             </div>
-            <span className={styles.source}>Kaynak: {periodPhrase.toLocaleLowerCase('tr')} randevuya bağlı {serviceRevenue.paymentCount} tahsilat</span>
+            <span className={styles.source}>
+              Kaynak: {periodPhrase.toLocaleLowerCase('tr')} randevuya bağlı {serviceRevenue.paymentCount} tahsilat
+            </span>
           </>
         )
       }
@@ -600,8 +650,8 @@ export default function AiInsightsPage() {
         return (
           <>
             <span className={styles.answerText}>
-              <b>{DAY_LONG[worst.dow]}.</b> Son 6 haftada {DAY_LONG[worst.dow]} günleri ortalama {worst.avg.toFixed(1)} randevu var.
-              En yoğun gün {DAY_LONG[best.dow]} (ortalama {best.avg.toFixed(1)}).
+              <b>{DAY_LONG[worst.dow]}.</b> Son 6 haftada {DAY_LONG[worst.dow]} günleri ortalama {worst.avg.toFixed(1)}{' '}
+              randevu var. En yoğun gün {DAY_LONG[best.dow]} (ortalama {best.avg.toFixed(1)}).
             </span>
             {best.dow !== worst.dow && (
               <button type="button" className={styles.actionChip} onClick={() => navigate('/toplu-mesaj')}>
@@ -620,7 +670,12 @@ export default function AiInsightsPage() {
             </span>
             <div className={styles.miniList}>
               {debts.rows.slice(0, 5).map((r) => (
-                <button type="button" key={r.id} className={styles.miniRow} onClick={() => navigate(`/musteriler/${r.id}`)}>
+                <button
+                  type="button"
+                  key={r.id}
+                  className={styles.miniRow}
+                  onClick={() => navigate(`/musteriler/${r.id}`)}
+                >
                   <span className={styles.miniName}>{r.name}</span>
                   <span className={styles.miniAmount}>{currency.format(r.amount)}</span>
                 </button>
@@ -642,8 +697,10 @@ export default function AiInsightsPage() {
                 `${periodPhrase} reklamdan gelen randevu görünmüyor.`
               ) : (
                 <>
-                  {periodPhrase} reklamdan <b>{sourceStats.adCount} randevu</b> geldi (tümünün %{Math.round((sourceStats.adCount / Math.max(1, total)) * 100)}
-                  ’i). {sourceStats.adCompleted} tanesi tamamlandı, {currency.format(sourceStats.adRevenue)} tahsil edildi.
+                  {periodPhrase} reklamdan <b>{sourceStats.adCount} randevu</b> geldi (tümünün %
+                  {Math.round((sourceStats.adCount / Math.max(1, total)) * 100)}
+                  ’i). {sourceStats.adCompleted} tanesi tamamlandı, {currency.format(sourceStats.adRevenue)} tahsil
+                  edildi.
                 </>
               )}
             </span>
@@ -711,8 +768,9 @@ export default function AiInsightsPage() {
         return (
           <>
             <span className={styles.answerText}>
-              Toplam <b>{segmentCounts.total} müşterin</b> var; {periodPhrase.toLocaleLowerCase('tr')} {current.newCustomers} yeni müşteri eklendi.
-              İptal oranı %{cancelRate.toFixed(0)}, gelmeme oranı %{noShowRate.toFixed(0)}.
+              Toplam <b>{segmentCounts.total} müşterin</b> var; {periodPhrase.toLocaleLowerCase('tr')}{' '}
+              {current.newCustomers} yeni müşteri eklendi. İptal oranı %{cancelRate.toFixed(0)}, gelmeme oranı %
+              {noShowRate.toFixed(0)}.
             </span>
             {segmentCounts.total > 0 && (
               <div className={styles.donutRow}>
@@ -753,7 +811,8 @@ export default function AiInsightsPage() {
           return (
             <>
               <span className={styles.answerText}>
-                Bunun için rakamlarına bakıp yazılı bir değerlendirme hazırlamam gerekiyor. Hazırlamak 30 saniye kadar sürer.
+                Bunun için rakamlarına bakıp yazılı bir değerlendirme hazırlamam gerekiyor. Hazırlamak 30 saniye kadar
+                sürer.
               </span>
               {generateChip}
             </>
@@ -833,12 +892,19 @@ export default function AiInsightsPage() {
       <div className={styles.aiBubble}>
         <span className={styles.answerText}>
           İşletme sağlığı <b>{healthLabel}</b> · {healthScore}/100.{' '}
-          {insight ? insight.summary : 'Aşağıdan bir soru seç ya da kendin yaz; cevapları kendi kayıtlarından hesaplarım.'}
+          {insight
+            ? insight.summary
+            : 'Aşağıdan bir soru seç ya da kendin yaz; cevapları kendi kayıtlarından hesaplarım.'}
         </span>
         {insight && (
           <span className={styles.source}>
             Yazılı analiz:{' '}
-            {new Date(insight.generated_at).toLocaleString('tr-TR', { day: 'numeric', month: 'short', hour: '2-digit', minute: '2-digit' })}
+            {new Date(insight.generated_at).toLocaleString('tr-TR', {
+              day: 'numeric',
+              month: 'short',
+              hour: '2-digit',
+              minute: '2-digit',
+            })}
           </span>
         )}
         {generateChip}

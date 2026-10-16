@@ -54,7 +54,9 @@ export default function NewPasswordFields({
           ))}
         </div>
         <div className={styles.rules}>
-          <span className={longEnough ? styles.ruleOk : styles.ruleTodo}>{longEnough ? '✓' : '○'} En az 8 karakter</span>
+          <span className={longEnough ? styles.ruleOk : styles.ruleTodo}>
+            {longEnough ? '✓' : '○'} En az 8 karakter
+          </span>
           <span className={lettersAndDigits ? styles.ruleOk : styles.ruleTodo}>
             {lettersAndDigits ? '✓' : '○'} Harf ve rakam içeriyor
           </span>

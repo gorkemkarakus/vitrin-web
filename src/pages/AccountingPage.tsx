@@ -103,7 +103,9 @@ export default function AccountingPage() {
   const [taxInput, setTaxInput] = useState('0')
   const [loading, setLoading] = useState(true)
   const [savedHint, setSavedHint] = useState(false)
-  const [allPayments, setAllPayments] = useState<{ customer_id: string; amount: number; appointment_id: string | null; package_id: string | null }[]>([])
+  const [allPayments, setAllPayments] = useState<
+    { customer_id: string; amount: number; appointment_id: string | null; package_id: string | null }[]
+  >([])
   const [customerNames, setCustomerNames] = useState<{ id: string; full_name: string }[]>([])
   const [periodMenuOpen, setPeriodMenuOpen] = useState(false)
   const [showAllMoves, setShowAllMoves] = useState(false)
@@ -127,37 +129,63 @@ export default function AccountingPage() {
 
   async function loadAll() {
     setLoading(true)
-    const [{ data: appts }, { data: svcs }, { data: profs }, { data: settings }, { data: exps }, { data: pkgs }, { data: pays }, { data: allPays }, { data: custs }] =
-      await Promise.all([
-        // Tarihle SINIRLANMIYOR: bir odeme, aralik disindaki bir randevu/paketi
-        // referans alabilir (ör. onceki ay yapilan seansin bu ay tahsil edilen
-        // bakiyesi) — calisan/hizmet atfi icin randevunun kendisine her zaman
-        // erisebilmemiz lazim.
-        fetchAll(() => supabase.from('appointments').select('id, customer_id, service_id, employee_id, scheduled_at, status, package_id, price_override').order('id')),
-        supabase.from('services').select('id, name, price'),
-        supabase.from('profiles').select('id, full_name'),
-        supabase.from('business_finance_settings').select('commission_pct, tax_pct').maybeSingle(),
+    const [
+      { data: appts },
+      { data: svcs },
+      { data: profs },
+      { data: settings },
+      { data: exps },
+      { data: pkgs },
+      { data: pays },
+      { data: allPays },
+      { data: custs },
+    ] = await Promise.all([
+      // Tarihle SINIRLANMIYOR: bir odeme, aralik disindaki bir randevu/paketi
+      // referans alabilir (ör. onceki ay yapilan seansin bu ay tahsil edilen
+      // bakiyesi) — calisan/hizmet atfi icin randevunun kendisine her zaman
+      // erisebilmemiz lazim.
+      fetchAll(() =>
         supabase
-          .from('business_expenses')
-          .select('*')
-          .gte('expense_date', rangeStart)
-          .lte('expense_date', rangeEnd)
-          .order('expense_date', { ascending: false }),
-        fetchAll(() => supabase.from('service_packages').select('id, customer_id, service_id, total_sessions, session_offset').order('id')),
-        // Ciro nakit bazli: randevu tarihine degil odemenin paid_at'ine
-        // bakilir (giderlerin expense_date'e gore sayilmasi gibi).
-        fetchAll(() => supabase
+          .from('appointments')
+          .select('id, customer_id, service_id, employee_id, scheduled_at, status, package_id, price_override')
+          .order('id'),
+      ),
+      supabase.from('services').select('id, name, price'),
+      supabase.from('profiles').select('id, full_name'),
+      supabase.from('business_finance_settings').select('commission_pct, tax_pct').maybeSingle(),
+      supabase
+        .from('business_expenses')
+        .select('*')
+        .gte('expense_date', rangeStart)
+        .lte('expense_date', rangeEnd)
+        .order('expense_date', { ascending: false }),
+      fetchAll(() =>
+        supabase
+          .from('service_packages')
+          .select('id, customer_id, service_id, total_sessions, session_offset')
+          .order('id'),
+      ),
+      // Ciro nakit bazli: randevu tarihine degil odemenin paid_at'ine
+      // bakilir (giderlerin expense_date'e gore sayilmasi gibi).
+      fetchAll(() =>
+        supabase
           .from('payments')
           .select('id, customer_id, amount, appointment_id, package_id, method, paid_at')
           .is('voided_at', null)
           .gte('paid_at', rangeStart)
-          .lte('paid_at', rangeEnd).order('id')),
-        // Alacaklar (musteri borclari) tum zamanlarin odemeleriyle hesaplanir.
-        fetchAll(() =>
-          supabase.from('payments').select('customer_id, amount, appointment_id, package_id').is('voided_at', null).order('id'),
-        ),
-        fetchAll(() => supabase.from('customers').select('id, full_name').order('id')),
-      ])
+          .lte('paid_at', rangeEnd)
+          .order('id'),
+      ),
+      // Alacaklar (musteri borclari) tum zamanlarin odemeleriyle hesaplanir.
+      fetchAll(() =>
+        supabase
+          .from('payments')
+          .select('customer_id, amount, appointment_id, package_id')
+          .is('voided_at', null)
+          .order('id'),
+      ),
+      fetchAll(() => supabase.from('customers').select('id, full_name').order('id')),
+    ])
     setAppointments(appts ?? [])
     setServices(svcs ?? [])
     setProfiles(profs ?? [])
@@ -302,7 +330,17 @@ export default function AccountingPage() {
         rangeStart,
         rangeEnd,
         kpis: { totalRevenue, completedCount: rangedCompleted.length, totalExpenses, netProfit },
-        waterfall: { totalRevenue, taxPct, taxAmount, afterTax, commissionPct, commissionAmount, afterCommission, totalExpenses, netProfit },
+        waterfall: {
+          totalRevenue,
+          taxPct,
+          taxAmount,
+          afterTax,
+          commissionPct,
+          commissionAmount,
+          afterCommission,
+          totalExpenses,
+          netProfit,
+        },
         employeeStats: allEmployeeStats,
         serviceStats,
         expenses,
@@ -495,7 +533,9 @@ export default function AccountingPage() {
             ))}
           </div>
         ) : (
-          <span className={styles.totalHint}>Bu dönemde tahsilat yok · {rangedCompleted.length} randevu tamamlandı</span>
+          <span className={styles.totalHint}>
+            Bu dönemde tahsilat yok · {rangedCompleted.length} randevu tamamlandı
+          </span>
         )}
       </div>
 
@@ -529,7 +569,11 @@ export default function AccountingPage() {
         </button>
         <div className={styles.tile}>
           <span className={styles.tileLabel}>Net</span>
-          <span className={netProfit < 0 ? `${styles.tileValue} ${styles.textDanger}` : `${styles.tileValue} ${styles.textOk}`}>
+          <span
+            className={
+              netProfit < 0 ? `${styles.tileValue} ${styles.textDanger}` : `${styles.tileValue} ${styles.textOk}`
+            }
+          >
             {currency.format(netProfit)}
           </span>
           <span className={styles.tileHint}>Gelir − gider</span>
@@ -571,7 +615,11 @@ export default function AccountingPage() {
                 <span className={styles.moveTitle}>{m.title}</span>
                 <span className={styles.moveSub}>{m.sub}</span>
               </span>
-              <span className={m.amount < 0 ? `${styles.moveAmount} ${styles.textWarm}` : `${styles.moveAmount} ${styles.textOk}`}>
+              <span
+                className={
+                  m.amount < 0 ? `${styles.moveAmount} ${styles.textWarm}` : `${styles.moveAmount} ${styles.textOk}`
+                }
+              >
                 {m.amount < 0 ? '−' : '+'}
                 {currency.format(Math.abs(m.amount))}
               </span>
@@ -608,38 +656,38 @@ export default function AccountingPage() {
 
       {/* Oranlar yalnizca yoneticide (Kasa yetkili calisan sadece gorur). */}
       {profile?.role === 'admin' && (
-      <div className={styles.block}>
-        <h2 className={styles.blockTitle}>Vergi ve prim oranı</h2>
-        <div className={styles.rateCard}>
-          <div className={styles.rateField}>
-            <label htmlFor="taxRate">Vergi (%)</label>
-            <input
-              id="taxRate"
-              type="number"
-              min={0}
-              max={100}
-              step={1}
-              value={taxInput}
-              onChange={(e) => setTaxInput(e.target.value)}
-            />
+        <div className={styles.block}>
+          <h2 className={styles.blockTitle}>Vergi ve prim oranı</h2>
+          <div className={styles.rateCard}>
+            <div className={styles.rateField}>
+              <label htmlFor="taxRate">Vergi (%)</label>
+              <input
+                id="taxRate"
+                type="number"
+                min={0}
+                max={100}
+                step={1}
+                value={taxInput}
+                onChange={(e) => setTaxInput(e.target.value)}
+              />
+            </div>
+            <div className={styles.rateField}>
+              <label htmlFor="commissionRate">Genel prim (%)</label>
+              <input
+                id="commissionRate"
+                type="number"
+                min={0}
+                max={100}
+                step={1}
+                value={rateInput}
+                onChange={(e) => setRateInput(e.target.value)}
+              />
+            </div>
+            <button type="button" className={styles.saveBtn} onClick={saveSettings}>
+              {savedHint ? 'Kaydedildi' : 'Kaydet'}
+            </button>
           </div>
-          <div className={styles.rateField}>
-            <label htmlFor="commissionRate">Genel prim (%)</label>
-            <input
-              id="commissionRate"
-              type="number"
-              min={0}
-              max={100}
-              step={1}
-              value={rateInput}
-              onChange={(e) => setRateInput(e.target.value)}
-            />
-          </div>
-          <button type="button" className={styles.saveBtn} onClick={saveSettings}>
-            {savedHint ? 'Kaydedildi' : 'Kaydet'}
-          </button>
         </div>
-      </div>
       )}
 
       <div className={styles.block}>

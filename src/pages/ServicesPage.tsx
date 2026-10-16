@@ -57,7 +57,7 @@ export default function ServicesPage() {
   // boylece Aciklama sayfasindan geri donunce ayni hizmete donulur.
   const editId = searchParams.get('duzenle')
   const isNew = searchParams.get('yeni') === '1'
-  const editing = editId ? services.find((s) => s.id === editId) ?? null : null
+  const editing = editId ? (services.find((s) => s.id === editId) ?? null) : null
   const editorOpen = isNew || !!editing
 
   const [name, setName] = useState('')
@@ -78,11 +78,7 @@ export default function ServicesPage() {
   async function loadData(silent = false) {
     if (!silent) setLoading(true)
     const [{ data: svc }, { data: emps }, { data: es }] = await Promise.all([
-      supabase
-        .from('services')
-        .select('*')
-        .order('is_active', { ascending: false })
-        .order('name', { ascending: true }),
+      supabase.from('services').select('*').order('is_active', { ascending: false }).order('name', { ascending: true }),
       supabase.from('profiles').select('id, full_name').eq('is_active', true).order('full_name'),
       supabase.from('employee_services').select('profile_id, service_id'),
     ])
@@ -223,7 +219,9 @@ export default function ServicesPage() {
       const toAdd = [...staff].filter((id) => !before.has(id))
       const toRemove = [...before].filter((id) => !staff.has(id))
       if (toAdd.length) {
-        await supabase.from('employee_services').insert(toAdd.map((profile_id) => ({ profile_id, service_id: serviceId })))
+        await supabase
+          .from('employee_services')
+          .insert(toAdd.map((profile_id) => ({ profile_id, service_id: serviceId })))
       }
       if (toRemove.length) {
         await supabase.from('employee_services').delete().eq('service_id', serviceId).in('profile_id', toRemove)
@@ -326,7 +324,12 @@ export default function ServicesPage() {
                   −
                 </button>
                 <span className={styles.stepValue}>{duration} dk</span>
-                <button type="button" className={styles.stepBtn} onClick={() => setDuration((d) => d + 5)} aria-label="Süreyi artır">
+                <button
+                  type="button"
+                  className={styles.stepBtn}
+                  onClick={() => setDuration((d) => d + 5)}
+                  aria-label="Süreyi artır"
+                >
                   +
                 </button>
               </div>
@@ -353,7 +356,9 @@ export default function ServicesPage() {
                     onClick={() => toggleStaff(emp.id)}
                     aria-pressed={on}
                   >
-                    <span className={`${styles.staffAvatar} ${on ? styles.toneNavy : styles[AVATAR_TONES[i % AVATAR_TONES.length]]}`}>
+                    <span
+                      className={`${styles.staffAvatar} ${on ? styles.toneNavy : styles[AVATAR_TONES[i % AVATAR_TONES.length]]}`}
+                    >
                       {firstName(emp.full_name).charAt(0).toLocaleUpperCase('tr')}
                     </span>
                     {firstName(emp.full_name)}
@@ -373,7 +378,9 @@ export default function ServicesPage() {
               <span className={styles.rowMain}>
                 <span className={styles.rowNameSm}>Açıklama</span>
                 <span className={styles.rowMeta}>
-                  {descLines > 0 ? `Bot müşteriye bunu anlatır · ${descLines} satır yazılı` : 'Henüz yok · bot bu hizmeti anlatamaz'}
+                  {descLines > 0
+                    ? `Bot müşteriye bunu anlatır · ${descLines} satır yazılı`
+                    : 'Henüz yok · bot bu hizmeti anlatamaz'}
                 </span>
               </span>
               <ChevronRightIcon width={16} height={16} className={styles.rowChevron} />
@@ -393,7 +400,12 @@ export default function ServicesPage() {
                 <span className={styles.rowMeta}>Kapatırsan bu hizmete yeni randevu alınmaz</span>
               </span>
               <label className={styles.switch}>
-                <input type="checkbox" checked={active} onChange={() => setActive((v) => !v)} aria-label="Hizmet aktif" />
+                <input
+                  type="checkbox"
+                  checked={active}
+                  onChange={() => setActive((v) => !v)}
+                  aria-label="Hizmet aktif"
+                />
                 <span className={styles.switchTrack} />
               </label>
             </div>
@@ -401,7 +413,9 @@ export default function ServicesPage() {
           <div className={styles.row}>
             <span className={styles.rowMain}>
               <span className={styles.rowNameSm}>Online randevuda göster</span>
-              <span className={styles.rowMeta}>Kapalıysa müşteri online sayfadan seçemez; salondan randevusu açılır</span>
+              <span className={styles.rowMeta}>
+                Kapalıysa müşteri online sayfadan seçemez; salondan randevusu açılır
+              </span>
             </span>
             <label className={styles.switch}>
               <input
@@ -423,7 +437,12 @@ export default function ServicesPage() {
               </span>
             </span>
             <label className={styles.switch}>
-              <input type="checkbox" checked={packageOn} onChange={() => setPackageOn((v) => !v)} aria-label="Paket olarak satılabilir" />
+              <input
+                type="checkbox"
+                checked={packageOn}
+                onChange={() => setPackageOn((v) => !v)}
+                aria-label="Paket olarak satılabilir"
+              />
               <span className={styles.switchTrack} />
             </label>
           </div>
@@ -502,7 +521,12 @@ export default function ServicesPage() {
       <div className={styles.searchRow}>
         <div className={styles.searchBox}>
           <SearchIcon width={16} height={16} className={styles.searchIcon} />
-          <input className={styles.searchInput} placeholder="Hizmet ara" value={search} onChange={(e) => setSearch(e.target.value)} />
+          <input
+            className={styles.searchInput}
+            placeholder="Hizmet ara"
+            value={search}
+            onChange={(e) => setSearch(e.target.value)}
+          />
         </div>
         <div className={styles.filterWrap} ref={sortMenuRef}>
           <button
@@ -537,7 +561,9 @@ export default function ServicesPage() {
       </div>
 
       {filteredSorted.length === 0 ? (
-        <p className={styles.empty}>{q ? 'Aramana uyan hizmet yok.' : 'Henüz hizmet eklenmedi. “+ Hizmet” ile başla.'}</p>
+        <p className={styles.empty}>
+          {q ? 'Aramana uyan hizmet yok.' : 'Henüz hizmet eklenmedi. “+ Hizmet” ile başla.'}
+        </p>
       ) : (
         <div className={styles.listCard}>
           {filteredSorted.map((s) => {
@@ -557,7 +583,8 @@ export default function ServicesPage() {
                     <span className={styles.rowMetaWarn}>{s.duration_minutes} dk · kimse atanmadı</span>
                   ) : (
                     <span className={styles.rowMeta}>
-                      {s.duration_minutes} dk · {who.length > 3 ? `${who.slice(0, 3).join(', ')} +${who.length - 3}` : who.join(', ')}
+                      {s.duration_minutes} dk ·{' '}
+                      {who.length > 3 ? `${who.slice(0, 3).join(', ')} +${who.length - 3}` : who.join(', ')}
                     </span>
                   )}
                 </span>

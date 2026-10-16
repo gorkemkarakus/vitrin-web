@@ -8,7 +8,14 @@ import Select from '../components/Select'
 import HandoverAppointments from '../components/HandoverAppointments'
 import PermissionEditor from '../components/PermissionEditor'
 import RoleCards from '../components/RoleCards'
-import { ALL_PERMISSIONS, DEFAULT_PERMISSIONS, ROLE_PRESETS, presetFor, type PermKey, type RolePreset } from '../lib/permissions'
+import {
+  ALL_PERMISSIONS,
+  DEFAULT_PERMISSIONS,
+  ROLE_PRESETS,
+  presetFor,
+  type PermKey,
+  type RolePreset,
+} from '../lib/permissions'
 import { ChevronRightIcon } from '../components/icons'
 import { toLocalDateString, todayLocalDateString, timeToMinutes, WEEK_ORDER, DAY_SHORT } from '../lib/date'
 import { currency } from '../lib/currency'
@@ -85,7 +92,6 @@ function roleLabel(role: Employee['role']) {
   return role === 'admin' ? 'Yönetici' : 'Çalışan'
 }
 
-
 interface DayInfo {
   enabled: boolean
   start: string
@@ -102,10 +108,8 @@ function computeDayInfo(day: number, schedules: Schedule[], timeBlocks: TimeBloc
   return { enabled: true, start: s.starts_at.slice(0, 5), end: s.ends_at.slice(0, 5), breaks }
 }
 
-
 // Sayfa icindeki alt ekranlar (ayri rota acmadan).
 type Section = 'ana' | 'saatler' | 'hizmetler' | 'kazanc' | 'erisim'
-
 
 // selfEarnings: calisanin "Kazancim" ekrani (kendi_kazanc yetkisi) — ayni
 // sayfanin yalnizca kazanc bolumu, kendi hesabi icin.
@@ -189,7 +193,11 @@ export default function EmployeeDetailPage({ selfEarnings = false }: { selfEarni
       .single()
     setPayoutBusy(false)
     if (err) {
-      window.alert(/does not exist|could not find/i.test(err.message) ? 'Bu özellik için veritabanı güncellemesi bekleniyor.' : 'Kaydedilemedi: ' + err.message)
+      window.alert(
+        /does not exist|could not find/i.test(err.message)
+          ? 'Bu özellik için veritabanı güncellemesi bekleniyor.'
+          : 'Kaydedilemedi: ' + err.message,
+      )
       return
     }
     setPayout({ ...data, amount: Number(data.amount) })
@@ -251,7 +259,10 @@ export default function EmployeeDetailPage({ selfEarnings = false }: { selfEarni
     setPermSaving(false)
     if (err) {
       const missing = /does not exist|could not find/i.test(err.message)
-      setPermMsg({ type: 'err', text: missing ? 'Bu özellik için veritabanı güncellemesi bekleniyor.' : 'Kaydedilemedi: ' + err.message })
+      setPermMsg({
+        type: 'err',
+        text: missing ? 'Bu özellik için veritabanı güncellemesi bekleniyor.' : 'Kaydedilemedi: ' + err.message,
+      })
       return
     }
     setPermMsg({ type: 'ok', text: 'Yetkiler kaydedildi. Çalışan uygulamayı yeniden açınca geçerli olur.' })
@@ -287,14 +298,13 @@ export default function EmployeeDetailPage({ selfEarnings = false }: { selfEarni
       { data: monthPays },
       { data: settings },
     ] = await Promise.all([
-      supabase
-        .from('profiles')
-        .select('*')
-        .eq('id', id)
-        .maybeSingle(),
+      supabase.from('profiles').select('*').eq('id', id).maybeSingle(),
       supabase.from('services').select('id, name, duration_minutes, price').eq('is_active', true).order('name'),
       supabase.from('employee_services').select('profile_id, service_id').eq('profile_id', id),
-      supabase.from('employee_schedules').select('id, profile_id, day_of_week, starts_at, ends_at').eq('profile_id', id),
+      supabase
+        .from('employee_schedules')
+        .select('id, profile_id, day_of_week, starts_at, ends_at')
+        .eq('profile_id', id),
       supabase
         .from('employee_time_blocks')
         .select('id, profile_id, day_of_week, block_date, end_date, starts_at, ends_at, label')
@@ -329,7 +339,11 @@ export default function EmployeeDetailPage({ selfEarnings = false }: { selfEarni
     setMyPayments(
       (monthPays ?? [])
         .filter((p) => myIds.has(p.appointment_id as string))
-        .map((p) => ({ amount: p.amount, paid_at: p.paid_at as string, service_id: svcByAppt.get(p.appointment_id as string) ?? null })),
+        .map((p) => ({
+          amount: p.amount,
+          paid_at: p.paid_at as string,
+          service_id: svcByAppt.get(p.appointment_id as string) ?? null,
+        })),
     )
 
     // Bu haftanin (Pazartesi-Pazar) randevulari — gunluk cizelge icin.
@@ -404,7 +418,9 @@ export default function EmployeeDetailPage({ selfEarnings = false }: { selfEarni
       .eq('id', id)
     if (err) {
       const isDupPhone = err.code === '23505' && err.message.includes('whatsapp_phone')
-      setProfileError(isDupPhone ? 'Bu telefon numarası başka bir ekip üyesine kayıtlı.' : 'Kaydedilemedi: ' + err.message)
+      setProfileError(
+        isDupPhone ? 'Bu telefon numarası başka bir ekip üyesine kayıtlı.' : 'Kaydedilemedi: ' + err.message,
+      )
       setSavingProfile(false)
       return
     }
@@ -421,10 +437,10 @@ export default function EmployeeDetailPage({ selfEarnings = false }: { selfEarni
     setAccountSuccess('')
     try {
       const res = await callEdgeFunction('update-team-member', {
-          id,
-          email: accountEmail.trim() || undefined,
-          password: accountPassword.trim() || undefined,
-        })
+        id,
+        email: accountEmail.trim() || undefined,
+        password: accountPassword.trim() || undefined,
+      })
       if (!res.ok) {
         setAccountError(res.error ?? 'Hesap güncellenemedi.')
         return
@@ -456,7 +472,9 @@ export default function EmployeeDetailPage({ selfEarnings = false }: { selfEarni
     setCopyMenuOpen(false)
     const { data } = await supabase.from('employee_services').select('service_id').eq('profile_id', otherId)
     const have = new Set(employeeServices.map((es) => es.service_id))
-    const rows = (data ?? []).filter((r) => !have.has(r.service_id)).map((r) => ({ profile_id: id, service_id: r.service_id }))
+    const rows = (data ?? [])
+      .filter((r) => !have.has(r.service_id))
+      .map((r) => ({ profile_id: id, service_id: r.service_id }))
     if (rows.length) await supabase.from('employee_services').insert(rows)
     await loadData(true)
   }
@@ -544,13 +562,21 @@ export default function EmployeeDetailPage({ selfEarnings = false }: { selfEarni
         const d = new Date(a.scheduled_at)
         const s = d.getHours() * 60 + d.getMinutes()
         if (s - cursor >= 60) {
-          slots.push({ kind: 'gap', start: `${String(Math.floor(cursor / 60)).padStart(2, '0')}:${String(cursor % 60).padStart(2, '0')}`, minutes: s - cursor })
+          slots.push({
+            kind: 'gap',
+            start: `${String(Math.floor(cursor / 60)).padStart(2, '0')}:${String(cursor % 60).padStart(2, '0')}`,
+            minutes: s - cursor,
+          })
         }
         slots.push({ kind: 'appt', a })
         cursor = Math.max(cursor, s + (a.duration_minutes ?? 30))
       }
       if (endMin - cursor >= 60) {
-        slots.push({ kind: 'gap', start: `${String(Math.floor(cursor / 60)).padStart(2, '0')}:${String(cursor % 60).padStart(2, '0')}`, minutes: endMin - cursor })
+        slots.push({
+          kind: 'gap',
+          start: `${String(Math.floor(cursor / 60)).padStart(2, '0')}:${String(cursor % 60).padStart(2, '0')}`,
+          minutes: endMin - cursor,
+        })
       }
     } else {
       for (const a of dayAppts) slots.push({ kind: 'appt', a })
@@ -620,7 +646,10 @@ export default function EmployeeDetailPage({ selfEarnings = false }: { selfEarni
               }
               const a = sl.a
               const st = new Date(a.scheduled_at).getTime()
-              const live = (a.status === 'bekliyor' || a.status === 'onaylandi') && st <= nowMsDay && nowMsDay < st + (a.duration_minutes ?? 30) * 60000
+              const live =
+                (a.status === 'bekliyor' || a.status === 'onaylandi') &&
+                st <= nowMsDay &&
+                nowMsDay < st + (a.duration_minutes ?? 30) * 60000
               const done = a.status === 'tamamlandi' || a.status === 'gelmedi'
               const svc = services.find((s) => s.id === a.service_id)?.name ?? 'Hizmet'
               return (
@@ -630,19 +659,36 @@ export default function EmployeeDetailPage({ selfEarnings = false }: { selfEarni
                   </span>
                   <button
                     type="button"
-                    className={live ? `${styles.slotCard} ${styles.slotCardLive}` : done ? `${styles.slotCard} ${styles.slotCardDone}` : styles.slotCard}
+                    className={
+                      live
+                        ? `${styles.slotCard} ${styles.slotCardLive}`
+                        : done
+                          ? `${styles.slotCard} ${styles.slotCardDone}`
+                          : styles.slotCard
+                    }
                     onClick={() => navigate(`/randevular?tarih=${dayKey}`)}
                   >
                     <span className={styles.slotText}>
                       <span className={styles.slotName}>{weekCustomerNames.get(a.customer_id ?? '') ?? 'Müşteri'}</span>
                       <span className={styles.slotSub}>
-                        {svc} · {live ? 'şu an' : done ? (a.status === 'gelmedi' ? 'gelmedi' : 'tamamlandı') : `${a.duration_minutes ?? 30} dk`}
+                        {svc} ·{' '}
+                        {live
+                          ? 'şu an'
+                          : done
+                            ? a.status === 'gelmedi'
+                              ? 'gelmedi'
+                              : 'tamamlandı'
+                            : `${a.duration_minutes ?? 30} dk`}
                       </span>
                     </span>
                     {live ? (
                       <span className={styles.slotLivePill}>Devam ediyor</span>
                     ) : (
-                      <span className={a.status === 'tamamlandi' ? `${styles.slotPrice} ${styles.slotPriceOk}` : styles.slotPrice}>
+                      <span
+                        className={
+                          a.status === 'tamamlandi' ? `${styles.slotPrice} ${styles.slotPriceOk}` : styles.slotPrice
+                        }
+                      >
                         {currency.format(priceOf(a))}
                       </span>
                     )}
@@ -699,7 +745,12 @@ export default function EmployeeDetailPage({ selfEarnings = false }: { selfEarni
               {copyMenuOpen && (
                 <div className={styles.copyMenu}>
                   {otherEmployees.map((o) => (
-                    <button key={o.id} type="button" className={styles.copyMenuItem} onClick={() => copyServicesFrom(o.id)}>
+                    <button
+                      key={o.id}
+                      type="button"
+                      className={styles.copyMenuItem}
+                      onClick={() => copyServicesFrom(o.id)}
+                    >
                       {o.full_name ?? '—'}
                     </button>
                   ))}
@@ -718,7 +769,9 @@ export default function EmployeeDetailPage({ selfEarnings = false }: { selfEarni
               <button
                 type="button"
                 className={styles.listHeadLink}
-                onClick={() => (assignedServices.length === services.length ? setAllServices(false) : setAllServices(true))}
+                onClick={() =>
+                  assignedServices.length === services.length ? setAllServices(false) : setAllServices(true)
+                }
               >
                 {assignedServices.length === services.length ? 'Hiçbirini seçme' : 'Hepsini seç'}
               </button>
@@ -735,7 +788,9 @@ export default function EmployeeDetailPage({ selfEarnings = false }: { selfEarni
                     aria-pressed={active}
                   >
                     <span className={active ? styles.checkBoxOn : styles.checkBox}>{active && <CheckIcon />}</span>
-                    <span className={active ? styles.checkLabel : `${styles.checkLabel} ${styles.checkLabelOff}`}>{s.name}</span>
+                    <span className={active ? styles.checkLabel : `${styles.checkLabel} ${styles.checkLabelOff}`}>
+                      {s.name}
+                    </span>
                     <span className={styles.checkMeta}>
                       {s.duration_minutes} dk{s.price != null ? ` · ${currency.format(s.price)}` : ''}
                     </span>
@@ -785,12 +840,19 @@ export default function EmployeeDetailPage({ selfEarnings = false }: { selfEarni
     return (
       <div className={styles.wrap}>
         <div className={styles.subHead}>
-          <button type="button" className={styles.backBtn} onClick={() => (selfEarnings ? navigate('/daha-fazla') : setSection('ana'))} aria-label="Geri">
+          <button
+            type="button"
+            className={styles.backBtn}
+            onClick={() => (selfEarnings ? navigate('/daha-fazla') : setSection('ana'))}
+            aria-label="Geri"
+          >
             <ChevronRightIcon width={16} height={16} className={styles.backIcon} />
           </button>
           <div className={styles.subHeadText}>
             <span className={styles.subHeadTitle}>{firstName} · Kazanç</span>
-            <span className={styles.subHeadName}>{monthLabel.charAt(0).toLocaleUpperCase('tr') + monthLabel.slice(1)}</span>
+            <span className={styles.subHeadName}>
+              {monthLabel.charAt(0).toLocaleUpperCase('tr') + monthLabel.slice(1)}
+            </span>
           </div>
         </div>
 
@@ -815,13 +877,20 @@ export default function EmployeeDetailPage({ selfEarnings = false }: { selfEarni
               </span>
               <span className={styles.earnBoxValue}>{currency.format(payout ? payout.amount : primAmount)}</span>
               {payout && primAmount - payout.amount >= 1 && (
-                <span className={styles.earnBoxLabel}>Sonradan {currency.format(primAmount - payout.amount)} daha birikti</span>
+                <span className={styles.earnBoxLabel}>
+                  Sonradan {currency.format(primAmount - payout.amount)} daha birikti
+                </span>
               )}
             </span>
             {can('kasa') &&
               (payout ? (
                 primAmount - payout.amount >= 1 ? (
-                  <button type="button" className={styles.payoutBtn} onClick={() => markPayout(primAmount)} disabled={payoutBusy}>
+                  <button
+                    type="button"
+                    className={styles.payoutBtn}
+                    onClick={() => markPayout(primAmount)}
+                    disabled={payoutBusy}
+                  >
                     Farkı da öde
                   </button>
                 ) : (
@@ -831,7 +900,12 @@ export default function EmployeeDetailPage({ selfEarnings = false }: { selfEarni
                 )
               ) : (
                 primAmount > 0 && (
-                  <button type="button" className={styles.payoutBtn} onClick={() => markPayout(primAmount)} disabled={payoutBusy}>
+                  <button
+                    type="button"
+                    className={styles.payoutBtn}
+                    onClick={() => markPayout(primAmount)}
+                    disabled={payoutBusy}
+                  >
                     {payoutBusy ? '…' : 'Ödendi yap'}
                   </button>
                 )
@@ -847,7 +921,9 @@ export default function EmployeeDetailPage({ selfEarnings = false }: { selfEarni
           <div className={styles.barGrid}>
             {weeks.map((w) => (
               <div className={styles.barCol} key={w.label}>
-                <span className={w.current ? `${styles.barValue} ${styles.barValueDim}` : styles.barValue}>{thousands(w.total)}</span>
+                <span className={w.current ? `${styles.barValue} ${styles.barValueDim}` : styles.barValue}>
+                  {thousands(w.total)}
+                </span>
                 <span
                   className={w.current ? `${styles.bar} ${styles.barCurrent}` : styles.bar}
                   style={{ height: `${Math.max(4, (w.total / weekMax) * 70)}px` }}
@@ -894,7 +970,12 @@ export default function EmployeeDetailPage({ selfEarnings = false }: { selfEarni
         <div className={styles.formCard}>
           <div className="field">
             <label htmlFor="empName">Ad soyad</label>
-            <input id="empName" value={nameDraft} onChange={(e) => setNameDraft(e.target.value)} placeholder="Ad soyad" />
+            <input
+              id="empName"
+              value={nameDraft}
+              onChange={(e) => setNameDraft(e.target.value)}
+              placeholder="Ad soyad"
+            />
           </div>
           <div className="field">
             <label htmlFor="empPhone">Telefon</label>
@@ -945,7 +1026,12 @@ export default function EmployeeDetailPage({ selfEarnings = false }: { selfEarni
                 <span className={styles.navSub}>Müşteri online sayfadan bu kişiyi seçebilir</span>
               </span>
               <span className={styles.switch}>
-                <input type="checkbox" checked={onlineDraft} onChange={() => setOnlineDraft((v) => !v)} disabled={permSaving} />
+                <input
+                  type="checkbox"
+                  checked={onlineDraft}
+                  onChange={() => setOnlineDraft((v) => !v)}
+                  disabled={permSaving}
+                />
                 <span className={styles.switchTrack} />
               </span>
             </label>
@@ -958,9 +1044,7 @@ export default function EmployeeDetailPage({ selfEarnings = false }: { selfEarni
 
         <div className={styles.formCard}>
           <span className={styles.formTitle}>Uygulamaya giriş</span>
-          <p className={`${styles.hint} ${styles.hintLeft}`}>
-            Değiştirmek istemediğin alanı boş bırak.
-          </p>
+          <p className={`${styles.hint} ${styles.hintLeft}`}>Değiştirmek istemediğin alanı boş bırak.</p>
           <div className="field">
             <label htmlFor="empEmail">Yeni e-posta</label>
             <input
@@ -1054,7 +1138,11 @@ export default function EmployeeDetailPage({ selfEarnings = false }: { selfEarni
 
   const currentAppt = todaysAppts.find((a) => {
     const s = new Date(a.scheduled_at).getTime()
-    return (a.status === 'bekliyor' || a.status === 'onaylandi') && s <= nowMs && nowMs < s + (a.duration_minutes ?? 30) * 60000
+    return (
+      (a.status === 'bekliyor' || a.status === 'onaylandi') &&
+      s <= nowMs &&
+      nowMs < s + (a.duration_minutes ?? 30) * 60000
+    )
   })
   const nowTitle =
     status === 'pasif'
@@ -1126,7 +1214,12 @@ export default function EmployeeDetailPage({ selfEarnings = false }: { selfEarni
           <span className={styles.heroAvatar}>{name.trim().charAt(0).toLocaleUpperCase('tr')}</span>
           <span className={styles.heroName}>{name}</span>
           <span className={styles.heroSub}>
-            {assignedServices.length > 0 ? assignedServices.slice(0, 2).map((s) => s.name).join(', ') : roleLabel(employee.role)}
+            {assignedServices.length > 0
+              ? assignedServices
+                  .slice(0, 2)
+                  .map((s) => s.name)
+                  .join(', ')
+              : roleLabel(employee.role)}
             {employee.whatsapp_phone ? ` · ${employee.whatsapp_phone}` : ''}
           </span>
         </div>
@@ -1153,11 +1246,7 @@ export default function EmployeeDetailPage({ selfEarnings = false }: { selfEarni
             <span className={styles.nowMain}>{nowTitle}</span>
             <span className={styles.nowSub}>{nowSub}</span>
           </span>
-          <button
-            type="button"
-            className="hdr-link"
-            onClick={() => navigate(`/randevular?tarih=${today}`)}
-          >
+          <button type="button" className="hdr-link" onClick={() => navigate(`/randevular?tarih=${today}`)}>
             Takvim ›
           </button>
         </div>
@@ -1241,7 +1330,17 @@ export default function EmployeeDetailPage({ selfEarnings = false }: { selfEarni
 
 function CheckIcon() {
   return (
-    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+    <svg
+      width="14"
+      height="14"
+      viewBox="0 0 24 24"
+      fill="none"
+      stroke="currentColor"
+      strokeWidth="3"
+      strokeLinecap="round"
+      strokeLinejoin="round"
+      aria-hidden="true"
+    >
       <path d="M5 12.5l4.5 4.5L19 7.5" />
     </svg>
   )

@@ -1,4 +1,4 @@
-import type { CapacitorConfig } from '@capacitor/cli';
+import type { CapacitorConfig } from '@capacitor/cli'
 
 const config: CapacitorConfig = {
   appId: 'com.adapptiv.panel',
@@ -24,6 +24,6 @@ const config: CapacitorConfig = {
   //   url: 'http://<bilgisayarinin-yerel-ip-adresi>:5173',
   //   cleartext: true,
   // },
-};
+}
 
-export default config;
+export default config

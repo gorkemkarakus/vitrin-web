@@ -257,8 +257,10 @@ export class PdfReport {
       doc.text(row.value, x + w - 7, ry, { align: 'right' })
     })
     if (opts.badge) {
-      const fill = opts.badge.tone === 'ok' ? pdfColors.okBg : opts.badge.tone === 'warn' ? pdfColors.warnBg : pdfColors.dangerBg
-      const ink = opts.badge.tone === 'ok' ? pdfColors.ok : opts.badge.tone === 'warn' ? pdfColors.warn : pdfColors.danger
+      const fill =
+        opts.badge.tone === 'ok' ? pdfColors.okBg : opts.badge.tone === 'warn' ? pdfColors.warnBg : pdfColors.dangerBg
+      const ink =
+        opts.badge.tone === 'ok' ? pdfColors.ok : opts.badge.tone === 'warn' ? pdfColors.warn : pdfColors.danger
       doc.setFont('Inter', 'bold')
       doc.setFontSize(8)
       const tw = doc.getTextWidth(opts.badge.text) + 7

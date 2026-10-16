@@ -113,7 +113,11 @@ export async function generateAccountingReportPdf(params: {
     { label: 'Toplam ciro', value: currency.format(waterfall.totalRevenue) },
     { label: `- Vergi (%${waterfall.taxPct})`, value: `-${currency.format(waterfall.taxAmount)}`, negative: true },
     { label: 'Vergi sonrası kalan', value: currency.format(waterfall.afterTax), strong: true },
-    { label: `- Çalışan primi (%${waterfall.commissionPct})`, value: `-${currency.format(waterfall.commissionAmount)}`, negative: true },
+    {
+      label: `- Çalışan primi (%${waterfall.commissionPct})`,
+      value: `-${currency.format(waterfall.commissionAmount)}`,
+      negative: true,
+    },
     { label: 'Prim sonrası kalan', value: currency.format(waterfall.afterCommission), strong: true },
   ])
   await yieldToUI()

@@ -278,15 +278,21 @@ export default function HolidaysPage() {
   return (
     <div className={styles.wrap}>
       <PageHeader back="/ekip" title="Tatiller" />
-      <span className={styles.intro}>
-        Hangi günlerde salon kapalı? Açık bıraktıkların normal gün gibi çalışır.
-      </span>
+      <span className={styles.intro}>Hangi günlerde salon kapalı? Açık bıraktıkların normal gün gibi çalışır.</span>
 
       <div className={styles.segmented}>
-        <button type="button" className={tab === 'resmi' ? styles.segmentActive : styles.segment} onClick={() => setTab('resmi')}>
+        <button
+          type="button"
+          className={tab === 'resmi' ? styles.segmentActive : styles.segment}
+          onClick={() => setTab('resmi')}
+        >
           Resmi tatiller
         </button>
-        <button type="button" className={tab === 'kendi' ? styles.segmentActive : styles.segment} onClick={() => setTab('kendi')}>
+        <button
+          type="button"
+          className={tab === 'kendi' ? styles.segmentActive : styles.segment}
+          onClick={() => setTab('kendi')}
+        >
           Kendi eklediklerim{others.length > 0 ? ` · ${others.length}` : ''}
         </button>
       </div>
@@ -310,7 +316,9 @@ export default function HolidaysPage() {
                     type="checkbox"
                     checked={!!existing}
                     disabled={busyKey !== null}
-                    onChange={() => (existing ? removeHoliday(existing) : requestHoliday({ date: f.date, endDate: f.date }))}
+                    onChange={() =>
+                      existing ? removeHoliday(existing) : requestHoliday({ date: f.date, endDate: f.date })
+                    }
                     aria-label={`${f.name} günü kapalı`}
                   />
                   <span className={styles.switchTrack} />
@@ -323,13 +331,16 @@ export default function HolidaysPage() {
         <>
           {others.length === 0 ? (
             <p className={styles.empty}>
-              Ramazan ve Kurban bayramı gibi tarihi her yıl değişen günleri buradan ekle; istersen arife gününü yarım gün yap.
+              Ramazan ve Kurban bayramı gibi tarihi her yıl değişen günleri buradan ekle; istersen arife gününü yarım
+              gün yap.
             </p>
           ) : (
             <div className={styles.listCard}>
               {others.map((h) => {
                 const days =
-                  Math.round((new Date(`${h.endDate}T00:00:00`).getTime() - new Date(`${h.date}T00:00:00`).getTime()) / 86400000) + 1
+                  Math.round(
+                    (new Date(`${h.endDate}T00:00:00`).getTime() - new Date(`${h.date}T00:00:00`).getTime()) / 86400000,
+                  ) + 1
                 const biz = bizHolidays.find((b) => b.start_date === h.date && b.end_date === h.endDate)
                 return (
                   <div className={styles.row} key={`${h.date}|${h.endDate}`}>
@@ -341,7 +352,8 @@ export default function HolidaysPage() {
                           : longDate(h.date)}
                       </span>
                       <span className={styles.rowMeta}>
-                        {new Date(`${h.date}T00:00:00`).toLocaleDateString('tr-TR', { month: 'long', year: 'numeric' })} · {days} gün
+                        {new Date(`${h.date}T00:00:00`).toLocaleDateString('tr-TR', { month: 'long', year: 'numeric' })}{' '}
+                        · {days} gün
                         {biz?.eve_closes_at ? ` · arife ${biz.eve_closes_at.slice(0, 5)}’te kapanır` : ''}
                       </span>
                     </span>
@@ -397,7 +409,11 @@ export default function HolidaysPage() {
               ))}
             </div>
             <div className={styles.segmented}>
-              <button type="button" className={mode === 'day' ? styles.segmentActive : styles.segment} onClick={() => setMode('day')}>
+              <button
+                type="button"
+                className={mode === 'day' ? styles.segmentActive : styles.segment}
+                onClick={() => setMode('day')}
+              >
                 Tek gün
               </button>
               <button
@@ -445,7 +461,12 @@ export default function HolidaysPage() {
                 />
               )}
               <label className={styles.switch}>
-                <input type="checkbox" checked={eveOn} onChange={() => setEveOn((v) => !v)} aria-label="Arife günü yarım gün" />
+                <input
+                  type="checkbox"
+                  checked={eveOn}
+                  onChange={() => setEveOn((v) => !v)}
+                  aria-label="Arife günü yarım gün"
+                />
                 <span className={styles.switchTrack} />
               </label>
             </div>

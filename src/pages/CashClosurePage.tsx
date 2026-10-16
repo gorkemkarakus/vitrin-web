@@ -39,9 +39,19 @@ export default function CashClosurePage() {
       const [s, { data: own }, { data: prev }, { data: hist }, { data: biz }, { data: profs }] = await Promise.all([
         loadDaySummary(date),
         supabase.from('cash_closures').select('*').eq('closure_date', date).maybeSingle(),
-        supabase.from('cash_closures').select('counted_cash').lt('closure_date', date).order('closure_date', { ascending: false }).limit(1).maybeSingle(),
+        supabase
+          .from('cash_closures')
+          .select('counted_cash')
+          .lt('closure_date', date)
+          .order('closure_date', { ascending: false })
+          .limit(1)
+          .maybeSingle(),
         supabase.from('cash_closures').select('*').order('closure_date', { ascending: false }).limit(10),
-        supabase.from('businesses').select('name').eq('id', profile?.business_id ?? '').maybeSingle(),
+        supabase
+          .from('businesses')
+          .select('name')
+          .eq('id', profile?.business_id ?? '')
+          .maybeSingle(),
         supabase.from('profiles').select('id, full_name'),
       ])
       if (cancelled) return
@@ -105,7 +115,11 @@ export default function CashClosurePage() {
       return
     }
     setClosure(data)
-    setHistory((h) => [data, ...h.filter((x) => x.closure_date !== data.closure_date)].sort((a, b) => b.closure_date.localeCompare(a.closure_date)))
+    setHistory((h) =>
+      [data, ...h.filter((x) => x.closure_date !== data.closure_date)].sort((a, b) =>
+        b.closure_date.localeCompare(a.closure_date),
+      ),
+    )
   }
 
   async function downloadPdf() {
@@ -144,7 +158,10 @@ export default function CashClosurePage() {
         sub={longDate(date)}
         action={
           <label className={styles.dateBtn}>
-            {isToday ? 'Bugün' : new Date(`${date}T00:00:00`).toLocaleDateString('tr-TR', { day: 'numeric', month: 'short' })} ▾
+            {isToday
+              ? 'Bugün'
+              : new Date(`${date}T00:00:00`).toLocaleDateString('tr-TR', { day: 'numeric', month: 'short' })}{' '}
+            ▾
             <input
               type="date"
               value={date}
@@ -180,7 +197,9 @@ export default function CashClosurePage() {
             <div className={styles.methodGrid}>
               {(['nakit', 'kart', 'havale', 'diger'] as const).map((m) => (
                 <span className={styles.methodItem} key={m}>
-                  <span className={styles.methodValue}>{currencyWhole.format(summary.byMethod[m] + (m === 'diger' ? summary.byMethod.bakiye : 0))}</span>
+                  <span className={styles.methodValue}>
+                    {currencyWhole.format(summary.byMethod[m] + (m === 'diger' ? summary.byMethod.bakiye : 0))}
+                  </span>
                   <span className={styles.methodLabel}>{METHOD_LABEL[m]}</span>
                 </span>
               ))}
@@ -218,7 +237,14 @@ export default function CashClosurePage() {
               <label htmlFor="opening">Açılış kasası</label>
               <span className={styles.moneyInput}>
                 ₺
-                <input id="opening" type="number" inputMode="decimal" min={0} value={opening} onChange={(e) => setOpening(e.target.value)} />
+                <input
+                  id="opening"
+                  type="number"
+                  inputMode="decimal"
+                  min={0}
+                  value={opening}
+                  onChange={(e) => setOpening(e.target.value)}
+                />
               </span>
             </div>
             <div className={styles.countRow}>
@@ -227,7 +253,9 @@ export default function CashClosurePage() {
             </div>
             <div className={styles.countRow}>
               <span>− Nakitle ödenen gider</span>
-              <b className={summary.cashExpense > 0 ? styles.textBad : undefined}>{currency.format(summary.cashExpense)}</b>
+              <b className={summary.cashExpense > 0 ? styles.textBad : undefined}>
+                {currency.format(summary.cashExpense)}
+              </b>
             </div>
             <div className={`${styles.countRow} ${styles.countStrong}`}>
               <span>Kasada olması gereken</span>
@@ -304,7 +332,11 @@ export default function CashClosurePage() {
                 >
                   <span className={styles.payText}>
                     <span className={styles.payName}>
-                      {new Date(`${h.closure_date}T00:00:00`).toLocaleDateString('tr-TR', { day: 'numeric', month: 'long', weekday: 'short' })}
+                      {new Date(`${h.closure_date}T00:00:00`).toLocaleDateString('tr-TR', {
+                        day: 'numeric',
+                        month: 'long',
+                        weekday: 'short',
+                      })}
                     </span>
                     <span className={styles.payMeta}>Sayılan {currency.format(Number(h.counted_cash))}</span>
                   </span>
@@ -322,7 +354,12 @@ export default function CashClosurePage() {
                 {pdfBusy ? 'Hazırlanıyor…' : 'PDF indir'}
               </button>
             )}
-            <button type="button" className={styles.footerBtn} onClick={saveClosure} disabled={saving || countedNum === null}>
+            <button
+              type="button"
+              className={styles.footerBtn}
+              onClick={saveClosure}
+              disabled={saving || countedNum === null}
+            >
               {saving ? 'Kaydediliyor…' : closure ? 'Güncelle' : 'Günü kapat'}
             </button>
           </div>

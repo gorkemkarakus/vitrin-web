@@ -135,20 +135,46 @@ export default function DashboardPage() {
 
   useEffect(() => {
     async function load() {
-      const [{ data: appts }, { data: svcs }, { data: profs }, { data: custs }, { data: exps }, { data: pkgs }, { data: pays }] =
-        await Promise.all([
-          fetchAll(() => supabase
+      const [
+        { data: appts },
+        { data: svcs },
+        { data: profs },
+        { data: custs },
+        { data: exps },
+        { data: pkgs },
+        { data: pays },
+      ] = await Promise.all([
+        fetchAll(() =>
+          supabase
             .from('appointments')
             .select(
               'id, customer_id, service_id, employee_id, created_by_user_id, status, source, scheduled_at, duration_minutes, package_id, price_override',
-            ).order('id')),
-          supabase.from('services').select('id, name, price'),
-          supabase.from('profiles').select('id, full_name'),
-          fetchAll(() => supabase.from('customers').select('id, full_name, phone, contact_phone').order('id')),
-          fetchAll(() => supabase.from('business_expenses').select('id, description, amount, expense_date, due_date, is_paid').order('id')),
-          fetchAll(() => supabase.from('service_packages').select('id, customer_id, service_id, total_sessions, session_offset').order('id')),
-          fetchAll(() => supabase.from('payments').select('id, customer_id, amount, appointment_id, package_id, paid_at').is('voided_at', null).order('id')),
-        ])
+            )
+            .order('id'),
+        ),
+        supabase.from('services').select('id, name, price'),
+        supabase.from('profiles').select('id, full_name'),
+        fetchAll(() => supabase.from('customers').select('id, full_name, phone, contact_phone').order('id')),
+        fetchAll(() =>
+          supabase
+            .from('business_expenses')
+            .select('id, description, amount, expense_date, due_date, is_paid')
+            .order('id'),
+        ),
+        fetchAll(() =>
+          supabase
+            .from('service_packages')
+            .select('id, customer_id, service_id, total_sessions, session_offset')
+            .order('id'),
+        ),
+        fetchAll(() =>
+          supabase
+            .from('payments')
+            .select('id, customer_id, amount, appointment_id, package_id, paid_at')
+            .is('voided_at', null)
+            .order('id'),
+        ),
+      ])
       setAppointments(appts ?? [])
       setServices(svcs ?? [])
       setProfiles(profs ?? [])
@@ -245,14 +271,16 @@ export default function DashboardPage() {
     const expected = knownSessionsTotal + remainingSessionsEstimate
     const paid = payments.filter((p) => p.package_id === pkg.id).reduce((sum, p) => sum + p.amount, 0)
     const remaining = Math.max(0, expected - paid)
-    if (remaining > 0) debtByCustomerInRange.set(pkg.customer_id, (debtByCustomerInRange.get(pkg.customer_id) ?? 0) + remaining)
+    if (remaining > 0)
+      debtByCustomerInRange.set(pkg.customer_id, (debtByCustomerInRange.get(pkg.customer_id) ?? 0) + remaining)
   }
   for (const a of rangedCompleted) {
     if (a.package_id || !a.customer_id) continue
     const expected = a.price_override ?? (a.service_id ? (servicePriceById.get(a.service_id) ?? 0) : 0)
     const paid = payments.filter((p) => p.appointment_id === a.id).reduce((sum, p) => sum + p.amount, 0)
     const remaining = Math.max(0, expected - paid)
-    if (remaining > 0) debtByCustomerInRange.set(a.customer_id, (debtByCustomerInRange.get(a.customer_id) ?? 0) + remaining)
+    if (remaining > 0)
+      debtByCustomerInRange.set(a.customer_id, (debtByCustomerInRange.get(a.customer_id) ?? 0) + remaining)
   }
   const totalDebtInRange = Array.from(debtByCustomerInRange.values()).reduce((sum, v) => sum + v, 0)
   const topDebtors = Array.from(debtByCustomerInRange.entries())
@@ -384,7 +412,12 @@ export default function DashboardPage() {
           <div className={`card ${styles.customRangeRow}`}>
             <div className="field field-flush">
               <label htmlFor="homeRangeStart">Başlangıç</label>
-              <input id="homeRangeStart" type="date" value={customStart} onChange={(e) => setCustomStart(e.target.value)} />
+              <input
+                id="homeRangeStart"
+                type="date"
+                value={customStart}
+                onChange={(e) => setCustomStart(e.target.value)}
+              />
             </div>
             <div className="field field-flush">
               <label htmlFor="homeRangeEnd">Bitiş</label>
@@ -441,7 +474,9 @@ export default function DashboardPage() {
             <div className={styles.nextText}>
               <span className={styles.nextName}>Bugün sırada randevu yok</span>
               <span className={styles.nextSub}>
-                {todaysAppointments.length > 0 ? 'Bugünün randevuları tamamlandı.' : 'Bugün için kayıtlı randevu bulunmuyor.'}
+                {todaysAppointments.length > 0
+                  ? 'Bugünün randevuları tamamlandı.'
+                  : 'Bugün için kayıtlı randevu bulunmuyor.'}
               </span>
             </div>
             <button type="button" className={styles.nextBtnPrimary} onClick={() => navigate('/randevular?yeni=1')}>
@@ -469,7 +504,11 @@ export default function DashboardPage() {
           <div className={styles.block}>
             <div className={styles.blockHead}>
               <h2>Sonrası</h2>
-              <button type="button" className={styles.blockLink} onClick={() => navigate(`/randevular?tarih=${todayStr}`)}>
+              <button
+                type="button"
+                className={styles.blockLink}
+                onClick={() => navigate(`/randevular?tarih=${todayStr}`)}
+              >
                 Takvim
               </button>
             </div>
@@ -483,7 +522,9 @@ export default function DashboardPage() {
                 >
                   <span className={styles.laterTime}>{timeOf(a.scheduled_at)}</span>
                   <span className={styles.laterName}>{customerNameById.get(a.customer_id ?? '') ?? 'Müşteri'}</span>
-                  <span className={styles.laterService}>{a.service_id ? (serviceNameById.get(a.service_id) ?? '—') : '—'}</span>
+                  <span className={styles.laterService}>
+                    {a.service_id ? (serviceNameById.get(a.service_id) ?? '—') : '—'}
+                  </span>
                 </button>
               ))}
             </div>
@@ -543,7 +584,11 @@ export default function DashboardPage() {
               })}
             </div>
           )}
-          <button type="button" className={`btn-secondary ${styles.addPaymentBtn}`} onClick={() => navigate('/giderler?yeni=1')}>
+          <button
+            type="button"
+            className={`btn-secondary ${styles.addPaymentBtn}`}
+            onClick={() => navigate('/giderler?yeni=1')}
+          >
             Ödeme ekle
           </button>
         </div>

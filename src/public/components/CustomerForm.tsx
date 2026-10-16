@@ -59,7 +59,13 @@ export default function CustomerForm({
 
         <div className="field">
           <label htmlFor="pbName">Ad Soyad</label>
-          <input id="pbName" value={name} onChange={(e) => setName(e.target.value)} placeholder="Örn. Selin Yılmaz" required />
+          <input
+            id="pbName"
+            value={name}
+            onChange={(e) => setName(e.target.value)}
+            placeholder="Örn. Selin Yılmaz"
+            required
+          />
         </div>
         <div className="field">
           <label htmlFor="pbPhone">Telefon Numarası</label>

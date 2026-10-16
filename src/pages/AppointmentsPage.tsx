@@ -417,21 +417,27 @@ export default function AppointmentsPage() {
       { data: scheds },
       { data: blocks },
     ] = await Promise.all([
-      fetchAll(() => supabase
-        .from('appointments')
-        .select(
-          'id, customer_id, service_id, employee_id, created_by_user_id, scheduled_at, duration_minutes, status, source, source_note, notes, package_id, price_override, created_at, reminder_sent_at',
-        )
-        .gte('scheduled_at', windowStart.toISOString())
-        .lte('scheduled_at', windowEnd.toISOString())
-        .order('scheduled_at', { ascending: true }).order('id')),
-      fetchAll(() => supabase.from('customers').select('id, full_name, phone, contact_phone, notes').order('full_name').order('id')),
-      fetchAll(() => supabase.from('service_packages').select('id, customer_id, service_id, total_sessions, session_offset, status').order('id')),
-      supabase
-        .from('services')
-        .select('*')
-        .eq('is_active', true)
-        .order('name'),
+      fetchAll(() =>
+        supabase
+          .from('appointments')
+          .select(
+            'id, customer_id, service_id, employee_id, created_by_user_id, scheduled_at, duration_minutes, status, source, source_note, notes, package_id, price_override, created_at, reminder_sent_at',
+          )
+          .gte('scheduled_at', windowStart.toISOString())
+          .lte('scheduled_at', windowEnd.toISOString())
+          .order('scheduled_at', { ascending: true })
+          .order('id'),
+      ),
+      fetchAll(() =>
+        supabase.from('customers').select('id, full_name, phone, contact_phone, notes').order('full_name').order('id'),
+      ),
+      fetchAll(() =>
+        supabase
+          .from('service_packages')
+          .select('id, customer_id, service_id, total_sessions, session_offset, status')
+          .order('id'),
+      ),
+      supabase.from('services').select('*').eq('is_active', true).order('name'),
       supabase.from('profiles').select('id, full_name'),
       supabase.from('employee_services').select('profile_id, service_id'),
       supabase.from('employee_schedules').select('profile_id, day_of_week, starts_at, ends_at'),
@@ -633,7 +639,8 @@ export default function AppointmentsPage() {
 
     const end = new Date(start.getTime() + durationMinutes * 60000)
     const hasConflict = appointments.some((a) => {
-      if (a.employee_id !== employeeId || a.status === 'iptal' || a.status === 'gelmedi' || a.id === excludeApptId) return false
+      if (a.employee_id !== employeeId || a.status === 'iptal' || a.status === 'gelmedi' || a.id === excludeApptId)
+        return false
       const aStart = new Date(a.scheduled_at)
       const aEnd = new Date(aStart.getTime() + (a.duration_minutes ?? SLOT_MINUTES) * 60000)
       return aStart < end && aEnd > start
@@ -696,7 +703,8 @@ export default function AppointmentsPage() {
         const open = isDayOpenForCandidates(key, formCandidateIds)
         const free =
           selectedService && open
-            ? buildTimeOptions(key, formCandidateIds, formDuration).filter((o) => !('disabled' in o && o.disabled)).length
+            ? buildTimeOptions(key, formCandidateIds, formDuration).filter((o) => !('disabled' in o && o.disabled))
+                .length
             : null
         const isToday = formWeekOffset === 0 && i === 0
         return { key, weekday: isToday ? 'Bugün' : DAY_SHORT[d.getDay()], day: d.getDate(), open, free }
@@ -757,7 +765,10 @@ export default function AppointmentsPage() {
         setError('Bu saatte bu hizmet için uygun çalışan yok. Başka bir saat deneyin.')
         return
       }
-      const ranked = rankEligibleByFairness(candidates.map((p) => p.id), appointments)
+      const ranked = rankEligibleByFairness(
+        candidates.map((p) => p.id),
+        appointments,
+      )
       finalEmployeeId = ranked[0]
     }
 
@@ -908,13 +919,21 @@ export default function AppointmentsPage() {
         .from('appointments')
         .select('id, customer_id, service_id, status, scheduled_at, package_id, price_override')
         .eq('customer_id', cid),
-      supabase.from('service_packages').select('id, customer_id, service_id, total_sessions, session_offset').eq('customer_id', cid),
-      supabase.from('payments').select('customer_id, amount, appointment_id, package_id').eq('customer_id', cid).is('voided_at', null),
+      supabase
+        .from('service_packages')
+        .select('id, customer_id, service_id, total_sessions, session_offset')
+        .eq('customer_id', cid),
+      supabase
+        .from('payments')
+        .select('customer_id, amount, appointment_id, package_id')
+        .eq('customer_id', cid)
+        .is('voided_at', null),
       supabase.from('services').select('id, price'),
     ])
     const priceById = new Map((svcs ?? []).map((x) => [x.id as string, Number(x.price ?? 0)]))
     const items = computeDebtItems(pkgs ?? [], apps ?? [], pays ?? [], priceById).filter(
-      (it) => !(it.kind === 'appointment' && it.id === appt.id) && !(it.kind === 'package' && it.id === appt.package_id),
+      (it) =>
+        !(it.kind === 'appointment' && it.id === appt.id) && !(it.kind === 'package' && it.id === appt.package_id),
     )
     setOldDebtItems(items)
   }
@@ -931,7 +950,8 @@ export default function AppointmentsPage() {
       const perSession = Math.round((svc.package_price / svc.package_sessions) * 100) / 100
       setCompletePackageTotalSessions(String(svc.package_sessions))
       setCompletePriceOverride(String(perSession))
-      if (completePayMode === 'full') setCompletePaymentAmount(String(Math.round(perSession * svc.package_sessions * 100) / 100))
+      if (completePayMode === 'full')
+        setCompletePaymentAmount(String(Math.round(perSession * svc.package_sessions * 100) / 100))
       return
     }
     const single = completingAppt.price_override ?? svc?.price ?? 0
@@ -1007,8 +1027,13 @@ export default function AppointmentsPage() {
       // Yeni randevu formundaki musaitlik kontrolu (mesai, izin, cakisma)
       // takip randevusu icin de gecerli. Basarisizsa hicbir sey kaydedilmez
       // (randevu tamamlanmaz), pencere acik kalir.
-      if (completingAppt.employee_id && !isEmployeeAvailable(completingAppt.employee_id, followupStart, followupDuration)) {
-        setCompleteError('Seçilen çalışan bu saatte müsait değil (mesai dışı, izinli veya dolu). Farklı bir saat seçin.')
+      if (
+        completingAppt.employee_id &&
+        !isEmployeeAvailable(completingAppt.employee_id, followupStart, followupDuration)
+      ) {
+        setCompleteError(
+          'Seçilen çalışan bu saatte müsait değil (mesai dışı, izinli veya dolu). Farklı bir saat seçin.',
+        )
         return
       }
     }
@@ -1048,7 +1073,8 @@ export default function AppointmentsPage() {
     }
 
     const oldDebtTotal = oldDebtItems.reduce((sum, it) => sum + it.remaining, 0)
-    const oldDebtApplies = canPay && !completeFullyPaid && includeOldDebt && completePayMode !== 'none' && oldDebtTotal > 0
+    const oldDebtApplies =
+      canPay && !completeFullyPaid && includeOldDebt && completePayMode !== 'none' && oldDebtTotal > 0
 
     // 4) Odeme yontemi zorunlu (bir tutar tahsil ediliyorsa).
     if ((entered > 0 || oldDebtApplies) && !completePaymentMethod) {
@@ -1197,8 +1223,7 @@ export default function AppointmentsPage() {
   }
 
   const diffDays = Math.round(
-    (new Date(viewDate + 'T00:00:00').getTime() - new Date(todayLocalDateString() + 'T00:00:00').getTime()) /
-      86400000,
+    (new Date(viewDate + 'T00:00:00').getTime() - new Date(todayLocalDateString() + 'T00:00:00').getTime()) / 86400000,
   )
   const viewWeekday = new Date(viewDate + 'T00:00:00').toLocaleDateString('tr-TR', { weekday: 'long' })
   let dayLabel: string
@@ -1227,9 +1252,7 @@ export default function AppointmentsPage() {
 
   // Hafta seridinde randevusu olan gunlerin altina nokta koymak icin.
   const apptDayKeys = new Set(
-    employeeFiltered
-      .filter((a) => a.status !== 'iptal')
-      .map((a) => toLocalDateString(new Date(a.scheduled_at))),
+    employeeFiltered.filter((a) => a.status !== 'iptal').map((a) => toLocalDateString(new Date(a.scheduled_at))),
   )
 
   // Bugunun henuz bitmemis ilk randevusu — kartinda "Sırada" etiketi ve
@@ -1336,7 +1359,11 @@ export default function AppointmentsPage() {
     }
     groupedByDate = days.map((dateKey) => ({
       dateKey,
-      label: new Date(dateKey + 'T00:00:00').toLocaleDateString('tr-TR', { day: 'numeric', month: 'long', weekday: 'long' }),
+      label: new Date(dateKey + 'T00:00:00').toLocaleDateString('tr-TR', {
+        day: 'numeric',
+        month: 'long',
+        weekday: 'long',
+      }),
       items: byDate.get(dateKey) ?? [],
     }))
     visible = groupedByDate.flatMap((g) => g.items)
@@ -1473,9 +1500,7 @@ export default function AppointmentsPage() {
           if (e.key === 'Enter') openDetail(a)
         }}
       >
-        <div className={styles.apptTime}>
-          {d.toLocaleTimeString('tr-TR', { hour: '2-digit', minute: '2-digit' })}
-        </div>
+        <div className={styles.apptTime}>{d.toLocaleTimeString('tr-TR', { hour: '2-digit', minute: '2-digit' })}</div>
         <div className={styles.apptCustomer}>
           <Avatar name={customerName(a.customer_id)} size={32} />
           <div className={styles.apptCustomerText}>
@@ -1628,9 +1653,7 @@ export default function AppointmentsPage() {
       .join(' ')
     return (
       <div key={a.id} className={styles.timelineRow}>
-        <span className={gutterClass}>
-          {start.toLocaleTimeString('tr-TR', { hour: '2-digit', minute: '2-digit' })}
-        </span>
+        <span className={gutterClass}>{start.toLocaleTimeString('tr-TR', { hour: '2-digit', minute: '2-digit' })}</span>
         {renderTimelineCard(a)}
       </div>
     )
@@ -1833,7 +1856,9 @@ export default function AppointmentsPage() {
                 <input
                   className={styles.custInput}
                   placeholder="Ad ya da telefon yaz"
-                  value={useNewCustomer ? newCustomerName : selectedCustomer ? selectedCustomer.full_name : customerQuery}
+                  value={
+                    useNewCustomer ? newCustomerName : selectedCustomer ? selectedCustomer.full_name : customerQuery
+                  }
                   onFocus={() => setCustomerListOpen(true)}
                   onChange={(e) => {
                     const v = e.target.value
@@ -1847,7 +1872,9 @@ export default function AppointmentsPage() {
                   }}
                 />
                 {selectedCustomer && !useNewCustomer && (
-                  <span className={styles.custPhone}>{selectedCustomer.contact_phone || selectedCustomer.phone || ''}</span>
+                  <span className={styles.custPhone}>
+                    {selectedCustomer.contact_phone || selectedCustomer.phone || ''}
+                  </span>
                 )}
                 {(selectedCustomer || useNewCustomer || customerQuery) && (
                   <button
@@ -1927,7 +1954,11 @@ export default function AppointmentsPage() {
                   </button>
                 ))}
                 {services.length > FORM_SERVICE_LIMIT && (
-                  <button type="button" className={styles.serviceChipMore} onClick={() => setShowAllServices((v) => !v)}>
+                  <button
+                    type="button"
+                    className={styles.serviceChipMore}
+                    onClick={() => setShowAllServices((v) => !v)}
+                  >
                     {showAllServices ? 'Daha az' : 'Tümü'}
                   </button>
                 )}
@@ -2010,11 +2041,7 @@ export default function AppointmentsPage() {
                   >
                     <span className={styles.formDayName}>{d.weekday}</span>
                     <span className={styles.formDayNum}>{d.day}</span>
-                    <span
-                      className={
-                        !d.open || d.free === 0 ? styles.formDayStateMuted : styles.formDayState
-                      }
-                    >
+                    <span className={!d.open || d.free === 0 ? styles.formDayStateMuted : styles.formDayState}>
                       {!d.open ? 'kapalı' : d.free === null ? '' : d.free === 0 ? 'dolu' : `${d.free} boş`}
                     </span>
                   </button>
@@ -2027,7 +2054,11 @@ export default function AppointmentsPage() {
               <div className={styles.fRowHead}>
                 <span className={styles.fLabel}>Saat</span>
                 <span className={styles.fHint}>
-                  {new Date(`${apptDate}T00:00:00`).toLocaleDateString('tr-TR', { weekday: 'long', day: 'numeric', month: 'long' })}
+                  {new Date(`${apptDate}T00:00:00`).toLocaleDateString('tr-TR', {
+                    weekday: 'long',
+                    day: 'numeric',
+                    month: 'long',
+                  })}
                   {employeeId ? ` · ${employeeName(employeeId).split(' ')[0]}` : ''}
                 </span>
               </div>
@@ -2042,13 +2073,19 @@ export default function AppointmentsPage() {
                       type="button"
                       key={t.value}
                       disabled={t.disabled}
-                      className={t.value === apptTime ? styles.timeCellActive : t.disabled ? styles.timeCellOff : styles.timeCell}
+                      className={
+                        t.value === apptTime ? styles.timeCellActive : t.disabled ? styles.timeCellOff : styles.timeCell
+                      }
                       onClick={() => setApptTime(t.value)}
                     >
                       {t.value}
                     </button>
                   ))}
-                  <button type="button" className={styles.timeCellOther} onClick={() => otherDateRef.current?.showPicker?.()}>
+                  <button
+                    type="button"
+                    className={styles.timeCellOther}
+                    onClick={() => otherDateRef.current?.showPicker?.()}
+                  >
                     Başka
                   </button>
                 </div>
@@ -2064,7 +2101,9 @@ export default function AppointmentsPage() {
                   const newDate = e.target.value
                   if (!newDate) return
                   if (!isDayOpenForCandidates(newDate, formCandidateIds)) {
-                    setError(employeeId ? 'Seçilen çalışan bu gün çalışmıyor.' : 'İşletme bu gün kapalı, uygun çalışan yok.')
+                    setError(
+                      employeeId ? 'Seçilen çalışan bu gün çalışmıyor.' : 'İşletme bu gün kapalı, uygun çalışan yok.',
+                    )
                     return
                   }
                   setError(null)
@@ -2124,7 +2163,10 @@ export default function AppointmentsPage() {
                 <span className={styles.fsTitle}>Kapanış</span>
                 <span className={styles.fsSub}>
                   {customerName(completingAppt.customer_id)} ·{' '}
-                  {new Date(completingAppt.scheduled_at).toLocaleTimeString('tr-TR', { hour: '2-digit', minute: '2-digit' })}
+                  {new Date(completingAppt.scheduled_at).toLocaleTimeString('tr-TR', {
+                    hour: '2-digit',
+                    minute: '2-digit',
+                  })}
                   {completingAppt.employee_id ? ` · ${employeeName(completingAppt.employee_id).split(' ')[0]}` : ''}
                 </span>
               </span>
@@ -2194,7 +2236,9 @@ export default function AppointmentsPage() {
                           className={styles.stepperBtn}
                           disabled={(Number(completePackageTotalSessions) || 1) <= 1}
                           onClick={() =>
-                            setCompletePackageTotalSessions(String(Math.max(1, (Number(completePackageTotalSessions) || 1) - 1)))
+                            setCompletePackageTotalSessions(
+                              String(Math.max(1, (Number(completePackageTotalSessions) || 1) - 1)),
+                            )
                           }
                         >
                           −
@@ -2203,7 +2247,9 @@ export default function AppointmentsPage() {
                         <button
                           type="button"
                           className={styles.stepperBtn}
-                          onClick={() => setCompletePackageTotalSessions(String((Number(completePackageTotalSessions) || 0) + 1))}
+                          onClick={() =>
+                            setCompletePackageTotalSessions(String((Number(completePackageTotalSessions) || 0) + 1))
+                          }
                         >
                           +
                         </button>
@@ -2271,7 +2317,9 @@ export default function AppointmentsPage() {
                 <span className={styles.stepNum}>2</span>
                 <span className={styles.stepTitleBig}>Ödeme</span>
                 {!completeFullyPaid && completePaymentSummary.remainingDue > 0 && (
-                  <span className={styles.stepWarm}>{currency.format(completePaymentSummary.remainingDue)} alınacak</span>
+                  <span className={styles.stepWarm}>
+                    {currency.format(completePaymentSummary.remainingDue)} alınacak
+                  </span>
                 )}
               </div>
               {completeLoadingScope ? (
@@ -2294,8 +2342,7 @@ export default function AppointmentsPage() {
                       <span className={styles.payOptionLabel}>Hepsini kapat</span>
                       <span className={styles.payOptionAmount}>
                         {currency.format(
-                          completePaymentSummary.remainingDue +
-                            oldDebtItems.reduce((sum, it) => sum + it.remaining, 0),
+                          completePaymentSummary.remainingDue + oldDebtItems.reduce((sum, it) => sum + it.remaining, 0),
                         )}
                       </span>
                     </button>
@@ -2315,8 +2362,8 @@ export default function AppointmentsPage() {
               )}
               {completeLoadingScope ? null : completeFullyPaid ? null : !canPay ? (
                 <p className={styles.emptyNote}>
-                  Ödeme alma yetkin yok; {currency.format(completePaymentSummary.remainingDue)} müşterinin borcu olarak kalır,
-                  yetkili biri tahsil eder.
+                  Ödeme alma yetkin yok; {currency.format(completePaymentSummary.remainingDue)} müşterinin borcu olarak
+                  kalır, yetkili biri tahsil eder.
                 </p>
               ) : (
                 <>
@@ -2331,7 +2378,9 @@ export default function AppointmentsPage() {
                     >
                       <span className={completePayMode === 'full' ? styles.radioOn : styles.radio} />
                       <span className={styles.payOptionLabel}>Hepsini al</span>
-                      <span className={styles.payOptionAmount}>{currency.format(completePaymentSummary.remainingDue)}</span>
+                      <span className={styles.payOptionAmount}>
+                        {currency.format(completePaymentSummary.remainingDue)}
+                      </span>
                     </button>
                     <div className={completePayMode === 'custom' ? styles.payOptionActive : styles.payOption}>
                       <button
@@ -2429,7 +2478,11 @@ export default function AppointmentsPage() {
             </div>
 
             {/* ---- 3. Sonraki randevu ---- */}
-            <div className={completionPreview?.needsNextSession ? styles.stepCard : `${styles.stepCard} ${styles.stepCardDim}`}>
+            <div
+              className={
+                completionPreview?.needsNextSession ? styles.stepCard : `${styles.stepCard} ${styles.stepCardDim}`
+              }
+            >
               <div className={styles.stepCardHead}>
                 <span className={styles.stepNumMuted}>3</span>
                 <span className={styles.stepText}>
@@ -2512,7 +2565,10 @@ export default function AppointmentsPage() {
               {completeBusy
                 ? 'Kaydediliyor…'
                 : completePaymentSummary.entered > 0
-                  ? `${currency.format(completePaymentSummary.entered)} ${METHOD_SHORT[completePaymentMethod]?.toLocaleLowerCase('tr') ?? ''} alındı · tamamla`.replace('  ', ' ')
+                  ? `${currency.format(completePaymentSummary.entered)} ${METHOD_SHORT[completePaymentMethod]?.toLocaleLowerCase('tr') ?? ''} alındı · tamamla`.replace(
+                      '  ',
+                      ' ',
+                    )
                   : 'İşlemi tamamla'}
             </button>
           </div>
@@ -2530,9 +2586,19 @@ export default function AppointmentsPage() {
           const pkg = packageProgress(a)
           const statusLabel = STATUS_OPTIONS.find((o) => o.value === a.status)?.label ?? a.status
           const fmt = (iso: string) =>
-            new Date(iso).toLocaleString('tr-TR', { day: 'numeric', month: 'short', hour: '2-digit', minute: '2-digit' })
+            new Date(iso).toLocaleString('tr-TR', {
+              day: 'numeric',
+              month: 'short',
+              hour: '2-digit',
+              minute: '2-digit',
+            })
           // "Randevunun hikayesi": kaydin bilinen olaylari sirayla.
-          const story: { key: string; title: string; sub: string; tone: 'purple' | 'navy' | 'ok' | 'danger' | 'muted' }[] = []
+          const story: {
+            key: string
+            title: string
+            sub: string
+            tone: 'purple' | 'navy' | 'ok' | 'danger' | 'muted'
+          }[] = []
           if (a.created_at) {
             story.push({
               key: 'created',
@@ -2542,19 +2608,36 @@ export default function AppointmentsPage() {
             })
           }
           if (a.reminder_sent_at) {
-            story.push({ key: 'reminder', title: 'Hatırlatma gönderildi', sub: `${fmt(a.reminder_sent_at)} · WhatsApp`, tone: 'navy' })
+            story.push({
+              key: 'reminder',
+              title: 'Hatırlatma gönderildi',
+              sub: `${fmt(a.reminder_sent_at)} · WhatsApp`,
+              tone: 'navy',
+            })
           }
           if (a.status === 'onaylandi') story.push({ key: 'st', title: 'Onaylandı', sub: 'Randevu onaylı', tone: 'ok' })
           if (a.status === 'tamamlandi')
-            story.push({ key: 'st', title: 'Tamamlandı', sub: a.notes ? `İşlem notu: ${a.notes}` : 'İşlem kapandı', tone: 'ok' })
-          if (a.status === 'iptal') story.push({ key: 'st', title: 'İptal edildi', sub: 'Randevu iptal', tone: 'danger' })
-          if (a.status === 'gelmedi') story.push({ key: 'st', title: 'Gelmedi', sub: 'Müşteri gelmedi olarak işaretlendi', tone: 'muted' })
+            story.push({
+              key: 'st',
+              title: 'Tamamlandı',
+              sub: a.notes ? `İşlem notu: ${a.notes}` : 'İşlem kapandı',
+              tone: 'ok',
+            })
+          if (a.status === 'iptal')
+            story.push({ key: 'st', title: 'İptal edildi', sub: 'Randevu iptal', tone: 'danger' })
+          if (a.status === 'gelmedi')
+            story.push({ key: 'st', title: 'Gelmedi', sub: 'Müşteri gelmedi olarak işaretlendi', tone: 'muted' })
 
           return (
             <div className={styles.fullScreen}>
               <div className={styles.fullScroll}>
                 <div className={styles.fsHeadSplit}>
-                  <button type="button" className={styles.fsBack} onClick={() => setViewingAppt(null)} aria-label="Geri">
+                  <button
+                    type="button"
+                    className={styles.fsBack}
+                    onClick={() => setViewingAppt(null)}
+                    aria-label="Geri"
+                  >
                     <ChevronRightIcon width={18} height={18} className={styles.backIcon} />
                   </button>
                   {canEdit(a) && (
@@ -2571,20 +2654,22 @@ export default function AppointmentsPage() {
                       {detailMenuOpen && (
                         <div className={styles.viewMenu} role="menu">
                           <span className={styles.viewMenuTitle}>Durumu değiştir</span>
-                          {STATUS_DROPDOWN_OPTIONS.filter((o) => o.value !== a.status && o.value !== 'tamamlandi').map((o) => (
-                            <button
-                              key={o.value}
-                              type="button"
-                              className={styles.viewMenuItem}
-                              onClick={async () => {
-                                setDetailMenuOpen(false)
-                                setViewingAppt(null)
-                                await handleStatusChange(a, o.value as Appointment['status'])
-                              }}
-                            >
-                              {o.label}
-                            </button>
-                          ))}
+                          {STATUS_DROPDOWN_OPTIONS.filter((o) => o.value !== a.status && o.value !== 'tamamlandi').map(
+                            (o) => (
+                              <button
+                                key={o.value}
+                                type="button"
+                                className={styles.viewMenuItem}
+                                onClick={async () => {
+                                  setDetailMenuOpen(false)
+                                  setViewingAppt(null)
+                                  await handleStatusChange(a, o.value as Appointment['status'])
+                                }}
+                              >
+                                {o.label}
+                              </button>
+                            ),
+                          )}
                         </div>
                       )}
                     </div>
@@ -2597,11 +2682,14 @@ export default function AppointmentsPage() {
                       {start.toLocaleDateString('tr-TR', { weekday: 'short' }).toLocaleUpperCase('tr')}
                     </span>
                     <span className={styles.detailDateDay}>{start.getDate()}</span>
-                    <span className={styles.detailDateMonth}>{start.toLocaleDateString('tr-TR', { month: 'long' })}</span>
+                    <span className={styles.detailDateMonth}>
+                      {start.toLocaleDateString('tr-TR', { month: 'long' })}
+                    </span>
                   </div>
                   <div className={styles.detailHeroText}>
                     <span className={styles.detailHeroTitle}>
-                      {start.toLocaleTimeString('tr-TR', { hour: '2-digit', minute: '2-digit' })} · {customerName(a.customer_id)}
+                      {start.toLocaleTimeString('tr-TR', { hour: '2-digit', minute: '2-digit' })} ·{' '}
+                      {customerName(a.customer_id)}
                     </span>
                     <span className={styles.detailHeroSub}>
                       {serviceName(a.service_id)} · {employeeName(a.employee_id)} · {durMin} dk
@@ -2641,7 +2729,9 @@ export default function AppointmentsPage() {
                         <span className={`${styles.storyDot} ${styles.storyDot_pending}`} />
                       </span>
                       <span className={styles.storyText}>
-                        <span className={`${styles.storyItemTitle} ${styles.storyItemWarm}`}>Tamamlanmayı bekliyor</span>
+                        <span className={`${styles.storyItemTitle} ${styles.storyItemWarm}`}>
+                          Tamamlanmayı bekliyor
+                        </span>
                         <span className={styles.storyItemSub}>Ödeme ve seans kaydı</span>
                       </span>
                     </div>
@@ -2725,9 +2815,7 @@ export default function AppointmentsPage() {
               </div>
             )}
 
-            <p className={styles.editCustomerName}>
-              {customerName(editingAppt.customer_id)}
-            </p>
+            <p className={styles.editCustomerName}>{customerName(editingAppt.customer_id)}</p>
 
             <div className={styles.form}>
               <div className="field">
@@ -2921,7 +3009,9 @@ export default function AppointmentsPage() {
           ) : groupedByDate.length === 0 ? (
             <div className={styles.emptyCard}>
               <span className={styles.emptyTitle}>Bu aralıkta randevu yok</span>
-              <span className={styles.emptySub}>Başka bir dönem seçebilir ya da + düğmesinden randevu ekleyebilirsin.</span>
+              <span className={styles.emptySub}>
+                Başka bir dönem seçebilir ya da + düğmesinden randevu ekleyebilirsin.
+              </span>
             </div>
           ) : (
             groupedByDate.map((group) => (

@@ -108,7 +108,8 @@ function previousRange(preset: Preset, start: string, end: string): { start: str
     const ps = toLocalDateString(prevStart)
     return { start: ps, end: toLocalDateString(prevEnd), label: monthName(ps) }
   }
-  const len = Math.round((new Date(`${end}T00:00:00`).getTime() - new Date(`${start}T00:00:00`).getTime()) / 86400000) + 1
+  const len =
+    Math.round((new Date(`${end}T00:00:00`).getTime() - new Date(`${start}T00:00:00`).getTime()) / 86400000) + 1
   const prevEnd = shiftDays(start, -1)
   const label = preset === 'bugun' ? 'Dün' : preset === 'bu_hafta' ? 'Geçen hafta' : 'Önceki dönem'
   return { start: shiftDays(prevEnd, -(len - 1)), end: prevEnd, label }
@@ -145,7 +146,13 @@ function leaveDaysInRange(profileId: string, blocks: TimeBlock[], startStr: stri
   return days
 }
 
-function scheduledMinutesInRange(profileId: string, schedules: Schedule[], blocks: TimeBlock[], startStr: string, endStr: string) {
+function scheduledMinutesInRange(
+  profileId: string,
+  schedules: Schedule[],
+  blocks: TimeBlock[],
+  startStr: string,
+  endStr: string,
+) {
   let total = 0
   const mySchedules = schedules.filter((s) => s.profile_id === profileId)
   const myBlocks = blocks.filter((b) => b.profile_id === profileId)
@@ -213,14 +220,18 @@ export default function PerformanceReportPage() {
         fetchAll(() =>
           supabase
             .from('appointments')
-            .select('id, employee_id, customer_id, service_id, status, scheduled_at, duration_minutes, price_override, source')
+            .select(
+              'id, employee_id, customer_id, service_id, status, scheduled_at, duration_minutes, price_override, source',
+            )
             .gte('scheduled_at', `${rangeStart}T00:00:00`)
             .lte('scheduled_at', `${rangeEnd}T23:59:59`)
             .order('id'),
         ),
         supabase.from('services').select('id, name, price'),
         supabase.from('employee_schedules').select('profile_id, day_of_week, starts_at, ends_at'),
-        supabase.from('employee_time_blocks').select('profile_id, day_of_week, block_date, end_date, starts_at, ends_at, label'),
+        supabase
+          .from('employee_time_blocks')
+          .select('profile_id, day_of_week, block_date, end_date, starts_at, ends_at, label'),
         fetchAll(() =>
           supabase
             .from('payments')
@@ -381,8 +392,12 @@ export default function PerformanceReportPage() {
   // isme gore (alfabetik) gosterilir.
   const visibleRows = useMemo(() => {
     const q = search.trim().toLocaleLowerCase('tr-TR')
-    const filtered = q ? employeeStats.filter((e) => (e.profile.full_name ?? '').toLocaleLowerCase('tr-TR').includes(q)) : employeeStats
-    return filtered.slice().sort((a, b) => (a.profile.full_name ?? '').localeCompare(b.profile.full_name ?? '', 'tr-TR'))
+    const filtered = q
+      ? employeeStats.filter((e) => (e.profile.full_name ?? '').toLocaleLowerCase('tr-TR').includes(q))
+      : employeeStats
+    return filtered
+      .slice()
+      .sort((a, b) => (a.profile.full_name ?? '').localeCompare(b.profile.full_name ?? '', 'tr-TR'))
   }, [employeeStats, search])
 
   const showBotRow =
@@ -617,7 +632,10 @@ export default function PerformanceReportPage() {
             {weekdayFill.length > 0 && (
               <div className={styles.chartCard}>
                 <span className={styles.cardTitle}>Hangi günler dolu?</span>
-                <div className={styles.bars} style={{ gridTemplateColumns: `repeat(${weekdayFill.length}, minmax(0, 1fr))` }}>
+                <div
+                  className={styles.bars}
+                  style={{ gridTemplateColumns: `repeat(${weekdayFill.length}, minmax(0, 1fr))` }}
+                >
                   {weekdayFill.map((d) => {
                     const top = d.pct === maxPct && maxPct > 0
                     return (
@@ -631,7 +649,10 @@ export default function PerformanceReportPage() {
                     )
                   })}
                 </div>
-                <div className={styles.barLabels} style={{ gridTemplateColumns: `repeat(${weekdayFill.length}, minmax(0, 1fr))` }}>
+                <div
+                  className={styles.barLabels}
+                  style={{ gridTemplateColumns: `repeat(${weekdayFill.length}, minmax(0, 1fr))` }}
+                >
                   {weekdayFill.map((d) => (
                     <span key={d.dow} className={d.pct === maxPct && maxPct > 0 ? styles.barLabelTop : undefined}>
                       {DAY_SHORT[d.dow]}
@@ -647,7 +668,9 @@ export default function PerformanceReportPage() {
               {selected.primOrani > 0 && (
                 <div className={styles.kvRow}>
                   <span className={styles.kvLabel}>Prim · %{selected.primOrani}</span>
-                  <span className={`${styles.kvValue} ${styles.textWarm}`}>{currency.format(selected.primHakedis)}</span>
+                  <span className={`${styles.kvValue} ${styles.textWarm}`}>
+                    {currency.format(selected.primHakedis)}
+                  </span>
                 </div>
               )}
               <div className={styles.kvRow}>
@@ -702,13 +725,23 @@ export default function PerformanceReportPage() {
           {profiles.length > 6 && (
             <div className={styles.searchBox}>
               <SearchIcon width={16} height={16} className={styles.searchIcon} />
-              <input className={styles.searchInput} placeholder="Çalışan ara" value={search} onChange={(e) => setSearch(e.target.value)} />
+              <input
+                className={styles.searchInput}
+                placeholder="Çalışan ara"
+                value={search}
+                onChange={(e) => setSearch(e.target.value)}
+              />
             </div>
           )}
 
           {visibleRows.length === 0 && !showBotRow && <p className={styles.empty}>Sonuç bulunamadı.</p>}
           {visibleRows.map((e, i) => (
-            <button type="button" key={e.profile.id} className={styles.card} onClick={() => setSelectedId(e.profile.id)}>
+            <button
+              type="button"
+              key={e.profile.id}
+              className={styles.card}
+              onClick={() => setSelectedId(e.profile.id)}
+            >
               <span className={styles.cardTop}>
                 <span className={`${styles.avatar} ${styles[AVATAR_TONES[i % AVATAR_TONES.length]]}`}>
                   {firstName(e.profile.full_name).charAt(0).toLocaleUpperCase('tr')}
@@ -726,7 +759,9 @@ export default function PerformanceReportPage() {
                 </span>
                 <span className={styles.cardStat}>
                   <span className={styles.cardStatValue}>{currency.format(e.revenue)}</span>
-                  <span className={styles.cardStatLabel}>{e.primOrani > 0 ? `kazanç · prim ${currency.format(e.primHakedis)}` : 'kazanç'}</span>
+                  <span className={styles.cardStatLabel}>
+                    {e.primOrani > 0 ? `kazanç · prim ${currency.format(e.primHakedis)}` : 'kazanç'}
+                  </span>
                 </span>
                 <span className={styles.cardStat}>
                   <span className={styles.cardStatValue}>{e.leaveDayCount} gün</span>
@@ -788,7 +823,12 @@ export default function PerformanceReportPage() {
       )}
 
       {pdfState && (
-        <PdfProgressModal progress={pdfState.progress} step={pdfState.step} error={pdfState.error} onClose={() => setPdfState(null)} />
+        <PdfProgressModal
+          progress={pdfState.progress}
+          step={pdfState.step}
+          error={pdfState.error}
+          onClose={() => setPdfState(null)}
+        />
       )}
     </div>
   )

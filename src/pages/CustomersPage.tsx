@@ -126,15 +126,32 @@ export default function CustomersPage() {
     async function loadData() {
       setLoading(true)
       const [{ data: custs }, { data: appts }, { data: pkgs }, { data: pays }, { data: svcs }] = await Promise.all([
-        fetchAll(() => supabase
-          .from('customers')
-          .select('id, full_name, phone, contact_phone, email, created_at')
-          .order('full_name').order('id')),
-        fetchAll(() => supabase
-          .from('appointments')
-          .select('id, customer_id, service_id, status, scheduled_at, package_id, price_override').order('id')),
-        fetchAll(() => supabase.from('service_packages').select('id, customer_id, service_id, total_sessions, session_offset').order('id')),
-        fetchAll(() => supabase.from('payments').select('id, customer_id, amount, appointment_id, package_id, paid_at').is('voided_at', null).order('id')),
+        fetchAll(() =>
+          supabase
+            .from('customers')
+            .select('id, full_name, phone, contact_phone, email, created_at')
+            .order('full_name')
+            .order('id'),
+        ),
+        fetchAll(() =>
+          supabase
+            .from('appointments')
+            .select('id, customer_id, service_id, status, scheduled_at, package_id, price_override')
+            .order('id'),
+        ),
+        fetchAll(() =>
+          supabase
+            .from('service_packages')
+            .select('id, customer_id, service_id, total_sessions, session_offset')
+            .order('id'),
+        ),
+        fetchAll(() =>
+          supabase
+            .from('payments')
+            .select('id, customer_id, amount, appointment_id, package_id, paid_at')
+            .is('voided_at', null)
+            .order('id'),
+        ),
         supabase.from('services').select('id, price'),
       ])
       setCustomers(custs ?? [])
@@ -255,9 +272,7 @@ export default function CustomersPage() {
 
   const totalSpendForPeriod = useMemo(() => {
     const startStr = statsPeriodStart ? toLocalDateString(statsPeriodStart) : null
-    return payments
-      .filter((p) => !startStr || p.paid_at >= startStr)
-      .reduce((sum, p) => sum + p.amount, 0)
+    return payments.filter((p) => !startStr || p.paid_at >= startStr).reduce((sum, p) => sum + p.amount, 0)
   }, [payments, statsPeriodStart])
 
   const statsPeriodLabel = STATS_PERIODS.find((p) => p.value === statsPeriod)?.label ?? ''
@@ -304,8 +319,11 @@ export default function CustomersPage() {
   // Olasi mukerrer kayitlar (ayni telefon / ayni tam ad) — sadece yonetici
   // birlestirebilir (merge_customers RPC'si de yonetici ister).
   // dupOpen: ekran kapaninca "Farkli kisiler" ile gizlenenler yeniden okunsun.
-  // eslint-disable-next-line react-hooks/exhaustive-deps
-  const duplicateGroups = useMemo(() => (isAdmin ? visibleDuplicateGroups(customers) : []), [customers, isAdmin, dupOpen])
+  const duplicateGroups = useMemo(
+    () => (isAdmin ? visibleDuplicateGroups(customers) : []),
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+    [customers, isAdmin, dupOpen],
+  )
   const apptCountByCustomer = useMemo(
     () => new Map(Array.from(apptsByCustomer.entries()).map(([id, list]) => [id, list.length])),
     [apptsByCustomer],
@@ -442,12 +460,7 @@ export default function CustomersPage() {
               const debt = debtByCustomer.get(c.id) ?? 0
               const phone = customerPhone(c)
               return (
-                <button
-                  type="button"
-                  key={c.id}
-                  className={styles.row}
-                  onClick={() => navigate(`/musteriler/${c.id}`)}
-                >
+                <button type="button" key={c.id} className={styles.row} onClick={() => navigate(`/musteriler/${c.id}`)}>
                   <span className={`${styles.rowInitials} ${styles[`tone${i % 3}`]}`}>{initials(c.full_name)}</span>
                   <span className={styles.rowMain}>
                     <span className={styles.rowName}>{c.full_name}</span>
@@ -464,7 +477,9 @@ export default function CustomersPage() {
                   <span className={styles.rowSide}>
                     <span className={styles.rowAmount}>{currency.format(s?.totalSpend ?? 0)}</span>
                     <span className={styles.rowDate}>
-                      {s?.lastApptAt ? s.lastApptAt.toLocaleDateString('tr-TR', { day: 'numeric', month: 'short' }) : '—'}
+                      {s?.lastApptAt
+                        ? s.lastApptAt.toLocaleDateString('tr-TR', { day: 'numeric', month: 'short' })
+                        : '—'}
                     </span>
                   </span>
                 </button>
@@ -472,11 +487,7 @@ export default function CustomersPage() {
             })}
           </div>
           {filteredSorted.length > visibleCustomers.length && (
-            <button
-              type="button"
-              className={styles.loadMoreBtn}
-              onClick={() => setVisibleCount((v) => v + PAGE_SIZE)}
-            >
+            <button type="button" className={styles.loadMoreBtn} onClick={() => setVisibleCount((v) => v + PAGE_SIZE)}>
               Daha fazla göster ({filteredSorted.length - visibleCustomers.length} kaldı)
             </button>
           )}

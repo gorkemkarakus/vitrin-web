@@ -46,9 +46,7 @@ export default function EmployeeCreatePage() {
   const [services, setServices] = useState<ServiceLite[]>([])
   const [selectedServices, setSelectedServices] = useState<Set<string>>(new Set())
   const [preset, setPreset] = useState<RolePreset | null>('calisan')
-  const [perms, setPerms] = useState<Set<PermKey>>(
-    new Set(ROLE_PRESETS.find((r) => r.key === 'calisan')?.perms ?? []),
-  )
+  const [perms, setPerms] = useState<Set<PermKey>>(new Set(ROLE_PRESETS.find((r) => r.key === 'calisan')?.perms ?? []))
   const [fineTuneOpen, setFineTuneOpen] = useState(false)
   const [onlineBookable, setOnlineBookable] = useState(true)
   const [mustChangePassword, setMustChangePassword] = useState(true)
@@ -99,15 +97,15 @@ export default function EmployeeCreatePage() {
     setSubmitting(true)
     try {
       const res = await callEdgeFunction<{ id: string }>('create-team-member', {
-          email,
-          password,
-          full_name: fullName,
-          phone,
-          gender: gender || null,
-          role: isAdminRole ? 'admin' : 'user',
-          must_change_password: mustChangePassword,
-          online_bookable: onlineBookable,
-        })
+        email,
+        password,
+        full_name: fullName,
+        phone,
+        gender: gender || null,
+        role: isAdminRole ? 'admin' : 'user',
+        must_change_password: mustChangePassword,
+        online_bookable: onlineBookable,
+      })
       if (!res.ok) {
         setError(res.error ?? 'Hesap oluşturulamadı.')
         setStep(1)
@@ -136,12 +134,22 @@ export default function EmployeeCreatePage() {
         .eq('label', HOLIDAY_LABEL)
         .is('day_of_week', null)
         .gte('end_date', toLocalDateString(new Date()))
-      const uniq = new Map<string, { block_date: string; end_date: string | null; starts_at: string; ends_at: string }>()
+      const uniq = new Map<
+        string,
+        { block_date: string; end_date: string | null; starts_at: string; ends_at: string }
+      >()
       for (const b of holidayBlocks ?? []) uniq.set(`${b.block_date}|${b.end_date}|${b.starts_at}|${b.ends_at}`, b)
       if (uniq.size > 0) {
         await supabase
           .from('employee_time_blocks')
-          .insert(Array.from(uniq.values()).map((b) => ({ ...b, profile_id: newId, day_of_week: null, label: HOLIDAY_LABEL })))
+          .insert(
+            Array.from(uniq.values()).map((b) => ({
+              ...b,
+              profile_id: newId,
+              day_of_week: null,
+              label: HOLIDAY_LABEL,
+            })),
+          )
       }
       setCreatedId(newId)
       setStep(3)
@@ -178,12 +186,19 @@ export default function EmployeeCreatePage() {
   if (step === 3) {
     return (
       <div className={styles.wrap}>
-        <PageHeader back={() => navigate(createdId ? `/ekip/${createdId}` : '/ekip', { replace: true })} title="Hesap açıldı" />
+        <PageHeader
+          back={() => navigate(createdId ? `/ekip/${createdId}` : '/ekip', { replace: true })}
+          title="Hesap açıldı"
+        />
         <div className={styles.formCard}>
           <span className={styles.doneTitle}>{fullName} artık uygulamaya girebilir</span>
           <div className={styles.credBox}>
-            <span>E-posta: <b>{email}</b></span>
-            <span>Geçici şifre: <b>{password}</b></span>
+            <span>
+              E-posta: <b>{email}</b>
+            </span>
+            <span>
+              Geçici şifre: <b>{password}</b>
+            </span>
           </div>
           <span className={styles.fieldHint}>
             {mustChangePassword
@@ -194,7 +209,11 @@ export default function EmployeeCreatePage() {
         <span className={styles.note}>Giriş bilgilerini WhatsApp, SMS ya da e-postayla gönderebilirsin.</span>
         <div className={styles.footer}>
           <button type="button" className={styles.footerBtn} onClick={shareInvite}>
-            {shared === 'kopyalandi' ? 'Kopyalandı ✓ · tekrar paylaş' : shared === 'paylasildi' ? 'Paylaşıldı ✓ · tekrar paylaş' : 'Giriş bilgilerini gönder'}
+            {shared === 'kopyalandi'
+              ? 'Kopyalandı ✓ · tekrar paylaş'
+              : shared === 'paylasildi'
+                ? 'Paylaşıldı ✓ · tekrar paylaş'
+                : 'Giriş bilgilerini gönder'}
           </button>
           <button
             type="button"
@@ -211,7 +230,11 @@ export default function EmployeeCreatePage() {
   if (step === 2) {
     return (
       <div className={styles.wrap}>
-        <PageHeader back={() => setStep(1)} title={`${firstName} uygulamada ne görsün?`} sub="Sonradan değiştirebilirsin" />
+        <PageHeader
+          back={() => setStep(1)}
+          title={`${firstName} uygulamada ne görsün?`}
+          sub="Sonradan değiştirebilirsin"
+        />
 
         <RoleCards value={preset} onChange={choosePreset} disabled={submitting} />
 
@@ -265,7 +288,13 @@ export default function EmployeeCreatePage() {
             {services.map((s) => {
               const on = selectedServices.has(s.id)
               return (
-                <button type="button" key={s.id} className={styles.checkRow} onClick={() => toggleService(s.id)} aria-pressed={on}>
+                <button
+                  type="button"
+                  key={s.id}
+                  className={styles.checkRow}
+                  onClick={() => toggleService(s.id)}
+                  aria-pressed={on}
+                >
                   <span className={styles.checkLabel}>{s.name}</span>
                   <span className={on ? styles.checkBoxOn : styles.checkBox}>{on ? '✓' : ''}</span>
                 </button>
@@ -295,7 +324,14 @@ export default function EmployeeCreatePage() {
       <div className={styles.formCard}>
         <div className={styles.field}>
           <label htmlFor="fullName">Ad soyad</label>
-          <input id="fullName" className={styles.inputStrong} value={fullName} onChange={(e) => setFullName(e.target.value)} placeholder="Ayşe Yılmaz" required />
+          <input
+            id="fullName"
+            className={styles.inputStrong}
+            value={fullName}
+            onChange={(e) => setFullName(e.target.value)}
+            placeholder="Ayşe Yılmaz"
+            required
+          />
         </div>
         <div className={styles.field}>
           <label htmlFor="newPhone">Telefon</label>
@@ -312,7 +348,14 @@ export default function EmployeeCreatePage() {
         </div>
         <div className={styles.field}>
           <label htmlFor="newEmail">E-posta</label>
-          <input id="newEmail" type="email" value={email} onChange={(e) => setEmail(e.target.value)} placeholder="ayse@ornek.com" required />
+          <input
+            id="newEmail"
+            type="email"
+            value={email}
+            onChange={(e) => setEmail(e.target.value)}
+            placeholder="ayse@ornek.com"
+            required
+          />
           <span className={styles.fieldHint}>Uygulamaya bu e-postayla girer</span>
         </div>
         <div className={styles.field}>
@@ -331,7 +374,9 @@ export default function EmployeeCreatePage() {
               Üret
             </button>
           </div>
-          <span className={styles.fieldHint}>İlk girişte kendi şifresini belirler (bir sonraki adımda değiştirebilirsin)</span>
+          <span className={styles.fieldHint}>
+            İlk girişte kendi şifresini belirler (bir sonraki adımda değiştirebilirsin)
+          </span>
         </div>
         <div className={styles.field}>
           <span className={styles.fieldLabel}>Cinsiyet (isteğe bağlı)</span>
