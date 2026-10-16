@@ -12,7 +12,9 @@
     "test:watch": "vitest",
     "format": "prettier --write .",
     "format:check": "prettier --check .",
-    "check": "tsc -b && oxlint && vitest run && prettier --check ."
+    "check": "tsc -b && oxlint && vitest run && prettier --check .",
+    "icons": "node resources/gen-png.cjs && npx @capacitor/assets generate",
+    "icons:notification": "node resources/gen-notification-icon.cjs"
   },
   "dependencies": {
     "@capacitor/android": "^8.4.1",
