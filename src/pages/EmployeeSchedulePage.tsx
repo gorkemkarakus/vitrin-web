@@ -86,9 +86,8 @@ export default function EmployeeSchedulePage() {
   const [timeBlocks, setTimeBlocks] = useState<TimeBlock[]>([])
   const [loading, setLoading] = useState(true)
 
-  // "duzenle -> Kaydet" mantigiyla calisiyor (eskiden her tiklamada aninda
-  // kaydediliyordu). dayDrafts sunucudan sadece BIR KERE (scheduleReady
-  // false iken) dolduruluyor.
+  // Degisiklikler "Kaydet" ile yazilir; dayDrafts sunucudan yalnizca bir kez
+  // (scheduleReady false iken) doldurulur.
   const [dayDrafts, setDayDrafts] = useState<Record<number, DayDraft>>({})
   const [scheduleReady, setScheduleReady] = useState(false)
   const [savingSchedule, setSavingSchedule] = useState(false)

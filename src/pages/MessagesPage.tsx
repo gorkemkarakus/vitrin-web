@@ -263,10 +263,9 @@ export default function MessagesPage() {
             return d.toISOString()
           })()
 
-    // customers'taki (business_id, phone) essizlik indeksi KISMI (phone IS
-    // NOT NULL) — Supabase/PostgREST'in upsert'i (ON CONFLICT) kismi
-    // indeksleri taniyamiyor, bu yuzden once-bul-sonra-guncelle/olustur
-    // yapiliyor (test edilip dogrulandi, upsert 400 hatasi veriyordu).
+    // customers'taki (business_id, phone) essizlik indeksi kismi (phone IS
+    // NOT NULL); PostgREST upsert'i kismi indeksi taniyamadigi icin (400 doner)
+    // once bulunup sonra guncellenir ya da olusturulur.
     if (existing) {
       await supabase.from('customers').update({ bot_paused_until: until }).eq('id', existing.id)
     } else {

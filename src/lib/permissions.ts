@@ -33,8 +33,7 @@ export const PERMISSIONS: PermInfo[] = [
 
 export const ALL_PERMISSIONS: PermKey[] = PERMISSIONS.map((p) => p.key)
 
-// Veritabanindaki default_employee_permissions() ile ayni — bu migration
-// oncesindeki calisan davranisi.
+// Veritabanindaki default_employee_permissions() ile ayni olmali.
 export const DEFAULT_PERMISSIONS: PermKey[] = ['randevu_tumu_gor', 'odeme_al', 'mesajlar']
 
 // Yeni calisan / erisim ekranindaki hazir roller. 'yonetici' gercek admin

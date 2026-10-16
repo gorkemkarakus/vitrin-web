@@ -1,6 +1,7 @@
 import { useEffect, useMemo, useState, type FormEvent } from 'react'
 import { useNavigate, useParams } from 'react-router-dom'
 import { supabase } from '../lib/supabase'
+import { NETWORK_ERROR } from '../lib/messages'
 import { useAuth } from '../contexts/AuthContext'
 import { formatPersonName, initials } from '../lib/formatName'
 import { currency } from '../lib/currency'
@@ -88,9 +89,8 @@ const DETAIL_TABS: { value: DetailTab; label: string }[] = [
   { value: 'paket', label: 'Paket' },
 ]
 
-// remaining = beklenen - odenen. Pozitifse borc, negatifse musteri fazla
-// odemis (alacakli) — bu durum sessizce "Ödendi" diye gosterilmek yerine
-// acikca "+X fazla odendi" olarak isaretleniyor (bildirilen sorun).
+// remaining = beklenen - odenen. Negatifse musteri fazla odemistir; bu
+// "Ödendi" diye gizlenmez, "+X fazla ödendi" olarak gosterilir.
 function remainingLabel(remaining: number): { text: string; positive: boolean } {
   if (remaining > 0) return { text: `Kalan ${currency.format(remaining)}`, positive: false }
   if (remaining < 0) return { text: `+${currency.format(-remaining)} fazla ödendi`, positive: true }
@@ -194,8 +194,8 @@ export default function CustomerDetailPage() {
   // Paket bazinda: beklenen = ZATEN olusturulmus seanslarin gercek ucretleri
   // (price_override varsa o, yoksa hizmet fiyati) + henuz randevusu
   // acilmamis kalan seanslar icin standart fiyat tahmini. Boylece bir
-  // seansta ekstra bakim/boya gibi sebeplerle fiyat degisirse (bildirilen
-  // ihtiyac) paketin toplam beklenen tutari da buna gore guncelleniyor.
+  // seansta ekstra bakim/boya gibi sebeplerle fiyat degisirse paketin toplam
+  // beklenen tutari da buna gore guncellenir.
   // Odenen = o pakete bagli tum odemelerin toplami, kalan = beklenen - odenen.
   const packageStats = useMemo(
     () =>
@@ -369,7 +369,7 @@ export default function CustomerDetailPage() {
       setPayNote('')
       await loadData()
     } catch {
-      setError('Sunucuya ulaşılamadı, tekrar deneyin.')
+      setError(NETWORK_ERROR)
     } finally {
       setPaySubmitting(false)
     }
@@ -394,7 +394,7 @@ export default function CustomerDetailPage() {
       }
       await loadData()
     } catch {
-      window.alert('Sunucuya ulaşılamadı, tekrar deneyin.')
+      window.alert(NETWORK_ERROR)
     }
   }
 
@@ -435,7 +435,7 @@ export default function CustomerDetailPage() {
       setEditingPayment(null)
       await loadData()
     } catch {
-      setError('Sunucuya ulaşılamadı, tekrar deneyin.')
+      setError(NETWORK_ERROR)
     } finally {
       setEditSubmitting(false)
     }
@@ -474,7 +474,7 @@ export default function CustomerDetailPage() {
       setEditCustomerOpen(false)
       await loadData()
     } catch {
-      setError('Sunucuya ulaşılamadı, tekrar deneyin.')
+      setError(NETWORK_ERROR)
     } finally {
       setEditCustomerSubmitting(false)
     }

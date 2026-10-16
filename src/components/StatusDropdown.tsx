@@ -20,16 +20,10 @@ interface StatusDropdownProps {
   compact?: boolean
 }
 
-// Native <select>'in açık menüsü tarayıcıya/işletim sistemine bırakılır ve
-// CSS ile neredeyse hiç biçimlendirilemez — kapalı haldeki "hap" görünümüyle
-// açıldığında çıkan standart kare liste birbirine uymuyordu (test edilip
-// bildirildi). Bu yüzden açılır menü sıfırdan, tamamen kontrol edilebilir
-// şekilde kuruldu.
-// Randevu listesi kaydirildiginda satirlar alt navigasyon barina (fixed,
-// 64px) yakin kalabiliyor — menu her zaman asagi acilirsa son secenekler
-// bu barin ARDINDA kalip tiklanamaz hale geliyordu (test edilip bildirildi).
-// Acilmadan once asagida yeterli yer olup olmadigi olculup gerekirse menu
-// yukari acilir.
+// Native <select>'in acilan listesi isletim sistemine aittir ve "hap"
+// gorunumuyle uyumlu bicimlendirilemez; bu yuzden menu elle cizilir.
+// Alt navigasyon barina yakin satirlarda liste barin arkasinda kalmasin diye
+// acilmadan once asagidaki bos alan olculur, yetmiyorsa menu yukari acilir.
 const MENU_ITEM_HEIGHT = 34
 const MENU_PADDING = 12
 const BOTTOM_NAV_RESERVE = 80

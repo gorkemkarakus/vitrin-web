@@ -144,10 +144,8 @@ export default function AccountingPage() {
           .lte('expense_date', rangeEnd)
           .order('expense_date', { ascending: false }),
         fetchAll(() => supabase.from('service_packages').select('id, customer_id, service_id, total_sessions, session_offset').order('id')),
-        // Ciro artik GERCEK tahsilata dayanir (nakit bazli) — odemenin
-        // paid_at'i secili aralikta olanlar sayilir, alttaki randevunun
-        // tarihi degil (giderlerin expense_date'e gore sayilmasiyla ayni
-        // mantik).
+        // Ciro nakit bazli: randevu tarihine degil odemenin paid_at'ine
+        // bakilir (giderlerin expense_date'e gore sayilmasi gibi).
         fetchAll(() => supabase
           .from('payments')
           .select('id, customer_id, amount, appointment_id, package_id, method, paid_at')
@@ -218,8 +216,8 @@ export default function AccountingPage() {
     return d >= rangeStartDate && d <= rangeEndDate
   })
 
-  // Ciro artik GERCEK tahsilata (payments, secili araliktaki paid_at) dayanir
-  // — "tamamlandi × hizmet fiyati" varsayimi degil. Bir odeme dogrudan bir
+  // Ciro gercek tahsilattir (payments, secili araliktaki paid_at); "tamamlanan
+  // randevu × hizmet fiyati" tahmini degil. Bir odeme dogrudan bir
   // randevuya (appointment_id) ya da bir pakete (package_id, o an tek bir
   // seansa baglanmamis olabilir) bagli olabilir; calisan atfi sadece randevu
   // uzerinden mumkun oldugu icin randevusuz (sadece paket/serbest) odemeler

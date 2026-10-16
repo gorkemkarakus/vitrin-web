@@ -61,7 +61,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       supabase.rpc('my_permissions'),
     ])
     setProfile(data ?? null)
-    // RPC yoksa (migration oncesi) rol bazli eski davranis.
+    // my_permissions yanit vermezse role gore varsayilan yetkiler.
     if (!permErr && Array.isArray(perms)) setPermissions(new Set(perms as PermKey[]))
     else setPermissions(new Set(data?.role === 'admin' ? ALL_PERMISSIONS : DEFAULT_PERMISSIONS))
     setLoading(false)

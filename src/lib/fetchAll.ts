@@ -1,9 +1,6 @@
-// Supabase (PostgREST) tek istekte en fazla 1000 satir dondurur (proje
-// ayari "Max rows"). Tum randevulari/odemeleri/musterileri tek sorguda ceken
-// ekranlar bu sinira ulasinca SESSIZCE kesiliyordu — ornegin Randevular
-// ekrani tarih sirasindaki ilk 1000 randevuyu gosterip en yenilerini hic
-// gostermiyor, musteri borclari eksik hesaplaniyordu. Bu yardimci ayni
-// sorguyu 1000'erlik sayfalarla tekrar tekrar calistirip hepsini toplar.
+// Supabase (PostgREST) tek istekte en fazla 1000 satir dondurur ve fazlasini
+// sessizce keser. Tum kayitlari gereken sorgular bu yardimciyla 1000'erlik
+// sayfalar halinde cekilir.
 //
 // `build` her cagrida YENI bir sorgu dondurmeli (builder tekrar
 // kullanilamaz) ve sayfalarin kaymamasi icin sorgu sabit bir siralamaya

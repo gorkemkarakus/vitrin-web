@@ -18,8 +18,7 @@ interface Expense {
   due_date: string | null
   is_recurring: boolean
   is_paid: boolean
-  // 20261013000002 migration'iyla gelen alanlar — migration uygulanmadiysa
-  // hic gelmez, ekran kategorisiz calismaya devam eder.
+  // Eski kurulumlarda bu sutunlar olmayabilir; ekran onlarsiz da calisir.
   category?: string | null
   payment_method?: string | null
 }

@@ -89,11 +89,9 @@ function apptDateKey(iso: string) {
 }
 
 export interface LayoutOutletContext {
-  // Topbar'daki arama kutusu kaldirildi — searchQuery artik hep bos kalir
-  // (arayan sayfalar "sorgu yok -> hepsini goster" davranisina duser) ve
-  // setSearchPlaceholder no-op'tur. Tip sozlesmesi, bu context'i tuketen
-  // sayfalari (AppointmentsPage, MessagesPage) degistirmeden korumak icin
-  // ayni sekilde birakildi.
+  // Ust bardaki arama kutusu yok: searchQuery her zaman bos (sayfalar
+  // hepsini gosterir), setSearchPlaceholder bir sey yapmaz. Tuketen sayfalar
+  // (Randevular, Mesajlar) bu sozlesmeye bagli oldugu icin alanlar duruyor.
   searchQuery: string
   setSearchPlaceholder: (placeholder: string) => void
 }

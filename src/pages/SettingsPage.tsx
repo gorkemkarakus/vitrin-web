@@ -47,7 +47,7 @@ export default function SettingsPage() {
   } | null>(null)
   // null = bilinmiyor (RPC yok/hata) — satir gosterilmez.
   const [botLive, setBotLive] = useState<boolean | null>(null)
-  // null = sutun henuz yok (20261014000002 oncesi) — sayfa acik kabul edilir.
+  // null = sutun yok (eski kurulum); sayfa acik kabul edilir.
   const [bookingEnabled, setBookingEnabled] = useState<boolean | null>(null)
   const [reminderHours, setReminderHours] = useState('')
   const [savedReminderHours, setSavedReminderHours] = useState('')
@@ -177,7 +177,7 @@ export default function SettingsPage() {
     const { error } = await supabase.from('businesses').update({ name }).eq('id', profile!.business_id)
     setSaving(false)
     if (error) {
-      // 'name' sutununa yazma izni 20261014000001 migration'iyla aciliyor.
+      // businesses tablosunda sutun bazli yazma izni var; 'name' acik degilse.
       const denied = /permission denied/i.test(error.message)
       setMsg({ type: 'err', text: denied ? 'Salon adı şu an değiştirilemiyor (veritabanı izni eksik).' : error.message })
       return

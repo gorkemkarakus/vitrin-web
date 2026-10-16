@@ -1,6 +1,7 @@
 import { useEffect, useMemo, useRef, useState, type FormEvent } from 'react'
 import { useNavigate, useOutletContext, useSearchParams } from 'react-router-dom'
 import { supabase } from '../lib/supabase'
+import { NETWORK_ERROR } from '../lib/messages'
 import { fetchAll } from '../lib/fetchAll'
 import { useAuth } from '../contexts/AuthContext'
 import { TIME_OPTIONS } from '../lib/timeOptions'
@@ -207,12 +208,10 @@ const SLOT_MINUTES = 30
 
 type ViewMode = 'gunluk' | 'liste' | 'haftalik' | 'ozel'
 
-// Chatbot (book-appointment) ve herkese açık randevu sayfasındaki
-// (public-book-appointment) rankEligibleByFairness ile AYNI algoritma —
-// "fark etmez" seçildiğinde her zaman ilk müsait çalışanı seçmek prim/
-// komisyon adaletsizliği yaratıyordu. Bu kaynaklardan (chatbot, online
-// randevu, personel "fark etmez") en son randevusu en eski olan (veya hiç
-// olmayan) çalışan öne çıkar.
+// "Fark etmez" secildiginde is calisanlar arasinda dengeli dagilsin diye
+// (prim adaleti) bu kaynaklardan en son randevusu en eski olan calisan one
+// cikar. Chatbot ve online randevudaki rankEligibleByFairness ile ayni
+// algoritma; degisirse ucu birlikte degismeli.
 const ROTATION_SOURCES = ['chatbot', 'online_randevu', 'kullanici_uzerinden']
 
 function rankEligibleByFairness(eligibleIds: string[], appointments: Appointment[]): string[] {
@@ -391,8 +390,8 @@ export default function AppointmentsPage() {
   const [editBusy, setEditBusy] = useState(false)
   const [editError, setEditError] = useState<string | null>(null)
 
-  // Satira/karta tiklaninca acilan detay gorunumu — kompakt satirda yer
-  // olmadigi icin not/kaynak gibi alanlar hic gorunmuyordu (bildirildi).
+  // Satira/karta tiklaninca acilan detay: kompakt satirda yer olmayan not,
+  // kaynak gibi alanlar burada gorunur.
   const [viewingAppt, setViewingAppt] = useState<Appointment | null>(null)
 
   // "silent=true" bir mutasyondan sonra cagrilir — veriyi arka planda
@@ -400,14 +399,10 @@ export default function AppointmentsPage() {
   // islemden sonra bos "Yükleniyor…" yazisina donup yeniden cizilmiyor.
   async function loadData(silent = false) {
     if (!silent) setLoading(true)
-    // appointments tarihsiz cekiliyordu — isletme yillar boyunca biriktikce
-    // bu sorgu sinirsiz buyuyup sayfayi yavaslatirdi. Gunluk/haftalik/liste
-    // gorunumlerinin hicbiri bu aralik disina cikmiyor (liste ileri yonde en
-    // fazla 30 gun, gunluk/haftalik viewDate ile gezinse de makul bir sure
-    // disina pratikte cikilmiyor); yeni randevu olustururken de bu aralik
-    // disinda bir tarih secilmesi son derece nadir. Not: 'ozel' (custom
-    // tarih araligi) secicisi bu 3 yillik pencerenin disina cikilirsa
-    // sonuclar eksik gorunur — bilinen, kabul edilen bir sinir.
+    // Randevular 3 yillik bir pencereyle cekilir (2 yil geri, 1 yil ileri) ki
+    // sorgu yillar icinde sinirsiz buyumesin. Gorunumler bu pencerenin
+    // disina pratikte cikmaz; 'ozel' aralik disina tasarsa sonuclar eksik
+    // gorunur (bilinen sinir).
     const windowStart = new Date()
     windowStart.setFullYear(windowStart.getFullYear() - 2)
     const windowEnd = new Date()
@@ -566,7 +561,7 @@ export default function AppointmentsPage() {
       setEditingAppt(null)
       await loadData(true)
     } catch {
-      setEditError('Sunucuya ulaşılamadı, tekrar deneyin.')
+      setEditError(NETWORK_ERROR)
     } finally {
       setEditBusy(false)
     }
@@ -660,8 +655,8 @@ export default function AppointmentsPage() {
 
   // TIME_OPTIONS listesindeki her saat icin, aday calisanlardan en az biri
   // musaitse secilebilir, hicbiri musait degilse "disabled" (soluk/
-  // secilemez) olarak isaretlenir — kullanici artik dolu bir saati secip
-  // "Tamamla"da hata almak yerine, dolu saatleri hic secemez.
+  // secilemez) olarak isaretlenir; dolu saat hic secilemedigi icin kayit
+  // aninda cakisma hatasi olusmaz.
   function buildTimeOptions(dateStr: string, candidateIds: string[], durationMinutes: number, excludeApptId?: string) {
     return TIME_OPTIONS.map((t) => {
       if (candidateIds.length === 0 || !dateStr) return { value: t, label: t }
@@ -793,10 +788,9 @@ export default function AppointmentsPage() {
         finalCustomerId = newCustomer.id
       }
 
-      // Paket (seans) ataması artik burada sorulmuyor — randevu tamamlanırken
-      // ("İşlem Türü: Seanslı İşlem") soruluyor, bkz. handleStatusChange/
-      // submitCompletion. Yeni randevular her zaman package_id: null ile
-      // oluşturulur.
+      // Paket (seans) bilgisi randevu tamamlanirken sorulur ("İşlem Türü:
+      // Seanslı İşlem", bkz. submitCompletion); yeni randevu her zaman
+      // package_id: null ile olusturulur.
       const { error: apptErr } = await supabase.from('appointments').insert({
         business_id: profile?.business_id,
         customer_id: finalCustomerId,
@@ -832,7 +826,7 @@ export default function AppointmentsPage() {
       await loadData(true)
       setShowForm(false)
     } catch {
-      setError('Sunucuya ulaşılamadı, tekrar deneyin.')
+      setError(NETWORK_ERROR)
     } finally {
       setSubmitting(false)
     }
@@ -1010,23 +1004,19 @@ export default function AppointmentsPage() {
         return
       }
       followupStart = new Date(`${completeFollowupDate}T${completeFollowupTime}`)
-      // Ana "Yeni Randevu" formuyla AYNI kontrol (isEmployeeAvailable): calisan
-      // atanmissa mesai saatleri/izin/cakisma burada da uygulanmali — daha
-      // once bu kontrol atlanip her saat kabul ediliyordu (test edilip
-      // bildirildi). Kontrol basarisiz olursa hicbir sey kaydedilmeden
-      // (randevu tamamlanmadan) modal acik kalip hata gosterilir.
+      // Yeni randevu formundaki musaitlik kontrolu (mesai, izin, cakisma)
+      // takip randevusu icin de gecerli. Basarisizsa hicbir sey kaydedilmez
+      // (randevu tamamlanmaz), pencere acik kalir.
       if (completingAppt.employee_id && !isEmployeeAvailable(completingAppt.employee_id, followupStart, followupDuration)) {
         setCompleteError('Seçilen çalışan bu saatte müsait değil (mesai dışı, izinli veya dolu). Farklı bir saat seçin.')
         return
       }
     }
 
-    // Ucret: paket akisinda BU seansin fiyati ilk seansta kilitlenmis ozel
-    // ucrettir (completePriceOverride uzerinden gelir, sonraki seanslarda
-    // kullaniciya hic sorulmaz). Tahsil edilen tutar, paket akisindaysa
-    // PAKETIN GUNCEL kalan bakiyesine, degilse SADECE bu islemin ucretine
-    // gore kirpilir — musteri bakiyesi/fazla odeme kavrami kaldirildi,
-    // girilen tutar hicbir zaman kalan borcu asamaz.
+    // Ucret: paket akisinda bu seansin fiyati ilk seansta kilitlenen ozel
+    // ucrettir (completePriceOverride; sonraki seanslarda sorulmaz). Tahsil
+    // edilen tutar paketin guncel kalan bakiyesine, paket yoksa bu islemin
+    // ucretine gore kirpilir; girilen tutar kalan borcu asamaz.
     const price = Number(completePriceOverride) || 0
     let packageExpected = 0
     let packagePaidSoFar = 0
@@ -1074,9 +1064,8 @@ export default function AppointmentsPage() {
         .update({
           status: 'tamamlandi',
           price_override: Number.isFinite(priceOverrideValue) && priceOverrideValue >= 0 ? priceOverrideValue : null,
-          // Islem notu ayri kolona (notes) yazilir — eskiden source_note'un
-          // USTUNE yaziliyordu, randevu alinirken girilen not (kampanya adi,
-          // botun notu) kayboluyordu.
+          // Islem notu notes kolonuna yazilir; source_note randevu alinirken
+          // girilen nottur (kampanya adi, bot notu) ve korunmalidir.
           ...(completeNote.trim() ? { notes: completeNote.trim() } : {}),
         })
         .eq('id', completingAppt.id)
@@ -1086,9 +1075,8 @@ export default function AppointmentsPage() {
       }
 
       // "Seanslı İşlem" ilk kez secildiyse paket burada olusturulup randevu
-      // ona baglaniyor — bu ODEME KAYDINDAN ONCE yapiliyor, aksi halde odeme
-      // eski (bos) package_id ile kaydolup pakete hic baglanmiyor, paket
-      // "hic odenmemis" gibi gorunuyordu (daha once bildirilmis bir hata).
+      // ona baglanir. Bu, odeme kaydindan ONCE olmali; yoksa odeme bos
+      // package_id ile kaydolur ve paket odenmemis gorunur.
       let effectivePackageId = completingAppt.package_id
       if (creatingPackage) {
         const { data: newPackage, error: pkgErr } = await supabase
@@ -1196,7 +1184,7 @@ export default function AppointmentsPage() {
       setCompletingAppt(null)
       await loadData(true)
     } catch {
-      setCompleteError('Sunucuya ulaşılamadı, tekrar deneyin.')
+      setCompleteError(NETWORK_ERROR)
     } finally {
       setCompleteBusy(false)
     }

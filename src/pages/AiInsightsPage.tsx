@@ -266,12 +266,10 @@ export default function AiInsightsPage() {
     }
   }
 
-  // Dönem değiştiğinde (preset tıklanınca) o dönemin kendi önbelleklenmiş
-  // analizini yükler. Cooldown artık DÖNEM BAZLI olduğu için (bkz. edge
-  // function), o dönemin analizi 10dk'dan eskiyse (veya hiç yoksa) otomatik
-  // yeniden üretir — tazeyse sessizce önbellekten gösterir, gereksiz 429
-  // hatası çıkmaz. İLK sayfa yüklemesinde otomatik ÜRETMEZ, sadece var olanı
-  // gösterir — kullanıcı ilk analizi elle "Analiz Oluştur"la başlatmalı.
+  // Donem degisince o donemin onbellekteki analizi gosterilir; 10 dakikadan
+  // eskiyse ya da yoksa yeniden uretilir (sunucudaki bekleme suresi donem
+  // bazli, 429 almaz). Ilk yuklemede uretim yapilmaz, yalnizca var olan
+  // gosterilir; ilk analiz "Analiz Oluştur" ile baslatilir.
   const isFirstPeriodLoad = useRef(true)
   useEffect(() => {
     let cancelled = false
