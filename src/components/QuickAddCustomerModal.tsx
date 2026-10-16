@@ -1,3 +1,4 @@
+import { phoneLengthError } from '../lib/phone'
 import { useState, type FormEvent } from 'react'
 import { supabase } from '../lib/supabase'
 import { useAuth } from '../contexts/AuthContext'
@@ -20,6 +21,7 @@ export default function QuickAddCustomerModal({ onClose, onCreated }: QuickAddCu
   async function handleSubmit(e: FormEvent) {
     e.preventDefault()
     if (!name.trim() || !profile?.business_id) return
+    if (phoneLengthError(phone)) return
     setSubmitting(true)
     setError(null)
     const { data, error: err } = await supabase
@@ -78,9 +80,12 @@ export default function QuickAddCustomerModal({ onClose, onCreated }: QuickAddCu
               value={phone}
               onChange={(e) => setPhone(e.target.value.replace(/\D/g, ''))}
               placeholder="05xx xxx xx xx"
+              aria-invalid={!!phoneLengthError(phone)}
+              style={phoneLengthError(phone) ? { borderColor: 'var(--danger-text)' } : undefined}
             />
+            {phoneLengthError(phone) && <span role="alert" style={{ display: 'block', marginTop: 6, fontSize: 12, fontWeight: 600, color: 'var(--danger-text)' }}>{phoneLengthError(phone)}</span>}
           </div>
-          <button type="submit" className="btn-primary" disabled={submitting}>
+          <button type="submit" className="btn-primary" disabled={submitting || !!phoneLengthError(phone)}>
             {submitting ? 'Ekleniyor…' : 'Müşteri Ekle'}
           </button>
         </form>

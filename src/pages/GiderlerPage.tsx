@@ -4,6 +4,7 @@ import { supabase } from '../lib/supabase'
 import { useAuth } from '../contexts/AuthContext'
 import ConfirmModal from '../components/ConfirmModal'
 import PageHeader from '../components/PageHeader'
+import PickerSheet from '../components/PickerSheet'
 import { CalendarIcon } from '../components/icons'
 import { currency } from '../lib/currency'
 import { toLocalDateString, presetDateRange, type DateRangePreset } from '../lib/date'
@@ -88,6 +89,7 @@ export default function GiderlerPage() {
   const [expenseDesc, setExpenseDesc] = useState('')
   const [expenseCategory, setExpenseCategory] = useState('')
   const [expenseMethod, setExpenseMethod] = useState('nakit')
+  const [methodPickerOpen, setMethodPickerOpen] = useState(false)
   const [expenseAmount, setExpenseAmount] = useState('')
   const [expenseDate, setExpenseDate] = useState(() => toLocalDateString(new Date()))
   const [expenseDueDate, setExpenseDueDate] = useState('')
@@ -504,21 +506,20 @@ export default function GiderlerPage() {
                 </label>
               </div>
               {expensePaid ? (
-                <label className={styles.formRow}>
+                <>
+                <button type="button" className={`${styles.formRow} ${styles.formRowBtn}`} onClick={() => setMethodPickerOpen(true)}>
                   <span className={styles.formRowLabel}>Ödeme şekli</span>
                   <span className={styles.formRowValue}>{METHODS.find((m) => m.value === expenseMethod)?.label} ›</span>
-                  <select
-                    className={styles.formRowInput}
-                    value={expenseMethod}
-                    onChange={(e) => setExpenseMethod(e.target.value)}
-                  >
-                    {METHODS.map((m) => (
-                      <option key={m.value} value={m.value}>
-                        {m.label}
-                      </option>
-                    ))}
-                  </select>
-                </label>
+                </button>
+                <PickerSheet
+                  open={methodPickerOpen}
+                  title="Nasıl ödendi?"
+                  options={METHODS}
+                  value={expenseMethod}
+                  onSelect={setExpenseMethod}
+                  onClose={() => setMethodPickerOpen(false)}
+                />
+                </>
               ) : (
                 <label className={styles.formRow}>
                   <span className={styles.formRowLabel}>Son ödeme tarihi</span>

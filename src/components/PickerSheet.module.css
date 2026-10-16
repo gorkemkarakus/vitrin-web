@@ -1,0 +1,133 @@
+.backdrop {
+  position: fixed;
+  inset: 0;
+  z-index: 120;
+  background: rgba(19, 40, 79, 0.38);
+  display: flex;
+  align-items: flex-end;
+  justify-content: center;
+  animation: fade 0.18s ease-out;
+}
+
+.sheet {
+  width: 100%;
+  max-width: 520px;
+  max-height: 75vh;
+  background: var(--panel);
+  border-radius: 24px 24px 0 0;
+  padding: 10px 16px calc(18px + env(safe-area-inset-bottom));
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  animation: rise 0.22s cubic-bezier(0.2, 0.8, 0.2, 1);
+}
+
+.grabber {
+  align-self: center;
+  width: 40px;
+  height: 4px;
+  border-radius: 999px;
+  background: #d5dae2;
+}
+
+.title {
+  font-family: var(--font-heading);
+  font-size: 18px;
+  font-weight: 600;
+  padding: 2px 4px 4px;
+}
+
+.list {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  overflow-y: auto;
+}
+
+.option,
+.optionActive {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  width: 100%;
+  border: none;
+  border-radius: 14px;
+  padding: 14px;
+  background: none;
+  font-family: var(--font-body);
+  color: var(--text);
+  text-align: left;
+  cursor: pointer;
+}
+
+.optionActive {
+  background: var(--bg);
+}
+
+.option:active {
+  background: var(--bg);
+}
+
+.text {
+  flex: 1;
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+
+.label {
+  font-size: 15px;
+  font-weight: 600;
+}
+
+.optionActive .label {
+  font-weight: 700;
+}
+
+.sub {
+  font-size: 12px;
+  color: var(--text-dim);
+}
+
+.radio,
+.radioOn {
+  flex-shrink: 0;
+  width: 22px;
+  height: 22px;
+  border-radius: 50%;
+  border: 2px solid #cfd5de;
+  display: grid;
+  place-items: center;
+}
+
+.radioOn {
+  border-color: var(--accent);
+  background: var(--accent);
+  color: #fff;
+}
+
+@keyframes rise {
+  from {
+    transform: translateY(100%);
+  }
+  to {
+    transform: translateY(0);
+  }
+}
+
+@keyframes fade {
+  from {
+    opacity: 0;
+  }
+  to {
+    opacity: 1;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .backdrop,
+  .sheet {
+    animation: none;
+  }
+}

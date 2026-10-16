@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useRef, useState } from 'react'
+import { useEffect, useMemo, useState } from 'react'
 import { useNavigate, useSearchParams } from 'react-router-dom'
 import { supabase } from '../lib/supabase'
 import { fetchAll } from '../lib/fetchAll'
@@ -6,7 +6,8 @@ import QuickAddCustomerModal from '../components/QuickAddCustomerModal'
 import DuplicateCustomers from '../components/DuplicateCustomers'
 import { visibleDuplicateGroups } from '../lib/duplicateCustomers'
 import { useAuth } from '../contexts/AuthContext'
-import { SearchIcon, CheckCircleIcon, PlusIcon, FilterIcon } from '../components/icons'
+import { SearchIcon, PlusIcon, FilterIcon } from '../components/icons'
+import PickerSheet from '../components/PickerSheet'
 import PageHeader from '../components/PageHeader'
 import { currencyWhole as currency } from '../lib/currency'
 import { toLocalDateString } from '../lib/date'
@@ -57,13 +58,13 @@ interface Payment {
 
 type Segment = CustomerSegment
 type SegmentFilter = 'tumu' | Segment | 'borclu'
-type SortBy = 'ad' | 'son_randevu' | 'harcama'
+type SortBy = 'ad' | 'son_randevu' | 'harcama' | 'borc'
 type StatsPeriod = 'tumu' | 'hafta' | 'ay'
 
-const STATS_PERIODS: { value: StatsPeriod; label: string }[] = [
-  { value: 'tumu', label: 'tüm zamanlar' },
-  { value: 'hafta', label: 'son hafta' },
-  { value: 'ay', label: 'son ay' },
+const STATS_PERIODS: { value: StatsPeriod; label: string; tab: string }[] = [
+  { value: 'hafta', label: 'son hafta', tab: 'Son hafta' },
+  { value: 'ay', label: 'son ay', tab: 'Son ay' },
+  { value: 'tumu', label: 'tüm zamanlar', tab: 'Tüm zamanlar' },
 ]
 
 // Yuzlerce musteriyi tek seferde DOM'a basmak her arama tuş vuruşunda/segment
@@ -78,10 +79,11 @@ const SEGMENT_TABS: { value: SegmentFilter; label: string }[] = [
   { value: 'yeni', label: 'Yeni' },
 ]
 
-const SORT_OPTIONS: { value: SortBy; label: string; short: string }[] = [
-  { value: 'ad', label: 'Ada göre (A–Z)', short: 'A-Z' },
-  { value: 'son_randevu', label: 'Son randevuya göre', short: 'Son' },
-  { value: 'harcama', label: 'Harcamaya göre', short: '₺' },
+const SORT_OPTIONS: { value: SortBy; label: string; short: string; sub: string }[] = [
+  { value: 'ad', label: 'Ada göre (A–Z)', short: 'A-Z', sub: 'Alfabetik' },
+  { value: 'son_randevu', label: 'Son gelişe göre', short: 'Son', sub: 'En son gelen en üstte' },
+  { value: 'harcama', label: 'Harcamaya göre', short: '₺', sub: 'En çok harcayan en üstte' },
+  { value: 'borc', label: 'Borca göre', short: 'Borç', sub: 'En çok borcu olan en üstte' },
 ]
 
 const SEGMENT_BADGE: Record<Segment, { label: string; className: string }> = {
@@ -127,24 +129,13 @@ export default function CustomersPage() {
   const [segmentFilter, setSegmentFilter] = useState<SegmentFilter>(() =>
     searchParams.get('sekme') === 'borclu' ? 'borclu' : 'tumu',
   )
-  const [sortBy, setSortBy] = useState<SortBy>('ad')
+  const [sortBy, setSortBy] = useState<SortBy>(() => (searchParams.get('sekme') === 'borclu' ? 'borc' : 'ad'))
   const [sortMenuOpen, setSortMenuOpen] = useState(false)
   const [visibleCount, setVisibleCount] = useState(PAGE_SIZE)
   const [addOpen, setAddOpen] = useState(false)
   const [dupOpen, setDupOpen] = useState(false)
   // Birlestirmeden sonra listeyi yeniden yuklemek icin.
   const [reloadKey, setReloadKey] = useState(0)
-
-  const sortMenuRef = useRef<HTMLDivElement>(null)
-
-  useEffect(() => {
-    if (!sortMenuOpen) return
-    function handleClick(e: MouseEvent) {
-      if (sortMenuRef.current && !sortMenuRef.current.contains(e.target as Node)) setSortMenuOpen(false)
-    }
-    document.addEventListener('mousedown', handleClick)
-    return () => document.removeEventListener('mousedown', handleClick)
-  }, [sortMenuOpen])
 
   useEffect(() => {
     async function loadData() {
@@ -173,6 +164,7 @@ export default function CustomersPage() {
 
   const now = useMemo(() => new Date(), [])
   const currentMonthStart = useMemo(() => monthStart(now), [now])
+  const nowMs = now.getTime()
 
   const servicePriceById = useMemo(() => new Map(services.map((s) => [s.id, s.price ?? 0])), [services])
 
@@ -215,7 +207,9 @@ export default function CustomersPage() {
       const appts = apptsByCustomer.get(c.id) ?? []
       const completed = appts.filter((a) => a.status === 'tamamlandi')
       const totalSpend = (paymentsByCustomer.get(c.id) ?? []).reduce((sum, p) => sum + p.amount, 0)
-      const relevant = appts.filter((a) => a.status !== 'iptal' && a.status !== 'gelmedi')
+      const relevant = appts.filter(
+        (a) => a.status !== 'iptal' && a.status !== 'gelmedi' && new Date(a.scheduled_at).getTime() <= nowMs,
+      )
       const lastApptAt = relevant.length
         ? new Date(Math.max(...relevant.map((a) => new Date(a.scheduled_at).getTime())))
         : null
@@ -228,7 +222,7 @@ export default function CustomersPage() {
       })
     }
     return map
-  }, [customers, apptsByCustomer, paymentsByCustomer, currentMonthStart])
+  }, [customers, apptsByCustomer, paymentsByCustomer, currentMonthStart, nowMs])
 
   // Musteri basina kalan bakiye: paketler icin, ZATEN olusturulmus seanslarin
   // gercek ucretleri (price_override varsa o, yoksa hizmet fiyati) + henuz
@@ -283,10 +277,10 @@ export default function CustomersPage() {
 
   const statsPeriodLabel = STATS_PERIODS.find((p) => p.value === statsPeriod)?.label ?? ''
 
-  // Harcama / yeni musteri kutularina dokununca donem sirayla degisir.
-  function cyclePeriod() {
-    const i = STATS_PERIODS.findIndex((p) => p.value === statsPeriod)
-    setStatsPeriod(STATS_PERIODS[(i + 1) % STATS_PERIODS.length].value)
+  function showSegment(seg: SegmentFilter) {
+    setSegmentFilter(seg)
+    if (seg === 'borclu') setSortBy('borc')
+    else if (sortBy === 'borc') setSortBy('ad')
   }
 
   const totalDebt = useMemo(() => {
@@ -303,7 +297,7 @@ export default function CustomersPage() {
     if (segmentFilter === 'borclu') list = list.filter((c) => (debtByCustomer.get(c.id) ?? 0) > 0)
     else if (segmentFilter !== 'tumu') list = list.filter((c) => segmentFor(c.id) === segmentFilter)
     list = [...list].sort((a, b) => {
-      if (segmentFilter === 'borclu') return (debtByCustomer.get(b.id) ?? 0) - (debtByCustomer.get(a.id) ?? 0)
+      if (sortBy === 'borc') return (debtByCustomer.get(b.id) ?? 0) - (debtByCustomer.get(a.id) ?? 0)
       if (sortBy === 'ad') return a.full_name.localeCompare(b.full_name, 'tr')
       const sa = statsByCustomer.get(a.id)
       const sb = statsByCustomer.get(b.id)
@@ -365,75 +359,61 @@ export default function CustomersPage() {
             onChange={(e) => setSearch(e.target.value)}
           />
         </label>
-        <div className={styles.filterWrap} ref={sortMenuRef}>
-          <button
-            type="button"
-            className={styles.filterBtn}
-            onClick={() => setSortMenuOpen((v) => !v)}
-            aria-haspopup="listbox"
-            aria-expanded={sortMenuOpen}
-            aria-label="Sıralama"
-          >
-            <FilterIcon width={15} height={15} />
-            {SORT_OPTIONS.find((o) => o.value === sortBy)?.short}
-          </button>
-          {sortMenuOpen && (
-            <div className={styles.filterMenu} role="listbox">
-              {SORT_OPTIONS.map((opt) => (
-                <button
-                  type="button"
-                  key={opt.value}
-                  className={styles.filterMenuItem}
-                  onClick={() => {
-                    setSortBy(opt.value)
-                    setSortMenuOpen(false)
-                  }}
-                >
-                  {opt.label}
-                  {sortBy === opt.value && <CheckCircleIcon width={14} height={14} />}
-                </button>
-              ))}
-              <span className={styles.filterMenuTitle}>Harcama / yeni dönemi</span>
-              {STATS_PERIODS.map((p) => (
-                <button
-                  type="button"
-                  key={p.value}
-                  className={styles.filterMenuItem}
-                  onClick={() => {
-                    setStatsPeriod(p.value)
-                    setSortMenuOpen(false)
-                  }}
-                >
-                  {p.label.charAt(0).toLocaleUpperCase('tr') + p.label.slice(1)}
-                  {statsPeriod === p.value && <CheckCircleIcon width={14} height={14} />}
-                </button>
-              ))}
-            </div>
-          )}
-        </div>
+        <button
+          type="button"
+          className={styles.filterBtn}
+          onClick={() => setSortMenuOpen(true)}
+          aria-haspopup="dialog"
+          aria-label="Sıralama"
+        >
+          <FilterIcon width={15} height={15} />
+          {SORT_OPTIONS.find((o) => o.value === sortBy)?.short}
+        </button>
+        <PickerSheet
+          open={sortMenuOpen}
+          title="Sırala"
+          options={SORT_OPTIONS}
+          value={sortBy}
+          onSelect={(v) => setSortBy(v as SortBy)}
+          onClose={() => setSortMenuOpen(false)}
+        />
       </div>
 
       <div className={styles.statsGrid}>
-        <div className={styles.statCard}>
+        <button type="button" className={styles.statCard} onClick={() => showSegment('tumu')}>
           <span className={styles.statValue}>{customers.length}</span>
           <span className={styles.statLabel}>Toplam müşteri</span>
-        </div>
-        <button type="button" className={styles.statCard} onClick={cyclePeriod}>
+        </button>
+        <div className={styles.statCard}>
           <span className={styles.statValue}>{currency.format(totalSpendForPeriod)}</span>
           <span className={styles.statLabel}>Harcama · {statsPeriodLabel}</span>
-        </button>
-        <button type="button" className={styles.statCard} onClick={cyclePeriod}>
+        </div>
+        <div className={styles.statCard}>
           <span className={styles.statValue}>{newCustomerCountForPeriod}</span>
           <span className={styles.statLabel}>Yeni · {statsPeriodLabel}</span>
-        </button>
+        </div>
         <button
           type="button"
           className={`${styles.statCard} ${styles.statCardWarm}`}
-          onClick={() => setSegmentFilter('borclu')}
+          onClick={() => showSegment('borclu')}
         >
           <span className={styles.statValue}>{currency.format(totalDebt)}</span>
           <span className={styles.statLabel}>{counts.borclu} müşteride borç</span>
         </button>
+      </div>
+
+      <div className={styles.periodRow} role="group" aria-label="Harcama ve yeni müşteri dönemi">
+        {STATS_PERIODS.map((p) => (
+          <button
+            type="button"
+            key={p.value}
+            className={statsPeriod === p.value ? styles.periodBtnActive : styles.periodBtn}
+            aria-pressed={statsPeriod === p.value}
+            onClick={() => setStatsPeriod(p.value)}
+          >
+            {p.tab}
+          </button>
+        ))}
       </div>
 
       {!loading && duplicateGroups.length > 0 && (
@@ -449,7 +429,7 @@ export default function CustomersPage() {
             type="button"
             key={tab.value}
             className={segmentFilter === tab.value ? styles.segmentBtnActive : styles.segmentBtn}
-            onClick={() => setSegmentFilter(tab.value)}
+            onClick={() => showSegment(tab.value)}
           >
             {tab.label}
           </button>
@@ -467,6 +447,9 @@ export default function CustomersPage() {
         </div>
       ) : (
         <>
+          <span className={styles.sortInfo}>
+            {filteredSorted.length} müşteri · {SORT_OPTIONS.find((o) => o.value === sortBy)?.sub}
+          </span>
           <div className={styles.list}>
             {visibleCustomers.map((c, i) => {
               const seg = segmentFor(c.id)

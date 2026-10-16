@@ -4,6 +4,7 @@ import { supabase } from '../lib/supabase'
 import { TIME_OPTIONS } from '../lib/timeOptions'
 import { toLocalDateString } from '../lib/date'
 import PageHeader from '../components/PageHeader'
+import PickerSheet from '../components/PickerSheet'
 import styles from './EmployeeLeavesPage.module.css'
 
 interface Employee {
@@ -141,6 +142,7 @@ export default function EmployeeLeavesPage() {
   // Cakisma ekraninda her randevu icin secim: 'to:<calisanId>' | 'cancel' | 'keep'
   const [choices, setChoices] = useState<Record<string, string>>({})
   const [leaveLabel, setLeaveLabel] = useState('Yıllık izin')
+  const [reasonPickerOpen, setReasonPickerOpen] = useState(false)
 
   // Cakisma kontrolu + cozum modali
   const [checkingConflicts, setCheckingConflicts] = useState(false)
@@ -855,17 +857,18 @@ export default function EmployeeLeavesPage() {
                   </span>
                 </div>
               )}
-              <label className={styles.formRow}>
+              <button type="button" className={`${styles.formRow} ${styles.formRowBtn}`} onClick={() => setReasonPickerOpen(true)}>
                 <span className={styles.formRowLabel}>Sebep</span>
                 <span className={styles.formRowValue}>{leaveLabel || 'Seç'} ›</span>
-                <select className={styles.formRowInput} value={leaveLabel} onChange={(e) => setLeaveLabel(e.target.value)}>
-                  {LEAVE_REASON_OPTIONS.map((o) => (
-                    <option key={o} value={o}>
-                      {o}
-                    </option>
-                  ))}
-                </select>
-              </label>
+              </button>
+              <PickerSheet
+                open={reasonPickerOpen}
+                title="İzin sebebi"
+                options={LEAVE_REASON_OPTIONS.map((o) => ({ value: o, label: o }))}
+                value={leaveLabel}
+                onSelect={setLeaveLabel}
+                onClose={() => setReasonPickerOpen(false)}
+              />
             </div>
 
             {formConflicts.length > 0 && (

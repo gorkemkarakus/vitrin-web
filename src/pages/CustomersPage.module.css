@@ -410,3 +410,38 @@ button.statCard {
   font-weight: 700;
   white-space: nowrap;
 }
+
+/* Harcama / yeni kartlarinin donemi — kartlarin hemen altinda */
+.periodRow {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  background: var(--seg-bg, #e6e9ee);
+  border-radius: 14px;
+  padding: 4px;
+  margin-top: -4px;
+}
+
+.periodBtn,
+.periodBtnActive {
+  border: none;
+  background: none;
+  border-radius: 10px;
+  padding: 9px 0;
+  font-family: var(--font-body);
+  font-size: 13px;
+  font-weight: 700;
+  color: var(--text-dim);
+  cursor: pointer;
+}
+
+.periodBtnActive {
+  background: var(--panel);
+  color: var(--text);
+  box-shadow: 0 1px 3px rgba(19, 40, 79, 0.1);
+}
+
+.sortInfo {
+  font-size: 12px;
+  color: var(--text-dim);
+  margin-bottom: -4px;
+}

@@ -556,3 +556,16 @@
   text-align: center;
   color: var(--text-dim);
 }
+
+/* <button> olarak kullanilan satir (alttan acilan secim penceresini acar) */
+.formRowBtn {
+  width: 100%;
+  border-top: none;
+  border-left: none;
+  border-right: none;
+  background: none;
+  font-family: var(--font-body);
+  color: var(--text);
+  text-align: left;
+  cursor: pointer;
+}

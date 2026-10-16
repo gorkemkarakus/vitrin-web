@@ -11,6 +11,7 @@ import { computeDebtItems, type DebtItem } from '../lib/customerDebts'
 import Avatar from '../components/Avatar'
 import StatusDropdown, { type StatusDropdownOption } from '../components/StatusDropdown'
 import Select from '../components/Select'
+import PickerSheet from '../components/PickerSheet'
 import {
   ChevronRightIcon,
   CheckCircleIcon,
@@ -281,6 +282,7 @@ export default function AppointmentsPage() {
   const [showAllServices, setShowAllServices] = useState(false)
   const [formWeekOffset, setFormWeekOffset] = useState(0)
   const [noteOpen, setNoteOpen] = useState(false)
+  const [sourcePickerOpen, setSourcePickerOpen] = useState(false)
   const otherDateRef = useRef<HTMLInputElement>(null)
   // Kapanis ekrani
   const [completeTypeOpen, setCompleteTypeOpen] = useState(false)
@@ -2101,19 +2103,20 @@ export default function AppointmentsPage() {
             </div>
 
             {/* ---- Kaynak + not ---- */}
-            <label className={styles.infoRow}>
+            <button type="button" className={styles.infoRow} onClick={() => setSourcePickerOpen(true)}>
               <span className={styles.infoRowLabel}>Kaynak</span>
               <span className={styles.infoRowValue}>
                 {SOURCE_OPTIONS.find((o) => o.value === source)?.label ?? 'Seç'} ›
               </span>
-              <select className={styles.infoRowSelect} value={source} onChange={(e) => setSource(e.target.value)}>
-                {SOURCE_OPTIONS.map((o) => (
-                  <option key={o.value} value={o.value}>
-                    {o.label}
-                  </option>
-                ))}
-              </select>
-            </label>
+            </button>
+            <PickerSheet
+              open={sourcePickerOpen}
+              title="Randevu nereden geldi?"
+              options={SOURCE_OPTIONS}
+              value={source}
+              onSelect={setSource}
+              onClose={() => setSourcePickerOpen(false)}
+            />
             {noteOpen || sourceNote ? (
               <input
                 className={styles.fInput}

@@ -2,6 +2,7 @@ import { Fragment, useEffect, useMemo, useRef, useState } from 'react'
 import { useNavigate, useOutletContext, useSearchParams } from 'react-router-dom'
 import { supabase } from '../lib/supabase'
 import { fetchAll } from '../lib/fetchAll'
+import { normalizeTrPhone } from '../lib/phone'
 import { useAuth } from '../contexts/AuthContext'
 import { MessagesIcon, ChevronRightIcon, SendIcon } from '../components/icons'
 import PageHeader from '../components/PageHeader'
@@ -113,6 +114,9 @@ export default function MessagesPage() {
   const [threadLoading, setThreadLoading] = useState(false)
   const [pauseMenuOpen, setPauseMenuOpen] = useState(false)
   const [listFilter, setListFilter] = useState<ListFilter>('tumu')
+  // Musteri profilinden gelindi ama bu kisiyle henuz konusma yok: bos konusma
+  // ekrani bu musteriyle acilir.
+  const [directCustomer, setDirectCustomer] = useState<Customer | null>(null)
   const threadEndRef = useRef<HTMLDivElement>(null)
   const navigate = useNavigate()
   const [searchParams, setSearchParams] = useSearchParams()
@@ -125,15 +129,41 @@ export default function MessagesPage() {
     supabase.rpc('my_business_bot_connected').then(({ data, error }) => setBotLive(error ? null : !!data))
   }, [profile?.business_id])
 
-  // Baska ekrandan (?telefon=...) gelindiyse o konusmayi dogrudan ac.
+  // Baska ekrandan gelindiyse (?musteri=<id> ya da ?telefon=...) o kisinin
+  // konusmasini dogrudan ac. Numara 0'li/90'li farkli yazilmis olabilir.
   useEffect(() => {
+    if (loading) return
+    const cid = searchParams.get('musteri')
     const tel = searchParams.get('telefon')
-    if (!tel) return
-    openConversation(tel)
+    if (!cid && !tel) return
+    searchParams.delete('musteri')
     searchParams.delete('telefon')
     setSearchParams(searchParams, { replace: true })
+    ;(async () => {
+      let cust: (Customer & { contact_phone?: string | null }) | null = null
+      if (cid) {
+        const { data } = await supabase
+          .from('customers')
+          .select('id, full_name, phone, contact_phone, bot_paused_until')
+          .eq('id', cid)
+          .maybeSingle()
+        cust = data
+      }
+      const wanted = new Set(
+        [tel, cust?.phone, cust?.contact_phone].map((p) => normalizeTrPhone(p)).filter((p) => p.length >= 10),
+      )
+      const conv = conversations.find((c) => wanted.has(normalizeTrPhone(c.phone)) || (cust && c.customer?.id === cust.id))
+      if (conv) {
+        openConversation(conv.phone)
+        return
+      }
+      const phone = [...wanted][0]
+      if (!phone) return
+      setDirectCustomer(cust ? { id: cust.id, full_name: cust.full_name, phone: cust.phone, bot_paused_until: cust.bot_paused_until } : null)
+      openConversation(phone)
+    })()
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [searchParams])
+  }, [searchParams, loading])
 
   async function loadConversations(silent = false) {
     if (!silent) setLoading(true)
@@ -228,7 +258,7 @@ export default function MessagesPage() {
   }, [threadLoading, selectedPhone])
 
   async function setPause(phone: string, minutes: number | null) {
-    const existing = conversations.find((c) => c.phone === phone)?.customer
+    const existing = conversations.find((c) => c.phone === phone)?.customer ?? directCustomer
     const until =
       minutes != null
         ? new Date(Date.now() + minutes * 60000).toISOString()
@@ -254,13 +284,17 @@ export default function MessagesPage() {
   }
 
   async function resumeBot(phone: string) {
-    const existing = conversations.find((c) => c.phone === phone)?.customer
+    const existing = conversations.find((c) => c.phone === phone)?.customer ?? directCustomer
     if (!existing) return
     await supabase.from('customers').update({ bot_paused_until: null }).eq('id', existing.id)
     await loadConversations(true)
   }
 
-  const selectedConversation = conversations.find((c) => c.phone === selectedPhone) ?? null
+  const selectedConversation =
+    conversations.find((c) => c.phone === selectedPhone) ??
+    (selectedPhone && directCustomer
+      ? { phone: selectedPhone, customer: directCustomer, lastMessage: '', lastMessageAt: '', lastRole: 'user' as const }
+      : null)
 
   const todayConversationCount = useMemo(() => {
     const todayStart = new Date()
@@ -292,7 +326,10 @@ export default function MessagesPage() {
           <button
             type="button"
             className={styles.threadBack}
-            onClick={() => setSelectedPhone(null)}
+            onClick={() => {
+              setSelectedPhone(null)
+              setDirectCustomer(null)
+            }}
             aria-label="Konuşmalara dön"
           >
             <ChevronRightIcon width={16} height={16} className={styles.backIcon} />
@@ -355,6 +392,8 @@ export default function MessagesPage() {
         <div className={styles.threadBody}>
           {threadLoading ? (
             <p className={styles.note}>Yükleniyor…</p>
+          ) : thread.length === 0 ? (
+            <p className={styles.note}>Bu müşteriyle henüz WhatsApp konuşması yok. Müşteri yazınca mesajlar burada görünür.</p>
           ) : (
             thread.map((m, i) => {
               const day = dayLabel(m.created_at)

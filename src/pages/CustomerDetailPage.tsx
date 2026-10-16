@@ -5,6 +5,7 @@ import { useAuth } from '../contexts/AuthContext'
 import { formatPersonName } from '../lib/formatName'
 import { currency } from '../lib/currency'
 import Select from '../components/Select'
+import { phoneLengthError } from '../lib/phone'
 import { ChevronRightIcon, PhoneIcon, WalletIcon, PencilIcon, TrashIcon, CalendarIcon, MessagesIcon } from '../components/icons'
 import { segmentForStats } from '../lib/customerSegments'
 import { toLocalDateString } from '../lib/date'
@@ -475,6 +476,7 @@ export default function CustomerDetailPage() {
   async function submitEditCustomer(e: FormEvent) {
     e.preventDefault()
     if (!editName.trim() || !id) return
+    if (phoneLengthError(editPhone)) return
     setError(null)
     setEditCustomerSubmitting(true)
     try {
@@ -618,8 +620,8 @@ export default function CustomerDetailPage() {
         <button
           type="button"
           className={styles.actionBtn}
-          disabled={!rawPhone || !can('mesajlar')}
-          onClick={() => navigate(`/mesajlar?telefon=${encodeURIComponent(rawPhone ?? '')}`)}
+          disabled={!(rawPhone || phone) || !can('mesajlar')}
+          onClick={() => navigate(`/mesajlar?musteri=${customer.id}`)}
         >
           <MessagesIcon width={18} height={18} />
           Mesaj
@@ -934,7 +936,10 @@ export default function CustomerDetailPage() {
                   value={editPhone}
                   onChange={(e) => setEditPhone(e.target.value.replace(/\D/g, ''))}
                   placeholder="05xx xxx xx xx"
+                  aria-invalid={!!phoneLengthError(editPhone)}
+                  style={phoneLengthError(editPhone) ? { borderColor: 'var(--danger-text)' } : undefined}
                 />
+                {phoneLengthError(editPhone) && <span role="alert" style={{ display: 'block', marginTop: 6, fontSize: 12, fontWeight: 600, color: 'var(--danger-text)' }}>{phoneLengthError(editPhone)}</span>}
               </div>
               <div className="field">
                 <label htmlFor="editCustomerEmail">E-posta</label>
@@ -957,7 +962,7 @@ export default function CustomerDetailPage() {
                 />
               </div>
               {error && <p className={styles.error}>{error}</p>}
-              <button type="submit" className="btn-primary" disabled={editCustomerSubmitting}>
+              <button type="submit" className="btn-primary" disabled={editCustomerSubmitting || !!phoneLengthError(editPhone)}>
                 {editCustomerSubmitting ? 'Kaydediliyor…' : 'Değişiklikleri kaydet'}
               </button>
               {profile?.role === 'admin' && (
