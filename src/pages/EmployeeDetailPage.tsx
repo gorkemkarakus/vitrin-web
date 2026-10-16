@@ -958,7 +958,7 @@ export default function EmployeeDetailPage({ selfEarnings = false }: { selfEarni
 
         <div className={styles.formCard}>
           <span className={styles.formTitle}>Uygulamaya giriş</span>
-          <p className={styles.hint} style={{ textAlign: 'left' }}>
+          <p className={`${styles.hint} ${styles.hintLeft}`}>
             Değiştirmek istemediğin alanı boş bırak.
           </p>
           <div className="field">

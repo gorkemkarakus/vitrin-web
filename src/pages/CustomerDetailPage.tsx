@@ -917,7 +917,7 @@ export default function CustomerDetailPage() {
                   aria-invalid={!!phoneLengthError(editPhone)}
                   style={phoneLengthError(editPhone) ? { borderColor: 'var(--danger-text)' } : undefined}
                 />
-                {phoneLengthError(editPhone) && <span role="alert" style={{ display: 'block', marginTop: 6, fontSize: 12, fontWeight: 600, color: 'var(--danger-text)' }}>{phoneLengthError(editPhone)}</span>}
+                {phoneLengthError(editPhone) && <span role="alert" className="field-error">{phoneLengthError(editPhone)}</span>}
               </div>
               <div className="field">
                 <label htmlFor="editCustomerEmail">E-posta</label>

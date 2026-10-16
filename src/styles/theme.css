@@ -137,7 +137,7 @@ a {
 }
 
 .field input::placeholder {
-  color: #9ca3af;
+  color: var(--text-faint);
 }
 
 .field textarea {
@@ -159,7 +159,29 @@ a {
 }
 
 .field textarea::placeholder {
-  color: #9ca3af;
+  color: var(--text-faint);
+}
+
+/* Yan yana / sikistirilmis formlarda alt boslugu olmayan alan */
+.field-flush {
+  margin-bottom: 0;
+}
+
+/* Iki kolonlu form izgarasinda tum satiri kaplayan alan */
+.field-full {
+  grid-column: 1 / -1;
+}
+
+.field-error {
+  display: block;
+  margin-top: 6px;
+  font-size: 12px;
+  font-weight: 600;
+  color: var(--danger-text);
+}
+
+.muted {
+  color: var(--text-dim);
 }
 
 /* --- Butonlar --- */
@@ -240,4 +262,23 @@ a {
   50% {
     opacity: 0.35;
   }
+}
+
+/* Icerik genisliginde buton (form altinda tam genislik yerine) */
+.btn-inline {
+  width: auto;
+}
+
+/* Buton gorunumlu baglanti */
+.btn-link {
+  display: block;
+  text-align: center;
+  text-decoration: none;
+}
+
+.loading-screen {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  height: 100vh;
 }

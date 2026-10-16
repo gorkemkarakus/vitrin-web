@@ -450,7 +450,7 @@ export default function AccountingPage() {
 
       {preset === 'ozel' && (
         <div className={styles.customRangeRow}>
-          <div className="field" style={{ marginBottom: 0 }}>
+          <div className="field field-flush">
             <label htmlFor="rangeStart">Başlangıç</label>
             <input
               id="rangeStart"
@@ -462,7 +462,7 @@ export default function AccountingPage() {
               }}
             />
           </div>
-          <div className="field" style={{ marginBottom: 0 }}>
+          <div className="field field-flush">
             <label htmlFor="rangeEnd">Bitiş</label>
             <input
               id="rangeEnd"

@@ -200,7 +200,7 @@ export default function DashboardPage() {
     return d >= start && d <= end
   }
 
-  if (loading) return <p style={{ color: 'var(--text-dim)' }}>Yükleniyor…</p>
+  if (loading) return <p className="muted">Yükleniyor…</p>
 
   const servicePriceById = new Map(services.map((s) => [s.id, s.price ?? 0]))
   const serviceNameById = new Map(services.map((s) => [s.id, s.name]))
@@ -382,11 +382,11 @@ export default function DashboardPage() {
 
         {dateFilter === 'ozel' && (
           <div className={`card ${styles.customRangeRow}`}>
-            <div className="field" style={{ marginBottom: 0 }}>
+            <div className="field field-flush">
               <label htmlFor="homeRangeStart">Başlangıç</label>
               <input id="homeRangeStart" type="date" value={customStart} onChange={(e) => setCustomStart(e.target.value)} />
             </div>
-            <div className="field" style={{ marginBottom: 0 }}>
+            <div className="field field-flush">
               <label htmlFor="homeRangeEnd">Bitiş</label>
               <input id="homeRangeEnd" type="date" value={customEnd} onChange={(e) => setCustomEnd(e.target.value)} />
             </div>

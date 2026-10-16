@@ -397,3 +397,15 @@
 .sendBtn:disabled {
   opacity: 0.5;
 }
+
+.legendSignal {
+  background: var(--signal);
+}
+
+.legendAccent {
+  background: var(--accent);
+}
+
+.legendMuted {
+  background: var(--line-2);
+}

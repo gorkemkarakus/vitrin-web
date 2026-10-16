@@ -3291,3 +3291,13 @@
   font-weight: 700;
   color: var(--warn-text);
 }
+
+.bannerSpaced {
+  margin-bottom: 16px;
+}
+
+.editCustomerName {
+  color: var(--text-dim);
+  font-size: 13px;
+  margin-bottom: 16px;
+}

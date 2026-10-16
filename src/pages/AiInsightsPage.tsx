@@ -690,11 +690,11 @@ export default function AiInsightsPage() {
             </div>
             <div className={styles.legend}>
               <span className={styles.legendRow}>
-                <span className={styles.legendDot} style={{ background: 'var(--signal)' }} />
+                <span className={`${styles.legendDot} ${styles.legendSignal}`} />
                 Tahsilat
               </span>
               <span className={styles.legendRow}>
-                <span className={styles.legendDot} style={{ background: 'var(--accent)' }} />
+                <span className={`${styles.legendDot} ${styles.legendAccent}`} />
                 Net kâr
               </span>
             </div>
@@ -731,15 +731,15 @@ export default function AiInsightsPage() {
                 />
                 <div className={styles.legendCol}>
                   <span className={styles.legendRow}>
-                    <span className={styles.legendDot} style={{ background: 'var(--accent)' }} />
+                    <span className={`${styles.legendDot} ${styles.legendAccent}`} />
                     Yeni <strong>{segmentCounts.yeni}</strong>
                   </span>
                   <span className={styles.legendRow}>
-                    <span className={styles.legendDot} style={{ background: 'var(--signal)' }} />
+                    <span className={`${styles.legendDot} ${styles.legendSignal}`} />
                     Sadık <strong>{segmentCounts.sadik}</strong>
                   </span>
                   <span className={styles.legendRow}>
-                    <span className={styles.legendDot} style={{ background: '#e2e5ea' }} />
+                    <span className={`${styles.legendDot} ${styles.legendMuted}`} />
                     Diğer <strong>{diger}</strong>
                   </span>
                 </div>

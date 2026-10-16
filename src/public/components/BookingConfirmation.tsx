@@ -65,7 +65,7 @@ export default function BookingConfirmation({
           )}
         </div>
 
-        <a className="btn-secondary" style={{ display: 'block', textAlign: 'center', textDecoration: 'none' }} href={calendarUrl} target="_blank" rel="noreferrer">
+        <a className="btn-secondary btn-link" href={calendarUrl} target="_blank" rel="noreferrer">
           Takvime Ekle
         </a>
       </div>

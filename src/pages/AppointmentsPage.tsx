@@ -1788,7 +1788,7 @@ export default function AppointmentsPage() {
 
       {viewMode === 'ozel' && (
         <div className={styles.customRangeRow}>
-          <div className="field" style={{ marginBottom: 0 }}>
+          <div className="field field-flush">
             <label htmlFor="calRangeStart">Başlangıç</label>
             <input
               id="calRangeStart"
@@ -1798,7 +1798,7 @@ export default function AppointmentsPage() {
               onChange={(e) => setCustomRangeStart(e.target.value)}
             />
           </div>
-          <div className="field" style={{ marginBottom: 0 }}>
+          <div className="field field-flush">
             <label htmlFor="calRangeEnd">Bitiş</label>
             <input
               id="calRangeEnd"
@@ -2459,7 +2459,7 @@ export default function AppointmentsPage() {
               </div>
               {completionPreview?.needsNextSession && (
                 <div className={styles.twoCol}>
-                  <div className="field" style={{ marginBottom: 0 }}>
+                  <div className="field field-flush">
                     <label htmlFor="followupDate">Tarih</label>
                     <input
                       id="followupDate"
@@ -2477,7 +2477,7 @@ export default function AppointmentsPage() {
                       }}
                     />
                   </div>
-                  <div className="field" style={{ marginBottom: 0 }}>
+                  <div className="field field-flush">
                     <label htmlFor="followupTime">Saat</label>
                     <Select
                       id="followupTime"
@@ -2729,7 +2729,7 @@ export default function AppointmentsPage() {
             </div>
 
             {editError && (
-              <div className={`${styles.banner} ${styles.bannerError}`} style={{ marginBottom: 16 }}>
+              <div className={`${styles.banner} ${styles.bannerError} ${styles.bannerSpaced}`}>
                 <span>{editError}</span>
                 <button type="button" className={styles.bannerClose} onClick={() => setEditError(null)}>
                   ✕
@@ -2737,7 +2737,7 @@ export default function AppointmentsPage() {
               </div>
             )}
 
-            <p style={{ color: 'var(--text-dim)', fontSize: 13, marginBottom: 16 }}>
+            <p className={styles.editCustomerName}>
               {customerName(editingAppt.customer_id)}
             </p>
 
@@ -2817,7 +2817,7 @@ export default function AppointmentsPage() {
                 </div>
               )}
 
-              <div className="field" style={{ gridColumn: '1 / -1' }}>
+              <div className="field field-full">
                 <label htmlFor="editNote">Not (opsiyonel)</label>
                 <input
                   id="editNote"

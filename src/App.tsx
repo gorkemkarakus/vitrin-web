@@ -49,7 +49,7 @@ function ProtectedRoute({
   const { session, profile, loading, can } = useAuth()
 
   if (loading) return (
-    <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', height: '100vh', color: 'var(--text-dim)' }}>
+    <div className="loading-screen muted">
       Yükleniyor…
     </div>
   )

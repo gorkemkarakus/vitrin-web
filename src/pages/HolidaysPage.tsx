@@ -375,7 +375,7 @@ export default function HolidaysPage() {
                 ✕
               </button>
             </div>
-            <div className="field" style={{ marginBottom: 0 }}>
+            <div className="field field-flush">
               <label htmlFor="holidayName">Adı</label>
               <input
                 id="holidayName"
@@ -409,12 +409,12 @@ export default function HolidaysPage() {
               </button>
             </div>
             <div className={mode === 'range' ? styles.twoCol : undefined}>
-              <div className="field" style={{ marginBottom: 0 }}>
+              <div className="field field-flush">
                 <label htmlFor="holidayDate">{mode === 'range' ? 'Başlangıç' : 'Tarih'}</label>
                 <input id="holidayDate" type="date" value={date} onChange={(e) => setDate(e.target.value)} />
               </div>
               {mode === 'range' && (
-                <div className="field" style={{ marginBottom: 0 }}>
+                <div className="field field-flush">
                   <label htmlFor="holidayEnd">Bitiş</label>
                   <input
                     id="holidayEnd"

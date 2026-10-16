@@ -206,7 +206,7 @@ export default function PublicBookingPage() {
               <span className={styles.continueBarText}>
                 {selectedService ? selectedService.name : 'Henüz seçim yapılmadı'}
               </span>
-              <button type="button" className="btn-primary" style={{ width: 'auto' }} disabled={!selectedService} onClick={handleContinueFromService}>
+              <button type="button" className="btn-primary btn-inline" disabled={!selectedService} onClick={handleContinueFromService}>
                 Devam Et
               </button>
             </div>
@@ -218,7 +218,7 @@ export default function PublicBookingPage() {
             <EmployeePicker employees={employees} selectedId={selectedEmployeeId} onSelect={setSelectedEmployeeId} />
             <div className={styles.continueBar}>
               <span className={styles.continueBarText}>{employeeName}</span>
-              <button type="button" className="btn-primary" style={{ width: 'auto' }} onClick={handleContinueFromEmployee}>
+              <button type="button" className="btn-primary btn-inline" onClick={handleContinueFromEmployee}>
                 Devam Et
               </button>
             </div>

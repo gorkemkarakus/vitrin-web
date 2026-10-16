@@ -255,7 +255,7 @@ export default function GiderlerPage() {
             ))}
           </div>
           <div className={styles.customRangeRow}>
-            <div className="field" style={{ marginBottom: 0 }}>
+            <div className="field field-flush">
               <label htmlFor="giderRangeStart">Başlangıç</label>
               <input
                 id="giderRangeStart"
@@ -269,7 +269,7 @@ export default function GiderlerPage() {
                 }}
               />
             </div>
-            <div className="field" style={{ marginBottom: 0 }}>
+            <div className="field field-flush">
               <label htmlFor="giderRangeEnd">Bitiş</label>
               <input
                 id="giderRangeEnd"
