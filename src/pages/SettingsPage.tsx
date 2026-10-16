@@ -15,7 +15,7 @@ const REMINDER_OPTIONS = [
   { value: '48', label: '2 gün önce' },
 ]
 
-type Section = 'ana' | 'hatirlatma' | 'whatsapp' | 'salon' | 'sifre' | 'online'
+type Section = 'ana' | 'hatirlatma' | 'whatsapp' | 'salon' | 'sifre' | 'online' | 'sil'
 
 function normalizePhone(raw: string): string {
   const digits = raw.replace(/\D/g, '')
@@ -56,6 +56,10 @@ export default function SettingsPage() {
   const [salonName, setSalonName] = useState('')
   const [newPassword, setNewPassword] = useState('')
   const [newPassword2, setNewPassword2] = useState('')
+  // Hesap silme: sunucu once kapsami soyler (sadece hesap / isletme dahil).
+  const [deleteScope, setDeleteScope] = useState<{ scope: 'account' | 'business'; business_name: string | null } | null>(null)
+  const [deletePassword, setDeletePassword] = useState('')
+  const [deleteBizName, setDeleteBizName] = useState('')
 
   const [whatsappPhone, setWhatsappPhone] = useState('')
   const [savedPhone, setSavedPhone] = useState('')
@@ -175,6 +179,51 @@ export default function SettingsPage() {
     }
     setBusiness((b) => (b ? { ...b, name } : b))
     setMsg({ type: 'ok', text: 'Kaydedildi.' })
+  }
+
+  async function callDeleteAccount(payload: Record<string, unknown>) {
+    const res = await fetch(`${import.meta.env.VITE_SUPABASE_URL}/functions/v1/delete-account`, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        Authorization: `Bearer ${session?.access_token}`,
+        apikey: import.meta.env.VITE_SUPABASE_ANON_KEY,
+      },
+      body: JSON.stringify(payload),
+    })
+    const body = await res.json().catch(() => ({}))
+    return { ok: res.ok, body }
+  }
+
+  async function openDelete() {
+    open('sil')
+    setDeleteScope(null)
+    setDeletePassword('')
+    setDeleteBizName('')
+    const { ok, body } = await callDeleteAccount({ dry_run: true })
+    if (ok) setDeleteScope(body.data)
+    else setMsg({ type: 'err', text: body.error ?? 'Hesap bilgisi alınamadı.' })
+  }
+
+  async function confirmDelete(e: FormEvent) {
+    e.preventDefault()
+    if (!deleteScope || !session?.user.email) return
+    setSaving(true)
+    setMsg(null)
+    // Yanlislikla silmeye karsi sifre yeniden dogrulanir.
+    const { error: pwErr } = await supabase.auth.signInWithPassword({ email: session.user.email, password: deletePassword })
+    if (pwErr) {
+      setSaving(false)
+      setMsg({ type: 'err', text: 'Şifre yanlış.' })
+      return
+    }
+    const { ok, body } = await callDeleteAccount({ confirm_business_name: deleteBizName })
+    setSaving(false)
+    if (!ok) {
+      setMsg({ type: 'err', text: body.error ?? 'Hesap silinemedi.' })
+      return
+    }
+    await signOut()
   }
 
   async function savePassword(e: FormEvent) {
@@ -391,6 +440,65 @@ export default function SettingsPage() {
     )
   }
 
+  if (section === 'sil') {
+    const isBusiness = deleteScope?.scope === 'business'
+    const nameOk =
+      !isBusiness ||
+      deleteBizName.trim().toLocaleLowerCase('tr') === (deleteScope?.business_name ?? '').trim().toLocaleLowerCase('tr')
+    return (
+      <form className={styles.wrap} onSubmit={confirmDelete}>
+        <PageHeader back={back} title="Hesabımı sil" />
+        {!deleteScope ? (
+          <p className={styles.hint}>{msg ? '' : 'Kontrol ediliyor…'}</p>
+        ) : (
+          <>
+            <div className={styles.dangerCard}>
+              {isBusiness ? (
+                <>
+                  <b>{deleteScope.business_name}</b> işletmesinin tek yöneticisi sensin. Hesabını silersen işletme ve
+                  tüm verisi de kalıcı olarak silinir: müşteriler, randevular, ödemeler, giderler ve çalışan hesapları.
+                </>
+              ) : (
+                <>
+                  Giriş hesabın ve kişisel bilgilerin kalıcı olarak silinir. Salonun kayıtları (randevular, ödemeler)
+                  silinmez; geçmiş randevularda adın görünmez.
+                </>
+              )}
+              <span className={styles.dangerNote}>Bu işlem geri alınamaz.</span>
+            </div>
+            <div className={styles.formCard}>
+              <div className={styles.field}>
+                <label htmlFor="deletePassword">Şifren</label>
+                <input
+                  id="deletePassword"
+                  type="password"
+                  autoComplete="current-password"
+                  value={deletePassword}
+                  onChange={(e) => setDeletePassword(e.target.value)}
+                  required
+                />
+              </div>
+              {isBusiness && (
+                <div className={styles.field}>
+                  <label htmlFor="deleteBizName">Onay için işletme adını yaz: {deleteScope.business_name}</label>
+                  <input id="deleteBizName" value={deleteBizName} onChange={(e) => setDeleteBizName(e.target.value)} />
+                </div>
+              )}
+            </div>
+          </>
+        )}
+        {msgLine}
+        {deleteScope && (
+          <div className={styles.footer}>
+            <button type="submit" className={styles.dangerBtn} disabled={saving || !deletePassword || !nameOk}>
+              {saving ? 'Siliniyor…' : isBusiness ? 'İşletmeyi ve hesabımı sil' : 'Hesabımı kalıcı olarak sil'}
+            </button>
+          </div>
+        )}
+      </form>
+    )
+  }
+
   if (section === 'sifre') {
     return (
       <form className={styles.wrap} onSubmit={savePassword}>
@@ -478,6 +586,7 @@ export default function SettingsPage() {
         {row('E-posta', session?.user.email ?? '—')}
         {row('Şifre değiştir', '', () => open('sifre'), 'muted')}
         {row('Bildirimler', '', () => navigate('/bildirimler?tercihler=1'), 'muted')}
+        {row('Hesabımı sil', '', openDelete, 'muted')}
       </div>
 
       <button type="button" className={styles.signOut} onClick={() => signOut()}>
