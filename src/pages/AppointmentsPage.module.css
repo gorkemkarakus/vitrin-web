@@ -1155,7 +1155,7 @@
 .dateNavBtn {
   border: none;
   background: none;
-  color: #9ca3af;
+  color: var(--text-faint);
   font-size: 20px;
   line-height: 1;
   padding: 12px 0;
@@ -1200,7 +1200,7 @@
 
 .dayStripBtnOff,
 .dayStripBtnOff .dayStripWeekday {
-  color: #9ca3af;
+  color: var(--text-faint);
 }
 
 .dayStripBtnActive .dayStripWeekday {
@@ -1212,7 +1212,7 @@
   width: 5px;
   height: 5px;
   border-radius: 50%;
-  background: #c5cad3;
+  background: var(--line-strong);
 }
 
 .dayStripDotEmpty {
@@ -1242,7 +1242,7 @@
 .chip,
 .chipActive {
   flex-shrink: 0;
-  border: 1px solid #e2e5ea;
+  border: 1px solid var(--line-2);
   background: var(--panel);
   color: var(--text);
   border-radius: 999px;
@@ -1330,7 +1330,7 @@
   top: 20px;
   bottom: 20px;
   width: 2px;
-  background: #e2e5ea;
+  background: var(--line-2);
 }
 
 .timelineRow {
@@ -1355,7 +1355,7 @@
 }
 
 .timelineRowGutterPast {
-  color: #9ca3af;
+  color: var(--text-faint);
 }
 
 .timelineRowGutterNext {
@@ -1864,7 +1864,7 @@
 }
 
 .formDayActive .formDayFree {
-  color: #ffb07a;
+  color: var(--accent-soft);
 }
 
 .timeChipGrid {
@@ -2037,7 +2037,7 @@
 
 .weekDayName {
   font-size: 11px;
-  color: #6b7280;
+  color: var(--text-muted);
 }
 
 .weekDayActive .weekDayName {
@@ -2047,7 +2047,7 @@
 
 .weekDayOff,
 .weekDayOff .weekDayName {
-  color: #9ca3af;
+  color: var(--text-faint);
 }
 
 .weekDayNum {
@@ -2062,7 +2062,7 @@
   width: 5px;
   height: 5px;
   border-radius: 50%;
-  background: #c5cad3;
+  background: var(--line-strong);
 }
 
 .weekDayDotEmpty {
@@ -2104,7 +2104,7 @@
 }
 
 .cardStateMuted {
-  color: #9ca3af;
+  color: var(--text-faint);
 }
 
 .cardStateWarm {
@@ -2140,7 +2140,7 @@
   width: 40px;
   height: 5px;
   border-radius: 999px;
-  background: #d7dae0;
+  background: var(--line-3);
 }
 
 .sheetHead {
@@ -2241,7 +2241,7 @@
 
 .custInput::placeholder {
   font-weight: 500;
-  color: #9ca3af;
+  color: var(--text-faint);
 }
 
 .custPhone {
@@ -2253,7 +2253,7 @@
 .custClear {
   border: none;
   background: none;
-  color: #9ca3af;
+  color: var(--text-faint);
   font-size: 13px;
   padding: 4px;
   cursor: pointer;
@@ -2311,7 +2311,7 @@
 .serviceChip,
 .serviceChipActive,
 .serviceChipMore {
-  border: 1px solid #e2e5ea;
+  border: 1px solid var(--line-2);
   background: var(--panel);
   color: var(--text);
   font-family: var(--font-body);
@@ -2331,7 +2331,7 @@
 
 .serviceChipMore {
   border-style: dashed;
-  border-color: #c5cad3;
+  border-color: var(--line-strong);
   color: var(--text-dim);
   font-weight: 700;
 }
@@ -2352,7 +2352,7 @@
 .staffBtnActive {
   flex-shrink: 0;
   min-width: 64px;
-  border: 1px solid #e2e5ea;
+  border: 1px solid var(--line-2);
   background: var(--panel);
   border-radius: 14px;
   padding: 7px 10px;
@@ -2401,13 +2401,13 @@
 }
 
 .staffTone1 {
-  background: #f1eafd;
-  color: #4c1d95;
+  background: var(--purple-bg);
+  color: var(--purple-text);
 }
 
 .staffTone2 {
   background: var(--ok-bg);
-  color: #0a5c43;
+  color: var(--green-deep);
 }
 
 .monthNav {
@@ -2466,9 +2466,9 @@
 }
 
 .formDayOff {
-  border: 1px dashed #d7dae0;
+  border: 1px dashed var(--line-3);
   background: var(--panel);
-  color: #9ca3af;
+  color: var(--text-faint);
   padding: 6px 0;
   cursor: default;
 }
@@ -2501,12 +2501,12 @@
 }
 
 .formDayStateMuted {
-  color: #6b7280;
+  color: var(--text-muted);
   font-weight: 500;
 }
 
 .formDayGrid .formDayActive .formDayState {
-  color: #ffb07a;
+  color: var(--accent-soft);
 }
 
 .timeGrid {
@@ -2521,7 +2521,7 @@
 .timeCellOff,
 .timeCellActive,
 .timeCellOther {
-  border: 1px solid #e2e5ea;
+  border: 1px solid var(--line-2);
   background: var(--panel);
   color: var(--text);
   font-family: var(--font-body);
@@ -2534,7 +2534,7 @@
 }
 
 .timeCellOff {
-  border-color: #eef0f3;
+  border-color: var(--line-soft);
   background: var(--bg);
   color: #b6bcc7;
   cursor: default;
@@ -2549,7 +2549,7 @@
 
 .timeCellOther {
   border-style: dashed;
-  border-color: #c5cad3;
+  border-color: var(--line-strong);
   color: var(--text-dim);
   font-size: 13px;
   font-weight: 700;
@@ -2712,7 +2712,7 @@
 }
 
 .detailStatus_gelmedi {
-  color: #6b7280;
+  color: var(--text-muted);
 }
 
 .storyCard {
@@ -2750,7 +2750,7 @@
 }
 
 .storyDot_purple {
-  background: #4c1d95;
+  background: var(--purple-text);
 }
 
 .storyDot_navy {
@@ -2766,7 +2766,7 @@
 }
 
 .storyDot_muted {
-  background: #9ca3af;
+  background: var(--text-faint);
 }
 
 .storyDot_pending {
@@ -2776,7 +2776,7 @@
 .storyLine {
   flex: 1;
   width: 2px;
-  background: #eef0f3;
+  background: var(--line-soft);
 }
 
 .storyText {
@@ -3105,7 +3105,7 @@
   flex: 1;
   height: 6px;
   border-radius: 3px;
-  background: #e2e5ea;
+  background: var(--line-2);
 }
 
 .pkgSegDone {
@@ -3124,7 +3124,7 @@
   align-items: center;
   gap: 12px;
   width: 100%;
-  border: 1px solid #e2e5ea;
+  border: 1px solid var(--line-2);
   background: var(--panel);
   border-radius: 14px;
   padding: 12px;
@@ -3160,7 +3160,7 @@
   width: 18px;
   height: 18px;
   border-radius: 50%;
-  border: 2px solid #c5cad3;
+  border: 2px solid var(--line-strong);
   flex-shrink: 0;
 }
 
@@ -3183,7 +3183,7 @@
 }
 
 .payOptionMuted {
-  color: #9ca3af;
+  color: var(--text-faint);
   font-size: 13px;
 }
 
@@ -3210,7 +3210,7 @@
 .methodChipActive {
   border: none;
   background: var(--panel-2);
-  color: #374151;
+  color: var(--text-strong);
   font-family: var(--font-body);
   font-size: 13px;
   font-weight: 700;
@@ -3251,13 +3251,13 @@
 }
 
 .noteBox::placeholder {
-  color: #9ca3af;
+  color: var(--text-faint);
 }
 
 .fsFooter {
   flex-shrink: 0;
   background: var(--panel);
-  border-top: 1px solid #eef0f3;
+  border-top: 1px solid var(--line-soft);
   padding: 14px 16px calc(30px + env(safe-area-inset-bottom, 0px));
 }
 

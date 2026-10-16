@@ -35,6 +35,19 @@
   --info-bg: #e7ecf5;
   --info-text: #13284f;
 
+  /* Notr tonlar ve yardimci renkler */
+  --text-faint: #9ca3af;
+  --text-muted: #6b7280;
+  --text-strong: #374151;
+  --line-soft: #eef0f3;
+  --line-2: #e2e5ea;
+  --line-3: #d7dae0;
+  --line-strong: #c5cad3;
+  --purple-text: #4c1d95;
+  --purple-bg: #f1eafd;
+  --green-deep: #0a5c43;
+  --accent-soft: #ffb07a;
+
   --radius-sm: 12px;
   --radius-md: 16px;
   --radius-lg: 20px;

@@ -113,7 +113,7 @@
 
 .num_skipped {
   background: var(--bg);
-  color: #9ca3af;
+  color: var(--text-faint);
 }
 
 .body {

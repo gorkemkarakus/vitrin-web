@@ -167,7 +167,7 @@ button.statTile {
   gap: 12px;
   width: 100%;
   border: none;
-  border-bottom: 1px solid #eef0f3;
+  border-bottom: 1px solid var(--line-soft);
   background: none;
   color: var(--text);
   padding: 12px 0;
@@ -206,7 +206,7 @@ button.statTile {
 
 .avatarGray {
   background: var(--panel-2);
-  color: #374151;
+  color: var(--text-strong);
 }
 
 .convText {
@@ -233,7 +233,7 @@ button.statTile {
 
 .convTime {
   font-size: 12px;
-  color: #6b7280;
+  color: var(--text-muted);
   flex-shrink: 0;
 }
 
@@ -244,7 +244,7 @@ button.statTile {
 
 .convPreview {
   font-size: 13px;
-  color: #374151;
+  color: var(--text-strong);
   white-space: nowrap;
   overflow: hidden;
   text-overflow: ellipsis;
@@ -278,7 +278,7 @@ button.statTile {
   gap: 12px;
   background: var(--panel);
   padding: calc(14px + env(safe-area-inset-top, 0px)) 16px 12px;
-  border-bottom: 1px solid #eef0f3;
+  border-bottom: 1px solid var(--line-soft);
 }
 
 .threadBack {
@@ -342,7 +342,7 @@ button.statTile {
 
 .bandSub {
   font-size: 12px;
-  color: #374151;
+  color: var(--text-strong);
 }
 
 .bandBtn {
@@ -407,7 +407,7 @@ button.statTile {
   align-self: center;
   font-size: 11px;
   font-weight: 700;
-  color: #6b7280;
+  color: var(--text-muted);
   background: var(--seg-bg);
   padding: 4px 10px;
   border-radius: 999px;
@@ -450,7 +450,7 @@ button.statTile {
   display: block;
   margin-top: 4px;
   font-size: 11px;
-  color: #9ca3af;
+  color: var(--text-faint);
 }
 
 .bubbleOut .bubbleTime {
@@ -464,14 +464,14 @@ button.statTile {
   align-items: center;
   gap: 10px;
   background: var(--panel);
-  border-top: 1px solid #eef0f3;
+  border-top: 1px solid var(--line-soft);
   padding: 12px 16px;
 }
 
 .composerField {
   flex: 1;
   background: var(--bg);
-  color: #9ca3af;
+  color: var(--text-faint);
   border-radius: 999px;
   padding: 12px 16px;
   font-size: 14px;
@@ -481,7 +481,7 @@ button.statTile {
   width: 44px;
   height: 44px;
   border-radius: 50%;
-  background: #e2e5ea;
+  background: var(--line-2);
   color: #fff;
   display: flex;
   align-items: center;

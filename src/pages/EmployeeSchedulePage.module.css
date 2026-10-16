@@ -62,12 +62,12 @@
   flex: 1;
   font-size: 15px;
   font-weight: 600;
-  color: #6b7280;
+  color: var(--text-muted);
 }
 
 .dayRowOff {
   font-size: 14px;
-  color: #6b7280;
+  color: var(--text-muted);
 }
 
 .timeTag {
@@ -85,7 +85,7 @@
 }
 
 .timeDash {
-  color: #9ca3af;
+  color: var(--text-faint);
 }
 
 .timeDashWarm {
@@ -191,7 +191,7 @@
 }
 
 .addBreakBtn {
-  border: 1.5px dashed #c5cad3;
+  border: 1.5px dashed var(--line-strong);
   background: transparent;
   color: var(--text-dim);
 }
@@ -225,7 +225,7 @@
   position: absolute;
   inset: 0;
   border-radius: 999px;
-  background: #d7dae0;
+  background: var(--line-3);
   transition: background 0.15s;
   pointer-events: none;
 }
@@ -263,7 +263,7 @@
   margin: auto -16px -16px;
   padding: 14px 16px;
   background: var(--panel);
-  border-top: 1px solid #eef0f3;
+  border-top: 1px solid var(--line-soft);
   z-index: 5;
 }
 

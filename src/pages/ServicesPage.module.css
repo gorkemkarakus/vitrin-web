@@ -27,7 +27,7 @@
   gap: 12px;
   width: 100%;
   border: none;
-  border-bottom: 1px solid #eef0f3;
+  border-bottom: 1px solid var(--line-soft);
   background: none;
   padding: 13px 0;
   font-family: var(--font-body);
@@ -43,7 +43,7 @@
 
 .rowInactive .rowName,
 .rowInactive .rowPrice {
-  color: #9ca3af;
+  color: var(--text-faint);
 }
 
 .rowMain {
@@ -83,11 +83,11 @@
 }
 
 .rowArrow {
-  color: #9ca3af;
+  color: var(--text-faint);
 }
 
 .rowChevron {
-  color: #9ca3af;
+  color: var(--text-faint);
   flex-shrink: 0;
 }
 
@@ -109,7 +109,7 @@
 }
 
 .searchIcon {
-  color: #9ca3af;
+  color: var(--text-faint);
   flex-shrink: 0;
 }
 
@@ -126,7 +126,7 @@
 }
 
 .searchInput::placeholder {
-  color: #9ca3af;
+  color: var(--text-faint);
 }
 
 .filterWrap {
@@ -329,7 +329,7 @@
   display: flex;
   align-items: center;
   gap: 8px;
-  border: 1px solid #e2e5ea;
+  border: 1px solid var(--line-2);
   background: var(--panel);
   border-radius: 14px;
   padding: 8px 14px 8px 8px;
@@ -364,13 +364,13 @@
 }
 
 .tonePurple {
-  background: #f1eafd;
-  color: #4c1d95;
+  background: var(--purple-bg);
+  color: var(--purple-text);
 }
 
 .toneGreen {
   background: var(--ok-bg);
-  color: #0a5c43;
+  color: var(--green-deep);
 }
 
 .switch {
@@ -432,7 +432,7 @@
   margin: auto -16px -16px;
   padding: 14px 16px;
   background: var(--panel);
-  border-top: 1px solid #eef0f3;
+  border-top: 1px solid var(--line-soft);
   z-index: 5;
 }
 
@@ -458,7 +458,7 @@
   grid-template-columns: repeat(2, minmax(0, 1fr));
   gap: 10px;
   padding: 4px 0 14px;
-  border-bottom: 1px solid #eef0f3;
+  border-bottom: 1px solid var(--line-soft);
 }
 
 .smallInput {

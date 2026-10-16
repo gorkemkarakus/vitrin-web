@@ -131,7 +131,7 @@
 
 .statNote {
   font-size: 11px;
-  color: #9ca3af;
+  color: var(--text-faint);
   text-align: center;
   margin-top: -8px;
 }
@@ -151,7 +151,7 @@
   font-weight: 700;
   letter-spacing: 0.06em;
   text-transform: uppercase;
-  color: #ffb07a;
+  color: var(--accent-soft);
 }
 
 .nowMain {
@@ -229,7 +229,7 @@
 }
 
 .navChevron {
-  color: #9ca3af;
+  color: var(--text-faint);
   flex-shrink: 0;
 }
 
@@ -341,7 +341,7 @@
 }
 
 .dayPillDotOff {
-  background: #c5cad3;
+  background: var(--line-strong);
 }
 
 .dayPillActive .dayPillDot {
@@ -362,7 +362,7 @@
   top: 10px;
   bottom: 10px;
   width: 2px;
-  background: #e2e5ea;
+  background: var(--line-2);
 }
 
 .timelineRow {
@@ -429,7 +429,7 @@
   width: 24px;
   height: 24px;
   border-radius: 8px;
-  border: 2px solid #c5cad3;
+  border: 2px solid var(--line-strong);
   background: var(--panel);
   color: #fff;
   display: flex;
@@ -476,7 +476,7 @@
 
 .earnHint {
   font-size: 13px;
-  color: #ffb07a;
+  color: var(--accent-soft);
 }
 
 /* ---------- Formlar ---------- */
@@ -576,7 +576,7 @@
 }
 
 .topBlock .statItem + .statItem {
-  border-left: 1px solid #e2e5ea;
+  border-left: 1px solid var(--line-2);
 }
 
 .topBlock .statValue {
@@ -638,7 +638,7 @@
 }
 
 .body .navChevron {
-  color: #9ca3af;
+  color: var(--text-faint);
   font-size: 18px;
 }
 
@@ -730,7 +730,7 @@
   padding-top: 12px;
   font-size: 13px;
   font-weight: 700;
-  color: #6b7280;
+  color: var(--text-muted);
   font-variant-numeric: tabular-nums;
 }
 
@@ -792,7 +792,7 @@
   font-size: 11px;
   font-weight: 700;
   color: var(--signal);
-  background: #ffb07a;
+  background: var(--accent-soft);
   padding: 4px 8px;
   border-radius: 999px;
 }
@@ -809,7 +809,7 @@
 
 .slotGap {
   flex: 1;
-  border: 1.5px dashed #c5cad3;
+  border: 1.5px dashed var(--line-strong);
   background: transparent;
   border-radius: 16px;
   padding: 10px 14px;
@@ -842,7 +842,7 @@
 }
 
 .daySummaryItem + .daySummaryItem {
-  border-left: 1px solid #eef0f3;
+  border-left: 1px solid var(--line-soft);
 }
 
 .daySummaryValue {
@@ -923,7 +923,7 @@
   padding: 0 4px;
   font-size: 12px;
   font-weight: 700;
-  color: #6b7280;
+  color: var(--text-muted);
   text-transform: uppercase;
   letter-spacing: 0.06em;
 }
@@ -943,7 +943,7 @@
 
 .checkLabelOff {
   font-weight: 600;
-  color: #374151;
+  color: var(--text-strong);
 }
 
 .checkMeta {
@@ -1002,7 +1002,7 @@
   font-family: var(--font-heading);
   font-size: 20px;
   font-weight: 600;
-  color: #ffb07a;
+  color: var(--accent-soft);
 }
 
 .chartCard {
@@ -1074,7 +1074,7 @@
   font-size: 11px;
   color: var(--text-dim);
   text-align: center;
-  border-top: 1px solid #eef0f3;
+  border-top: 1px solid var(--line-soft);
   padding-top: 8px;
 }
 
@@ -1089,7 +1089,7 @@
   grid-template-columns: minmax(0, 1fr) 44px 76px 64px;
   padding: 11px 0;
   font-size: 14px;
-  border-bottom: 1px solid #eef0f3;
+  border-bottom: 1px solid var(--line-soft);
 }
 
 .tableRow:last-child {
@@ -1100,7 +1100,7 @@
   padding: 10px 0;
   font-size: 11px;
   font-weight: 700;
-  color: #6b7280;
+  color: var(--text-muted);
   text-transform: uppercase;
   letter-spacing: 0.05em;
 }
@@ -1192,7 +1192,7 @@
   position: absolute;
   inset: 0;
   border-radius: 999px;
-  background: #d7dae0;
+  background: var(--line-3);
   transition: background 0.15s;
   pointer-events: none;
 }

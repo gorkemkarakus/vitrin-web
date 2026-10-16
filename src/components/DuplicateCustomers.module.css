@@ -67,7 +67,7 @@
   gap: 12px;
   width: 100%;
   border: none;
-  border-bottom: 1px solid #e2e5ea;
+  border-bottom: 1px solid var(--line-2);
   background: none;
   padding: 11px 0;
   font-family: var(--font-body);
@@ -85,7 +85,7 @@
   width: 20px;
   height: 20px;
   border-radius: 50%;
-  border: 2px solid #c5cad3;
+  border: 2px solid var(--line-strong);
   flex-shrink: 0;
 }
 

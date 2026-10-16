@@ -184,7 +184,7 @@
 .field label {
   font-size: 13px;
   font-weight: 700;
-  color: #374151;
+  color: var(--text-strong);
 }
 
 .inputGray,
@@ -208,7 +208,7 @@
 .inputGray::placeholder,
 .inputWhite::placeholder,
 .passwordBox input::placeholder {
-  color: #9ca3af;
+  color: var(--text-faint);
 }
 
 .inputGray:focus,
@@ -385,12 +385,12 @@
 .sentTitle {
   font-size: 14px;
   font-weight: 700;
-  color: #0a5c43;
+  color: var(--green-deep);
 }
 
 .sentSub {
   font-size: 13px;
-  color: #374151;
+  color: var(--text-strong);
   line-height: 1.5;
   overflow-wrap: anywhere;
 }
@@ -443,7 +443,7 @@
 .barOn {
   height: 5px;
   border-radius: 3px;
-  background: #e2e5ea;
+  background: var(--line-2);
 }
 
 .barOn {

@@ -184,7 +184,7 @@
   border-radius: 10px;
   border: none;
   background: none;
-  color: #9ca3af;
+  color: var(--text-faint);
   display: flex;
   align-items: center;
   justify-content: center;
@@ -376,7 +376,7 @@
 
 .chip,
 .chipActive {
-  border: 1px solid #e2e5ea;
+  border: 1px solid var(--line-2);
   background: var(--panel);
   color: var(--text);
   border-radius: 999px;
@@ -525,7 +525,7 @@
 .groupLabel {
   font-size: 12px;
   font-weight: 700;
-  color: #6b7280;
+  color: var(--text-muted);
   text-transform: uppercase;
   letter-spacing: 0.06em;
   padding: 4px 4px 0;
@@ -537,7 +537,7 @@
 
 .leaveRow {
   padding: 12px 0;
-  border-bottom: 1px solid #eef0f3;
+  border-bottom: 1px solid var(--line-soft);
 }
 
 .dateTile {
@@ -590,7 +590,7 @@
   justify-content: space-between;
   gap: 12px;
   padding: 13px 0;
-  border-bottom: 1px solid #eef0f3;
+  border-bottom: 1px solid var(--line-soft);
   font-size: 14px;
 }
 
@@ -657,7 +657,7 @@
   width: 40px;
   height: 5px;
   border-radius: 999px;
-  background: #d7dae0;
+  background: var(--line-3);
 }
 
 .sheetTitle {
@@ -706,7 +706,7 @@
   display: flex;
   align-items: center;
   gap: 8px;
-  border: 1px solid #e2e5ea;
+  border: 1px solid var(--line-2);
   background: var(--panel);
   color: var(--text);
   border-radius: 14px;
@@ -740,13 +740,13 @@
 }
 
 .tone1 {
-  background: #f1eafd;
-  color: #4c1d95;
+  background: var(--purple-bg);
+  color: var(--purple-text);
 }
 
 .tone2 {
   background: var(--ok-bg);
-  color: #0a5c43;
+  color: var(--green-deep);
 }
 
 .sheet .segmented {
@@ -774,7 +774,7 @@
   align-items: center;
   gap: 12px;
   padding: 13px 0;
-  border-bottom: 1px solid #e2e5ea;
+  border-bottom: 1px solid var(--line-2);
   font-size: 14px;
 }
 
@@ -802,7 +802,7 @@
   display: flex;
   align-items: center;
   gap: 6px;
-  color: #9ca3af;
+  color: var(--text-faint);
 }
 
 .timeSelect {
@@ -837,7 +837,7 @@
   flex-wrap: wrap;
   gap: 4px 14px;
   font-size: 13px;
-  color: #374151;
+  color: var(--text-strong);
 }
 
 .warnSub {
@@ -886,7 +886,7 @@
 .resolveTrack span {
   display: block;
   height: 100%;
-  background: #ffb07a;
+  background: var(--accent-soft);
 }
 
 .resolveCount {
@@ -928,7 +928,7 @@
   flex-direction: row;
   align-items: center;
   gap: 10px;
-  border: 1px solid #e2e5ea;
+  border: 1px solid var(--line-2);
   border-radius: 14px;
   padding: 12px;
 }
@@ -960,7 +960,7 @@
   width: 18px;
   height: 18px;
   border-radius: 50%;
-  border: 2px solid #c5cad3;
+  border: 2px solid var(--line-strong);
   flex-shrink: 0;
 }
 

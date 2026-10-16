@@ -48,7 +48,7 @@
 .groupLabel {
   font-size: 12px;
   font-weight: 700;
-  color: #6b7280;
+  color: var(--text-muted);
   text-transform: uppercase;
   letter-spacing: 0.06em;
   padding: 4px 4px 0;
@@ -68,7 +68,7 @@
   gap: 12px;
   width: 100%;
   border: none;
-  border-bottom: 1px solid #eef0f3;
+  border-bottom: 1px solid var(--line-soft);
   background: none;
   padding: 13px 0;
   font-family: var(--font-body);
@@ -111,12 +111,12 @@
 .rowTitleRead {
   font-size: 14px;
   font-weight: 600;
-  color: #374151;
+  color: var(--text-strong);
 }
 
 .rowBody {
   font-size: 13px;
-  color: #374151;
+  color: var(--text-strong);
 }
 
 .rowSub {
@@ -126,7 +126,7 @@
 
 .rowTime {
   font-size: 12px;
-  color: #6b7280;
+  color: var(--text-muted);
   white-space: nowrap;
 }
 
@@ -158,10 +158,10 @@
   padding: 10px 0;
   font-size: 11px;
   font-weight: 700;
-  color: #6b7280;
+  color: var(--text-muted);
   text-transform: uppercase;
   letter-spacing: 0.05em;
-  border-bottom: 1px solid #eef0f3;
+  border-bottom: 1px solid var(--line-soft);
 }
 
 .tableHead span:last-child {
@@ -175,7 +175,7 @@
   justify-items: center;
   width: 100%;
   border: none;
-  border-bottom: 1px solid #eef0f3;
+  border-bottom: 1px solid var(--line-soft);
   background: none;
   padding: 13px 0;
   font-family: var(--font-body);
@@ -201,7 +201,7 @@
   width: 24px;
   height: 24px;
   border-radius: 8px;
-  border: 2px solid #c5cad3;
+  border: 2px solid var(--line-strong);
   color: #fff;
   font-size: 13px;
   font-weight: 700;
@@ -247,7 +247,7 @@
   position: absolute;
   inset: 0;
   border-radius: 999px;
-  background: #d7dae0;
+  background: var(--line-3);
   transition: background 0.15s;
   pointer-events: none;
 }

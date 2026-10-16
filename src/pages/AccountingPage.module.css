@@ -137,7 +137,7 @@
 .methodTrack {
   height: 10px;
   border-radius: 4px;
-  background: #eef0f3;
+  background: var(--line-soft);
   overflow: hidden;
 }
 
@@ -279,7 +279,7 @@ button.tile {
 
 .movesCard .moveRow {
   padding: 11px 0;
-  border-bottom: 1px solid #eef0f3;
+  border-bottom: 1px solid var(--line-soft);
 }
 
 .movesCard .moveRow:last-child {
@@ -471,6 +471,6 @@ button.tile {
 }
 
 .closureArrow {
-  color: #9ca3af;
+  color: var(--text-faint);
   font-size: 18px;
 }

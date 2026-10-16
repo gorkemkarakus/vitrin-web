@@ -191,7 +191,7 @@
 }
 
 .countStrong {
-  border-top: 1px solid #eef0f3;
+  border-top: 1px solid var(--line-soft);
   padding-top: 10px;
   color: var(--text);
   font-weight: 700;
@@ -293,7 +293,7 @@
   align-items: center;
   gap: 10px;
   padding: 8px 0;
-  border-top: 1px solid #eef0f3;
+  border-top: 1px solid var(--line-soft);
 }
 
 .histRow {
@@ -347,7 +347,7 @@
   margin: auto -16px -16px;
   padding: 14px 16px;
   background: var(--panel);
-  border-top: 1px solid #eef0f3;
+  border-top: 1px solid var(--line-soft);
   display: flex;
   gap: 8px;
   z-index: 5;

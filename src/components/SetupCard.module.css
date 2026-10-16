@@ -63,7 +63,7 @@
 }
 
 .arrow {
-  color: #9ca3af;
+  color: var(--text-faint);
   font-size: 18px;
 }
 
@@ -75,7 +75,7 @@
   background: none;
   font-size: 18px;
   line-height: 1;
-  color: #9ca3af;
+  color: var(--text-faint);
   padding: 6px;
   cursor: pointer;
 }

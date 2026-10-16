@@ -26,7 +26,7 @@
 }
 
 .searchIcon {
-  color: #9ca3af;
+  color: var(--text-faint);
   flex-shrink: 0;
 }
 
@@ -43,7 +43,7 @@
 }
 
 .searchInput::placeholder {
-  color: #9ca3af;
+  color: var(--text-faint);
 }
 
 .filterWrap {
@@ -190,7 +190,7 @@ button.statCard {
   display: flex;
   gap: 20px;
   padding: 0 4px;
-  border-bottom: 1px solid #e2e5ea;
+  border-bottom: 1px solid var(--line-2);
 }
 
 .segmentBtn,
@@ -203,7 +203,7 @@ button.statCard {
   font-family: var(--font-body);
   font-size: 14px;
   font-weight: 600;
-  color: #6b7280;
+  color: var(--text-muted);
   cursor: pointer;
   white-space: nowrap;
 }
@@ -216,7 +216,7 @@ button.statCard {
 
 .segmentCount {
   font-size: 12px;
-  color: #9ca3af;
+  color: var(--text-faint);
   font-weight: 500;
 }
 
@@ -287,13 +287,13 @@ button.statCard {
 }
 
 .tone1 {
-  background: #f1eafd;
-  color: #4c1d95;
+  background: var(--purple-bg);
+  color: var(--purple-text);
 }
 
 .tone2 {
   background: var(--ok-bg);
-  color: #0a5c43;
+  color: var(--green-deep);
 }
 
 .rowMain {
@@ -342,7 +342,7 @@ button.statCard {
 
 .rowDate {
   font-size: 11px;
-  color: #6b7280;
+  color: var(--text-muted);
 }
 
 .badgeSadik {

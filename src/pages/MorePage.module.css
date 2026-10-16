@@ -100,12 +100,12 @@
 }
 
 .tileTint {
-  background: #f1eafd;
-  color: #4c1d95;
+  background: var(--purple-bg);
+  color: var(--purple-text);
 }
 
 .tileTint .tileLabel {
-  color: #4c1d95;
+  color: var(--purple-text);
 }
 
 .tile {

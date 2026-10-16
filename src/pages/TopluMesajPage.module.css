@@ -67,7 +67,7 @@
 }
 
 .chipDashed {
-  border: 1px dashed #c5cad3;
+  border: 1px dashed var(--line-strong);
   background: transparent;
   color: var(--text-dim);
   padding: 8px 12px;
@@ -137,14 +137,14 @@
 }
 
 .message::placeholder {
-  color: #9ca3af;
+  color: var(--text-faint);
 }
 
 .messageFoot {
   display: flex;
   align-items: center;
   gap: 6px;
-  border-top: 1px solid #eef0f3;
+  border-top: 1px solid var(--line-soft);
   padding-top: 10px;
 }
 
@@ -163,7 +163,7 @@
 .counter {
   margin-left: auto;
   font-size: 12px;
-  color: #6b7280;
+  color: var(--text-muted);
 }
 
 .rowsCard {
@@ -179,7 +179,7 @@
   justify-content: space-between;
   gap: 12px;
   padding: 12px 0;
-  border-bottom: 1px solid #eef0f3;
+  border-bottom: 1px solid var(--line-soft);
   font-size: 14px;
 }
 
@@ -201,7 +201,7 @@
   flex-direction: column;
   gap: 4px;
   padding: 12px 0;
-  border-bottom: 1px solid #eef0f3;
+  border-bottom: 1px solid var(--line-soft);
 }
 
 .historyRow:last-child {
@@ -233,7 +233,7 @@
   display: flex;
   gap: 10px;
   background: var(--panel);
-  border-top: 1px solid #eef0f3;
+  border-top: 1px solid var(--line-soft);
   padding: 14px 16px;
 }
 

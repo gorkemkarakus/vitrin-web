@@ -37,7 +37,7 @@
 .groupLabel {
   font-size: 12px;
   font-weight: 700;
-  color: #6b7280;
+  color: var(--text-muted);
   text-transform: uppercase;
   letter-spacing: 0.06em;
   padding: 4px 4px 0;
@@ -58,7 +58,7 @@
   gap: 12px;
   width: 100%;
   border: none;
-  border-bottom: 1px solid #eef0f3;
+  border-bottom: 1px solid var(--line-soft);
   background: none;
   padding: 13px 0;
   font-family: var(--font-body);
@@ -98,7 +98,7 @@
 }
 
 .rowValueMuted {
-  color: #9ca3af;
+  color: var(--text-faint);
 }
 
 .signOut {
@@ -115,7 +115,7 @@
 
 .version {
   font-size: 12px;
-  color: #6b7280;
+  color: var(--text-muted);
   text-align: center;
 }
 
@@ -160,7 +160,7 @@
 
 .offBtn,
 .offBtnOn {
-  border: 1.5px dashed #c5cad3;
+  border: 1.5px dashed var(--line-strong);
   background: transparent;
   color: var(--text-dim);
   border-radius: 14px;
@@ -208,7 +208,7 @@
   display: block;
   text-align: right;
   font-size: 11px;
-  color: #9ca3af;
+  color: var(--text-faint);
   margin-top: 4px;
 }
 
@@ -248,7 +248,7 @@
 }
 
 .field input::placeholder {
-  color: #9ca3af;
+  color: var(--text-faint);
 }
 
 .footer {
@@ -257,7 +257,7 @@
   margin: auto -16px -16px;
   padding: 14px 16px;
   background: var(--panel);
-  border-top: 1px solid #eef0f3;
+  border-top: 1px solid var(--line-soft);
   z-index: 5;
 }
 
@@ -322,7 +322,7 @@
   position: absolute;
   inset: 0;
   border-radius: 999px;
-  background: #d7dae0;
+  background: var(--line-3);
   transition: background 0.15s;
   pointer-events: none;
 }

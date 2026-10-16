@@ -92,7 +92,7 @@
   border-radius: 10px;
   border: none;
   background: none;
-  color: #9ca3af;
+  color: var(--text-faint);
   display: flex;
   align-items: center;
   justify-content: center;
@@ -332,7 +332,7 @@
   align-items: center;
   justify-content: center;
   gap: 8px;
-  border: 1px dashed #c5cad3;
+  border: 1px dashed var(--line-strong);
   background: none;
   color: var(--text);
   border-radius: 16px;
@@ -365,7 +365,7 @@
 
 .row {
   padding: 13px 0;
-  border-bottom: 1px solid #eef0f3;
+  border-bottom: 1px solid var(--line-soft);
 }
 
 .stateClosed,

@@ -114,7 +114,7 @@
 
 .chip,
 .chipActive {
-  border: 1px solid #e2e5ea;
+  border: 1px solid var(--line-2);
   background: var(--panel);
   color: var(--text);
   border-radius: 999px;
@@ -176,7 +176,7 @@
   gap: 12px;
   width: 100%;
   border: none;
-  border-bottom: 1px solid #eef0f3;
+  border-bottom: 1px solid var(--line-soft);
   background: none;
   padding: 12px 0;
   font-family: var(--font-body);
@@ -234,7 +234,7 @@
 
 .countNote {
   font-size: 12px;
-  color: #6b7280;
+  color: var(--text-muted);
   text-align: center;
 }
 
@@ -291,7 +291,7 @@
   width: 40px;
   height: 5px;
   border-radius: 999px;
-  background: #d7dae0;
+  background: var(--line-3);
 }
 
 .sheetHead {
@@ -364,7 +364,7 @@
 }
 
 .amountField input::placeholder {
-  color: #c5cad3;
+  color: var(--line-strong);
 }
 
 .fGroup {
@@ -393,7 +393,7 @@
 
 .formChip,
 .formChipActive {
-  border: 1px solid #e2e5ea;
+  border: 1px solid var(--line-2);
   background: var(--panel);
   color: var(--text);
   border-radius: 12px;
@@ -426,7 +426,7 @@
   align-items: center;
   gap: 12px;
   padding: 12px 0;
-  border-bottom: 1px solid #e2e5ea;
+  border-bottom: 1px solid var(--line-2);
   font-size: 14px;
 }
 
@@ -471,7 +471,7 @@
   position: absolute;
   inset: 0;
   border-radius: 999px;
-  background: #d7dae0;
+  background: var(--line-3);
   transition: background 0.15s;
   pointer-events: none;
 }

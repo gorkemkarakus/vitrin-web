@@ -120,7 +120,7 @@
 }
 
 .searchIcon {
-  color: #9ca3af;
+  color: var(--text-faint);
   flex-shrink: 0;
 }
 
@@ -137,7 +137,7 @@
 }
 
 .searchInput::placeholder {
-  color: #9ca3af;
+  color: var(--text-faint);
 }
 
 /* ---------- Calisan kartlari ---------- */
@@ -185,13 +185,13 @@ div.card {
 }
 
 .tonePurple {
-  background: #f1eafd;
-  color: #4c1d95;
+  background: var(--purple-bg);
+  color: var(--purple-text);
 }
 
 .toneGreen {
   background: var(--ok-bg);
-  color: #0a5c43;
+  color: var(--green-deep);
 }
 
 .toneBot {
@@ -220,7 +220,7 @@ div.card {
 }
 
 .chevron {
-  color: #9ca3af;
+  color: var(--text-faint);
 }
 
 .cardStats,
@@ -244,7 +244,7 @@ div.card {
 }
 
 .cardStat + .cardStat {
-  border-left: 1px solid #e2e5ea;
+  border-left: 1px solid var(--line-2);
 }
 
 .cardStatValue {
@@ -458,7 +458,7 @@ div.card {
   font-size: 11px;
   color: var(--text-dim);
   text-align: center;
-  border-top: 1px solid #eef0f3;
+  border-top: 1px solid var(--line-soft);
   padding-top: 8px;
 }
 
@@ -490,7 +490,7 @@ div.card {
   justify-content: space-between;
   gap: 12px;
   padding: 13px 0;
-  border-bottom: 1px solid #eef0f3;
+  border-bottom: 1px solid var(--line-soft);
 }
 
 .kvRow:last-child {

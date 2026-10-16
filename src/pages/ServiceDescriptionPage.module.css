@@ -40,7 +40,7 @@
 }
 
 .textarea::placeholder {
-  color: #9ca3af;
+  color: var(--text-faint);
 }
 
 .editorFoot {
@@ -48,14 +48,14 @@
   justify-content: space-between;
   align-items: center;
   gap: 8px;
-  border-top: 1px solid #eef0f3;
+  border-top: 1px solid var(--line-soft);
   padding-top: 10px;
 }
 
 .count,
 .countOver {
   font-size: 12px;
-  color: #6b7280;
+  color: var(--text-muted);
   font-variant-numeric: tabular-nums;
 }
 
@@ -78,7 +78,7 @@
 .groupLabel {
   font-size: 12px;
   font-weight: 700;
-  color: #6b7280;
+  color: var(--text-muted);
   text-transform: uppercase;
   letter-spacing: 0.06em;
   padding: 0 4px;
@@ -147,7 +147,7 @@
   margin: auto -16px -16px;
   padding: 14px 16px;
   background: var(--panel);
-  border-top: 1px solid #eef0f3;
+  border-top: 1px solid var(--line-soft);
   z-index: 5;
 }
 

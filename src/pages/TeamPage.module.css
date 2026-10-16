@@ -61,13 +61,13 @@
 }
 
 .tonePurple {
-  background: #f1eafd;
-  color: #4c1d95;
+  background: var(--purple-bg);
+  color: var(--purple-text);
 }
 
 .toneGreen {
   background: var(--ok-bg);
-  color: #0a5c43;
+  color: var(--green-deep);
 }
 
 .cardWho {
@@ -114,7 +114,7 @@
 
 .pill_muted {
   background: var(--panel-2);
-  color: #374151;
+  color: var(--text-strong);
 }
 
 .infoStrip {

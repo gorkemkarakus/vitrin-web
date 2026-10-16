@@ -62,7 +62,7 @@
 
 .field > input::placeholder,
 .passwordBox input::placeholder {
-  color: #9ca3af;
+  color: var(--text-faint);
   font-weight: 400;
 }
 
@@ -188,7 +188,7 @@
 .groupLabel {
   font-size: 12px;
   font-weight: 700;
-  color: #6b7280;
+  color: var(--text-muted);
   text-transform: uppercase;
   letter-spacing: 0.06em;
   padding: 4px 4px 0;
@@ -208,7 +208,7 @@
   gap: 12px;
   width: 100%;
   border: none;
-  border-bottom: 1px solid #eef0f3;
+  border-bottom: 1px solid var(--line-soft);
   background: none;
   padding: 13px 0;
   font-family: var(--font-body);
@@ -232,7 +232,7 @@
   width: 24px;
   height: 24px;
   border-radius: 8px;
-  border: 2px solid #c5cad3;
+  border: 2px solid var(--line-strong);
   color: #fff;
   font-size: 13px;
   font-weight: 700;
@@ -255,7 +255,7 @@
   margin: auto -16px -16px;
   padding: 14px 16px;
   background: var(--panel);
-  border-top: 1px solid #eef0f3;
+  border-top: 1px solid var(--line-soft);
   z-index: 5;
 }
 
@@ -295,7 +295,7 @@
   align-items: center;
   gap: 12px;
   padding: 13px 0;
-  border-bottom: 1px solid #eef0f3;
+  border-bottom: 1px solid var(--line-soft);
   cursor: pointer;
 }
 
@@ -331,7 +331,7 @@
   position: absolute;
   inset: 0;
   border-radius: 999px;
-  background: #d7dae0;
+  background: var(--line-3);
   transition: background 0.15s;
   pointer-events: none;
 }

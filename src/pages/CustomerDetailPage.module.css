@@ -123,7 +123,7 @@
   display: flex;
   justify-content: space-between;
   padding: 0 4px;
-  border-bottom: 1px solid #e2e5ea;
+  border-bottom: 1px solid var(--line-2);
 }
 
 .tab,
@@ -136,7 +136,7 @@
   font-family: var(--font-body);
   font-size: 14px;
   font-weight: 600;
-  color: #6b7280;
+  color: var(--text-muted);
   cursor: pointer;
 }
 
@@ -148,7 +148,7 @@
 
 .tabCount {
   font-size: 12px;
-  color: #9ca3af;
+  color: var(--text-faint);
 }
 
 /* ---------- Bakiye ---------- */
@@ -169,7 +169,7 @@
 }
 
 .balanceColDivided {
-  border-left: 1px solid #eef0f3;
+  border-left: 1px solid var(--line-soft);
 }
 
 .balanceLabel {
@@ -314,7 +314,7 @@
 
 .paymentRowVoided .paymentAmount {
   text-decoration: line-through;
-  color: #9ca3af;
+  color: var(--text-faint);
 }
 
 .paymentRowActions {
@@ -525,7 +525,7 @@
 
 .noteCardEmpty {
   background: transparent;
-  border: 1px dashed #c5cad3;
+  border: 1px dashed var(--line-strong);
 }
 
 .noteLabel {
@@ -548,7 +548,7 @@
 }
 
 .noteCardEmpty .noteText {
-  color: #9ca3af;
+  color: var(--text-faint);
 }
 
 /* ---------- Ozet: paket karti ---------- */

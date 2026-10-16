@@ -113,7 +113,7 @@
 
 .source {
   font-size: 12px;
-  color: #6b7280;
+  color: var(--text-muted);
 }
 
 .bubbleList {
@@ -129,8 +129,8 @@
 .actionChip {
   align-self: flex-start;
   border: none;
-  background: #f1eafd;
-  color: #4c1d95;
+  background: var(--purple-bg);
+  color: var(--purple-text);
   border-radius: 12px;
   padding: 8px 12px;
   font-family: var(--font-body);
@@ -199,7 +199,7 @@
   justify-content: space-between;
   gap: 10px;
   border: none;
-  border-bottom: 1px solid #e2e5ea;
+  border-bottom: 1px solid var(--line-2);
   background: none;
   padding: 10px 0;
   font-family: var(--font-body);
@@ -377,7 +377,7 @@
 }
 
 .input::placeholder {
-  color: #9ca3af;
+  color: var(--text-faint);
 }
 
 .sendBtn {
