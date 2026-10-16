@@ -85,7 +85,9 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     // Bu cihaz bildirim listesinden cikarilir (oturum hala acikken).
     const { stopPush } = await import('../lib/push')
     await stopPush()
-    await supabase.auth.signOut()
+    // Yalnizca bu cihaz: varsayilan 'global' kapsam ayni hesabin diger
+    // cihazlardaki oturumlarini da iptal ediyordu.
+    await supabase.auth.signOut({ scope: 'local' })
   }
 
   async function resetPassword(email: string) {
