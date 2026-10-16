@@ -74,7 +74,7 @@ export default function CustomerForm({
         </div>
 
         <p className={styles.kvkkNotice}>
-          🔒 Verileriniz KVKK kapsamında korunmakta olup sadece randevu işlemleriniz için kullanılacaktır.
+          Verileriniz KVKK kapsamında korunmakta olup sadece randevu işlemleriniz için kullanılacaktır.
         </p>
 
         <TurnstileWidget onToken={setTurnstileToken} />

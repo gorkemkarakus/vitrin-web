@@ -29,7 +29,7 @@ export default function ServicePicker({
               <span className={styles.serviceName}>{s.name}</span>
               {s.price != null && <span className={styles.servicePrice}>{currency.format(s.price)}</span>}
             </div>
-            <span className={styles.serviceDuration}>⏱ {s.duration_minutes} dk</span>
+            <span className={styles.serviceDuration}>{s.duration_minutes} dk</span>
             {s.description && <p className={styles.serviceDescription}>{s.description}</p>}
           </button>
         ))}
