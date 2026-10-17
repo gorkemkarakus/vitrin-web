@@ -39,6 +39,7 @@ import { startPush } from './lib/push'
 import PushPermissionSheet from './components/PushPermissionSheet'
 import ErrorBoundary from './components/ErrorBoundary'
 import OfflineBanner from './components/OfflineBanner'
+import TimezoneBanner from './components/TimezoneBanner'
 import type { PermKey } from './lib/permissions'
 
 // adminOnly: sadece yonetici. perm: yoneticiye ya da o yetkisi acik calisana.
@@ -283,6 +284,7 @@ function AppRoutes() {
           <Route path="*" element={<Navigate to="/" replace />} />
         </Routes>
       )}
+      {session && !splashVisible && <TimezoneBanner />}
       {pushPromptOpen && !splashVisible && session && <PushPermissionSheet onClose={() => setPushPromptOpen(false)} />}
       {splashVisible && <AppSplash fadingOut={splashFadingOut} />}
     </>

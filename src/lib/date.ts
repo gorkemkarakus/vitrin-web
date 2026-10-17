@@ -67,3 +67,8 @@ export function formatTrDate(iso: string): string {
     timeZone: 'Europe/Istanbul',
   })
 }
+
+// Cihaz Turkiye saatinde mi (sabit UTC+3, yaz saati yok)?
+export function isIstanbulOffset(date = new Date()): boolean {
+  return date.getTimezoneOffset() === -180
+}

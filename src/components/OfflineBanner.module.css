@@ -12,3 +12,17 @@
   line-height: 1.35;
   text-align: center;
 }
+
+.warn {
+  background: var(--accent-text);
+}
+
+.dismiss {
+  border: none;
+  background: none;
+  color: #fff;
+  font: inherit;
+  text-decoration: underline;
+  cursor: pointer;
+  padding: 0 2px;
+}
