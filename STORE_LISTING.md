@@ -21,7 +21,7 @@ Google Play Console ve App Store Connect'e kopyalanacak metinler. Karakter sın�
 
 > Salonunun randevu, müşteri, kasa ve WhatsApp asistanı tek uygulamada.
 
-(70 karakter)
+(69 karakter)
 
 ## Alt başlık — App Store (30)
 
@@ -70,7 +70,7 @@ Google Play Console ve App Store Connect'e kopyalanacak metinler. Karakter sın�
 
 > salon,kuaför,güzellik,randevu,ajanda,müşteri,kasa,berber,manikür,tırnak,whatsapp,takvim
 
-(98 karakter)
+(87 karakter)
 
 ## Yenilikler (bu sürüm)
 
