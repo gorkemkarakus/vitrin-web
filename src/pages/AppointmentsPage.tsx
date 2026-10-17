@@ -21,6 +21,7 @@ import PageHeader from '../components/PageHeader'
 import styles from './AppointmentsPage.module.css'
 import EditAppointmentModal from './appointments/EditAppointmentModal'
 import AppointmentDetailView from './appointments/AppointmentDetailView'
+import { rankEligibleByFairness } from '../lib/fairness'
 import { STATUS_DROPDOWN_OPTIONS, STATUS_OPTIONS } from './appointments/constants'
 import {
   SLOT_MINUTES,
@@ -70,25 +71,6 @@ const STATUS_CLASS: Record<Appointment['status'], string> = {
 }
 
 type ViewMode = 'gunluk' | 'liste' | 'haftalik' | 'ozel'
-
-// "Fark etmez" secildiginde is calisanlar arasinda dengeli dagilsin diye
-// (prim adaleti) bu kaynaklardan en son randevusu en eski olan calisan one
-// cikar. Chatbot ve online randevudaki rankEligibleByFairness ile ayni
-// algoritma; degisirse ucu birlikte degismeli.
-const ROTATION_SOURCES = ['chatbot', 'online_randevu', 'kullanici_uzerinden']
-
-function rankEligibleByFairness(eligibleIds: string[], appointments: Appointment[]): string[] {
-  const lastBookingByEmployee = new Map<string, number>()
-  for (const a of appointments) {
-    if (!a.source || !ROTATION_SOURCES.includes(a.source) || !a.employee_id) continue
-    const t = new Date(a.scheduled_at).getTime()
-    const prev = lastBookingByEmployee.get(a.employee_id) ?? -Infinity
-    if (t > prev) lastBookingByEmployee.set(a.employee_id, t)
-  }
-  return eligibleIds
-    .slice()
-    .sort((a, b) => (lastBookingByEmployee.get(a) ?? -Infinity) - (lastBookingByEmployee.get(b) ?? -Infinity))
-}
 
 export default function AppointmentsPage() {
   const { profile, can } = useAuth()
