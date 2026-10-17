@@ -48,16 +48,23 @@ Her birinde şu an uygulanan varsayılan yazılı; değiştirmek istersen söyle
 | K2 | Günlük kotalar | AI kampanya metni 30, AI analiz 10, AI randevu komutu 100, toplu mesaj alıcısı 500 / işletme / gün | `supabase/functions/_shared/limits.ts` içindeki sayılar; plan bazlı farklı kotalar |
 | K3 | Saklama süreleri | Webhook ham kaydı 30 gün, asistan yazışmaları 180 gün, mesaj kaydı 365 gün, sınır kayıtları 2–7 gün | Avukat görüşüne göre `purge_expired_data()` |
 | K4 | Mevcut müşterilerin kampanya izni | Hepsi **izinsiz** başladı (kanıtı olmayan kişiye kampanya gitmesin) → toplu mesaj şu an kimseye gitmez | İzni olduğu bilinen müşteriler tek tek işaretlenir; toplu "izinli say" yasal risk taşır |
-| K5 | WhatsApp / Meta reklam ekranları (Apple "çalışmayan özellik" riski) | Görünür bırakıldı, metinler "henüz bağlı değil" diyor | Bağlantı yoksa ekranları gizleyen bayrak (kod küçük); inceleme notunda açıklama (STORE_LISTING.md'de hazır) |
+| K5 | WhatsApp / Meta reklam ekranları (Apple "çalışmayan özellik" riski) | **Karar (17 Ekim):** gizlenmeyecek — canlıya göndermeden önce WhatsApp birlikte sıfırdan kurulacak, ekranlar o zaman çalışır durumda olacak | — |
 | K6 | iPad desteği | Yalnız iPhone (`TARGETED_DEVICE_FAMILY = 1`), dikey | iPad'i açmak: inceleme iPad'de de yapılır, yatay düzen test edilmeli |
-| K7 | Ayrı test (staging) Supabase projesi | Yok — testler ve demo işletme canlı veritabanında; E2E verisi her çalıştırmada siliniyor | Ücretsiz ikinci proje + `.env.production` (betik hazır, ayrımı denetliyor) |
+| K7 | Ayrı test (staging) Supabase projesi | **Karar (17 Ekim):** canlıya çıkmadan önce ayrı proje açılacak; şu an veritabanında yalnızca test verisi var | Açıldığında `.env.production` ile canlı projeye derlenir (`check:release` denetliyor) |
 | K8 | Tüm arayüz metinlerini tek dosyaya taşımak (Q2) | Ertelendi (~1.500 metin, tek dil; riskli ve şu an faydası yok) | İkinci dil eklenecekse yapılmalı |
 | K9 | Saat dilimi | Cihaz Türkiye saatinde değilse uyarı şeridi; tam dönüşüm yapılmadı | Tüm tarih hesaplarını Europe/Istanbul'a sabitlemek (138 nokta, ayrı iş) |
-| K10 | Zeynep Kaya'nın randevuya bağlanmamış iki test ödemesi (₺3.500 nakit + ₺3.650 kart) | Dokunulmadı | Sil / bir borca dağıt |
-| K11 | `main`'deki gönderilmemiş commit `75438cd` (ödeme dağıtımı düzeltmesi) | Dokunulmadı, bu dal onu içeriyor | Dalla birlikte push |
+| K10 | Zeynep Kaya'nın randevuya bağlanmamış iki test ödemesi | **Karar (17 Ekim):** dokunulmayacak; canlıya geçişte tüm test verisi silinecek | — |
+| K11 | `main`'deki gönderilmemiş commit `75438cd` (ödeme dağıtımı düzeltmesi) | **Karar (17 Ekim):** dal `main`'e birleştirildi (commit içinde) | Push kullanıcı onayıyla |
 | K12 | Yasal yetkili mahkeme | "İstanbul (Merkez)" + tüketici hakem heyetleri | Avukat belirler |
 
 ## Senin yapman gerekenler (adım adım)
+
+### 0. Canlıya geçiş sırası (17 Ekim kararı)
+1. Kalan eksikler tamamlanır (bu liste).
+2. **WhatsApp birlikte sıfırdan kurulur** (Meta Business, numara, webhook, n8n, `x-bot-secret`) ve Mesajlar / Toplu Mesaj / asistan uçtan uca denenir.
+3. **Ayrı canlı Supabase projesi** açılır: `admin-panel`'den tüm migration'lar (`supabase db push`) ve edge function'lar yüklenir, gizli anahtarlar (`_app_secrets`, function secret'ları, Firebase servis hesabı) yeni projeye girilir, `.env.production` yeni projeyi gösterir. Mevcut proje test ortamı olarak kalır.
+4. **Tüm test verisi silinir** (yeni proje boş başlayacağı için mevcut proje test için kullanılmaya devam edebilir).
+5. Demo işletme yeni projede açılır, mağaza derlemesi alınır.
 
 ### 1. Şirket bilgileri ve yasal metinler — **mağazadan önce zorunlu**
 1. `src/legal/legalInfo.ts` dosyasında köşeli parantezli değerleri doldur: şirket unvanı, adres, MERSİS, iletişim e-postası, KEP, alan adı.
@@ -166,7 +173,7 @@ Her birinde şu an uygulanan varsayılan yazılı; değiştirmek istersen söyle
 
 ## Bilinen riskler
 
-- **Canlı veritabanı ortak**: testler ve demo canlı projede (K7). E2E temizliği yalnızca `E2E`/`e2e-` önekli verileri siler.
+- **Tek veritabanı (şimdilik)**: canlıya çıkmadan önce ayrı proje açılacak (K7). E2E testleri yalnızca test projesine karşı çalıştırılmalı.
 - **iOS hiç derlenmedi**: Windows'ta Xcode yok; AppDelegate/pbxproj değişiklikleri Mac'te ilk derlemede doğrulanmalı.
 - **Silme talepleri bildirim göndermiyor**: web formundan gelen talepler yalnızca `account_deletion_requests` tablosuna düşüyor; aşağıdaki "Silme taleplerini işleme" adımıyla haftada en az bir kez kontrol edilmeli (KVKK süresi 30 gün).
 - **Web panel (admin-panel)**: kampanya izni ve gömülü yazı tipleri eklendi; ancak yasal sayfa bağlantıları, alan uzunluk sınırları (`maxLength`) ve Türkçe hata çevirici yalnızca mobilde (veritabanı kısıtları her ikisini de korur).
