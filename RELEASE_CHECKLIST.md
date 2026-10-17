@@ -157,10 +157,17 @@ Düzeltilen: n8n'de **personel kontrolü** (`Check Staff Number`) API anahtarı 
 
 Kurulumda ele alınacaklar:
 1. **n8n şu an bu bilgisayarda (Docker) çalışıyor** — bilgisayar kapalıyken bot da kapalı. Canlı için sürekli açık bir sunucu (VPS) veya n8n Cloud gerekir; `whatsapp-webhook`'un `N8N_WEBHOOK_URL` secret'ı oraya çevrilir. Son gerçek WhatsApp mesajı 4 Eylül'de işlenmiş.
-2. **Tek işletmeye bağlı**: n8n tek bir "Vitrin Business API Key" ile çağırıyor; bu anahtarın işletmesi (Güzel Salon) dışındaki bir salonun numarasına gelen mesajlar da o işletmeye gider. Çok salon için n8n kimliği `x-bot-secret` başlığına (`_app_secrets.bot_shared_secret`) çevrilmeli; fonksiyonlar o zaman işletmeyi WhatsApp numara kimliğinden bulur (sunucu tarafı hazır).
+2. ~~Tek işletmeye bağlı~~ **Yapıldı (17 Ekim):** n8n WhatsApp çağrıları `x-bot-secret` ("Vitrin Bot Secret" kimliği) ile; işletme mesajın geldiği numara kimliğinden (`businesses.whatsapp_phone_number_id`) bulunuyor. Numara hiçbir işletmeye bağlı değilse bot sessiz kalıyor. Kurulumda her salonun numara kimliği kendi işletme kaydına girilecek. Instagram akışı API anahtarıyla (yeniden kurulacak).
 3. n8n sürümü 2.28.6 (6 haftadan eski); canlıdan önce güncellenmeli. Docker `.env`'deki `change_me` değerleri değiştirilmeli.
-4. Küçük iyileştirme: bot, WhatsApp numarası zaten bilinirken müşteriden telefon numarası istiyor (istem/prompt ayarı).
+4. Botun müşteriden telefon numarası istemesi Instagram için (orada numara bilinmiyor) — kullanıcı kararıyla olduğu gibi kaldı.
 5. Meta tarafı: kalıcı erişim anahtarı, webhook doğrulama, şablon mesajlar (24 saat dışı hatırlatmalar için), işletme doğrulaması.
+
+**Eski Meta bilgileri silindi (17 Ekim, sıfırdan kurulum için):** Güzel Salon'un WhatsApp numara kimliği, Meta mesaj kimlikleri (45), n8n'deki "Instagram Access Token" ve "…v2" kimlikleri; Instagram akışı devre dışı (akış dosyası şablon olarak duruyor). Repolarda ve git geçmişinde Meta token'ı yok (tarandı).
+
+**Senin silmen gerekenler** (benim erişimim yok):
+1. Supabase → Project Settings → Edge Functions → **Secrets**: `WHATSAPP_TOKEN`, `WHATSAPP_APP_SECRET`, `WHATSAPP_VERIFY_TOKEN` (ve kullanılmayacaksa `N8N_WEBHOOK_URL`). Alternatif: terminalde `npx supabase login` yaparsan bunları ben de kaldırabilirim.
+2. developers.facebook.com → uygulama → WhatsApp → API Setup / Configuration: webhook aboneliğini kaldır, sistem kullanıcısı token'larını iptal et; Instagram ürünündeki token'ları iptal et. Yeni kurulumda yeni uygulama açılacaksa eskisini sil.
+3. Meta **reklam** bağlantısına ait `META_APP_ID`, `META_APP_SECRET`, `META_ADS_WEBHOOK_SECRET` silinmedi (WhatsApp/Instagram değil; bağlı reklam hesabı da yok). Yeni Meta uygulamasına geçilecekse bunlar da yenilenmeli.
 
 ### 9. Dalı birleştirmeden önce
 1. Telefonda aşağıdaki senaryoları dene.
