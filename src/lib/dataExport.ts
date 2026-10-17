@@ -13,6 +13,12 @@ import { todayLocalDateString } from './date'
 
 const PACKAGE_STATUS: Record<string, string> = { aktif: 'Aktif', tamamlandi: 'Tamamlandı', iptal: 'İptal' }
 const ROLE_LABEL: Record<string, string> = { admin: 'Yönetici', user: 'Çalışan' }
+const CONSENT_SOURCE_NAME: Record<string, string> = {
+  manual: 'Salonda',
+  online_booking: 'Online randevu',
+  whatsapp: 'WhatsApp',
+  import: 'İçe aktarım',
+}
 
 type Row = Record<string, unknown>
 const d = (v: unknown) => (v ? new Date(String(v).length === 10 ? `${v}T00:00:00` : String(v)) : null)
@@ -65,6 +71,11 @@ export async function exportBusinessData(businessName: string, onProgress?: (tex
         { header: 'Bakiye', width: 12, type: 'money' },
         { header: 'Not', width: 40 },
         { header: 'Kayıt tarihi', width: 14, type: 'date' },
+        // Ticari ileti izni ve kaniti (6563 / KVKK veri tasinabilirligi).
+        { header: 'Kampanya izni', width: 13 },
+        { header: 'İzin tarihi', width: 14, type: 'date' },
+        { header: 'İzin kaynağı', width: 16 },
+        { header: 'Ret tarihi', width: 14, type: 'date' },
       ],
       rows: (customers.data ?? []).map((c) => [
         s(c.full_name),
@@ -73,6 +84,12 @@ export async function exportBusinessData(businessName: string, onProgress?: (tex
         n(c.credit_balance),
         s(c.notes),
         d(c.created_at),
+        c.marketing_consent ? 'Evet' : 'Hayır',
+        d(c.marketing_consent_at),
+        c.marketing_consent_source
+          ? (CONSENT_SOURCE_NAME[s(c.marketing_consent_source)] ?? s(c.marketing_consent_source))
+          : '',
+        d(c.marketing_opt_out_at),
       ]),
     },
     {

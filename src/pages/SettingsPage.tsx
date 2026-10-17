@@ -556,7 +556,7 @@ export default function SettingsPage() {
         <div className={styles.formCard}>
           <span className={styles.rowLabel}>Dosyada neler var?</span>
           <ul className={styles.exportList}>
-            <li>Müşteriler — telefon, e-posta, bakiye, notlar</li>
+            <li>Müşteriler — telefon, e-posta, bakiye, notlar, kampanya izni</li>
             <li>Randevular — tarih, hizmet, çalışan, durum, ücret</li>
             <li>Ödemeler ve giderler</li>
             <li>Hizmetler, paketler ve ekip</li>
