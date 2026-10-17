@@ -14,7 +14,9 @@
     "format:check": "prettier --check .",
     "check": "tsc -b && oxlint && vitest run && prettier --check .",
     "icons": "node resources/gen-png.cjs && npx @capacitor/assets generate",
-    "icons:notification": "node resources/gen-notification-icon.cjs"
+    "icons:notification": "node resources/gen-notification-icon.cjs",
+    "test:rls": "node scripts/security/run-rls-tests.mjs",
+    "test:edge-auth": "node scripts/security/edge-function-auth-check.mjs"
   },
   "dependencies": {
     "@capacitor/android": "^8.4.1",
