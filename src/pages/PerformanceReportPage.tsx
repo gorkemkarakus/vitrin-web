@@ -5,7 +5,8 @@ import { supabase } from '../lib/supabase'
 import { fetchAll } from '../lib/fetchAll'
 import PageHeader from '../components/PageHeader'
 import PdfProgressModal from '../components/PdfProgressModal'
-import { SearchIcon, RobotIcon, ReceiptIcon, CheckCircleIcon } from '../components/icons'
+import { SearchIcon, RobotIcon, ReceiptIcon, CheckCircleIcon, LockIcon } from '../components/icons'
+import { notifyPlanBlock } from '../lib/planBlock'
 import { SOURCE_LABEL } from '../lib/sourceLabels'
 import { currencyWhole as currency } from '../lib/currency'
 import { toLocalDateString, presetDateRange, timeToMinutes, WEEK_ORDER, DAY_SHORT, DAY_LONG, DAY_MS } from '../lib/date'
@@ -176,7 +177,7 @@ function scheduledMinutesInRange(
 }
 
 export default function PerformanceReportPage() {
-  const { profile } = useAuth()
+  const { profile, hasFeature } = useAuth()
   const [preset, setPreset] = useState<Preset>('bu_ay')
   const [customStart, setCustomStart] = useState(() => presetRange('bu_ay').start)
   const [customEnd, setCustomEnd] = useState(() => presetRange('bu_ay').end)
@@ -403,6 +404,11 @@ export default function PerformanceReportPage() {
 
   async function handleExportPdf() {
     if (!profile?.business_id) return
+    // PDF raporlar Ucretsiz pakette yok: paket penceresi acilir.
+    if (!hasFeature('pdf_reports')) {
+      notifyPlanBlock({ kind: 'feature', feature: 'pdf_reports' })
+      return
+    }
     setPdfState({ progress: 0, step: 'Başlatılıyor…', error: null })
     try {
       const { generatePerformanceReportPdf } = await import('../lib/pdf/performanceReportPdf')
@@ -815,7 +821,7 @@ export default function PerformanceReportPage() {
           )}
 
           <button type="button" className={styles.exportBtn} onClick={handleExportPdf}>
-            <ReceiptIcon width={16} height={16} />
+            {hasFeature('pdf_reports') ? <ReceiptIcon width={16} height={16} /> : <LockIcon width={16} height={16} />}
             Detaylı raporu PDF olarak al
           </button>
         </>

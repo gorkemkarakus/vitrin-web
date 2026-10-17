@@ -4,7 +4,8 @@ import { supabase } from '../lib/supabase'
 import { fetchAll } from '../lib/fetchAll'
 import { useAuth } from '../contexts/AuthContext'
 import PdfProgressModal from '../components/PdfProgressModal'
-import { ReceiptIcon } from '../components/icons'
+import { LockIcon, ReceiptIcon } from '../components/icons'
+import { notifyPlanBlock } from '../lib/planBlock'
 import PageHeader from '../components/PageHeader'
 import { computeCustomerDebts } from '../lib/customerDebts'
 import { currency } from '../lib/currency'
@@ -85,7 +86,7 @@ function presetRange(p: AccPreset) {
 }
 
 export default function AccountingPage() {
-  const { profile } = useAuth()
+  const { profile, hasFeature } = useAuth()
   const navigate = useNavigate()
   const [preset, setPreset] = useState<AccPreset>('bu_ay')
   const [rangeStart, setRangeStart] = useState(() => presetRange('bu_ay').start)
@@ -322,6 +323,11 @@ export default function AccountingPage() {
 
   async function handleExportPdf() {
     if (!profile?.business_id) return
+    // PDF raporlar Ucretsiz pakette yok: paket penceresi acilir.
+    if (!hasFeature('pdf_reports')) {
+      notifyPlanBlock({ kind: 'feature', feature: 'pdf_reports' })
+      return
+    }
     setPdfState({ progress: 0, step: 'Başlatılıyor…', error: null })
     try {
       // PDF kutuphanesi ve gomulu yazi tipleri yalnizca gerektiginde yuklenir.
@@ -711,7 +717,7 @@ export default function AccountingPage() {
       </div>
 
       <button type="button" className={styles.exportBtn} onClick={handleExportPdf}>
-        <ReceiptIcon width={16} height={16} />
+        {hasFeature('pdf_reports') ? <ReceiptIcon width={16} height={16} /> : <LockIcon width={16} height={16} />}
         Detaylı özeti PDF olarak al
       </button>
 

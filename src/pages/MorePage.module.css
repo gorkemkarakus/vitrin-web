@@ -155,3 +155,53 @@
   color: var(--danger-text);
   font-weight: 700;
 }
+
+/* ---------- Paket satiri + kilitli kutu ---------- */
+
+.planRow {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  width: 100%;
+  border: none;
+  background: var(--panel);
+  border-radius: 18px;
+  padding: 12px 14px;
+  font-family: var(--font-body);
+  text-align: left;
+  cursor: pointer;
+}
+
+.planText {
+  display: flex;
+  flex-direction: column;
+  gap: 1px;
+  min-width: 0;
+}
+
+.planLabel {
+  font-size: 12px;
+  font-weight: 700;
+  color: var(--text-muted);
+}
+
+.planName {
+  font-family: var(--font-heading);
+  font-size: 16px;
+  font-weight: 600;
+  color: var(--text);
+}
+
+.tileLock {
+  position: absolute;
+  right: 10px;
+  top: 10px;
+  width: 22px;
+  height: 22px;
+  border-radius: 999px;
+  background: var(--panel-2);
+  color: var(--text-muted);
+  display: grid;
+  place-items: center;
+}

@@ -1,4 +1,5 @@
 import { NETWORK_ERROR } from './messages'
+import { notifyPlanBlock, planBlockFromError, planBlockMessage } from './planBlock'
 
 interface DbErrorLike {
   code?: string
@@ -12,6 +13,12 @@ export function friendlyDbError(err: unknown, fallback: string): string {
   const msg = (e.message ?? '').toLowerCase()
   if (msg.includes('failed to fetch') || msg.includes('networkerror') || msg.includes('load failed'))
     return NETWORK_ERROR
+  // Paket siniri (veritabani tetikleyicisi): mesaj + "paketleri gor" penceresi.
+  const planBlock = planBlockFromError(e)
+  if (planBlock) {
+    notifyPlanBlock(planBlock)
+    return planBlockMessage(planBlock)
+  }
   switch (e.code) {
     case '23505':
       return msg.includes('phone') ? 'Bu telefon numarası zaten başka bir kayıtta kullanılıyor.' : 'Bu kayıt zaten var.'

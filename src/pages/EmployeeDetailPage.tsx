@@ -3,6 +3,7 @@ import { useNavigate, useParams } from 'react-router-dom'
 import { supabase } from '../lib/supabase'
 import { callEdgeFunction } from '../lib/edgeFunctions'
 import { NETWORK_ERROR } from '../lib/messages'
+import { friendlyDbError } from '../lib/dbErrors'
 import { useAuth } from '../contexts/AuthContext'
 import Select from '../components/Select'
 import HandoverAppointments from '../components/HandoverAppointments'
@@ -1170,7 +1171,8 @@ export default function EmployeeDetailPage({ selfEarnings = false }: { selfEarni
     if (!id) return
     const { error: err } = await supabase.from('profiles').update({ is_active: next }).eq('id', id)
     if (err) {
-      window.alert('Değiştirilemedi: ' + err.message)
+      // Paket kullanici siniri doluysa paket penceresi de acilir.
+      window.alert(friendlyDbError(err, 'Değiştirilemedi, lütfen tekrar deneyin.'))
       return
     }
     await loadData(true)

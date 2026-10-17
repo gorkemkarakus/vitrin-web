@@ -1,5 +1,6 @@
 import { supabase } from './supabase'
 import { SESSION_EXPIRED } from './messages'
+import { notifyPlanBlock, planBlockFromError } from './planBlock'
 
 // Supabase Edge Function cagrilari. Fonksiyonlarimiz basarida { data },
 // hatada { error } doner.
@@ -17,7 +18,7 @@ import { SESSION_EXPIRED } from './messages'
 // Ag hatasi firlatilir (cagiran "Sunucuya ulasilamadi" der); sunucu hatasi
 // { ok: false, error } olarak doner.
 
-export type EdgeResult<T> = { ok: true; data: T } | { ok: false; status: number; error: string | null }
+export type EdgeResult<T> = { ok: true; data: T } | { ok: false; status: number; error: string | null; code?: string }
 
 const BASE_URL = `${import.meta.env.VITE_SUPABASE_URL}/functions/v1`
 const ANON_KEY = import.meta.env.VITE_SUPABASE_ANON_KEY as string
@@ -49,8 +50,19 @@ export async function callEdgeFunction<T = unknown>(name: string, payload?: unkn
     res = await post(name, refreshed.session.access_token, payload)
   }
 
-  const body = (await res.json().catch(() => ({}))) as { data?: T; error?: string }
-  if (!res.ok) return { ok: false, status: res.status, error: body.error ?? null }
+  const body = (await res.json().catch(() => ({}))) as {
+    data?: T
+    error?: string
+    code?: string
+    limit?: string
+    feature?: string
+  }
+  if (!res.ok) {
+    // Paket siniri / paket disi ozellik: "paketleri gor" penceresi acilir.
+    const planBlock = planBlockFromError(body)
+    if (planBlock) notifyPlanBlock(planBlock)
+    return { ok: false, status: res.status, error: body.error ?? null, code: body.code }
+  }
   return { ok: true, data: body.data as T }
 }
 

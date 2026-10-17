@@ -1,7 +1,9 @@
 .page {
   min-height: 100vh;
   display: flex;
-  justify-content: center;
+  flex-direction: column;
+  align-items: center;
+  gap: 10px;
   padding: 24px 16px;
   background: var(--bg);
 }
@@ -516,4 +518,12 @@
   .slotGrid {
     grid-template-columns: repeat(2, 1fr);
   }
+}
+
+/* Ucretsiz pakette kartin altinda */
+.poweredBy {
+  font-size: 12px;
+  font-weight: 600;
+  color: var(--text-muted);
+  padding: 4px 8px;
 }

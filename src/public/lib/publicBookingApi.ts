@@ -16,6 +16,8 @@ export interface PublicEmployee {
 
 export interface BookingInfoResponse {
   business: { name: string }
+  // Ucretsiz pakette sayfanin altinda "Adapptiv ile" yazar.
+  branded?: boolean
   services: PublicService[]
   employees?: PublicEmployee[]
   date?: string
@@ -51,6 +53,12 @@ export async function submitBooking(params: {
   const { data, error } = await supabase.functions.invoke<BookResponse>('public-book-appointment', {
     body: params,
   })
-  if (error) throw error
+  if (error) {
+    // 4xx yanitlarin govdesinde musteriye gosterilecek Turkce mesaj var
+    // (ör. salonun paket siniri doldu); ag hatasinda govde yoktur.
+    const body = (await (error as { context?: Response }).context?.json?.().catch(() => null)) as BookResponse | null
+    if (body?.error) return body
+    throw error
+  }
   return data!
 }

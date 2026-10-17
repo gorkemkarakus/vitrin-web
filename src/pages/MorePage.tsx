@@ -13,36 +13,48 @@ import {
   MessagesIcon,
   SparkleIcon,
   SendIcon,
+  LockIcon,
 } from '../components/icons'
 import type { PermKey } from '../lib/permissions'
+import type { PlanFeature } from '../lib/plan'
 import styles from './MorePage.module.css'
 import { initials } from '../lib/formatName'
 
 // `tint: true` olan kutu (AI İş Analizi) diger kutulardan ayri, mor zeminle
 // cizilir — yapay zeka ozelligi oldugunu renkle ayirt etmek icin.
 // access: 'admin' = sadece yonetici, PermKey = o yetkisi olan, undefined = herkes.
+// feature: paket kapsamiyorsa kutu kilitli gorunur (gizlenmez — ne kazanacagini
+// gorsun); dokununca paket ekrani acilir.
 const MENU_ITEMS: {
   path: string
   label: string
   access?: 'admin' | PermKey
+  feature?: PlanFeature
   icon: typeof MessagesIcon
   tint: boolean
 }[] = [
-  { path: '/mesajlar', label: 'Mesajlar', access: 'mesajlar', icon: MessagesIcon, tint: false },
-  { path: '/toplu-mesaj', label: 'Toplu mesaj', access: 'admin', icon: SendIcon, tint: false },
+  { path: '/mesajlar', label: 'Mesajlar', access: 'mesajlar', feature: 'messages', icon: MessagesIcon, tint: false },
+  {
+    path: '/toplu-mesaj',
+    label: 'Toplu mesaj',
+    access: 'admin',
+    feature: 'bulk_campaign',
+    icon: SendIcon,
+    tint: false,
+  },
   { path: '/muhasebe', label: 'Muhasebe', access: 'kasa', icon: AccountingIcon, tint: false },
   { path: '/ekip', label: 'Ekip', access: 'ekip_yonet', icon: TeamIcon, tint: false },
   { path: '/hizmetler', label: 'Hizmetler', access: 'hizmet_yonet', icon: ServicesIcon, tint: false },
   { path: '/performans-raporu', label: 'Performans', access: 'raporlar', icon: TrophyIcon, tint: false },
   { path: '/kazancim', label: 'Kazancım', access: 'kendi_kazanc', icon: AccountingIcon, tint: false },
-  { path: '/reklam', label: 'Reklam', access: 'admin', icon: MegaphoneIcon, tint: false },
-  { path: '/ai-analiz', label: 'AI analiz', access: 'admin', icon: SparkleIcon, tint: true },
+  { path: '/reklam', label: 'Reklam', access: 'admin', feature: 'ads', icon: MegaphoneIcon, tint: false },
+  { path: '/ai-analiz', label: 'AI analiz', access: 'admin', feature: 'ai_insights', icon: SparkleIcon, tint: true },
   { path: '/ayarlar', label: 'Ayarlar', icon: SettingsIcon, tint: false },
 ]
 
 export default function MorePage() {
   const navigate = useNavigate()
-  const { profile, signOut, can } = useAuth()
+  const { profile, signOut, can, plan, hasFeature } = useAuth()
   const isAdmin = profile?.role === 'admin'
   const name = profile?.full_name ?? 'İşletmeniz'
 
@@ -95,18 +107,37 @@ export default function MorePage() {
         </span>
       </button>
 
+      {isAdmin && plan && (
+        <button type="button" className={styles.planRow} onClick={() => navigate('/planlar')}>
+          <span className={styles.planText}>
+            <span className={styles.planLabel}>Paketiniz</span>
+            <span className={styles.planName}>{plan.name}</span>
+          </span>
+          <span className={styles.profileLink}>
+            Paketler <ChevronRightIcon width={14} height={14} />
+          </span>
+        </button>
+      )}
+
       <div className={styles.grid}>
         {visibleItems.map((item) => {
           const Icon = item.icon
+          const locked = item.feature ? !hasFeature(item.feature) : false
           return (
             <button
               type="button"
               key={item.path}
               className={item.tint ? `${styles.tile} ${styles.tileTint}` : styles.tile}
               onClick={() => navigate(item.path)}
+              aria-label={locked ? `${item.label} (paketinizde yok)` : undefined}
             >
               <Icon width={24} height={24} />
-              {item.path === '/mesajlar' && waitingCount > 0 && (
+              {locked && (
+                <span className={styles.tileLock} aria-hidden="true">
+                  <LockIcon width={13} height={13} />
+                </span>
+              )}
+              {!locked && item.path === '/mesajlar' && waitingCount > 0 && (
                 <span className={styles.tileBadge}>{waitingCount}</span>
               )}
               <span className={styles.tileLabel}>{item.label}</span>

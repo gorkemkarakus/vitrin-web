@@ -3,6 +3,7 @@ import type { Session, User } from '@supabase/supabase-js'
 import { supabase } from '../lib/supabase'
 import { ALL_PERMISSIONS, DEFAULT_PERMISSIONS, type PermKey } from '../lib/permissions'
 import { publicSiteBase } from '../lib/bookingUrl'
+import { fetchMyPlan, type MyPlan, type PlanFeature } from '../lib/plan'
 
 interface Profile {
   id: string
@@ -21,6 +22,12 @@ interface AuthContextValue {
   loading: boolean
   // Oturumdaki kullanicinin yetkisi var mi (yonetici icin hep true).
   can: (perm: PermKey) => boolean
+  // Isletmenin paketi (sinirlar, ozellikler, kullanim). Okunamazsa null.
+  plan: MyPlan | null
+  // Ozellik pakette var mi. Paket okunamadiysa true: kilit asil sunucuda,
+  // gecici bir hatada ekranlar kapanmasin.
+  hasFeature: (feature: PlanFeature) => boolean
+  refreshPlan: () => Promise<void>
   refreshProfile: () => Promise<void>
   signIn: (email: string, password: string) => Promise<{ error: string | null }>
   signOut: () => Promise<void>
@@ -33,6 +40,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   const [session, setSession] = useState<Session | null>(null)
   const [profile, setProfile] = useState<Profile | null>(null)
   const [permissions, setPermissions] = useState<Set<PermKey>>(new Set())
+  const [plan, setPlan] = useState<MyPlan | null>(null)
   const [loading, setLoading] = useState(true)
 
   useEffect(() => {
@@ -48,6 +56,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       else {
         setProfile(null)
         setPermissions(new Set())
+        setPlan(null)
         setLoading(false)
       }
     })
@@ -56,11 +65,13 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   }, [])
 
   async function fetchProfile(userId: string) {
-    const [{ data }, { data: perms, error: permErr }] = await Promise.all([
+    const [{ data }, { data: perms, error: permErr }, myPlan] = await Promise.all([
       supabase.from('profiles').select('*').eq('id', userId).maybeSingle(),
       supabase.rpc('my_permissions'),
+      fetchMyPlan(),
     ])
     setProfile(data ?? null)
+    setPlan(myPlan)
     // my_permissions yanit vermezse role gore varsayilan yetkiler.
     if (!permErr && Array.isArray(perms)) setPermissions(new Set(perms as PermKey[]))
     else setPermissions(new Set(data?.role === 'admin' ? ALL_PERMISSIONS : DEFAULT_PERMISSIONS))
@@ -73,6 +84,15 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
   function can(perm: PermKey) {
     return profile?.role === 'admin' || permissions.has(perm)
+  }
+
+  function hasFeature(feature: PlanFeature) {
+    return !plan || plan.features.includes(feature)
+  }
+
+  async function refreshPlan() {
+    const myPlan = await fetchMyPlan()
+    if (myPlan) setPlan(myPlan)
   }
 
   async function signIn(email: string, password: string) {
@@ -109,6 +129,9 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         profile,
         loading,
         can,
+        plan,
+        hasFeature,
+        refreshPlan,
         refreshProfile,
         signIn,
         signOut,

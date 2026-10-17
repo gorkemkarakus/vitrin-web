@@ -28,6 +28,7 @@ export default function PublicBookingPage() {
   // Salon online randevuyu Ayarlar'dan kapattiysa (fonksiyon 403 + closed).
   const [bookingClosed, setBookingClosed] = useState(false)
   const [businessName, setBusinessName] = useState('')
+  const [branded, setBranded] = useState(false)
   const [services, setServices] = useState<PublicService[]>([])
   const [selectedService, setSelectedService] = useState<PublicService | null>(null)
   const [employees, setEmployees] = useState<PublicEmployee[]>([])
@@ -49,6 +50,7 @@ export default function PublicBookingPage() {
           return
         }
         setBusinessName(info.business.name)
+        setBranded(info.branded === true)
         setServices(info.services)
         setStep('service')
       })
@@ -270,6 +272,7 @@ export default function PublicBookingPage() {
           />
         )}
       </div>
+      {branded && step !== 'loading' && <span className={styles.poweredBy}>Adapptiv ile randevu</span>}
     </div>
   )
 }

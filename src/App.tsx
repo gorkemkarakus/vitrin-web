@@ -13,7 +13,10 @@ import ErrorBoundary from './components/ErrorBoundary'
 import OfflineBanner from './components/OfflineBanner'
 import TimezoneBanner from './components/TimezoneBanner'
 import RouteFallback from './components/RouteFallback'
+import PlanLimitSheet from './components/PlanLimitSheet'
+import PlanLocked from './components/PlanLocked'
 import type { PermKey } from './lib/permissions'
+import type { PlanFeature } from './lib/plan'
 
 // Sayfalar acildiklarinda yuklenir (ilk acilis paketi kuculur).
 const MessagesPage = lazy(() => import('./pages/MessagesPage'))
@@ -44,18 +47,22 @@ const NotificationsPage = lazy(() => import('./pages/NotificationsPage'))
 const ResetPasswordPage = lazy(() => import('./pages/ResetPasswordPage'))
 const CashClosurePage = lazy(() => import('./pages/CashClosurePage'))
 const SetupPage = lazy(() => import('./pages/SetupPage'))
+const PlansPage = lazy(() => import('./pages/PlansPage'))
 
 // adminOnly: sadece yonetici. perm: yoneticiye ya da o yetkisi acik calisana.
+// feature: paket bu ozelligi kapsamiyorsa sayfanin yerine "paketleri gor" ekrani.
 function ProtectedRoute({
   children,
   adminOnly = false,
   perm,
+  feature,
 }: {
   children: React.ReactNode
   adminOnly?: boolean
   perm?: PermKey
+  feature?: PlanFeature
 }) {
-  const { session, profile, loading, can } = useAuth()
+  const { session, profile, loading, can, hasFeature } = useAuth()
 
   if (loading) return <div className="loading-screen muted">Yükleniyor…</div>
 
@@ -64,6 +71,7 @@ function ProtectedRoute({
   if (profile.must_change_password) return <ForcePasswordPage />
   if (adminOnly && profile.role !== 'admin') return <Navigate to="/randevular" replace />
   if (perm && !can(perm)) return <Navigate to="/randevular" replace />
+  if (feature && !hasFeature(feature)) return <PlanLocked feature={feature} />
 
   return <>{children}</>
 }
@@ -121,7 +129,7 @@ function AppRoutes() {
             <Route
               path="mesajlar"
               element={
-                <ProtectedRoute perm="mesajlar">
+                <ProtectedRoute perm="mesajlar" feature="messages">
                   <MessagesPage />
                 </ProtectedRoute>
               }
@@ -131,6 +139,7 @@ function AppRoutes() {
             <Route path="musteriler" element={<CustomersPage />} />
             <Route path="musteriler/:id" element={<CustomerDetailPage />} />
             <Route path="daha-fazla" element={<MorePage />} />
+            <Route path="planlar" element={<PlansPage />} />
             <Route
               path="dashboard"
               element={
@@ -166,7 +175,7 @@ function AppRoutes() {
             <Route
               path="ekip/yeni"
               element={
-                <ProtectedRoute adminOnly>
+                <ProtectedRoute adminOnly feature="staff">
                   <EmployeeCreatePage />
                 </ProtectedRoute>
               }
@@ -254,7 +263,7 @@ function AppRoutes() {
             <Route
               path="reklam"
               element={
-                <ProtectedRoute adminOnly>
+                <ProtectedRoute adminOnly feature="ads">
                   <AdInsightsPage />
                 </ProtectedRoute>
               }
@@ -262,7 +271,7 @@ function AppRoutes() {
             <Route
               path="reklam-callback"
               element={
-                <ProtectedRoute adminOnly>
+                <ProtectedRoute adminOnly feature="ads">
                   <AdOAuthCallbackPage />
                 </ProtectedRoute>
               }
@@ -270,7 +279,7 @@ function AppRoutes() {
             <Route
               path="ai-analiz"
               element={
-                <ProtectedRoute adminOnly>
+                <ProtectedRoute adminOnly feature="ai_insights">
                   <AiInsightsPage />
                 </ProtectedRoute>
               }
@@ -278,7 +287,7 @@ function AppRoutes() {
             <Route
               path="toplu-mesaj"
               element={
-                <ProtectedRoute adminOnly>
+                <ProtectedRoute adminOnly feature="bulk_campaign">
                   <BulkMessagePage />
                 </ProtectedRoute>
               }
@@ -288,6 +297,7 @@ function AppRoutes() {
         </Routes>
       )}
       {session && !splashVisible && <TimezoneBanner />}
+      {session && <PlanLimitSheet />}
       {pushPromptOpen && !splashVisible && session && <PushPermissionSheet onClose={() => setPushPromptOpen(false)} />}
       {splashVisible && <AppSplash fadingOut={splashFadingOut} />}
     </>
