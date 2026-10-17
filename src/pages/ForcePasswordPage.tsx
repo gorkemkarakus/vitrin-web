@@ -4,6 +4,8 @@ import { supabase } from '../lib/supabase'
 import { useAuth } from '../contexts/AuthContext'
 import NewPasswordFields from '../components/NewPasswordFields'
 import { newPasswordError } from '../lib/passwordRules'
+import { isPwnedPassword, PWNED_PASSWORD_MESSAGE } from '../lib/pwned'
+import { friendlyDbError } from '../lib/dbErrors'
 import styles from './LoginPage.module.css'
 
 // Yonetici hesabi "ilk giriste kendi sifresini belirlesin" diye actiysa
@@ -24,10 +26,19 @@ export default function ForcePasswordPage() {
       return
     }
     setLoading(true)
+    if (await isPwnedPassword(password)) {
+      setLoading(false)
+      setError(PWNED_PASSWORD_MESSAGE)
+      return
+    }
     const { error: err } = await supabase.auth.updateUser({ password })
     if (err) {
       setLoading(false)
-      setError(/same/i.test(err.message) ? 'Yeni şifre geçici şifreden farklı olmalı.' : err.message)
+      setError(
+        /same/i.test(err.message)
+          ? 'Yeni şifre geçici şifreden farklı olmalı.'
+          : friendlyDbError(err, 'Şifre güncellenemedi, tekrar deneyin.'),
+      )
       return
     }
     await supabase.from('profiles').update({ must_change_password: false }).eq('id', profile!.id)

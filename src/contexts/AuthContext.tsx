@@ -29,7 +29,8 @@ interface AuthContextValue {
   hasFeature: (feature: PlanFeature) => boolean
   refreshPlan: () => Promise<void>
   refreshProfile: () => Promise<void>
-  signIn: (email: string, password: string) => Promise<{ error: string | null }>
+  // code: Supabase hata kodu (ör. 'email_not_confirmed')
+  signIn: (email: string, password: string) => Promise<{ error: string | null; code?: string }>
   signOut: () => Promise<void>
   resetPassword: (email: string) => Promise<{ error: string | null }>
 }
@@ -97,7 +98,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
   async function signIn(email: string, password: string) {
     const { error } = await supabase.auth.signInWithPassword({ email, password })
-    if (error) return { error: error.message }
+    if (error) return { error: error.message, code: error.code }
     return { error: null }
   }
 

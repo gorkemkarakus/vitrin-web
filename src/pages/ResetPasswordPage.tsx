@@ -5,6 +5,7 @@ import logoMark from '../assets/brand/logo-mark.png'
 import { supabase } from '../lib/supabase'
 import NewPasswordFields from '../components/NewPasswordFields'
 import { newPasswordError } from '../lib/passwordRules'
+import { isPwnedPassword, PWNED_PASSWORD_MESSAGE } from '../lib/pwned'
 import styles from './LoginPage.module.css'
 
 // "Şifremi unuttum" e-postasındaki bağlantı buraya yönlendirir. supabase-js
@@ -45,6 +46,11 @@ export default function ResetPasswordPage() {
       return
     }
     setLoading(true)
+    if (await isPwnedPassword(password)) {
+      setLoading(false)
+      setError(PWNED_PASSWORD_MESSAGE)
+      return
+    }
     const { error: err } = await supabase.auth.updateUser({ password })
     setLoading(false)
     if (err) {

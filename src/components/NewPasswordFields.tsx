@@ -13,6 +13,7 @@ export default function NewPasswordFields({
   passwordId,
   confirmId,
   confirmPlaceholder,
+  label = 'Yeni şifre',
 }: {
   password: string
   onPasswordChange: (v: string) => void
@@ -21,6 +22,8 @@ export default function NewPasswordFields({
   passwordId: string
   confirmId: string
   confirmPlaceholder?: string
+  // Kayit ekraninda "Şifre"
+  label?: string
 }) {
   const [show, setShow] = useState(false)
   const { longEnough, lettersAndDigits, hasUpper, strength } = passwordChecks(password)
@@ -28,7 +31,7 @@ export default function NewPasswordFields({
   return (
     <>
       <div className={styles.field}>
-        <label htmlFor={passwordId}>Yeni şifre</label>
+        <label htmlFor={passwordId}>{label}</label>
         <div className={`${styles.passwordBox} ${styles.passwordBoxWhite}`}>
           <input
             maxLength={FIELD_LIMITS.password}
@@ -68,7 +71,7 @@ export default function NewPasswordFields({
         </div>
       </div>
       <div className={styles.field}>
-        <label htmlFor={confirmId}>Yeni şifre (tekrar)</label>
+        <label htmlFor={confirmId}>{label} (tekrar)</label>
         <input
           maxLength={FIELD_LIMITS.password}
           id={confirmId}

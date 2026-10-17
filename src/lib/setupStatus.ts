@@ -72,7 +72,12 @@ export function markSetupStep(businessId: string, list: 'atlandi' | 'yapildi', i
   writeSet(k, s)
 }
 
-export async function loadSetupStatus(businessId: string, profileId: string): Promise<SetupStatus> {
+// canAddStaff: paket calisan eklemeyi kapsamiyorsa (Ucretsiz) "Ekibini ekle" adimi gosterilmez.
+export async function loadSetupStatus(
+  businessId: string,
+  profileId: string,
+  { canAddStaff = true }: { canAddStaff?: boolean } = {},
+): Promise<SetupStatus> {
   const head = { count: 'exact' as const, head: true }
   const [svc, sched, team, appt, biz] = await Promise.all([
     supabase.from('services').select('id', head),
@@ -85,7 +90,7 @@ export async function loadSetupStatus(businessId: string, profileId: string): Pr
   const manual = readSet(key(businessId, 'yapildi'))
   const link = bookingUrl(biz.data?.slug)
 
-  const steps: SetupStep[] = [
+  const allSteps: SetupStep[] = [
     {
       id: 'hizmet',
       title: 'Hizmetlerini ekle',
@@ -127,6 +132,7 @@ export async function loadSetupStatus(businessId: string, profileId: string): Pr
       skipped: false,
     },
   ]
+  const steps = canAddStaff ? allSteps : allSteps.filter((s) => s.id !== 'ekip')
   if (link) {
     steps.push({
       id: 'link',

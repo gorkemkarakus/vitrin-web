@@ -8,7 +8,8 @@ import styles from './SetupCard.module.css'
 // ve randevu yok) ilk acilista dogrudan sihirbaza goturur.
 export default function SetupCard() {
   const navigate = useNavigate()
-  const { profile } = useAuth()
+  const { profile, hasFeature } = useAuth()
+  const canAddStaff = hasFeature('staff')
   const [status, setStatus] = useState<SetupStatus | null>(null)
   const businessId = profile?.business_id ?? ''
   const hidden = businessId ? setupFlag(businessId, 'gizli') : true
@@ -16,7 +17,7 @@ export default function SetupCard() {
   useEffect(() => {
     if (!profile || hidden) return
     let cancelled = false
-    loadSetupStatus(profile.business_id, profile.id).then((s) => {
+    loadSetupStatus(profile.business_id, profile.id, { canAddStaff }).then((s) => {
       if (cancelled) return
       if (s.fresh && !setupFlag(profile.business_id, 'goruldu')) {
         navigate('/kurulum', { replace: true })
@@ -27,7 +28,7 @@ export default function SetupCard() {
     return () => {
       cancelled = true
     }
-  }, [profile, hidden, navigate])
+  }, [profile, hidden, navigate, canAddStaff])
 
   // Kart yalnizca zorunlu bir adim eksikse gorunur; istege bagli adimlar
   // (ekip, link) sadece sihirbazda durur — kurulu salonlari rahatsiz etmez.

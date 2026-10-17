@@ -43,6 +43,7 @@ const BulkMessagePage = lazy(() => import('./pages/BulkMessagePage'))
 const PublicBookingPage = lazy(() => import('./public/PublicBookingPage'))
 const LegalPage = lazy(() => import('./public/LegalPage'))
 const AccountDeletionPage = lazy(() => import('./public/AccountDeletionPage'))
+const EmailConfirmedPage = lazy(() => import('./public/EmailConfirmedPage'))
 const NotificationsPage = lazy(() => import('./pages/NotificationsPage'))
 const ResetPasswordPage = lazy(() => import('./pages/ResetPasswordPage'))
 const CashClosurePage = lazy(() => import('./pages/CashClosurePage'))
@@ -340,6 +341,7 @@ function App() {
             <Route path="/kvkk" element={<LegalPage slug="kvkk" />} />
             <Route path="/kullanim-kosullari" element={<LegalPage slug="kullanim-kosullari" />} />
             <Route path="/hesap-silme" element={<AccountDeletionPage />} />
+            <Route path="/eposta-dogrulandi" element={<EmailConfirmedPage />} />
             <Route path="/*" element={<AuthenticatedApp />} />
           </Routes>
         </Suspense>

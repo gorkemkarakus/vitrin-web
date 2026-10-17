@@ -5,8 +5,9 @@ import { useAuth } from '../contexts/AuthContext'
 import { ChevronRightIcon } from '../components/icons'
 import styles from './LoginPage.module.css'
 import { FIELD_LIMITS } from '../lib/fieldLimits'
+import { CheckEmail, RegisterForm } from './RegisterForm'
 
-type Mode = 'intro' | 'login' | 'forgot'
+type Mode = 'intro' | 'login' | 'forgot' | 'register' | 'check_email'
 
 // Ayni adrese ust uste baglanti istenmesin diye.
 const RESEND_SECONDS = 60
@@ -17,7 +18,11 @@ export default function LoginPage() {
   const { signIn, resetPassword } = useAuth()
 
   // Yeni sifre ekranindaki "Yenisini iste" buraya ?unuttum=1 ile doner.
-  const [mode, setMode] = useState<Mode>(searchParams.get('unuttum') === '1' ? 'forgot' : 'intro')
+  const [mode, setMode] = useState<Mode>(
+    searchParams.get('unuttum') === '1' ? 'forgot' : searchParams.get('kayit') === '1' ? 'register' : 'intro',
+  )
+  // Kayittan sonra ya da onaylanmamis e-postayla giris denenince.
+  const [pendingEmail, setPendingEmail] = useState('')
 
   const [email, setEmail] = useState('')
   const [password, setPassword] = useState('')
@@ -40,8 +45,13 @@ export default function LoginPage() {
     e.preventDefault()
     setError(null)
     setLoading(true)
-    const { error: err } = await signIn(email, password)
+    const { error: err, code } = await signIn(email, password)
     setLoading(false)
+    if (code === 'email_not_confirmed') {
+      setPendingEmail(email.trim())
+      setMode('check_email')
+      return
+    }
     if (err) {
       setError('E-posta veya şifre hatalı.')
       return
@@ -61,6 +71,23 @@ export default function LoginPage() {
     // sonucu her zaman ayni basarili mesajla gosteriyoruz.
     setSentTo(forgotEmail)
     setCooldown(RESEND_SECONDS)
+  }
+
+  if (mode === 'register') {
+    return (
+      <RegisterForm
+        onBack={() => setMode('login')}
+        onDone={(registered) => {
+          setPendingEmail(registered)
+          setEmail(registered)
+          setMode('check_email')
+        }}
+      />
+    )
+  }
+
+  if (mode === 'check_email') {
+    return <CheckEmail email={pendingEmail} onBack={() => setMode('login')} />
   }
 
   if (mode === 'intro') {
@@ -85,6 +112,9 @@ export default function LoginPage() {
           </p>
           <button type="button" className={styles.introBtn} onClick={() => setMode('login')}>
             Giriş yap
+          </button>
+          <button type="button" className={styles.signupGhost} onClick={() => setMode('register')}>
+            Ücretsiz hesap oluştur
           </button>
         </div>
       </div>
@@ -226,6 +256,9 @@ export default function LoginPage() {
 
         <button type="submit" className={styles.primaryBtn} disabled={loading}>
           {loading ? 'Giriş yapılıyor…' : 'Giriş yap'}
+        </button>
+        <button type="button" className={styles.registerLink} onClick={() => setMode('register')}>
+          Hesabın yok mu? <b>Ücretsiz oluştur</b>
         </button>
         <p className={styles.legal}>
           Giriş yaparak <Link to="/kullanim-kosullari">Kullanım Koşulları</Link>&apos;nı kabul etmiş olursunuz.

@@ -10,15 +10,16 @@ import styles from './SetupPage.module.css'
 // ekrana goturur, donuste durum veritabanindan yeniden okunur.
 export default function SetupPage() {
   const navigate = useNavigate()
-  const { profile } = useAuth()
+  const { profile, hasFeature } = useAuth()
+  const canAddStaff = hasFeature('staff')
   const [status, setStatus] = useState<SetupStatus | null>(null)
   const [linkMsg, setLinkMsg] = useState<string | null>(null)
   const businessId = profile?.business_id ?? ''
 
   const refresh = useCallback(() => {
     if (!profile) return
-    loadSetupStatus(profile.business_id, profile.id).then(setStatus)
-  }, [profile])
+    loadSetupStatus(profile.business_id, profile.id, { canAddStaff }).then(setStatus)
+  }, [profile, canAddStaff])
 
   useEffect(() => {
     if (businessId) setSetupFlag(businessId, 'goruldu')
