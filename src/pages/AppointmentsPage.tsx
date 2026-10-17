@@ -12,22 +12,16 @@ import { currency } from '../lib/currency'
 import { toLocalDateString, todayLocalDateString, timeToMinutes, DAY_SHORT, DAY_MS } from '../lib/date'
 import { computeDebtItems, type DebtItem } from '../lib/customerDebts'
 import Avatar from '../components/Avatar'
-import StatusDropdown, { type StatusDropdownOption } from '../components/StatusDropdown'
+import StatusDropdown from '../components/StatusDropdown'
 import Select from '../components/Select'
 import PickerSheet from '../components/PickerSheet'
-import {
-  ChevronRightIcon,
-  CheckCircleIcon,
-  PencilIcon,
-  UserIcon,
-  MoreHorizontalIcon,
-  MessagesIcon,
-} from '../components/icons'
+import { ChevronRightIcon, CheckCircleIcon, PencilIcon } from '../components/icons'
 import type { LayoutOutletContext } from '../layouts/DashboardLayout'
 import PageHeader from '../components/PageHeader'
 import styles from './AppointmentsPage.module.css'
-import SwipeToConfirm from './appointments/SwipeToConfirm'
 import EditAppointmentModal from './appointments/EditAppointmentModal'
+import AppointmentDetailView from './appointments/AppointmentDetailView'
+import { STATUS_DROPDOWN_OPTIONS, STATUS_OPTIONS } from './appointments/constants'
 import {
   SLOT_MINUTES,
   type Appointment,
@@ -44,17 +38,6 @@ import { FIELD_LIMITS } from '../lib/fieldLimits'
 
 // Kapanis ekranindaki odeme yontemi cipleri ve alt dugme metni icin kisa adlar.
 const METHOD_SHORT: Record<string, string> = { nakit: 'Nakit', kart: 'Kart', havale: 'Havale', diger: 'Diğer' }
-
-// Randevu detayindaki "hikaye" icin kim olusturdu.
-const SOURCE_STORY: Record<string, string> = {
-  chatbot: 'Chatbot',
-  online_randevu: 'Online randevu sayfası',
-  kullanici_uzerinden: 'Salon',
-  dogrudan_musteri: 'Salon',
-  reklam_instagram: 'Instagram reklamı',
-  reklam_whatsapp: 'WhatsApp reklamı',
-  diger: 'Salon',
-}
 
 // Yeni randevu penceresinde ilk anda gosterilen hizmet cipi sayisi.
 const FORM_SERVICE_LIMIT = 5
@@ -78,14 +61,6 @@ const SOURCE_OPTIONS = [
   { value: 'diger', label: 'Diğer' },
 ]
 
-const STATUS_OPTIONS: { value: Appointment['status']; label: string }[] = [
-  { value: 'bekliyor', label: 'Bekliyor' },
-  { value: 'onaylandi', label: 'Onaylandı' },
-  { value: 'tamamlandi', label: 'Tamamlandı' },
-  { value: 'iptal', label: 'İptal' },
-  { value: 'gelmedi', label: 'Gelmedi' },
-]
-
 const STATUS_CLASS: Record<Appointment['status'], string> = {
   bekliyor: styles.statusBekliyor,
   onaylandi: styles.statusOnaylandi,
@@ -93,14 +68,6 @@ const STATUS_CLASS: Record<Appointment['status'], string> = {
   iptal: styles.statusIptal,
   gelmedi: styles.statusGelmedi,
 }
-
-const STATUS_DROPDOWN_OPTIONS: StatusDropdownOption[] = [
-  { value: 'bekliyor', label: 'Bekliyor', color: 'var(--warn-text)', bg: 'var(--warn-bg)' },
-  { value: 'onaylandi', label: 'Onaylandı', color: 'var(--info-text)', bg: 'var(--info-bg)' },
-  { value: 'tamamlandi', label: 'Tamamlandı', color: 'var(--ok-text)', bg: 'var(--ok-bg)' },
-  { value: 'iptal', label: 'İptal', color: 'var(--danger-text)', bg: 'var(--danger-bg)' },
-  { value: 'gelmedi', label: 'Gelmedi', color: 'var(--text-dim)', bg: 'var(--panel-2)' },
-]
 
 type ViewMode = 'gunluk' | 'liste' | 'haftalik' | 'ozel'
 
@@ -154,7 +121,6 @@ export default function AppointmentsPage() {
   const [viewMenuOpen, setViewMenuOpen] = useState(false)
   const viewMenuRef = useRef<HTMLDivElement>(null)
   const weekSwipeX = useRef<number | null>(null)
-  const [detailMenuOpen, setDetailMenuOpen] = useState(false)
   // Yeni randevu penceresi
   const [customerQuery, setCustomerQuery] = useState('')
   const [customerListOpen, setCustomerListOpen] = useState(false)
@@ -2453,226 +2419,45 @@ export default function AppointmentsPage() {
         </div>
       )}
 
-      {viewingAppt &&
-        (() => {
-          const a = viewingAppt
-          const start = new Date(a.scheduled_at)
-          const durMin = a.duration_minutes ?? SLOT_MINUTES
-          const phone = customerPhone(a.customer_id)
-          const isOpen = a.status === 'bekliyor' || a.status === 'onaylandi'
-          const price = a.price_override ?? services.find((s) => s.id === a.service_id)?.price ?? null
-          const pkg = packageProgress(a)
-          const statusLabel = STATUS_OPTIONS.find((o) => o.value === a.status)?.label ?? a.status
-          const fmt = (iso: string) =>
-            new Date(iso).toLocaleString('tr-TR', {
-              day: 'numeric',
-              month: 'short',
-              hour: '2-digit',
-              minute: '2-digit',
-            })
-          // "Randevunun hikayesi": kaydin bilinen olaylari sirayla.
-          const story: {
-            key: string
-            title: string
-            sub: string
-            tone: 'purple' | 'navy' | 'ok' | 'danger' | 'muted'
-          }[] = []
-          if (a.created_at) {
-            story.push({
-              key: 'created',
-              title: `${SOURCE_STORY[a.source] ?? 'Salon'} oluşturdu`,
-              sub: fmt(a.created_at) + (a.source_note ? ` · ${a.source_note}` : ''),
-              tone: a.source === 'chatbot' || a.source === 'online_randevu' ? 'purple' : 'navy',
-            })
-          }
-          if (a.reminder_sent_at) {
-            story.push({
-              key: 'reminder',
-              title: 'Hatırlatma gönderildi',
-              sub: `${fmt(a.reminder_sent_at)} · WhatsApp`,
-              tone: 'navy',
-            })
-          }
-          if (a.status === 'onaylandi') story.push({ key: 'st', title: 'Onaylandı', sub: 'Randevu onaylı', tone: 'ok' })
-          if (a.status === 'tamamlandi')
-            story.push({
-              key: 'st',
-              title: 'Tamamlandı',
-              sub: a.notes ? `İşlem notu: ${a.notes}` : 'İşlem kapandı',
-              tone: 'ok',
-            })
-          if (a.status === 'iptal')
-            story.push({ key: 'st', title: 'İptal edildi', sub: 'Randevu iptal', tone: 'danger' })
-          if (a.status === 'gelmedi')
-            story.push({ key: 'st', title: 'Gelmedi', sub: 'Müşteri gelmedi olarak işaretlendi', tone: 'muted' })
-
-          return (
-            <div className={styles.fullScreen}>
-              <div className={styles.fullScroll}>
-                <div className={styles.fsHeadSplit}>
-                  <button
-                    type="button"
-                    className={styles.fsBack}
-                    onClick={() => setViewingAppt(null)}
-                    aria-label="Geri"
-                  >
-                    <ChevronRightIcon width={18} height={18} className={styles.backIcon} />
-                  </button>
-                  {canEdit(a) && (
-                    <div className={styles.viewMenuWrap}>
-                      <button
-                        type="button"
-                        className={styles.fsBack}
-                        onClick={() => setDetailMenuOpen((v) => !v)}
-                        aria-label="Durumu değiştir"
-                        aria-expanded={detailMenuOpen}
-                      >
-                        <MoreHorizontalIcon width={18} height={18} />
-                      </button>
-                      {detailMenuOpen && (
-                        <div className={styles.viewMenu} role="menu">
-                          <span className={styles.viewMenuTitle}>Durumu değiştir</span>
-                          {STATUS_DROPDOWN_OPTIONS.filter((o) => o.value !== a.status && o.value !== 'tamamlandi').map(
-                            (o) => (
-                              <button
-                                key={o.value}
-                                type="button"
-                                className={styles.viewMenuItem}
-                                onClick={async () => {
-                                  setDetailMenuOpen(false)
-                                  setViewingAppt(null)
-                                  await handleStatusChange(a, o.value as Appointment['status'])
-                                }}
-                              >
-                                {o.label}
-                              </button>
-                            ),
-                          )}
-                        </div>
-                      )}
-                    </div>
-                  )}
-                </div>
-
-                <div className={styles.detailHero}>
-                  <div className={styles.detailDate}>
-                    <span className={styles.detailDateWeekday}>
-                      {start.toLocaleDateString('tr-TR', { weekday: 'short' }).toLocaleUpperCase('tr')}
-                    </span>
-                    <span className={styles.detailDateDay}>{start.getDate()}</span>
-                    <span className={styles.detailDateMonth}>
-                      {start.toLocaleDateString('tr-TR', { month: 'long' })}
-                    </span>
-                  </div>
-                  <div className={styles.detailHeroText}>
-                    <span className={styles.detailHeroTitle}>
-                      {start.toLocaleTimeString('tr-TR', { hour: '2-digit', minute: '2-digit' })} ·{' '}
-                      {customerName(a.customer_id)}
-                    </span>
-                    <span className={styles.detailHeroSub}>
-                      {serviceName(a.service_id)} · {employeeName(a.employee_id)} · {durMin} dk
-                      {pkg ? ` · ${pkg.current}/${pkg.total} seans` : ''}
-                    </span>
-                    <span className={`${styles.detailHeroStatus} ${styles[`detailStatus_${a.status}`]}`}>
-                      {statusLabel}
-                      {price != null ? ` · ${currency.format(price)}` : ''}
-                    </span>
-                  </div>
-                </div>
-
-                {customerNote(a.customer_id) && (
-                  <div className={styles.customerNote}>
-                    <span className={styles.customerNoteLabel}>Müşteri notu</span>
-                    {customerNote(a.customer_id)}
-                  </div>
-                )}
-
-                <div className={styles.storyCard}>
-                  <span className={styles.storyTitle}>Randevunun hikâyesi</span>
-                  {story.map((s, i) => (
-                    <div className={styles.storyRow} key={s.key}>
-                      <span className={styles.storyRail}>
-                        <span className={`${styles.storyDot} ${styles[`storyDot_${s.tone}`]}`} />
-                        {(i < story.length - 1 || isOpen) && <span className={styles.storyLine} />}
-                      </span>
-                      <span className={styles.storyText}>
-                        <span className={styles.storyItemTitle}>{s.title}</span>
-                        <span className={styles.storyItemSub}>{s.sub}</span>
-                      </span>
-                    </div>
-                  ))}
-                  {isOpen && (
-                    <div className={styles.storyRow}>
-                      <span className={styles.storyRail}>
-                        <span className={`${styles.storyDot} ${styles.storyDot_pending}`} />
-                      </span>
-                      <span className={styles.storyText}>
-                        <span className={`${styles.storyItemTitle} ${styles.storyItemWarm}`}>
-                          Tamamlanmayı bekliyor
-                        </span>
-                        <span className={styles.storyItemSub}>Ödeme ve seans kaydı</span>
-                      </span>
-                    </div>
-                  )}
-                </div>
-
-                <div className={styles.detailActions}>
-                  <button
-                    type="button"
-                    className={styles.detailAction}
-                    disabled={!a.customer_id}
-                    onClick={() => {
-                      setViewingAppt(null)
-                      navigate(`/musteriler/${a.customer_id}`)
-                    }}
-                  >
-                    <UserIcon width={18} height={18} />
-                    Müşteri
-                  </button>
-                  <button
-                    type="button"
-                    className={styles.detailAction}
-                    disabled={!rawCustomerPhone(a.customer_id)}
-                    onClick={() => {
-                      setViewingAppt(null)
-                      navigate(`/mesajlar?telefon=${encodeURIComponent(rawCustomerPhone(a.customer_id) ?? '')}`)
-                    }}
-                  >
-                    <MessagesIcon width={18} height={18} />
-                    Konuşma
-                  </button>
-                  <button
-                    type="button"
-                    className={styles.detailAction}
-                    disabled={!canEdit(a)}
-                    onClick={() => {
-                      setViewingAppt(null)
-                      openEdit(a)
-                    }}
-                  >
-                    <PencilIcon width={18} height={18} />
-                    Düzenle
-                  </button>
-                </div>
-                {phone && (
-                  <a className={styles.detailCall} href={`tel:${phone}`}>
-                    {phone} · Ara
-                  </a>
-                )}
-              </div>
-
-              {canEdit(a) && isOpen && (
-                <SwipeToConfirm
-                  label="Tamamlamak için kaydır"
-                  onConfirm={() => {
-                    setViewingAppt(null)
-                    handleStatusChange(a, 'tamamlandi')
-                  }}
-                />
-              )}
-            </div>
-          )
-        })()}
+      {viewingAppt && (
+        <AppointmentDetailView
+          key={viewingAppt.id}
+          appointment={viewingAppt}
+          customerName={customerName(viewingAppt.customer_id)}
+          customerNote={customerNote(viewingAppt.customer_id)}
+          phone={customerPhone(viewingAppt.customer_id)}
+          rawPhone={rawCustomerPhone(viewingAppt.customer_id)}
+          serviceName={serviceName(viewingAppt.service_id)}
+          employeeName={employeeName(viewingAppt.employee_id)}
+          servicePrice={services.find((s) => s.id === viewingAppt.service_id)?.price ?? null}
+          pkg={packageProgress(viewingAppt)}
+          canEdit={canEdit(viewingAppt)}
+          onClose={() => setViewingAppt(null)}
+          onStatusChange={async (status) => {
+            const appt = viewingAppt
+            setViewingAppt(null)
+            await handleStatusChange(appt, status)
+          }}
+          onComplete={() => {
+            const appt = viewingAppt
+            setViewingAppt(null)
+            handleStatusChange(appt, 'tamamlandi')
+          }}
+          onEdit={() => {
+            const appt = viewingAppt
+            setViewingAppt(null)
+            openEdit(appt)
+          }}
+          onOpenCustomer={() => {
+            setViewingAppt(null)
+            navigate(`/musteriler/${viewingAppt.customer_id}`)
+          }}
+          onOpenConversation={() => {
+            setViewingAppt(null)
+            navigate(`/mesajlar?telefon=${encodeURIComponent(rawCustomerPhone(viewingAppt.customer_id) ?? '')}`)
+          }}
+        />
+      )}
 
       {editingAppt && (
         <EditAppointmentModal
