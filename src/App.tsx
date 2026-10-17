@@ -1,5 +1,5 @@
-import { useEffect, useRef, useState } from 'react'
-import { BrowserRouter, Navigate, Route, Routes, useNavigate } from 'react-router-dom'
+import { useEffect, useRef, useState, type ReactNode } from 'react'
+import { BrowserRouter, Navigate, Route, Routes, useLocation, useNavigate } from 'react-router-dom'
 import { SplashScreen } from '@capacitor/splash-screen'
 import { AuthProvider, useAuth } from './contexts/AuthContext'
 import AppSplash from './components/AppSplash'
@@ -37,6 +37,8 @@ import CashClosurePage from './pages/CashClosurePage'
 import SetupPage from './pages/SetupPage'
 import { startPush } from './lib/push'
 import PushPermissionSheet from './components/PushPermissionSheet'
+import ErrorBoundary from './components/ErrorBoundary'
+import OfflineBanner from './components/OfflineBanner'
 import type { PermKey } from './lib/permissions'
 
 // adminOnly: sadece yonetici. perm: yoneticiye ya da o yetkisi acik calisana.
@@ -295,6 +297,12 @@ function AuthenticatedApp() {
   )
 }
 
+// Rota degisince hata ekrani sifirlanir (baska sayfaya gecmek kurtarir).
+function RouteErrorBoundary({ children }: { children: ReactNode }) {
+  const { pathname } = useLocation()
+  return <ErrorBoundary resetKey={pathname}>{children}</ErrorBoundary>
+}
+
 function App() {
   // Native (Android) splash sadece WebView ilk kareyi cizene kadar orada
   // durur — biz kendi animasyonlu splash'imizi (AppSplash) React tarafinda
@@ -307,15 +315,18 @@ function App() {
 
   return (
     <BrowserRouter>
-      <Routes>
-        <Route path="/randevu-al/:slug" element={<PublicBookingPage />} />
-        <Route path="/sifre-sifirla" element={<ResetPasswordPage />} />
-        <Route path="/gizlilik" element={<LegalPage slug="gizlilik" />} />
-        <Route path="/kvkk" element={<LegalPage slug="kvkk" />} />
-        <Route path="/kullanim-kosullari" element={<LegalPage slug="kullanim-kosullari" />} />
-        <Route path="/hesap-silme" element={<AccountDeletionPage />} />
-        <Route path="/*" element={<AuthenticatedApp />} />
-      </Routes>
+      <OfflineBanner />
+      <RouteErrorBoundary>
+        <Routes>
+          <Route path="/randevu-al/:slug" element={<PublicBookingPage />} />
+          <Route path="/sifre-sifirla" element={<ResetPasswordPage />} />
+          <Route path="/gizlilik" element={<LegalPage slug="gizlilik" />} />
+          <Route path="/kvkk" element={<LegalPage slug="kvkk" />} />
+          <Route path="/kullanim-kosullari" element={<LegalPage slug="kullanim-kosullari" />} />
+          <Route path="/hesap-silme" element={<AccountDeletionPage />} />
+          <Route path="/*" element={<AuthenticatedApp />} />
+        </Routes>
+      </RouteErrorBoundary>
     </BrowserRouter>
   )
 }

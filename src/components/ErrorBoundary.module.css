@@ -1,0 +1,36 @@
+.wrap {
+  min-height: 100%;
+  max-width: 420px;
+  margin: 0 auto;
+  padding: calc(64px + env(safe-area-inset-top, 0px)) 24px 32px;
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+  text-align: center;
+}
+
+.title {
+  font-family: var(--font-heading);
+  font-size: 24px;
+  font-weight: 700;
+  color: var(--text);
+  text-wrap: balance;
+}
+
+.text {
+  font-size: 15px;
+  line-height: 1.5;
+  color: var(--text-dim);
+  margin-bottom: 8px;
+}
+
+.home {
+  border: none;
+  background: none;
+  padding: 10px;
+  font-family: var(--font-body);
+  font-size: 14px;
+  font-weight: 700;
+  color: var(--signal);
+  cursor: pointer;
+}
