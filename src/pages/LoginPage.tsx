@@ -5,11 +5,13 @@ import { useAuth } from '../contexts/AuthContext'
 import { ChevronRightIcon } from '../components/icons'
 import styles from './LoginPage.module.css'
 import { FIELD_LIMITS } from '../lib/fieldLimits'
-import { CheckEmail, RegisterForm } from './RegisterForm'
+import { RegisterForm } from './RegisterForm'
+import CheckEmail from './CheckEmail'
+import ResetCodeForm from './ResetCodeForm'
 
 type Mode = 'intro' | 'login' | 'forgot' | 'register' | 'check_email'
 
-// Ayni adrese ust uste baglanti istenmesin diye.
+// Ayni adrese ust uste kod istenmesin diye.
 const RESEND_SECONDS = 60
 
 export default function LoginPage() {
@@ -23,6 +25,8 @@ export default function LoginPage() {
   )
   // Kayittan sonra ya da onaylanmamis e-postayla giris denenince.
   const [pendingEmail, setPendingEmail] = useState('')
+  // true: kod az once gonderildi (kayit); false: giris denemesinde fark edildi.
+  const [codeJustSent, setCodeJustSent] = useState(false)
 
   const [email, setEmail] = useState('')
   const [password, setPassword] = useState('')
@@ -49,6 +53,7 @@ export default function LoginPage() {
     setLoading(false)
     if (code === 'email_not_confirmed') {
       setPendingEmail(email.trim())
+      setCodeJustSent(false)
       setMode('check_email')
       return
     }
@@ -65,11 +70,11 @@ export default function LoginPage() {
     e.preventDefault()
     if (cooldown > 0) return
     setForgotLoading(true)
-    await resetPassword(forgotEmail)
+    await resetPassword(forgotEmail.trim())
     setForgotLoading(false)
     // Kayıtlı olmayan bir e-postanın var olup olmadığını sızdırmamak için
     // sonucu her zaman ayni basarili mesajla gosteriyoruz.
-    setSentTo(forgotEmail)
+    setSentTo(forgotEmail.trim())
     setCooldown(RESEND_SECONDS)
   }
 
@@ -80,6 +85,7 @@ export default function LoginPage() {
         onDone={(registered) => {
           setPendingEmail(registered)
           setEmail(registered)
+          setCodeJustSent(true)
           setMode('check_email')
         }}
       />
@@ -87,7 +93,7 @@ export default function LoginPage() {
   }
 
   if (mode === 'check_email') {
-    return <CheckEmail email={pendingEmail} onBack={() => setMode('login')} />
+    return <CheckEmail email={pendingEmail} justSent={codeJustSent} onBack={() => setMode('login')} />
   }
 
   if (mode === 'intro') {
@@ -138,7 +144,7 @@ export default function LoginPage() {
         <div className={styles.lightHead}>
           <h1 className={styles.lightTitle}>Şifremi unuttum</h1>
           <span className={styles.lightSub}>
-            E-posta adresinizi yazın, yeni şifre belirlemeniz için bir bağlantı gönderelim.
+            E-posta adresinizi yazın, yeni şifre belirlemeniz için bir kod gönderelim.
           </span>
         </div>
 
@@ -162,18 +168,23 @@ export default function LoginPage() {
               ? 'Gönderiliyor…'
               : cooldown > 0
                 ? `Tekrar göndermek için ${cooldown} sn`
-                : 'Bağlantı gönder'}
+                : sentTo
+                  ? 'Yeni kod gönder'
+                  : 'Kod gönder'}
           </button>
         </form>
 
         {sentTo && (
-          <div className={styles.sentCard}>
-            <span className={styles.sentTitle}>Gönderildi</span>
-            <span className={styles.sentSub}>
-              <b>{sentTo}</b> kayıtlıysa bu adrese bir bağlantı yolladık. Gelmediyse gereksiz klasörüne bakın;{' '}
-              {RESEND_SECONDS} saniye sonra tekrar isteyebilirsiniz.
-            </span>
-          </div>
+          <>
+            <div className={styles.sentCard}>
+              <span className={styles.sentTitle}>Gönderildi</span>
+              <span className={styles.sentSub}>
+                <b>{sentTo}</b> kayıtlıysa bu adrese bir kod yolladık. Gelmediyse gereksiz klasörüne bakın;{' '}
+                {RESEND_SECONDS} saniye sonra yenisini isteyebilirsiniz.
+              </span>
+            </div>
+            <ResetCodeForm key={sentTo} email={sentTo} />
+          </>
         )}
 
         <div className={styles.lightFoot}>

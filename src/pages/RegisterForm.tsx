@@ -1,14 +1,12 @@
-import { useEffect, useState } from 'react'
+import { useState } from 'react'
 import { Link } from 'react-router-dom'
 import { ChevronRightIcon } from '../components/icons'
 import NewPasswordFields from '../components/NewPasswordFields'
 import TurnstileWidget from '../public/components/TurnstileWidget'
 import { newPasswordError, passwordChecks } from '../lib/passwordRules'
-import { registerBusiness, resendConfirmation } from '../lib/signup'
+import { registerBusiness } from '../lib/signup'
 import { FIELD_LIMITS } from '../lib/fieldLimits'
 import styles from './LoginPage.module.css'
-
-const RESEND_SECONDS = 60
 
 // Kendi kendine kayit: isletme + yonetici hesabi Ucretsiz paketle acilir.
 export function RegisterForm({ onBack, onDone }: { onBack: () => void; onDone: (email: string) => void }) {
@@ -138,59 +136,6 @@ export function RegisterForm({ onBack, onDone }: { onBack: () => void; onDone: (
       <div className={styles.lightFoot}>
         <button type="button" className={styles.textLink} onClick={onBack}>
           Zaten hesabım var, giriş yap
-        </button>
-      </div>
-    </div>
-  )
-}
-
-// Kayittan sonra (ya da onaylanmamis e-postayla giris denenince).
-export function CheckEmail({ email, onBack }: { email: string; onBack: () => void }) {
-  const [cooldown, setCooldown] = useState(RESEND_SECONDS)
-  const [sending, setSending] = useState(false)
-  const [note, setNote] = useState<string | null>(null)
-
-  useEffect(() => {
-    if (cooldown <= 0) return
-    const t = setTimeout(() => setCooldown((c) => c - 1), 1000)
-    return () => clearTimeout(t)
-  }, [cooldown])
-
-  async function resend() {
-    setSending(true)
-    const result = await resendConfirmation(email)
-    setSending(false)
-    setNote(result.ok ? 'Bağlantıyı yeniden gönderdik.' : result.error)
-    setCooldown(RESEND_SECONDS)
-  }
-
-  return (
-    <div className={styles.lightPage}>
-      <div className={styles.lightHead}>
-        <h1 className={styles.lightTitle}>E-postanı kontrol et</h1>
-        <span className={styles.lightSub}>
-          <b>{email}</b> adresine bir doğrulama bağlantısı gönderdik. Bağlantıya dokunduktan sonra buradan giriş
-          yapabilirsin.
-        </span>
-      </div>
-
-      <div className={styles.sentCard}>
-        <span className={styles.sentTitle}>Gelmedi mi?</span>
-        <span className={styles.sentSub}>
-          Gereksiz (spam) klasörüne bak. Bu adresle daha önce hesap açtıysan doğrudan giriş yapabilir ya da şifreni
-          sıfırlayabilirsin.
-        </span>
-      </div>
-
-      {note && <p className={styles.note}>{note}</p>}
-
-      <button type="button" className={styles.primaryBtn} onClick={resend} disabled={sending || cooldown > 0}>
-        {sending ? 'Gönderiliyor…' : cooldown > 0 ? `Tekrar göndermek için ${cooldown} sn` : 'Bağlantıyı tekrar gönder'}
-      </button>
-
-      <div className={styles.lightFoot}>
-        <button type="button" className={styles.textLink} onClick={onBack}>
-          Girişe dön
         </button>
       </div>
     </div>
