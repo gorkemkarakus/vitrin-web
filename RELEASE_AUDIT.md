@@ -92,4 +92,56 @@ Bu dosya iş başında yazıldı; her maddenin son durumu dosyanın sonundaki "S
 
 ## Karar bekleyenler
 
-(İş ilerledikçe doldurulur; her birinde seçilen varsayılan yazılıdır.)
+12 madde (K1–K12) — seçilen varsayılanlarla birlikte `RELEASE_CHECKLIST.md` → "Karar bekleyenler".
+
+## Sonuç (2026-10-17, iş sonu)
+
+| # | Son durum | Nasıl doğrulandı / not |
+| --- | --- | --- |
+| G1 | tamam | `x-bot-secret` zorunlu; başlıksız/yanlış 401, doğru 200. n8n API anahtarı yolu etkilenmedi. |
+| G2 | tamam | `npm run test:edge-auth`: 28 fonksiyon, kimliksiz 2xx yok. |
+| G3 | tamam | `npm run test:rls`: 102 kontrol geçti (negatif kontrolle etkinliği doğrulandı). |
+| G4 | kısmen | Hız sınırları devrede; Turnstile anahtarı Cloudflare'de oluşturulunca zorunlu olur (kod hazır, `_app_secrets` yedeği). |
+| G5 | tamam | `public-booking-info` 120/10 dk/IP, `account-deletion-request` 5/saat/IP. |
+| G6 | tamam | 29 DB kısıtı + 50 `maxLength`; kısıt hataları Türkçe gösteriliyor. |
+| G7 | tamam | Günlük kota (`consume_quota`); varsayılan değerler K2. |
+| G8 | tamam | R8 + shrinkResources, cleartext/yedek kapalı, `debuggable false`; release derlemesi emülatörde çalıştı. |
+| G9–G10 | tamam | Değişiklik gerekmedi. |
+| G11 | tamam | `@fontsource-variable`; harici istek yok (tarayıcıda doğrulandı). |
+| M1 | tamam | E2E: çalışan kendi hesabını siliyor. |
+| M2 | tamam | `/hesap-silme` + `legal/hesap-silme.html` + sunucu ucu; E2E. |
+| M3 | tamam (taslak) | Uygulama içi 3 sayfa + HTML; şirket bilgileri yer tutucu, avukat onayı bekliyor. |
+| M4 | tamam | `DATA_INVENTORY.md` (Play ve Apple form cevapları dahil). |
+| M5 | tamam | Açıklama ekranı → sistem izni; emülatörde doğrulandı. |
+| M6 | tamam | — |
+| M7 | tamam (anahtar bekliyor) | `keystore.properties` / ortam değişkeni; anahtar kullanıcı tarafından oluşturulacak. |
+| M8 | tamam | `npm run android:aab`; imzasız AAB üretildi. |
+| M9 | tamam | 1.0.0 / versionCode 1; `check:release` uyumu denetliyor. |
+| M10 | tamam | `PrivacyInfo.xcprivacy` kaynaklara eklendi (FileTimestamp C617.1). |
+| M11 | kısmen | AppDelegate köprüsü hazır; Firebase SDK, APNs anahtarı ve Xcode yetenekleri Mac'te (kontrol listesi §4). |
+| M12 | tamam | `ITSAppUsesNonExemptEncryption=false`, 1.0.0, arm64, dikey. |
+| M13 | karar | K5 (ekranlar görünür bırakıldı); inceleme notu hazır. |
+| H1 | tamam (taslak) | Aydınlatma metni + randevu formunda bağlantı. |
+| H2 | kısmen | Metinlerde açık; standart sözleşmeler ve Kurul bildirimi avukat işi. |
+| H3 | tamam | İzin + kanıt + RET + toplu mesaj filtresi + sunucu tarafı ret satırı; İYS kaydı salonların işi. |
+| H4 | bekliyor | Avukat kontrolü. |
+| S1 | tamam (varsayılan) | Kendi hata raporu tablomuz, kişisel veri maskeli; servis seçimi K1. |
+| S2 | tamam | ErrorBoundary (rota değişince sıfırlanır). |
+| S3 | tamam | Çevrimdışı şeridi (tarayıcıda doğrulandı). |
+| S4 | tamam | — |
+| S5 | tamam | Kayıt butonları zaten kilitliydi; grup/şablon silme-adlandırmaya kilit eklendi. |
+| S6 | kısmen | Uyarı şeridi; tam İstanbul sabitlemesi K9. |
+| S7 | tamam | `matchesSearch` (Türkçe + aksansız), baş harfler `toLocaleUpperCase('tr')`. |
+| T1 | tamam | 10 Playwright testi, ard arda çalıştırmalarda kararlı. |
+| T2 | kısmen | AppointmentsPage 3113 → ~2590 satır; oluşturma formu/tamamlama ekranı ve diğer uzun sayfalar kaldı. |
+| T3 | tamam | 65 → 82 birim test (arama, hata çevirici, yasal metin, kampanya, saat dilimi, adil dağıtım). |
+| Q1 | tamam | PDF görsel olarak kontrol edildi. |
+| Q2 | ertelendi | K8. |
+| Q3 | tamam | Açılış paketi 1826 → 263 KB. |
+| Q4 | tamam | Adsız öğe yok, küçük dokunma alanları büyütüldü; soluk metin kontrastı bilinen risk. |
+| Q5 | tamam | 28 ekran × 320/360/430/768 px: yatay taşma yok. |
+| Q6 | tamam | Splash `#f5f6f8`; ad her platformda "Adapptiv". |
+| R1 | kısmen | `check:release` ortam/anahtar denetimi; ayrı test projesi K7. |
+| R2 | tamam / bekliyor | 84 migration uzak geçmişle birebir; yedek `npm run backup:db` (Docker) veya Pro plan. |
+| R3 | tamam | `CHANGELOG.md`. |
+| R4 | tamam | `STORE_LISTING.md`. |
