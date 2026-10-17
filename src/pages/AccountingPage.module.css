@@ -27,6 +27,8 @@
   font-size: 12px;
   font-weight: 700;
   padding: 7px 10px;
+  /* Tek karakterlik "⋯" butonu da rahat dokunulsun. */
+  min-width: 36px;
   border-radius: 9px;
   cursor: pointer;
 }

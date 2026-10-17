@@ -2423,8 +2423,9 @@
 }
 
 .monthNavBtn {
-  width: 26px;
-  height: 26px;
+  /* Dokunma alani en az ~34 px (onceden 26 px). */
+  width: 34px;
+  height: 34px;
   border: none;
   border-radius: 50%;
   background: var(--panel-2);
