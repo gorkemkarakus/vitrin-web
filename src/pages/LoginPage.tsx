@@ -1,5 +1,5 @@
 import { useEffect, useState } from 'react'
-import { useNavigate, useSearchParams } from 'react-router-dom'
+import { Link, useNavigate, useSearchParams } from 'react-router-dom'
 import logoMark from '../assets/brand/logo-mark.png'
 import { useAuth } from '../contexts/AuthContext'
 import { ChevronRightIcon } from '../components/icons'
@@ -227,6 +227,11 @@ export default function LoginPage() {
         <button type="submit" className={styles.primaryBtn} disabled={loading}>
           {loading ? 'Giriş yapılıyor…' : 'Giriş yap'}
         </button>
+        <p className={styles.legal}>
+          Giriş yaparak <Link to="/kullanim-kosullari">Kullanım Koşulları</Link>&apos;nı kabul etmiş olursunuz.
+          Verileriniz <Link to="/gizlilik">Gizlilik Politikası</Link> ve <Link to="/kvkk">KVKK Aydınlatma Metni</Link>
+          &apos;ne göre işlenir.
+        </p>
       </form>
     </div>
   )

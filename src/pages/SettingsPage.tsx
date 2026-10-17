@@ -670,11 +670,18 @@ export default function SettingsPage() {
         {row('Hesabımı sil', '', openDelete, 'muted')}
       </div>
 
+      <span className={styles.groupLabel}>Hakkında</span>
+      <div className={styles.group}>
+        {row('Gizlilik Politikası', '', () => navigate('/gizlilik'), 'muted')}
+        {row('KVKK Aydınlatma Metni', '', () => navigate('/kvkk'), 'muted')}
+        {row('Kullanım Koşulları', '', () => navigate('/kullanim-kosullari'), 'muted')}
+      </div>
+
       <button type="button" className={styles.signOut} onClick={() => signOut()}>
         Çıkış yap
       </button>
       <span className={styles.version}>
-        Adapptiv · {profile?.full_name ?? ''} · {isAdmin ? 'Yönetici' : 'Çalışan'}
+        Adapptiv {import.meta.env.VITE_APP_VERSION} · {profile?.full_name ?? ''} · {isAdmin ? 'Yönetici' : 'Çalışan'}
       </span>
     </div>
   )

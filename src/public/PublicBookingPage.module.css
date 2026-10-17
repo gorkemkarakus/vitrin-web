@@ -429,6 +429,11 @@
   padding: 10px 12px;
 }
 
+.kvkkNotice a {
+  color: var(--signal);
+  font-weight: 600;
+}
+
 /* ── Onay ekranı ─────────────────────────────────────────── */
 .confirmation {
   text-align: center;

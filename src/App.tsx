@@ -28,6 +28,8 @@ import AiInsightsPage from './pages/AiInsightsPage'
 import AdOAuthCallbackPage from './pages/AdOAuthCallbackPage'
 import BulkMessagePage from './pages/BulkMessagePage'
 import PublicBookingPage from './public/PublicBookingPage'
+import LegalPage from './public/LegalPage'
+import AccountDeletionPage from './public/AccountDeletionPage'
 import NotificationsPage from './pages/NotificationsPage'
 import ResetPasswordPage from './pages/ResetPasswordPage'
 import ForcePasswordPage from './pages/ForcePasswordPage'
@@ -301,6 +303,10 @@ function App() {
       <Routes>
         <Route path="/randevu-al/:slug" element={<PublicBookingPage />} />
         <Route path="/sifre-sifirla" element={<ResetPasswordPage />} />
+        <Route path="/gizlilik" element={<LegalPage slug="gizlilik" />} />
+        <Route path="/kvkk" element={<LegalPage slug="kvkk" />} />
+        <Route path="/kullanim-kosullari" element={<LegalPage slug="kullanim-kosullari" />} />
+        <Route path="/hesap-silme" element={<AccountDeletionPage />} />
         <Route path="/*" element={<AuthenticatedApp />} />
       </Routes>
     </BrowserRouter>

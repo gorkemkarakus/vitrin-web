@@ -19,7 +19,8 @@
     "test:edge-auth": "node scripts/security/edge-function-auth-check.mjs",
     "android:aab": "node scripts/android-build.mjs bundleRelease",
     "android:apk": "node scripts/android-build.mjs assembleRelease",
-    "android:debug": "node scripts/android-build.mjs assembleDebug"
+    "android:debug": "node scripts/android-build.mjs assembleDebug",
+    "legal:html": "node --experimental-strip-types --no-warnings scripts/build-legal.mjs && prettier --write legal"
   },
   "dependencies": {
     "@capacitor/android": "^8.4.1",

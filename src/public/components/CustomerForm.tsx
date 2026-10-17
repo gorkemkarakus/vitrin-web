@@ -83,7 +83,11 @@ export default function CustomerForm({
         </div>
 
         <p className={styles.kvkkNotice}>
-          Verileriniz KVKK kapsamında korunmakta olup sadece randevu işlemleriniz için kullanılacaktır.
+          Adınız ve telefonunuz randevunun oluşturulması ve hatırlatılması için salonla paylaşılır.{' '}
+          {/* Yeni sekmede: secilen hizmet/saat kaybolmasin. */}
+          <a href="/kvkk" target="_blank" rel="noopener noreferrer">
+            Aydınlatma Metni
+          </a>
         </p>
 
         <TurnstileWidget onToken={setTurnstileToken} />
