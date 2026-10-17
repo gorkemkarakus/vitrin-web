@@ -6,6 +6,7 @@ import PageHeader from '../components/PageHeader'
 import { toLocalDateString, todayLocalDateString, DAY_MS } from '../lib/date'
 import styles from './HolidaysPage.module.css'
 import { HOLIDAY_LABEL } from '../lib/scheduleLabels'
+import { FIELD_LIMITS } from '../lib/fieldLimits'
 
 // Tarihi her yil ayni olan resmi tatiller. Bayramlar (ay takvimine gore
 // her yil kaydigi icin) burada yok — "Başka gün ekle" ile tarih araligi
@@ -390,6 +391,7 @@ export default function HolidaysPage() {
             <div className="field field-flush">
               <label htmlFor="holidayName">Adı</label>
               <input
+                maxLength={FIELD_LIMITS.businessHolidaysName}
                 id="holidayName"
                 value={holidayName}
                 onChange={(e) => setHolidayName(e.target.value)}

@@ -9,6 +9,7 @@ import { currencyWhole as currency } from '../lib/currency'
 import styles from './ServicesPage.module.css'
 import { firstName } from '../lib/formatName'
 import { AVATAR_TONES } from '../lib/avatarColor'
+import { FIELD_LIMITS } from '../lib/fieldLimits'
 
 interface Service {
   id: string
@@ -287,6 +288,7 @@ export default function ServicesPage() {
           <div className={styles.field}>
             <label htmlFor="serviceName">Hizmet adı</label>
             <input
+              maxLength={FIELD_LIMITS.servicesName}
               id="serviceName"
               className={styles.nameInput}
               value={name}
@@ -522,6 +524,7 @@ export default function ServicesPage() {
         <div className={styles.searchBox}>
           <SearchIcon width={16} height={16} className={styles.searchIcon} />
           <input
+            maxLength={FIELD_LIMITS.search}
             className={styles.searchInput}
             placeholder="Hizmet ara"
             value={search}

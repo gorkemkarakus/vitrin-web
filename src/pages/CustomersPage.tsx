@@ -16,6 +16,7 @@ import { segmentForStats, type CustomerSegment } from '../lib/customerSegments'
 import styles from './CustomersPage.module.css'
 import { initials } from '../lib/formatName'
 import { customerPhone } from '../lib/phone'
+import { FIELD_LIMITS } from '../lib/fieldLimits'
 
 interface Customer {
   id: string
@@ -356,6 +357,7 @@ export default function CustomersPage() {
         <label className={styles.searchBox}>
           <SearchIcon width={16} height={16} className={styles.searchIcon} />
           <input
+            maxLength={FIELD_LIMITS.search}
             className={styles.searchInput}
             placeholder="İsim veya telefon ara"
             value={search}

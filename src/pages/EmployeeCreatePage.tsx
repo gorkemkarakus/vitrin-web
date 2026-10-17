@@ -13,6 +13,7 @@ import { publicSiteBase } from '../lib/bookingUrl'
 import { toLocalDateString } from '../lib/date'
 import styles from './EmployeeCreatePage.module.css'
 import { HOLIDAY_LABEL } from '../lib/scheduleLabels'
+import { FIELD_LIMITS } from '../lib/fieldLimits'
 
 const GENDER_OPTIONS: { value: '' | 'kadin' | 'erkek'; label: string }[] = [
   { value: '', label: 'Belirtilmesin' },
@@ -368,6 +369,7 @@ export default function EmployeeCreatePage() {
         <div className={styles.field}>
           <label htmlFor="fullName">Ad soyad</label>
           <input
+            maxLength={FIELD_LIMITS.profilesFullName}
             id="fullName"
             className={styles.inputStrong}
             value={fullName}
@@ -379,6 +381,7 @@ export default function EmployeeCreatePage() {
         <div className={styles.field}>
           <label htmlFor="newPhone">Telefon</label>
           <input
+            maxLength={FIELD_LIMITS.profilesWhatsappPhone}
             id="newPhone"
             type="tel"
             inputMode="numeric"
@@ -392,6 +395,7 @@ export default function EmployeeCreatePage() {
         <div className={styles.field}>
           <label htmlFor="newEmail">E-posta</label>
           <input
+            maxLength={FIELD_LIMITS.email}
             id="newEmail"
             type="email"
             value={email}
@@ -405,6 +409,7 @@ export default function EmployeeCreatePage() {
           <label htmlFor="newPassword">Geçici şifre</label>
           <div className={styles.passwordBox}>
             <input
+              maxLength={FIELD_LIMITS.password}
               id="newPassword"
               type="text"
               value={password}

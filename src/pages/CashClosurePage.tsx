@@ -8,6 +8,7 @@ import { METHOD_LABEL, loadDaySummary, longDate, type CashClosure, type DaySumma
 import { generateCashClosurePdf } from '../lib/pdf/cashClosurePdf'
 import styles from './CashClosurePage.module.css'
 import { todayLocalDateString } from '../lib/date'
+import { FIELD_LIMITS } from '../lib/fieldLimits'
 
 // Gun sonu kasa kapanisi: gunun tahsilati (yonteme gore), nakit giderler,
 // acilis kasasi + sayilan nakit → fark; kaydedilir ve PDF olarak indirilir.
@@ -282,6 +283,7 @@ export default function CashClosurePage() {
               </div>
             )}
             <textarea
+              maxLength={FIELD_LIMITS.cashClosuresNote}
               className={styles.note}
               value={note}
               onChange={(e) => setNote(e.target.value)}

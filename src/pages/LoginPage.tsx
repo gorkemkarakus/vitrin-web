@@ -4,6 +4,7 @@ import logoMark from '../assets/brand/logo-mark.png'
 import { useAuth } from '../contexts/AuthContext'
 import { ChevronRightIcon } from '../components/icons'
 import styles from './LoginPage.module.css'
+import { FIELD_LIMITS } from '../lib/fieldLimits'
 
 type Mode = 'intro' | 'login' | 'forgot'
 
@@ -115,6 +116,7 @@ export default function LoginPage() {
           <div className={styles.field}>
             <label htmlFor="forgotEmail">E-posta adresi</label>
             <input
+              maxLength={FIELD_LIMITS.email}
               id="forgotEmail"
               className={styles.inputWhite}
               type="email"
@@ -175,6 +177,7 @@ export default function LoginPage() {
         <div className={styles.field}>
           <label htmlFor="email">E-posta adresi</label>
           <input
+            maxLength={FIELD_LIMITS.email}
             id="email"
             className={styles.inputGray}
             type="email"
@@ -189,6 +192,7 @@ export default function LoginPage() {
           <label htmlFor="password">Şifre</label>
           <div className={styles.passwordBox}>
             <input
+              maxLength={FIELD_LIMITS.password}
               id="password"
               type={showPassword ? 'text' : 'password'}
               autoComplete="current-password"

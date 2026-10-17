@@ -25,6 +25,7 @@ import type { LayoutOutletContext } from '../layouts/DashboardLayout'
 import PageHeader from '../components/PageHeader'
 import styles from './AppointmentsPage.module.css'
 import { PAYMENT_METHOD_OPTIONS } from '../lib/paymentMethods'
+import { FIELD_LIMITS } from '../lib/fieldLimits'
 
 interface Customer {
   id: string
@@ -1901,6 +1902,7 @@ export default function AppointmentsPage() {
                       : '?'}
                 </span>
                 <input
+                  maxLength={FIELD_LIMITS.customersFullName}
                   className={styles.custInput}
                   placeholder="Ad ya da telefon yaz"
                   value={
@@ -1972,6 +1974,7 @@ export default function AppointmentsPage() {
               )}
               {useNewCustomer && (
                 <input
+                  maxLength={FIELD_LIMITS.customersContactPhone}
                   className={styles.fInput}
                   type="tel"
                   inputMode="numeric"
@@ -2203,6 +2206,7 @@ export default function AppointmentsPage() {
             />
             {noteOpen || sourceNote ? (
               <input
+                maxLength={FIELD_LIMITS.appointmentsSourceNote}
                 className={styles.fInput}
                 placeholder="Not (ör. kampanya adı)"
                 value={sourceNote}
@@ -2956,6 +2960,7 @@ export default function AppointmentsPage() {
                 <div className="field">
                   <label htmlFor="editPhone">Müşteri Telefonu</label>
                   <input
+                    maxLength={FIELD_LIMITS.customersContactPhone}
                     id="editPhone"
                     type="tel"
                     inputMode="numeric"
@@ -2969,6 +2974,7 @@ export default function AppointmentsPage() {
               <div className="field field-full">
                 <label htmlFor="editNote">Not (opsiyonel)</label>
                 <input
+                  maxLength={FIELD_LIMITS.appointmentsNotes}
                   id="editNote"
                   placeholder="ör. kampanya adı"
                   value={editNote}

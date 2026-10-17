@@ -5,6 +5,7 @@ import { useAuth } from '../contexts/AuthContext'
 import { formatPersonName } from '../lib/formatName'
 import { CloseIcon } from './icons'
 import styles from './QuickAddCustomerModal.module.css'
+import { FIELD_LIMITS } from '../lib/fieldLimits'
 
 interface QuickAddCustomerModalProps {
   onClose: () => void
@@ -63,6 +64,7 @@ export default function QuickAddCustomerModal({ onClose, onCreated }: QuickAddCu
           <div className="field">
             <label htmlFor="quickCustomerName">Ad Soyad</label>
             <input
+              maxLength={FIELD_LIMITS.customersFullName}
               id="quickCustomerName"
               value={name}
               onChange={(e) => setName(e.target.value)}
@@ -74,6 +76,7 @@ export default function QuickAddCustomerModal({ onClose, onCreated }: QuickAddCu
           <div className="field">
             <label htmlFor="quickCustomerPhone">Telefon (opsiyonel)</label>
             <input
+              maxLength={FIELD_LIMITS.customersContactPhone}
               id="quickCustomerPhone"
               type="tel"
               inputMode="numeric"

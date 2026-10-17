@@ -5,6 +5,7 @@ import AiMessageGenerator from './AiMessageGenerator'
 import Select from './Select'
 import type { Template } from '../pages/BulkMessagePage'
 import styles from './SendCampaignModal.module.css'
+import { FIELD_LIMITS } from '../lib/fieldLimits'
 
 export default function SendCampaignModal({
   targetName,
@@ -96,6 +97,7 @@ export default function SendCampaignModal({
             <div className="field">
               <label htmlFor="campaignMessage">Mesaj</label>
               <textarea
+                maxLength={FIELD_LIMITS.campaignMessageTemplatesMessage}
                 id="campaignMessage"
                 rows={5}
                 value={message}

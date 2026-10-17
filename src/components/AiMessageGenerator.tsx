@@ -3,6 +3,7 @@ import { callEdgeFunction } from '../lib/edgeFunctions'
 import { NETWORK_ERROR } from '../lib/messages'
 import { SparkleIcon } from './icons'
 import styles from './AiMessageGenerator.module.css'
+import { FIELD_LIMITS } from '../lib/fieldLimits'
 
 // Kampanya mesajini kisa bir istekten (ör. "%15 indirim mesaji") yazdirir.
 export default function AiMessageGenerator({
@@ -41,6 +42,7 @@ export default function AiMessageGenerator({
       </span>
       <div className={styles.row}>
         <input
+          maxLength={FIELD_LIMITS.aiPrompt}
           className={styles.input}
           value={prompt}
           onChange={(e) => setPrompt(e.target.value)}

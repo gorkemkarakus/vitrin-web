@@ -15,6 +15,7 @@ import { currencyWhole as currency } from '../lib/currency'
 import { toLocalDateString, firstOfMonth, DAY_LONG, DAY_MS } from '../lib/date'
 import { segmentForStats } from '../lib/customerSegments'
 import styles from './AiInsightsPage.module.css'
+import { FIELD_LIMITS } from '../lib/fieldLimits'
 
 interface Insight {
   generated_at: string
@@ -938,6 +939,7 @@ export default function AiInsightsPage() {
           }}
         >
           <input
+            maxLength={FIELD_LIMITS.aiPrompt}
             className={styles.input}
             placeholder="Bir şey sor…"
             value={draft}

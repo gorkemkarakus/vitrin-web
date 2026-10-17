@@ -4,6 +4,7 @@ import { supabase } from '../lib/supabase'
 import AiMessageGenerator from './AiMessageGenerator'
 import type { Template } from '../pages/BulkMessagePage'
 import styles from './TemplateModal.module.css'
+import { FIELD_LIMITS } from '../lib/fieldLimits'
 
 export default function TemplateModal({
   template,
@@ -74,6 +75,7 @@ export default function TemplateModal({
         <div className="field">
           <label htmlFor="templateTitle">Başlık</label>
           <input
+            maxLength={FIELD_LIMITS.campaignMessageTemplatesTitle}
             id="templateTitle"
             value={title}
             onChange={(e) => setTitle(e.target.value)}
@@ -85,6 +87,7 @@ export default function TemplateModal({
         <div className="field">
           <label htmlFor="templateMessage">Mesaj</label>
           <textarea
+            maxLength={FIELD_LIMITS.campaignMessageTemplatesMessage}
             id="templateMessage"
             rows={5}
             value={message}

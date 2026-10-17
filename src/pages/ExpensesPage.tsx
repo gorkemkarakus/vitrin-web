@@ -9,6 +9,7 @@ import { CalendarIcon } from '../components/icons'
 import { currency } from '../lib/currency'
 import { toLocalDateString, presetDateRange, type DateRangePreset, DAY_MS } from '../lib/date'
 import styles from './ExpensesPage.module.css'
+import { FIELD_LIMITS } from '../lib/fieldLimits'
 
 interface Expense {
   id: string
@@ -476,6 +477,7 @@ export default function ExpensesPage() {
                 Açıklama
               </label>
               <input
+                maxLength={FIELD_LIMITS.businessExpensesDescription}
                 id="expenseDesc"
                 className={styles.fInput}
                 type="text"

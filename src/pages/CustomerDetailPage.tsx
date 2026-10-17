@@ -21,6 +21,7 @@ import { toLocalDateString, DAY_MS } from '../lib/date'
 import styles from './CustomerDetailPage.module.css'
 import { PAYMENT_METHOD_OPTIONS } from '../lib/paymentMethods'
 import { allocatePayment, type OpenDebt } from '../lib/paymentAllocation'
+import { FIELD_LIMITS } from '../lib/fieldLimits'
 
 interface Customer {
   id: string
@@ -875,6 +876,7 @@ export default function CustomerDetailPage() {
               <div className="field">
                 <label htmlFor="payNote">Not (opsiyonel)</label>
                 <input
+                  maxLength={FIELD_LIMITS.paymentsNote}
                   id="payNote"
                   value={payNote}
                   onChange={(e) => setPayNote(e.target.value)}
@@ -930,6 +932,7 @@ export default function CustomerDetailPage() {
               <div className="field">
                 <label htmlFor="editNote">Not (opsiyonel)</label>
                 <input
+                  maxLength={FIELD_LIMITS.paymentsNote}
                   id="editNote"
                   value={editNote}
                   onChange={(e) => setEditNote(e.target.value)}
@@ -958,6 +961,7 @@ export default function CustomerDetailPage() {
               <div className="field">
                 <label htmlFor="editCustomerName">Ad Soyad</label>
                 <input
+                  maxLength={FIELD_LIMITS.customersFullName}
                   id="editCustomerName"
                   value={editName}
                   onChange={(e) => setEditName(e.target.value)}
@@ -968,6 +972,7 @@ export default function CustomerDetailPage() {
               <div className="field">
                 <label htmlFor="editCustomerPhone">Telefon</label>
                 <input
+                  maxLength={FIELD_LIMITS.customersContactPhone}
                   id="editCustomerPhone"
                   type="tel"
                   inputMode="numeric"
@@ -986,6 +991,7 @@ export default function CustomerDetailPage() {
               <div className="field">
                 <label htmlFor="editCustomerEmail">E-posta</label>
                 <input
+                  maxLength={FIELD_LIMITS.customersEmail}
                   id="editCustomerEmail"
                   type="email"
                   value={editEmail}
@@ -996,6 +1002,7 @@ export default function CustomerDetailPage() {
               <div className="field">
                 <label htmlFor="editCustomerNotes">Müşteri notu</label>
                 <textarea
+                  maxLength={FIELD_LIMITS.customersNotes}
                   id="editCustomerNotes"
                   rows={3}
                   value={editNotes}

@@ -4,6 +4,7 @@ import { SearchIcon, PlusIcon, XCircleIcon, TrashIcon, PencilIcon } from './icon
 import Avatar from './Avatar'
 import type { Customer, UiGroup } from '../pages/BulkMessagePage'
 import styles from './GroupMembersModal.module.css'
+import { FIELD_LIMITS } from '../lib/fieldLimits'
 
 export default function GroupMembersModal({
   group,
@@ -100,11 +101,21 @@ export default function GroupMembersModal({
           <div className={styles.editNameBlock}>
             <div className="field">
               <label htmlFor="editGroupName">Grup Adı</label>
-              <input id="editGroupName" value={name} onChange={(e) => setName(e.target.value)} />
+              <input
+                maxLength={FIELD_LIMITS.customerGroupsName}
+                id="editGroupName"
+                value={name}
+                onChange={(e) => setName(e.target.value)}
+              />
             </div>
             <div className="field">
               <label htmlFor="editGroupDesc">Açıklama</label>
-              <input id="editGroupDesc" value={description} onChange={(e) => setDescription(e.target.value)} />
+              <input
+                maxLength={FIELD_LIMITS.customerGroupsDescription}
+                id="editGroupDesc"
+                value={description}
+                onChange={(e) => setDescription(e.target.value)}
+              />
             </div>
             <div className={styles.editNameActions}>
               <button type="button" className="btn-secondary" onClick={() => setEditingName(false)}>
@@ -153,6 +164,7 @@ export default function GroupMembersModal({
                 <div className={styles.searchBox}>
                   <SearchIcon width={15} height={15} className={styles.searchIcon} />
                   <input
+                    maxLength={FIELD_LIMITS.search}
                     className={styles.searchInput}
                     placeholder="Eklenecek müşteriyi ara…"
                     value={addSearch}

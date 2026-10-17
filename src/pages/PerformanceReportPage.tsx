@@ -12,6 +12,7 @@ import { toLocalDateString, presetDateRange, timeToMinutes, WEEK_ORDER, DAY_SHOR
 import styles from './PerformanceReportPage.module.css'
 import { firstName } from '../lib/formatName'
 import { AVATAR_TONES } from '../lib/avatarColor'
+import { FIELD_LIMITS } from '../lib/fieldLimits'
 
 interface Profile {
   id: string
@@ -725,6 +726,7 @@ export default function PerformanceReportPage() {
             <div className={styles.searchBox}>
               <SearchIcon width={16} height={16} className={styles.searchIcon} />
               <input
+                maxLength={FIELD_LIMITS.search}
                 className={styles.searchInput}
                 placeholder="Çalışan ara"
                 value={search}

@@ -4,6 +4,7 @@ import { supabase } from '../lib/supabase'
 import PageHeader from '../components/PageHeader'
 import { currencyWhole as currency } from '../lib/currency'
 import styles from './ServiceDescriptionPage.module.css'
+import { FIELD_LIMITS } from '../lib/fieldLimits'
 
 interface Service {
   id: string
@@ -95,6 +96,7 @@ export default function ServiceDescriptionPage() {
           Açıklama
         </label>
         <textarea
+          maxLength={FIELD_LIMITS.servicesDescription}
           id="serviceDesc"
           ref={textareaRef}
           className={styles.textarea}

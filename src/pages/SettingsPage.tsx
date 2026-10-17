@@ -9,6 +9,7 @@ import { bookingUrl } from '../lib/bookingUrl'
 import { exportBusinessData } from '../lib/dataExport'
 import styles from './SettingsPage.module.css'
 import { DAY_MS } from '../lib/date'
+import { FIELD_LIMITS } from '../lib/fieldLimits'
 
 const REMINDER_OPTIONS = [
   { value: '1', label: '1 saat önce' },
@@ -382,6 +383,7 @@ export default function SettingsPage() {
           <div className={styles.field}>
             <label htmlFor="settingsPhone">Telefon numarası</label>
             <input
+              maxLength={FIELD_LIMITS.profilesWhatsappPhone}
               id="settingsPhone"
               type="tel"
               inputMode="numeric"
@@ -409,7 +411,13 @@ export default function SettingsPage() {
         <div className={styles.formCard}>
           <div className={styles.field}>
             <label htmlFor="salonName">Salon adı</label>
-            <input id="salonName" value={salonName} onChange={(e) => setSalonName(e.target.value)} required />
+            <input
+              maxLength={FIELD_LIMITS.businessesName}
+              id="salonName"
+              value={salonName}
+              onChange={(e) => setSalonName(e.target.value)}
+              required
+            />
           </div>
         </div>
         {msgLine}
@@ -512,7 +520,12 @@ export default function SettingsPage() {
               {isBusiness && (
                 <div className={styles.field}>
                   <label htmlFor="deleteBizName">Onay için işletme adını yaz: {deleteScope.business_name}</label>
-                  <input id="deleteBizName" value={deleteBizName} onChange={(e) => setDeleteBizName(e.target.value)} />
+                  <input
+                    maxLength={FIELD_LIMITS.businessesName}
+                    id="deleteBizName"
+                    value={deleteBizName}
+                    onChange={(e) => setDeleteBizName(e.target.value)}
+                  />
                 </div>
               )}
             </div>

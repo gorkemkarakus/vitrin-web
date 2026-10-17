@@ -2,6 +2,7 @@ import { useState, type FormEvent } from 'react'
 import Avatar from '../../components/Avatar'
 import TurnstileWidget from './TurnstileWidget'
 import styles from '../PublicBookingPage.module.css'
+import { FIELD_LIMITS } from '../../lib/fieldLimits'
 
 function isValidTurkishPhone(raw: string): boolean {
   const digits = raw.replace(/\D/g, '')
@@ -60,6 +61,7 @@ export default function CustomerForm({
         <div className="field">
           <label htmlFor="pbName">Ad Soyad</label>
           <input
+            maxLength={FIELD_LIMITS.customersFullName}
             id="pbName"
             value={name}
             onChange={(e) => setName(e.target.value)}
@@ -70,6 +72,7 @@ export default function CustomerForm({
         <div className="field">
           <label htmlFor="pbPhone">Telefon Numarası</label>
           <input
+            maxLength={FIELD_LIMITS.customersContactPhone}
             id="pbPhone"
             value={phone}
             onChange={(e) => setPhone(e.target.value)}

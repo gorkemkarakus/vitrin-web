@@ -21,6 +21,7 @@ import { toLocalDateString, todayLocalDateString, timeToMinutes, WEEK_ORDER, DAY
 import { currency } from '../lib/currency'
 import styles from './EmployeeDetailPage.module.css'
 import { BREAK_LABEL } from '../lib/scheduleLabels'
+import { FIELD_LIMITS } from '../lib/fieldLimits'
 
 const GENDER_OPTIONS = [
   { value: '', label: 'Belirtilmesin' },
@@ -971,6 +972,7 @@ export default function EmployeeDetailPage({ selfEarnings = false }: { selfEarni
           <div className="field">
             <label htmlFor="empName">Ad soyad</label>
             <input
+              maxLength={FIELD_LIMITS.profilesFullName}
               id="empName"
               value={nameDraft}
               onChange={(e) => setNameDraft(e.target.value)}
@@ -980,6 +982,7 @@ export default function EmployeeDetailPage({ selfEarnings = false }: { selfEarni
           <div className="field">
             <label htmlFor="empPhone">Telefon</label>
             <input
+              maxLength={FIELD_LIMITS.profilesWhatsappPhone}
               id="empPhone"
               type="tel"
               inputMode="numeric"
@@ -1048,6 +1051,7 @@ export default function EmployeeDetailPage({ selfEarnings = false }: { selfEarni
           <div className="field">
             <label htmlFor="empEmail">Yeni e-posta</label>
             <input
+              maxLength={FIELD_LIMITS.email}
               id="empEmail"
               type="email"
               value={accountEmail}
@@ -1058,6 +1062,7 @@ export default function EmployeeDetailPage({ selfEarnings = false }: { selfEarni
           <div className="field">
             <label htmlFor="empPassword">Yeni şifre</label>
             <input
+              maxLength={FIELD_LIMITS.password}
               id="empPassword"
               type="text"
               value={accountPassword}

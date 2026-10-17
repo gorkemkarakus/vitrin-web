@@ -1,6 +1,7 @@
 import { useState } from 'react'
 import { passwordChecks } from '../lib/passwordRules'
 import styles from '../pages/LoginPage.module.css'
+import { FIELD_LIMITS } from '../lib/fieldLimits'
 
 // Yeni sifre + tekrar alanlari ve guc gostergesi (ilk giriste sifre
 // belirleme ve "sifremi unuttum" ekranlari).
@@ -30,6 +31,7 @@ export default function NewPasswordFields({
         <label htmlFor={passwordId}>Yeni şifre</label>
         <div className={`${styles.passwordBox} ${styles.passwordBoxWhite}`}>
           <input
+            maxLength={FIELD_LIMITS.password}
             id={passwordId}
             type={show ? 'text' : 'password'}
             autoComplete="new-password"
@@ -68,6 +70,7 @@ export default function NewPasswordFields({
       <div className={styles.field}>
         <label htmlFor={confirmId}>Yeni şifre (tekrar)</label>
         <input
+          maxLength={FIELD_LIMITS.password}
           id={confirmId}
           className={styles.inputWhite}
           type={show ? 'text' : 'password'}

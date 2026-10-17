@@ -5,6 +5,7 @@ import { SearchIcon, CheckCircleIcon } from './icons'
 import Avatar from './Avatar'
 import type { Customer } from '../pages/BulkMessagePage'
 import styles from './CreateGroupModal.module.css'
+import { FIELD_LIMITS } from '../lib/fieldLimits'
 
 export default function CreateGroupModal({
   customers,
@@ -79,6 +80,7 @@ export default function CreateGroupModal({
         <div className="field">
           <label htmlFor="groupName">Grup Adı</label>
           <input
+            maxLength={FIELD_LIMITS.customerGroupsName}
             id="groupName"
             value={name}
             onChange={(e) => setName(e.target.value)}
@@ -88,6 +90,7 @@ export default function CreateGroupModal({
         <div className="field">
           <label htmlFor="groupDesc">Açıklama (opsiyonel)</label>
           <input
+            maxLength={FIELD_LIMITS.customerGroupsDescription}
             id="groupDesc"
             value={description}
             onChange={(e) => setDescription(e.target.value)}
@@ -101,6 +104,7 @@ export default function CreateGroupModal({
         <div className={styles.searchBox}>
           <SearchIcon width={15} height={15} className={styles.searchIcon} />
           <input
+            maxLength={FIELD_LIMITS.search}
             className={styles.searchInput}
             placeholder="Müşteri ara…"
             value={search}
