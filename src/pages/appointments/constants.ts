@@ -27,3 +27,6 @@ export const STATUS_DROPDOWN_OPTIONS: StatusDropdownOption[] = [
   { value: 'iptal', label: 'İptal', color: 'var(--danger-text)', bg: 'var(--danger-bg)' },
   { value: 'gelmedi', label: 'Gelmedi', color: 'var(--text-dim)', bg: 'var(--panel-2)' },
 ]
+
+// Kapanis ekranindaki odeme yontemi cipleri ve alt dugme metni icin kisa adlar.
+export const METHOD_SHORT: Record<string, string> = { nakit: 'Nakit', kart: 'Kart', havale: 'Havale', diger: 'Diğer' }

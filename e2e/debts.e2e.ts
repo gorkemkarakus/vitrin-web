@@ -30,4 +30,27 @@ test.describe('Borc / odeme', () => {
     await page.locator('form button[type=submit]').last().tap()
     await expect(remaining()).toContainText('Borç yok')
   })
+
+  test('tamamlarken tamami nakit alininca borc olusmaz', async ({ page }) => {
+    await login(page)
+    const name = uniqueName('Peşin Müşteri')
+    const customerId = await createCustomer(page, name)
+    const { date } = await bookAppointment(page, name)
+
+    await openCard(page, date, name)
+    await page.getByRole('button', { name: 'Tamamlamak için kaydır' }).press('Enter')
+    await page.getByRole('button', { name: /Hepsini al/ }).tap()
+    await page.locator('button[class*=methodChip]', { hasText: 'Nakit' }).tap()
+    const submit = page.locator('button[class*=fsSubmit]')
+    await expect(submit).toContainText(/nakit alındı · tamamla/)
+    await submit.tap()
+    await expect(submit).toBeHidden({ timeout: 20_000 })
+
+    await page.goto(`/musteriler/${customerId}`)
+    await expect(page.locator('[class*=balanceCol]').nth(1)).toContainText('Borç yok')
+    // Tahsilat kaydedildi ve Odemeler sekmesinde nakit olarak gorunur.
+    await expect(page.locator('[class*=balanceCol]').first()).not.toContainText('₺0,00')
+    await page.getByRole('button', { name: 'Ödemeler', exact: true }).tap()
+    await expect(page.getByText(/Nakit/i).first()).toBeVisible()
+  })
 })
