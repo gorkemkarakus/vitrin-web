@@ -12,6 +12,11 @@ export interface PdfTableOptions {
   head: string[]
   body: RowInput[]
   rightAlignFrom?: number
+  // Cok sutunlu ozet tablolar icin kucuk yazi/dar dolgu.
+  compact?: boolean
+  // Sutun bazli en kucuk genislik (mm): isimlerin kelime ortasindan
+  // bolunmesini engeller (ör. "Salon Yö/neticisi").
+  minWidths?: Record<number, number>
 }
 
 const { marginX, marginTop, marginBottom, pageWidth, pageHeight } = pdfLayout
@@ -71,7 +76,9 @@ export class PdfReport {
   }
 
   addSectionTitle(text: string) {
-    this.ensureSpace(13)
+    // Onceki icerige yapismasin; sayfa basindaysa ek bosluk gerekmez.
+    if (this.cursorY > marginTop + 1) this.cursorY += 4
+    this.ensureSpace(17)
     const doc = this.doc
     doc.setFont('Inter', 'semibold')
     doc.setFontSize(12.5)
@@ -85,13 +92,16 @@ export class PdfReport {
   }
 
   addSubText(text: string) {
-    this.ensureSpace(6)
     const doc = this.doc
     doc.setFont('Inter', 'normal')
     doc.setFontSize(8.5)
     doc.setTextColor(...pdfColors.textDim)
-    doc.text(text, marginX, this.cursorY)
-    this.cursorY += 6
+    // Uzun satirlar sag kenardan tasmasin: sayfa genisligine gore kaydir.
+    const lines = doc.splitTextToSize(text, this.contentWidth) as string[]
+    const lineH = 4.2
+    this.ensureSpace(lines.length * lineH + 2)
+    doc.text(lines, marginX, this.cursorY, { lineHeightFactor: 1.4 })
+    this.cursorY += (lines.length - 1) * lineH + 6
   }
 
   addKpiGrid(items: PdfKpiItem[]) {
@@ -121,11 +131,15 @@ export class PdfReport {
     this.cursorY += rows * (cardH + gap) + 3
   }
 
-  addTable({ head, body, rightAlignFrom }: PdfTableOptions) {
-    const columnStyles: Record<number, { halign: 'right' }> = {}
+  addTable({ head, body, rightAlignFrom, compact, minWidths }: PdfTableOptions) {
+    const columnStyles: Record<number, { halign?: 'right'; minCellWidth?: number }> = {}
     if (rightAlignFrom !== undefined) {
       for (let i = rightAlignFrom; i < head.length; i++) columnStyles[i] = { halign: 'right' }
     }
+    for (const [col, w] of Object.entries(minWidths ?? {})) {
+      columnStyles[Number(col)] = { ...columnStyles[Number(col)], minCellWidth: w }
+    }
+    const pad = compact ? 1.8 : 3
     autoTable(this.doc, {
       startY: this.cursorY,
       margin: { left: marginX, right: marginX, bottom: marginBottom },
@@ -133,18 +147,18 @@ export class PdfReport {
       body,
       styles: {
         font: 'Inter',
-        fontSize: 8.7,
+        fontSize: compact ? 7.8 : 8.7,
         textColor: pdfColors.text,
         lineColor: pdfColors.line,
         lineWidth: 0.15,
-        cellPadding: { top: 2.2, bottom: 2.2, left: 3, right: 3 },
+        cellPadding: { top: 2.2, bottom: 2.2, left: pad, right: pad },
       },
       headStyles: {
         font: 'Inter',
         fontStyle: 'bold',
         fillColor: pdfColors.signal,
         textColor: pdfColors.white,
-        fontSize: 8.3,
+        fontSize: compact ? 7.4 : 8.3,
       },
       alternateRowStyles: { fillColor: pdfColors.panel2 },
       columnStyles,

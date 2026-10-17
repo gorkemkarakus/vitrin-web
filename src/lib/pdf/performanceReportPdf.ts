@@ -71,18 +71,8 @@ export async function generatePerformanceReportPdf(params: {
   onProgress(16, 'Çalışan özet tablosu hazırlanıyor…')
   report.addSectionTitle('Çalışan Özeti')
   report.addTable({
-    head: [
-      'Çalışan',
-      'Randevu',
-      'Tamamlanan',
-      'Tahsilat',
-      'Prim Oranı',
-      'Prim Hakediş',
-      'Tamamlanma',
-      'Doluluk',
-      'İzin Günü',
-      'Müşteri',
-    ],
+    // 10 sutun A4 dikeye sigsin diye kisa basliklar (aciklama tablo altinda).
+    head: ['Çalışan', 'Randevu', 'Biten', 'Tahsilat', 'Prim %', 'Prim', 'Tamaml.', 'Doluluk', 'İzin', 'Müşteri'],
     body: employeeStats.map((e) => [
       e.profile.full_name ?? '—',
       String(e.totalRandevu),
@@ -96,7 +86,12 @@ export async function generatePerformanceReportPdf(params: {
       String(e.uniqueCustomers),
     ]),
     rightAlignFrom: 1,
+    compact: true,
+    minWidths: { 0: 30 },
   })
+  report.addSubText(
+    'Biten: tamamlanan randevu · Prim: prim hakedişi · Tamaml.: tamamlanma oranı · Doluluk: çalışma saatlerinin dolu oranı · İzin: izin günü · Müşteri: farklı müşteri sayısı',
+  )
   await yieldToUI()
 
   // Her calisan icin ayrintili bolum — donem boyunca yaptigi HER randevunun
@@ -115,7 +110,8 @@ export async function generatePerformanceReportPdf(params: {
             .map(([src, count]) => `${SOURCE_LABEL[src] ?? src}: ${count}`)
             .join('  ·  ')
         : '—'
-    report.addSubText(`En çok yapılan hizmet: ${e.topServiceName ?? '—'}     |     Kaynak dağılımı: ${sourceText}`)
+    report.addSubText(`En çok yapılan hizmet: ${e.topServiceName ?? '—'}`)
+    report.addSubText(`Kaynak dağılımı: ${sourceText}`)
 
     const empAppts = currentAppts
       .filter((a) => a.employee_id === e.profile.id)
