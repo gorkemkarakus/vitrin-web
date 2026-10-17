@@ -34,6 +34,8 @@ Ayrıntılı bulgular: `RELEASE_AUDIT.md` · Veri envanteri: `DATA_INVENTORY.md`
 | Refaktör | AppointmentsPage 3113 → ~2590 satır (düzenleme, detay, tipler ayrı) | E2E |
 | Performans | Açılış paketi 1,8 MB → 263 KB | build çıktısı |
 | PDF | Performans raporu tablo/satır taşmaları | görsel kontrol |
+| Web panel | Kampanya izni anahtarı, toplu mesajda yalnız izinliler, yazı tipleri pakette | tarayıcı |
+| Excel | Müşteri sayfasında kampanya izni, tarih, kaynak, ret sütunları | E2E |
 | Diğer | Yazı tipleri pakette, splash rengi, dokunma alanları, CHANGELOG, mağaza metinleri, yedek betiği, `npm run check:release` | — |
 
 ## Karar bekleyenler
@@ -126,7 +128,21 @@ Her birinde şu an uygulanan varsayılan yazılı; değiştirmek istersen söyle
 3. Bu bilgileri Play "Uygulama erişimi" ve App Store "Sign-In Information" alanlarına yaz; inceleme notunu STORE_LISTING.md'den kopyala.
 4. İnceleme süresince bu hesabı silme / şifresini değiştirme.
 
-### 7. Dalı birleştirmeden önce
+### 7. Silme taleplerini işleme (yayından sonra, düzenli)
+1. Supabase → SQL Editor:
+   ```sql
+   select id, kind, contact, full_name, business_name, note, created_at
+   from public.account_deletion_requests where status = 'new' order by created_at;
+   ```
+2. Talep sahibine yazdığı adresten ulaşıp kimliğini doğrula (hesap e-postasından onay, salon müşterisiyse salonla birlikte).
+3. **Hesap sahibi** (`kind = 'account'`): kişiye uygulama içinden silmesini söyle; yapamıyorsa bana ilet, sunucudan silelim. **Salon müşterisi** (`kind = 'customer'`): ilgili salonun yöneticisi müşteri kartında "Kişisel verilerini sil (KVKK)" ile anonimleştirir.
+4. İşaretle:
+   ```sql
+   update public.account_deletion_requests set status = 'done', handled_at = now() where id = '<talep id>';
+   ```
+   (Reddedilen için `status = 'rejected'`.) İşlenen talepler 1 yıl sonra otomatik silinir.
+
+### 8. Dalı birleştirmeden önce
 1. Telefonda aşağıdaki senaryoları dene.
 2. Bana "birleştir ve push et" de: iki repo için `release/store-prep` → `main` (main'deki gönderilmemiş `75438cd` de gider).
 
@@ -152,7 +168,8 @@ Her birinde şu an uygulanan varsayılan yazılı; değiştirmek istersen söyle
 
 - **Canlı veritabanı ortak**: testler ve demo canlı projede (K7). E2E temizliği yalnızca `E2E`/`e2e-` önekli verileri siler.
 - **iOS hiç derlenmedi**: Windows'ta Xcode yok; AppDelegate/pbxproj değişiklikleri Mac'te ilk derlemede doğrulanmalı.
-- **Web panelde (admin-panel) kampanya izni anahtarı yok**: sunucu izinsiz müşteriye kampanya göndermiyor ama web'den izin verilemiyor; web panelde Google Fonts hâlâ çalışma anında yükleniyor.
+- **Silme talepleri bildirim göndermiyor**: web formundan gelen talepler yalnızca `account_deletion_requests` tablosuna düşüyor; aşağıdaki "Silme taleplerini işleme" adımıyla haftada en az bir kez kontrol edilmeli (KVKK süresi 30 gün).
+- **Web panel (admin-panel)**: kampanya izni ve gömülü yazı tipleri eklendi; ancak yasal sayfa bağlantıları, alan uzunluk sınırları (`maxLength`) ve Türkçe hata çevirici yalnızca mobilde (veritabanı kısıtları her ikisini de korur).
 - **Müşteri notu serbest metin**: salonlar sağlık bilgisi (alerji) yazıyor; özel nitelikli veri — avukatla değerlendirilmeli.
 - **Saat dilimi**: cihaz Türkiye saatinde değilse randevu saatleri kayar (uyarı var, tam düzeltme yok — K9). Uyarı şeridi sayfa başlığının üstüne biniyor; kapatılabilir.
 - **Kontrast**: soluk ipucu metinleri (`--text-faint`) açık zeminde WCAG AA altında; yalnızca ikincil metinlerde.
