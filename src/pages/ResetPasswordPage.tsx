@@ -1,4 +1,5 @@
 import { useEffect, useState } from 'react'
+import { friendlyDbError } from '../lib/dbErrors'
 import { useNavigate } from 'react-router-dom'
 import logoMark from '../assets/brand/logo-mark.png'
 import { supabase } from '../lib/supabase'
@@ -47,7 +48,7 @@ export default function ResetPasswordPage() {
     const { error: err } = await supabase.auth.updateUser({ password })
     setLoading(false)
     if (err) {
-      setError(err.message)
+      setError(friendlyDbError(err, 'Şifre güncellenemedi, tekrar deneyin.'))
       return
     }
     // Kurtarma oturumu zaten acik; dogrudan uygulamaya gec.

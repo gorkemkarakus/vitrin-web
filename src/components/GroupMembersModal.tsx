@@ -1,4 +1,5 @@
 import { useState } from 'react'
+import { friendlyDbError } from '../lib/dbErrors'
 import { matchesSearch } from '../lib/search'
 import { supabase } from '../lib/supabase'
 import { SearchIcon, PlusIcon, XCircleIcon, TrashIcon, PencilIcon } from './icons'
@@ -45,7 +46,7 @@ export default function GroupMembersModal({
       customer_id: customerId,
     })
     if (err) {
-      setError(err.message)
+      setError(friendlyDbError(err, 'İşlem yapılamadı, tekrar deneyin.'))
       return
     }
     setMemberIds((prev) => [...prev, customerId])
@@ -61,7 +62,7 @@ export default function GroupMembersModal({
       .eq('group_id', group.customGroupId)
       .eq('customer_id', customerId)
     if (err) {
-      setError(err.message)
+      setError(friendlyDbError(err, 'İşlem yapılamadı, tekrar deneyin.'))
       return
     }
     setMemberIds((prev) => prev.filter((id) => id !== customerId))

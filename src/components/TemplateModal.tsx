@@ -1,4 +1,5 @@
 import { useState } from 'react'
+import { friendlyDbError } from '../lib/dbErrors'
 import { useAuth } from '../contexts/AuthContext'
 import { supabase } from '../lib/supabase'
 import AiMessageGenerator from './AiMessageGenerator'
@@ -37,7 +38,7 @@ export default function TemplateModal({
         .update({ title: title.trim(), message: message.trim() })
         .eq('id', template.id)
       if (err) {
-        setError(err.message)
+        setError(friendlyDbError(err, 'Şablon kaydedilemedi, tekrar deneyin.'))
         setSaving(false)
         return
       }
@@ -47,7 +48,7 @@ export default function TemplateModal({
         .from('campaign_message_templates')
         .insert({ business_id: profile.business_id, title: title.trim(), message: message.trim() })
       if (err) {
-        setError(err.message)
+        setError(friendlyDbError(err, 'Şablon kaydedilemedi, tekrar deneyin.'))
         setSaving(false)
         return
       }

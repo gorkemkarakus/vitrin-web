@@ -1,4 +1,5 @@
 import { phoneLengthError } from '../lib/phone'
+import { friendlyDbError } from '../lib/dbErrors'
 import { useState, type FormEvent } from 'react'
 import { supabase } from '../lib/supabase'
 import { useAuth } from '../contexts/AuthContext'
@@ -43,7 +44,7 @@ export default function QuickAddCustomerModal({ onClose, onCreated }: QuickAddCu
       setError(
         isDupPhone
           ? 'Bu telefon numarası zaten başka bir müşteriye kayıtlı.'
-          : 'Müşteri oluşturulamadı: ' + (err?.message ?? ''),
+          : friendlyDbError(err, 'Müşteri oluşturulamadı.'),
       )
       return
     }

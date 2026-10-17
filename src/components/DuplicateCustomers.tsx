@@ -1,4 +1,5 @@
 import { useMemo, useState } from 'react'
+import { friendlyDbError } from '../lib/dbErrors'
 import { supabase } from '../lib/supabase'
 import PageHeader from './PageHeader'
 import { dismissDuplicateGroup, type DupGroup } from '../lib/duplicateCustomers'
@@ -43,7 +44,11 @@ export default function DuplicateCustomers({ groups, apptCount, onClose, onChang
       const { error: err } = await supabase.rpc('merge_customers', { p_keep: keepId, p_drop: d.id })
       if (err) {
         const missing = /could not find|does not exist/i.test(err.message)
-        setError(missing ? 'Bu özellik için veritabanı güncellemesi bekleniyor.' : `Birleştirilemedi: ${err.message}`)
+        setError(
+          missing
+            ? 'Bu özellik için veritabanı güncellemesi bekleniyor.'
+            : friendlyDbError(err, 'Birleştirilemedi, tekrar deneyin.'),
+        )
         setBusyKey(null)
         onChanged()
         return

@@ -1,4 +1,5 @@
 import { useEffect, useState } from 'react'
+import { friendlyDbError } from '../lib/dbErrors'
 import { useNavigate, useSearchParams } from 'react-router-dom'
 import { supabase } from '../lib/supabase'
 import { useAuth } from '../contexts/AuthContext'
@@ -112,7 +113,7 @@ export default function CashClosurePage() {
       .single()
     setSaving(false)
     if (err) {
-      setError('Kaydedilemedi: ' + err.message)
+      setError(friendlyDbError(err, 'Kaydedilemedi, tekrar deneyin.'))
       return
     }
     setClosure(data)

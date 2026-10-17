@@ -1,4 +1,5 @@
 import { useEffect, useMemo, useRef, useState, type FormEvent } from 'react'
+import { friendlyDbError } from '../lib/dbErrors'
 import { matchesSearch } from '../lib/search'
 import { useNavigate, useOutletContext, useSearchParams } from 'react-router-dom'
 import { supabase } from '../lib/supabase'
@@ -566,7 +567,9 @@ export default function AppointmentsPage() {
         if (custErr) {
           // Randevu zaten guncellendi — telefon hatasi ayri banner'da gosterilip
           // modal kapatilir, "hicbir sey olmamis gibi" hissettirmez.
-          setError('Randevu güncellendi ama telefon numarası kaydedilemedi: ' + custErr.message)
+          setError(
+            'Randevu güncellendi ama telefon numarası kaydedilemedi. ' + friendlyDbError(custErr, 'Tekrar deneyin.'),
+          )
           setEditingAppt(null)
           await loadData(true)
           return
@@ -1167,7 +1170,7 @@ export default function AppointmentsPage() {
           .select('id')
           .single()
         if (pkgErr || !newPackage) {
-          setError('Randevu tamamlandı ama paket oluşturulamadı: ' + (pkgErr?.message ?? ''))
+          setError('Randevu tamamlandı ama paket oluşturulamadı. ' + friendlyDbError(pkgErr, 'Tekrar deneyin.'))
           setCompletingAppt(null)
           await loadData(true)
           return
@@ -1193,7 +1196,7 @@ export default function AppointmentsPage() {
           // Randevu zaten tamamlandi olarak isaretlendi (geri alinamaz) —
           // modal kapatilip hata ana sayfadaki banner'da gosterilir, boylece
           // "hicbir sey olmamis gibi" hissettirmez.
-          setError('Randevu tamamlandı ama ödeme kaydedilemedi: ' + payErr.message)
+          setError('Randevu tamamlandı ama ödeme kaydedilemedi. ' + friendlyDbError(payErr, 'Tekrar deneyin.'))
           setCompletingAppt(null)
           await loadData(true)
           return
@@ -1216,7 +1219,9 @@ export default function AppointmentsPage() {
           })),
         )
         if (oldErr) {
-          setError('Randevu kapandı ama önceki borcun ödemesi kaydedilemedi: ' + oldErr.message)
+          setError(
+            'Randevu kapandı ama önceki borcun ödemesi kaydedilemedi. ' + friendlyDbError(oldErr, 'Tekrar deneyin.'),
+          )
           setCompletingAppt(null)
           await loadData(true)
           return

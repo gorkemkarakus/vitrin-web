@@ -1,4 +1,5 @@
 import { useEffect, useState, type FormEvent } from 'react'
+import { friendlyDbError } from '../lib/dbErrors'
 import { useSearchParams } from 'react-router-dom'
 import { supabase } from '../lib/supabase'
 import { useAuth } from '../contexts/AuthContext'
@@ -167,7 +168,7 @@ export default function ExpensesPage() {
       ;({ error } = await supabase.from('business_expenses').insert(base))
     }
     if (error) {
-      setAddError('Gider kaydedilemedi: ' + error.message)
+      setAddError(friendlyDbError(error, 'Gider kaydedilemedi, tekrar deneyin.'))
       setAddingExpense(false)
       return
     }

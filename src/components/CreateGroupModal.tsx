@@ -1,4 +1,5 @@
 import { useState } from 'react'
+import { friendlyDbError } from '../lib/dbErrors'
 import { matchesSearch } from '../lib/search'
 import { useAuth } from '../contexts/AuthContext'
 import { supabase } from '../lib/supabase'
@@ -52,7 +53,7 @@ export default function CreateGroupModal({
       .select()
       .single()
     if (groupErr || !group) {
-      setError(groupErr?.message ?? 'Grup oluşturulamadı')
+      setError(friendlyDbError(groupErr, 'Grup oluşturulamadı.'))
       setSaving(false)
       return
     }
@@ -64,7 +65,7 @@ export default function CreateGroupModal({
       }))
       const { error: memberErr } = await supabase.from('customer_group_members').insert(rows)
       if (memberErr) {
-        setError(memberErr.message)
+        setError(friendlyDbError(memberErr, 'Grup üyeleri eklenemedi.'))
         setSaving(false)
         return
       }

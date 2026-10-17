@@ -1,4 +1,5 @@
 import { useEffect, useMemo, useState, type FormEvent } from 'react'
+import { friendlyDbError } from '../lib/dbErrors'
 import { useNavigate, useParams } from 'react-router-dom'
 import { supabase } from '../lib/supabase'
 import { NETWORK_ERROR } from '../lib/messages'
@@ -541,7 +542,11 @@ export default function CustomerDetailPage() {
     setEditCustomerSubmitting(false)
     if (rpcErr) {
       const missing = /could not find|does not exist/i.test(rpcErr.message)
-      setError(missing ? 'Bu özellik için veritabanı güncellemesi bekleniyor.' : 'Silinemedi: ' + rpcErr.message)
+      setError(
+        missing
+          ? 'Bu özellik için veritabanı güncellemesi bekleniyor.'
+          : friendlyDbError(rpcErr, 'Silinemedi, tekrar deneyin.'),
+      )
       return
     }
     setEditCustomerOpen(false)
