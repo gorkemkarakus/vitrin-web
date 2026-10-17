@@ -32,3 +32,6 @@ supabase/.temp/
 # Uctan uca test ciktilari
 e2e/.report
 e2e/.results
+
+# Veritabani yedekleri (kisisel veri icerir)
+backups/
