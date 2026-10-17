@@ -31,6 +31,7 @@ export default function GroupMembersModal({
   const [name, setName] = useState(group.name)
   const [description, setDescription] = useState(group.description)
   const [error, setError] = useState<string | null>(null)
+  const [busy, setBusy] = useState(false)
 
   const members = memberIds.map((id) => customerById.get(id)).filter((c): c is Customer => !!c)
   const memberIdSet = new Set(memberIds)
@@ -68,13 +69,15 @@ export default function GroupMembersModal({
   }
 
   async function handleRename() {
-    if (!group.customGroupId || !name.trim()) return
+    if (!group.customGroupId || !name.trim() || busy) return
+    setBusy(true)
     const { error: err } = await supabase
       .from('customer_groups')
       .update({ name: name.trim(), description: description.trim() || null })
       .eq('id', group.customGroupId)
+    setBusy(false)
     if (err) {
-      setError(err.message)
+      setError('Grup kaydedilemedi, tekrar deneyin.')
       return
     }
     setEditingName(false)
@@ -84,10 +87,12 @@ export default function GroupMembersModal({
   async function handleDelete() {
     if (!group.customGroupId) return
     const ok = window.confirm(`"${group.name}" grubunu silmek istediğinize emin misiniz?`)
-    if (!ok) return
+    if (!ok || busy) return
+    setBusy(true)
     const { error: err } = await supabase.from('customer_groups').delete().eq('id', group.customGroupId)
+    setBusy(false)
     if (err) {
-      setError(err.message)
+      setError('Grup silinemedi, tekrar deneyin.')
       return
     }
     onDeleted()
@@ -120,7 +125,7 @@ export default function GroupMembersModal({
               <button type="button" className="btn-secondary" onClick={() => setEditingName(false)}>
                 Vazgeç
               </button>
-              <button type="button" className="btn-primary" onClick={handleRename}>
+              <button type="button" className="btn-primary" onClick={handleRename} disabled={busy}>
                 Kaydet
               </button>
             </div>
@@ -145,6 +150,7 @@ export default function GroupMembersModal({
                   type="button"
                   className={`${styles.iconBtn} ${styles.iconBtnDanger}`}
                   onClick={handleDelete}
+                  disabled={busy}
                   aria-label="Sil"
                 >
                   <TrashIcon width={15} height={15} />

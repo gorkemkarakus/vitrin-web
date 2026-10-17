@@ -19,6 +19,7 @@ export default function TemplateModal({
 }) {
   const { profile } = useAuth()
   const [title, setTitle] = useState(template?.title ?? '')
+  const [deleting, setDeleting] = useState(false)
   const [message, setMessage] = useState(template?.message ?? '')
   const [saving, setSaving] = useState(false)
   const [error, setError] = useState<string | null>(null)
@@ -58,10 +59,12 @@ export default function TemplateModal({
   async function handleDelete() {
     if (!template) return
     const ok = window.confirm(`"${template.title}" şablonunu silmek istediğinize emin misiniz?`)
-    if (!ok) return
+    if (!ok || deleting) return
+    setDeleting(true)
     const { error: err } = await supabase.from('campaign_message_templates').delete().eq('id', template.id)
+    setDeleting(false)
     if (err) {
-      setError(err.message)
+      setError('Şablon silinemedi, tekrar deneyin.')
       return
     }
     onDeleted()
@@ -100,7 +103,12 @@ export default function TemplateModal({
 
         <div className={styles.actions}>
           {template && (
-            <button type="button" className={`btn-secondary ${styles.deleteBtn}`} onClick={handleDelete}>
+            <button
+              type="button"
+              className={`btn-secondary ${styles.deleteBtn}`}
+              onClick={handleDelete}
+              disabled={deleting}
+            >
               Sil
             </button>
           )}
