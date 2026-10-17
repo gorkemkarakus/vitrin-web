@@ -26,79 +26,21 @@ import {
 import type { LayoutOutletContext } from '../layouts/DashboardLayout'
 import PageHeader from '../components/PageHeader'
 import styles from './AppointmentsPage.module.css'
+import SwipeToConfirm from './appointments/SwipeToConfirm'
+import EditAppointmentModal from './appointments/EditAppointmentModal'
+import {
+  SLOT_MINUTES,
+  type Appointment,
+  type Customer,
+  type EmployeeServiceRow,
+  type Profile,
+  type Schedule,
+  type Service,
+  type ServicePackage,
+  type TimeBlock,
+} from './appointments/types'
 import { PAYMENT_METHOD_OPTIONS } from '../lib/paymentMethods'
 import { FIELD_LIMITS } from '../lib/fieldLimits'
-
-interface Customer {
-  id: string
-  full_name: string
-  phone: string | null
-  contact_phone: string | null
-  notes?: string | null
-}
-
-interface Service {
-  id: string
-  name: string
-  duration_minutes: number
-  price: number | null
-  // "Paket olarak satilabilir" sablonu (Hizmetler > hizmet ayarlari).
-  package_sessions?: number | null
-  package_price?: number | null
-}
-
-interface Profile {
-  id: string
-  full_name: string | null
-}
-
-interface EmployeeServiceRow {
-  profile_id: string
-  service_id: string
-}
-
-interface Schedule {
-  profile_id: string
-  day_of_week: number
-  starts_at: string
-  ends_at: string
-}
-
-interface TimeBlock {
-  profile_id: string
-  day_of_week: number | null
-  block_date: string | null
-  end_date: string | null
-  starts_at: string
-  ends_at: string
-}
-
-interface Appointment {
-  id: string
-  customer_id: string | null
-  service_id: string | null
-  employee_id: string | null
-  created_by_user_id: string | null
-  scheduled_at: string
-  duration_minutes: number | null
-  status: 'bekliyor' | 'onaylandi' | 'tamamlandi' | 'iptal' | 'gelmedi'
-  source: string
-  source_note: string | null
-  notes: string | null
-  package_id: string | null
-  price_override: number | null
-  created_at?: string
-  reminder_sent_at?: string | null
-}
-
-interface ServicePackage {
-  id: string
-  customer_id: string
-  service_id: string | null
-  total_sessions: number
-  session_offset: number
-  status: 'aktif' | 'tamamlandi'
-}
 
 // Kapanis ekranindaki odeme yontemi cipleri ve alt dugme metni icin kisa adlar.
 const METHOD_SHORT: Record<string, string> = { nakit: 'Nakit', kart: 'Kart', havale: 'Havale', diger: 'Diğer' }
@@ -125,53 +67,6 @@ function initialsOf(name: string) {
       .slice(0, 2)
       .map((w) => w[0]?.toLocaleUpperCase('tr') ?? '')
       .join('') || '?'
-  )
-}
-
-// Randevu detayinin altindaki "Tamamlamak icin kaydir" seridi. Turuncu
-// tutamac saga surukleniyor; sonuna yaklasinca onConfirm. Klavye ile
-// Enter/Space de calisir.
-function SwipeToConfirm({ label, onConfirm }: { label: string; onConfirm: () => void }) {
-  const trackRef = useRef<HTMLDivElement>(null)
-  const startX = useRef<number | null>(null)
-  const [dx, setDx] = useState(0)
-  const max = () => (trackRef.current ? trackRef.current.clientWidth - 64 : 240)
-  return (
-    <div className={styles.swipeTrack} ref={trackRef}>
-      <button
-        type="button"
-        className={styles.swipeKnob}
-        style={{ transform: `translateX(${dx}px)` }}
-        aria-label={label}
-        onPointerDown={(e) => {
-          startX.current = e.clientX
-          ;(e.target as HTMLElement).setPointerCapture?.(e.pointerId)
-        }}
-        onPointerMove={(e) => {
-          if (startX.current === null) return
-          setDx(Math.max(0, Math.min(max(), e.clientX - startX.current)))
-        }}
-        onPointerUp={() => {
-          const done = dx >= max() * 0.8
-          startX.current = null
-          setDx(0)
-          if (done) onConfirm()
-        }}
-        onPointerCancel={() => {
-          startX.current = null
-          setDx(0)
-        }}
-        onKeyDown={(e) => {
-          if (e.key === 'Enter' || e.key === ' ') {
-            e.preventDefault()
-            onConfirm()
-          }
-        }}
-      >
-        <ChevronRightIcon width={22} height={22} />
-      </button>
-      <span className={styles.swipeLabel}>{label}</span>
-    </div>
   )
 }
 
@@ -206,8 +101,6 @@ const STATUS_DROPDOWN_OPTIONS: StatusDropdownOption[] = [
   { value: 'iptal', label: 'İptal', color: 'var(--danger-text)', bg: 'var(--danger-bg)' },
   { value: 'gelmedi', label: 'Gelmedi', color: 'var(--text-dim)', bg: 'var(--panel-2)' },
 ]
-
-const SLOT_MINUTES = 30
 
 type ViewMode = 'gunluk' | 'liste' | 'haftalik' | 'ozel'
 
@@ -391,14 +284,6 @@ export default function AppointmentsPage() {
   // musteri telefonunu degistirmeye izin verir. Paket/musteri degisikligi
   // KAPSAM DISI tutuldu (ayri, daha riskli akislar; istenmedi).
   const [editingAppt, setEditingAppt] = useState<Appointment | null>(null)
-  const [editServiceId, setEditServiceId] = useState('')
-  const [editEmployeeId, setEditEmployeeId] = useState('')
-  const [editDate, setEditDate] = useState('')
-  const [editTime, setEditTime] = useState('')
-  const [editNote, setEditNote] = useState('')
-  const [editPhone, setEditPhone] = useState('')
-  const [editBusy, setEditBusy] = useState(false)
-  const [editError, setEditError] = useState<string | null>(null)
 
   // Satira/karta tiklaninca acilan detay: kompakt satirda yer olmayan not,
   // kaynak gibi alanlar burada gorunur.
@@ -497,92 +382,6 @@ export default function AppointmentsPage() {
 
   function openEdit(a: Appointment) {
     setEditingAppt(a)
-    setEditServiceId(a.service_id ?? '')
-    setEditEmployeeId(a.employee_id ?? '')
-    const d = new Date(a.scheduled_at)
-    setEditDate(toLocalDateString(d))
-    setEditTime(`${String(d.getHours()).padStart(2, '0')}:${String(d.getMinutes()).padStart(2, '0')}`)
-    setEditNote(a.source_note ?? '')
-    setEditPhone(customerPhone(a.customer_id) ?? '')
-    setEditError(null)
-  }
-
-  async function submitEdit() {
-    if (!editingAppt) return
-    setEditError(null)
-    if (!editServiceId || !editDate || !editTime) {
-      setEditError('Hizmet ve tarih/saat zorunlu.')
-      return
-    }
-
-    const svc = services.find((s) => s.id === editServiceId)
-    const start = new Date(`${editDate}T${editTime}`)
-    const duration = svc?.duration_minutes ?? SLOT_MINUTES
-
-    if (editEmployeeId && !isEmployeeAvailable(editEmployeeId, start, duration, editingAppt.id)) {
-      setEditError('Seçilen çalışan bu saatte müsait değil (mesai dışı, izinli veya dolu).')
-      return
-    }
-
-    // Saat degistiyse eski saat icin gonderilmis hatirlatma isareti
-    // sifirlanir — yoksa process-appointment-reminders yeni saat icin bir daha
-    // hatirlatma gondermez (reschedule-appointment edge function'i da ayni
-    // sekilde sifirliyor).
-    const timeChanged = new Date(editingAppt.scheduled_at).getTime() !== start.getTime()
-
-    setEditBusy(true)
-    try {
-      const { error: apptErr } = await supabase
-        .from('appointments')
-        .update({
-          service_id: editServiceId,
-          employee_id: editEmployeeId || null,
-          scheduled_at: start.toISOString(),
-          duration_minutes: duration,
-          source_note: editNote.trim() || null,
-          ...(timeChanged ? { reminder_sent_at: null } : {}),
-        })
-        .eq('id', editingAppt.id)
-      if (apptErr) {
-        const isOverlap = /exclusion|conflicting key|deadlock/i.test(apptErr.message)
-        // Calisan kendisine atanmis (kendi acmadigi) randevuyu baskasina
-        // devredemez; politika bunu reddeder.
-        const isRls = /row-level security/i.test(apptErr.message)
-        setEditError(
-          isOverlap
-            ? 'Seçilen saat az önce başka bir randevuyla dolmuş. Farklı bir saat seçin.'
-            : isRls
-              ? 'Bu randevuyu başka bir çalışana yalnızca yönetici aktarabilir.'
-              : 'Randevu güncellenemedi: ' + apptErr.message,
-        )
-        return
-      }
-
-      const trimmedPhone = editPhone.trim()
-      if (editingAppt.customer_id && trimmedPhone !== (customerPhone(editingAppt.customer_id) ?? '')) {
-        const { error: custErr } = await supabase
-          .from('customers')
-          .update({ contact_phone: trimmedPhone || null })
-          .eq('id', editingAppt.customer_id)
-        if (custErr) {
-          // Randevu zaten guncellendi — telefon hatasi ayri banner'da gosterilip
-          // modal kapatilir, "hicbir sey olmamis gibi" hissettirmez.
-          setError(
-            'Randevu güncellendi ama telefon numarası kaydedilemedi. ' + friendlyDbError(custErr, 'Tekrar deneyin.'),
-          )
-          setEditingAppt(null)
-          await loadData(true)
-          return
-        }
-      }
-
-      setEditingAppt(null)
-      await loadData(true)
-    } catch {
-      setEditError(NETWORK_ERROR)
-    } finally {
-      setEditBusy(false)
-    }
   }
 
   // Randevu bir paketin parcasiysa "3/8" gibi ilerleme bilgisini dondurur —
@@ -2876,122 +2675,23 @@ export default function AppointmentsPage() {
         })()}
 
       {editingAppt && (
-        <div className={styles.modalBackdrop} onClick={() => setEditingAppt(null)}>
-          <div className={`card ${styles.modalCard}`} onClick={(e) => e.stopPropagation()}>
-            <div className={styles.modalHeader}>
-              <h2>Randevuyu Düzenle</h2>
-              <button type="button" className={styles.bannerClose} onClick={() => setEditingAppt(null)}>
-                ✕
-              </button>
-            </div>
-
-            {editError && (
-              <div className={`${styles.banner} ${styles.bannerError} ${styles.bannerSpaced}`}>
-                <span>{editError}</span>
-                <button type="button" className={styles.bannerClose} onClick={() => setEditError(null)}>
-                  ✕
-                </button>
-              </div>
-            )}
-
-            <p className={styles.editCustomerName}>{customerName(editingAppt.customer_id)}</p>
-
-            <div className={styles.form}>
-              <div className="field">
-                <label htmlFor="editService">Hizmet</label>
-                <Select
-                  id="editService"
-                  value={editServiceId}
-                  onChange={setEditServiceId}
-                  options={services.map((s) => ({ value: s.id, label: s.name, sub: `${s.duration_minutes} dk` }))}
-                />
-              </div>
-
-              <div className="field">
-                <label htmlFor="editEmployee">Çalışan</label>
-                <Select
-                  id="editEmployee"
-                  value={editEmployeeId}
-                  onChange={setEditEmployeeId}
-                  options={[
-                    { value: '', label: 'Farketmez' },
-                    ...profiles.map((p) => ({ value: p.id, label: p.full_name ?? '—' })),
-                  ]}
-                />
-              </div>
-
-              <div className="field">
-                <label htmlFor="editDate">Tarih</label>
-                <input
-                  id="editDate"
-                  type="date"
-                  value={editDate}
-                  onChange={(e) => {
-                    const newDate = e.target.value
-                    const candidateIds = editEmployeeId ? [editEmployeeId] : profiles.map((p) => p.id)
-                    if (newDate && !isDayOpenForCandidates(newDate, candidateIds)) {
-                      setEditError(
-                        editEmployeeId
-                          ? 'Seçilen çalışan bu gün çalışmıyor.'
-                          : 'İşletme bu gün kapalı, uygun çalışan yok.',
-                      )
-                      return
-                    }
-                    setEditError(null)
-                    setEditDate(newDate)
-                  }}
-                />
-              </div>
-
-              <div className="field">
-                <label htmlFor="editTime">Saat</label>
-                <Select
-                  id="editTime"
-                  value={editTime}
-                  onChange={setEditTime}
-                  options={buildTimeOptions(
-                    editDate,
-                    editEmployeeId ? [editEmployeeId] : profiles.map((p) => p.id),
-                    services.find((s) => s.id === editServiceId)?.duration_minutes ?? SLOT_MINUTES,
-                    editingAppt.id,
-                  )}
-                />
-              </div>
-
-              {editingAppt.customer_id && (
-                <div className="field">
-                  <label htmlFor="editPhone">Müşteri Telefonu</label>
-                  <input
-                    maxLength={FIELD_LIMITS.customersContactPhone}
-                    id="editPhone"
-                    type="tel"
-                    inputMode="numeric"
-                    value={editPhone}
-                    onChange={(e) => setEditPhone(e.target.value.replace(/\D/g, ''))}
-                    placeholder="05xx xxx xx xx"
-                  />
-                </div>
-              )}
-
-              <div className="field field-full">
-                <label htmlFor="editNote">Not (opsiyonel)</label>
-                <input
-                  maxLength={FIELD_LIMITS.appointmentsNotes}
-                  id="editNote"
-                  placeholder="ör. kampanya adı"
-                  value={editNote}
-                  onChange={(e) => setEditNote(e.target.value)}
-                />
-              </div>
-
-              <div className={styles.formActions}>
-                <button type="button" className="btn-primary" disabled={editBusy} onClick={submitEdit}>
-                  {editBusy ? 'Kaydediliyor…' : 'Kaydet'}
-                </button>
-              </div>
-            </div>
-          </div>
-        </div>
+        <EditAppointmentModal
+          key={editingAppt.id}
+          appointment={editingAppt}
+          customerName={customerName(editingAppt.customer_id)}
+          customerPhone={customerPhone(editingAppt.customer_id)}
+          services={services}
+          profiles={profiles}
+          isEmployeeAvailable={isEmployeeAvailable}
+          isDayOpenForCandidates={isDayOpenForCandidates}
+          buildTimeOptions={buildTimeOptions}
+          onClose={() => setEditingAppt(null)}
+          onSaved={async (warning) => {
+            if (warning) setError(warning)
+            setEditingAppt(null)
+            await loadData(true)
+          }}
+        />
       )}
 
       {viewMode === 'gunluk' && (
