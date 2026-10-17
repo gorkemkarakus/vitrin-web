@@ -28,3 +28,7 @@ jdk21-portable/
 
 # Supabase CLI yerel onbellegi
 supabase/.temp/
+
+# Uctan uca test ciktilari
+e2e/.report
+e2e/.results

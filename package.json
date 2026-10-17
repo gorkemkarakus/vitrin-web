@@ -20,7 +20,8 @@
     "android:aab": "node scripts/android-build.mjs bundleRelease",
     "android:apk": "node scripts/android-build.mjs assembleRelease",
     "android:debug": "node scripts/android-build.mjs assembleDebug",
-    "legal:html": "node --experimental-strip-types --no-warnings scripts/build-legal.mjs && prettier --write legal"
+    "legal:html": "node --experimental-strip-types --no-warnings scripts/build-legal.mjs && prettier --write legal",
+    "test:e2e": "playwright test"
   },
   "dependencies": {
     "@capacitor/android": "^8.4.1",
@@ -45,6 +46,7 @@
   },
   "devDependencies": {
     "@capacitor/cli": "^8.5.3",
+    "@playwright/test": "1.56.1",
     "@types/node": "^24.13.2",
     "@types/react": "^19.2.17",
     "@types/react-dom": "^19.2.3",
