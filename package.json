@@ -21,7 +21,8 @@
     "android:apk": "node scripts/android-build.mjs assembleRelease",
     "android:debug": "node scripts/android-build.mjs assembleDebug",
     "legal:html": "node --experimental-strip-types --no-warnings scripts/build-legal.mjs && prettier --write legal",
-    "test:e2e": "playwright test"
+    "test:e2e": "playwright test",
+    "check:release": "node scripts/release-guard.mjs"
   },
   "dependencies": {
     "@capacitor/android": "^8.4.1",
