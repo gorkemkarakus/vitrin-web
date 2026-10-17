@@ -9,7 +9,7 @@
   color: #fff;
   display: flex;
   flex-direction: column;
-  padding: calc(48px + env(safe-area-inset-top)) 24px calc(44px + env(safe-area-inset-bottom));
+  padding: calc(48px + var(--top-inset)) 24px calc(44px + env(safe-area-inset-bottom));
 }
 
 /* Arka plandaki iki yuvarlak: sol altta halka, sag ustte dolu daire. */
@@ -126,7 +126,7 @@
 
 .top {
   position: relative;
-  padding: calc(56px + env(safe-area-inset-top)) 24px 40px;
+  padding: calc(56px + var(--top-inset)) 24px 40px;
   color: #fff;
   display: flex;
   flex-direction: column;
@@ -318,7 +318,7 @@
   display: flex;
   flex-direction: column;
   gap: 22px;
-  padding: calc(50px + env(safe-area-inset-top)) 24px calc(40px + env(safe-area-inset-bottom));
+  padding: calc(50px + var(--top-inset)) 24px calc(40px + env(safe-area-inset-bottom));
 }
 
 .backBtn {

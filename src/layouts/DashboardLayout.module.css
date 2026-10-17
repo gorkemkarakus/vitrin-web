@@ -28,7 +28,8 @@
 .topbarHome {
   background: var(--signal);
   color: #fff;
-  padding: 16px 20px 14px;
+  /* iOS'ta durum cubugu web gorunumunun ustune biner; uyari seridi de buraya gelir. */
+  padding: calc(16px + var(--top-inset)) 20px 14px;
 }
 
 .greeting {
@@ -278,7 +279,7 @@
 /* Ana sayfa disindaki sayfalar kendi basligini ciziyor; ust bosluk durum
    cubugunun altindan baslasin. */
 .contentPage {
-  padding-top: calc(14px + env(safe-area-inset-top, 0px));
+  padding-top: calc(14px + var(--top-inset));
 }
 
 /* ---------- Alt sekme çubuğu ---------- */
@@ -396,7 +397,7 @@
   flex-direction: column;
   justify-content: space-between;
   gap: 16px;
-  padding: calc(40px + env(safe-area-inset-top, 0px)) 16px calc(104px + env(safe-area-inset-bottom, 0px));
+  padding: calc(40px + var(--top-inset)) 16px calc(104px + env(safe-area-inset-bottom, 0px));
   overflow-y: auto;
 }
 

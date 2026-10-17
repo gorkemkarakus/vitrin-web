@@ -54,6 +54,19 @@
 
   --font-heading: 'Outfit Variable', 'Outfit', sans-serif;
   --font-body: 'DM Sans Variable', 'DM Sans', sans-serif;
+
+  /* Ust guvenli alan; uyari seridi varsa seridin alti (bkz. lib/topBanners.ts). */
+  --top-inset: max(env(safe-area-inset-top, 0px), var(--banner-h, 0px));
+}
+
+#top-banners {
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  z-index: 200;
+  display: flex;
+  flex-direction: column;
 }
 
 * {

@@ -521,9 +521,9 @@
 /* ---------- Ana ekran (tasarim: Sec-Calisan) ---------- */
 
 .topBlock {
-  margin: calc(-14px - env(safe-area-inset-top, 0px)) -16px 0;
+  margin: calc(-14px - var(--top-inset)) -16px 0;
   background: var(--panel);
-  padding: calc(14px + env(safe-area-inset-top, 0px)) 16px 18px;
+  padding: calc(14px + var(--top-inset)) 16px 18px;
   border-radius: 0 0 28px 28px;
   display: flex;
   flex-direction: column;

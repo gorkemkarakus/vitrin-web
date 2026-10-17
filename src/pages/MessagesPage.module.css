@@ -268,7 +268,7 @@ button.statTile {
 .thread {
   display: flex;
   flex-direction: column;
-  margin: calc(-14px - env(safe-area-inset-top, 0px)) -16px -16px;
+  margin: calc(-14px - var(--top-inset)) -16px -16px;
   min-height: calc(100% + 30px);
 }
 
@@ -277,7 +277,7 @@ button.statTile {
   align-items: center;
   gap: 12px;
   background: var(--panel);
-  padding: calc(14px + env(safe-area-inset-top, 0px)) 16px 12px;
+  padding: calc(14px + var(--top-inset)) 16px 12px;
   border-bottom: 1px solid var(--line-soft);
 }
 

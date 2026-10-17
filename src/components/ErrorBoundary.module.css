@@ -2,7 +2,7 @@
   min-height: 100%;
   max-width: 420px;
   margin: 0 auto;
-  padding: calc(64px + env(safe-area-inset-top, 0px)) 24px 32px;
+  padding: calc(64px + var(--top-inset)) 24px 32px;
   display: flex;
   flex-direction: column;
   gap: 14px;

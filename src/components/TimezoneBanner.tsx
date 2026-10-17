@@ -1,5 +1,7 @@
 import { useState } from 'react'
+import { createPortal } from 'react-dom'
 import { isIstanbulOffset } from '../lib/date'
+import { topBannerHost } from '../lib/topBanners'
 import styles from './OfflineBanner.module.css'
 
 // Uygulama saatleri cihazin yerel saatiyle gosterir; sunucu (hatirlatma,
@@ -9,13 +11,14 @@ import styles from './OfflineBanner.module.css'
 export default function TimezoneBanner() {
   const [dismissed, setDismissed] = useState(false)
   if (dismissed || isIstanbulOffset()) return null
-  return (
+  return createPortal(
     <div className={`${styles.banner} ${styles.warn}`} role="status">
       Telefonunun saat dilimi Türkiye değil; randevu saatleri farklı görünebilir. Ayarlar’dan saat dilimini İstanbul
       yap.{' '}
       <button type="button" className={styles.dismiss} onClick={() => setDismissed(true)}>
         Kapat
       </button>
-    </div>
+    </div>,
+    topBannerHost(),
   )
 }

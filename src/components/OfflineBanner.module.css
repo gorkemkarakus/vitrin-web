@@ -1,9 +1,4 @@
 .banner {
-  position: fixed;
-  top: 0;
-  left: 0;
-  right: 0;
-  z-index: 200;
   padding: calc(8px + env(safe-area-inset-top, 0px)) 16px 8px;
   background: var(--danger-text);
   color: #fff;
@@ -11,6 +6,11 @@
   font-weight: 600;
   line-height: 1.35;
   text-align: center;
+}
+
+/* Ikinci serit guvenli alani tekrar eklemesin. */
+.banner + .banner {
+  padding-top: 8px;
 }
 
 .warn {

@@ -1,4 +1,6 @@
 import { useEffect, useState } from 'react'
+import { createPortal } from 'react-dom'
+import { topBannerHost } from '../lib/topBanners'
 import styles from './OfflineBanner.module.css'
 
 // Baglanti kopunca ustte ince bir serit: kullanici kaydetmeye calisip
@@ -18,9 +20,10 @@ export default function OfflineBanner() {
   }, [])
 
   if (online) return null
-  return (
+  return createPortal(
     <div className={styles.banner} role="status" aria-live="polite">
       İnternet bağlantısı yok. Bağlantı gelene kadar değişiklikler kaydedilemez.
-    </div>
+    </div>,
+    topBannerHost(),
   )
 }

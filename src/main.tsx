@@ -6,8 +6,10 @@ import '@fontsource-variable/dm-sans/opsz.css'
 import './styles/theme.css'
 import App from './App.tsx'
 import { installGlobalErrorHandlers } from './lib/errorReporting'
+import { installTopBannerInset } from './lib/topBanners'
 
 installGlobalErrorHandlers()
+installTopBannerInset()
 
 createRoot(document.getElementById('root')!).render(
   <StrictMode>
