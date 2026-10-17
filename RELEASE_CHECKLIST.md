@@ -114,7 +114,7 @@ Her birinde şu an uygulanan varsayılan yazılı; değiştirmek istersen söyle
    on conflict (name) do update set value = excluded.value;
    ```
    Sonra `npm run legal:html` (silme sayfasına widget eklenir).
-2. **Supabase → Authentication**: herkese açık kaydı kapat (hesapları yalnızca işletme/çalışan oluşturma akışı açıyor), sızan şifre koruması (Pro plan) ve en az 8 karakter şifre kuralı.
+2. **Supabase → Authentication**: herkese açık kayıt kapalı ve en az 8 karakter kuralı zaten ayarlı (17 Ekim). Pro'ya geçince **sızan şifre koruması**nı aç.
 3. **Supabase planı ve yedek**: ücretsiz planda indirilebilir otomatik yedek yok → yayından önce **Pro**'ya geç (günlük yedek, 7 gün). O zamana kadar haftada bir: Docker Desktop'ı aç, `npm run backup:db` (çıktı `backups/` içinde, kişisel veri içerir — şifreli diskte sakla).
 4. **n8n sunucusu**: barındırıldığı ülkeyi not et (yurt dışıysa DATA_INVENTORY.md'ye ve aydınlatma metnine eklenmeli); docker `.env` içindeki `change_me` değerlerini değiştir.
 5. Alan adında yasal sayfalar yayınlandıktan sonra `legalInfo.ts`'deki `webBaseUrl`'i güncelle.
