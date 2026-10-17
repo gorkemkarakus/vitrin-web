@@ -282,3 +282,10 @@ a {
   justify-content: center;
   height: 100vh;
 }
+
+/* Tembel sayfa yukleme gostergesi: kisa yuklemelerde hic gorunmez. */
+@keyframes routeFallbackIn {
+  from {
+    opacity: 0;
+  }
+}

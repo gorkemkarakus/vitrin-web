@@ -7,7 +7,6 @@ import PageHeader from '../components/PageHeader'
 import PdfProgressModal from '../components/PdfProgressModal'
 import { SearchIcon, RobotIcon, ReceiptIcon, CheckCircleIcon } from '../components/icons'
 import { SOURCE_LABEL } from '../lib/sourceLabels'
-import { generatePerformanceReportPdf } from '../lib/pdf/performanceReportPdf'
 import { currencyWhole as currency } from '../lib/currency'
 import { toLocalDateString, presetDateRange, timeToMinutes, WEEK_ORDER, DAY_SHORT, DAY_LONG, DAY_MS } from '../lib/date'
 import styles from './PerformanceReportPage.module.css'
@@ -406,6 +405,7 @@ export default function PerformanceReportPage() {
     if (!profile?.business_id) return
     setPdfState({ progress: 0, step: 'Başlatılıyor…', error: null })
     try {
+      const { generatePerformanceReportPdf } = await import('../lib/pdf/performanceReportPdf')
       await generatePerformanceReportPdf({
         businessId: profile.business_id,
         rangeStart,

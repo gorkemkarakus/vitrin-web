@@ -7,7 +7,6 @@ import PdfProgressModal from '../components/PdfProgressModal'
 import { ReceiptIcon } from '../components/icons'
 import PageHeader from '../components/PageHeader'
 import { computeCustomerDebts } from '../lib/customerDebts'
-import { generateAccountingReportPdf } from '../lib/pdf/accountingReportPdf'
 import { currency } from '../lib/currency'
 import { toLocalDateString, presetDateRange, type DateRangePreset } from '../lib/date'
 import styles from './AccountingPage.module.css'
@@ -325,6 +324,8 @@ export default function AccountingPage() {
     if (!profile?.business_id) return
     setPdfState({ progress: 0, step: 'Başlatılıyor…', error: null })
     try {
+      // PDF kutuphanesi ve gomulu yazi tipleri yalnizca gerektiginde yuklenir.
+      const { generateAccountingReportPdf } = await import('../lib/pdf/accountingReportPdf')
       await generateAccountingReportPdf({
         businessId: profile.business_id,
         rangeStart,

@@ -1,46 +1,49 @@
-import { useEffect, useRef, useState, type ReactNode } from 'react'
+import { lazy, Suspense, useEffect, useRef, useState, type ReactNode } from 'react'
 import { BrowserRouter, Navigate, Route, Routes, useLocation, useNavigate } from 'react-router-dom'
 import { SplashScreen } from '@capacitor/splash-screen'
 import { AuthProvider, useAuth } from './contexts/AuthContext'
 import AppSplash from './components/AppSplash'
 import LoginPage from './pages/LoginPage'
 import DashboardLayout from './layouts/DashboardLayout'
-import MessagesPage from './pages/MessagesPage'
-import AppointmentsPage from './pages/AppointmentsPage'
-import AccountingPage from './pages/AccountingPage'
-import TeamPage from './pages/TeamPage'
-import ServicesPage from './pages/ServicesPage'
-import ServiceDescriptionPage from './pages/ServiceDescriptionPage'
 import DashboardPage from './pages/DashboardPage'
-import SettingsPage from './pages/SettingsPage'
-import MorePage from './pages/MorePage'
-import CustomersPage from './pages/CustomersPage'
-import CustomerDetailPage from './pages/CustomerDetailPage'
-import EmployeeDetailPage from './pages/EmployeeDetailPage'
-import EmployeeCreatePage from './pages/EmployeeCreatePage'
-import EmployeeSchedulePage from './pages/EmployeeSchedulePage'
-import EmployeeLeavesPage from './pages/EmployeeLeavesPage'
-import HolidaysPage from './pages/HolidaysPage'
-import PerformanceReportPage from './pages/PerformanceReportPage'
-import ExpensesPage from './pages/ExpensesPage'
-import AdInsightsPage from './pages/AdInsightsPage'
-import AiInsightsPage from './pages/AiInsightsPage'
-import AdOAuthCallbackPage from './pages/AdOAuthCallbackPage'
-import BulkMessagePage from './pages/BulkMessagePage'
-import PublicBookingPage from './public/PublicBookingPage'
-import LegalPage from './public/LegalPage'
-import AccountDeletionPage from './public/AccountDeletionPage'
-import NotificationsPage from './pages/NotificationsPage'
-import ResetPasswordPage from './pages/ResetPasswordPage'
 import ForcePasswordPage from './pages/ForcePasswordPage'
-import CashClosurePage from './pages/CashClosurePage'
-import SetupPage from './pages/SetupPage'
 import { startPush } from './lib/push'
 import PushPermissionSheet from './components/PushPermissionSheet'
 import ErrorBoundary from './components/ErrorBoundary'
 import OfflineBanner from './components/OfflineBanner'
 import TimezoneBanner from './components/TimezoneBanner'
+import RouteFallback from './components/RouteFallback'
 import type { PermKey } from './lib/permissions'
+
+// Sayfalar acildiklarinda yuklenir (ilk acilis paketi kuculur).
+const MessagesPage = lazy(() => import('./pages/MessagesPage'))
+const AppointmentsPage = lazy(() => import('./pages/AppointmentsPage'))
+const AccountingPage = lazy(() => import('./pages/AccountingPage'))
+const TeamPage = lazy(() => import('./pages/TeamPage'))
+const ServicesPage = lazy(() => import('./pages/ServicesPage'))
+const ServiceDescriptionPage = lazy(() => import('./pages/ServiceDescriptionPage'))
+const SettingsPage = lazy(() => import('./pages/SettingsPage'))
+const MorePage = lazy(() => import('./pages/MorePage'))
+const CustomersPage = lazy(() => import('./pages/CustomersPage'))
+const CustomerDetailPage = lazy(() => import('./pages/CustomerDetailPage'))
+const EmployeeDetailPage = lazy(() => import('./pages/EmployeeDetailPage'))
+const EmployeeCreatePage = lazy(() => import('./pages/EmployeeCreatePage'))
+const EmployeeSchedulePage = lazy(() => import('./pages/EmployeeSchedulePage'))
+const EmployeeLeavesPage = lazy(() => import('./pages/EmployeeLeavesPage'))
+const HolidaysPage = lazy(() => import('./pages/HolidaysPage'))
+const PerformanceReportPage = lazy(() => import('./pages/PerformanceReportPage'))
+const ExpensesPage = lazy(() => import('./pages/ExpensesPage'))
+const AdInsightsPage = lazy(() => import('./pages/AdInsightsPage'))
+const AiInsightsPage = lazy(() => import('./pages/AiInsightsPage'))
+const AdOAuthCallbackPage = lazy(() => import('./pages/AdOAuthCallbackPage'))
+const BulkMessagePage = lazy(() => import('./pages/BulkMessagePage'))
+const PublicBookingPage = lazy(() => import('./public/PublicBookingPage'))
+const LegalPage = lazy(() => import('./public/LegalPage'))
+const AccountDeletionPage = lazy(() => import('./public/AccountDeletionPage'))
+const NotificationsPage = lazy(() => import('./pages/NotificationsPage'))
+const ResetPasswordPage = lazy(() => import('./pages/ResetPasswordPage'))
+const CashClosurePage = lazy(() => import('./pages/CashClosurePage'))
+const SetupPage = lazy(() => import('./pages/SetupPage'))
 
 // adminOnly: sadece yonetici. perm: yoneticiye ya da o yetkisi acik calisana.
 function ProtectedRoute({
@@ -319,15 +322,17 @@ function App() {
     <BrowserRouter>
       <OfflineBanner />
       <RouteErrorBoundary>
-        <Routes>
-          <Route path="/randevu-al/:slug" element={<PublicBookingPage />} />
-          <Route path="/sifre-sifirla" element={<ResetPasswordPage />} />
-          <Route path="/gizlilik" element={<LegalPage slug="gizlilik" />} />
-          <Route path="/kvkk" element={<LegalPage slug="kvkk" />} />
-          <Route path="/kullanim-kosullari" element={<LegalPage slug="kullanim-kosullari" />} />
-          <Route path="/hesap-silme" element={<AccountDeletionPage />} />
-          <Route path="/*" element={<AuthenticatedApp />} />
-        </Routes>
+        <Suspense fallback={<RouteFallback />}>
+          <Routes>
+            <Route path="/randevu-al/:slug" element={<PublicBookingPage />} />
+            <Route path="/sifre-sifirla" element={<ResetPasswordPage />} />
+            <Route path="/gizlilik" element={<LegalPage slug="gizlilik" />} />
+            <Route path="/kvkk" element={<LegalPage slug="kvkk" />} />
+            <Route path="/kullanim-kosullari" element={<LegalPage slug="kullanim-kosullari" />} />
+            <Route path="/hesap-silme" element={<AccountDeletionPage />} />
+            <Route path="/*" element={<AuthenticatedApp />} />
+          </Routes>
+        </Suspense>
       </RouteErrorBoundary>
     </BrowserRouter>
   )

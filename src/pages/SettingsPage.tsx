@@ -6,7 +6,6 @@ import { NETWORK_ERROR } from '../lib/messages'
 import { useAuth } from '../contexts/AuthContext'
 import PageHeader from '../components/PageHeader'
 import { bookingUrl } from '../lib/bookingUrl'
-import { exportBusinessData } from '../lib/dataExport'
 import styles from './SettingsPage.module.css'
 import { DAY_MS } from '../lib/date'
 import { FIELD_LIMITS } from '../lib/fieldLimits'
@@ -299,6 +298,7 @@ export default function SettingsPage() {
     setExportResult(null)
     setExportStep('Başlatılıyor…')
     try {
+      const { exportBusinessData } = await import('../lib/dataExport')
       const result = await exportBusinessData(business?.name ?? '', setExportStep)
       setExportResult(result)
     } catch (e) {

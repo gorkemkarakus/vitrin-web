@@ -1,7 +1,8 @@
-import { useEffect, useRef, useState } from 'react'
+import { Suspense, useEffect, useRef, useState } from 'react'
 import { NavLink, Outlet, useLocation, useNavigate } from 'react-router-dom'
 import { Capacitor } from '@capacitor/core'
 import { useAuth } from '../contexts/AuthContext'
+import RouteFallback from '../components/RouteFallback'
 import { supabase } from '../lib/supabase'
 import QuickAddCustomerModal from '../components/QuickAddCustomerModal'
 import {
@@ -406,7 +407,9 @@ export default function DashboardLayout() {
       )}
 
       <main className={isHome ? styles.content : `${styles.content} ${styles.contentPage}`} ref={contentRef}>
-        <Outlet context={{ searchQuery: '', setSearchPlaceholder: () => {} } satisfies LayoutOutletContext} />
+        <Suspense fallback={<RouteFallback />}>
+          <Outlet context={{ searchQuery: '', setSearchPlaceholder: () => {} } satisfies LayoutOutletContext} />
+        </Suspense>
       </main>
 
       <nav className={actionSheetOpen ? `${styles.bottomNav} ${styles.bottomNavRaised}` : styles.bottomNav}>

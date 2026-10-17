@@ -6,7 +6,6 @@ import { useAuth } from '../contexts/AuthContext'
 import PageHeader from '../components/PageHeader'
 import { currency, currencyWhole } from '../lib/currency'
 import { METHOD_LABEL, loadDaySummary, longDate, type CashClosure, type DaySummary } from '../lib/cashClosure'
-import { generateCashClosurePdf } from '../lib/pdf/cashClosurePdf'
 import styles from './CashClosurePage.module.css'
 import { todayLocalDateString } from '../lib/date'
 import { FIELD_LIMITS } from '../lib/fieldLimits'
@@ -128,6 +127,7 @@ export default function CashClosurePage() {
     if (!summary || !closure) return
     setPdfBusy(true)
     try {
+      const { generateCashClosurePdf } = await import('../lib/pdf/cashClosurePdf')
       await generateCashClosurePdf({
         businessName: businessName || 'İşletme',
         summary,
