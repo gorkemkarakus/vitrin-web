@@ -7,8 +7,12 @@ import { logger } from './logger'
 // iOS'ta GoogleService-Info.plist + APNs) eklenmeden register() uygulamayi
 // cokertebilecegi icin yalnizca VITE_PUSH_ENABLED=1 ile derlenen surumde acilir.
 const pushEnabled = Capacitor.isNativePlatform() && import.meta.env.VITE_PUSH_ENABLED === '1'
+export const pushAvailable = pushEnabled
 
 const TOKEN_KEY = 'adapptiv.push.token'
+// 'Simdi degil' denince sistem izni bu sure boyunca tekrar sorulmaz.
+const SNOOZE_KEY = 'adapptiv.push.snoozedAt'
+const SNOOZE_MS = 7 * 24 * 60 * 60 * 1000
 let started = false
 
 function storedToken() {
@@ -19,7 +23,10 @@ function storedToken() {
   }
 }
 
-export async function startPush(onOpen: (route: string) => void) {
+// Izin henuz sorulmadiysa sistem penceresini HEMEN acmaz: once onNeedsPrompt
+// ile uygulamanin kendi aciklama ekrani gosterilir (bkz. PushPermissionSheet),
+// kullanici kabul ederse enablePush() sistem iznini ister.
+export async function startPush(onOpen: (route: string) => void, onNeedsPrompt?: () => void) {
   if (!pushEnabled || started) return
   started = true
   try {
@@ -51,11 +58,10 @@ export async function startPush(onOpen: (route: string) => void) {
       })
     }
 
-    let perm = await PushNotifications.checkPermissions()
-    if (perm.receive === 'prompt' || perm.receive === 'prompt-with-rationale') {
-      perm = await PushNotifications.requestPermissions()
-    }
+    const perm = await PushNotifications.checkPermissions()
     if (perm.receive === 'granted') await PushNotifications.register()
+    else if ((perm.receive === 'prompt' || perm.receive === 'prompt-with-rationale') && !promptSnoozed())
+      onNeedsPrompt?.()
   } catch (e) {
     logger.warn('Bildirimler baslatilamadi', e)
   }
@@ -73,4 +79,49 @@ export async function stopPush() {
     /* cikis yine de devam eder */
   }
   started = false
+}
+
+function promptSnoozed() {
+  try {
+    const at = Number(localStorage.getItem(SNOOZE_KEY) ?? 0)
+    return Date.now() - at < SNOOZE_MS
+  } catch {
+    return false
+  }
+}
+
+export function snoozePushPrompt() {
+  try {
+    localStorage.setItem(SNOOZE_KEY, String(Date.now()))
+  } catch {
+    /* depolama kapali olabilir */
+  }
+}
+
+export type PushPermission = 'granted' | 'denied' | 'prompt' | 'unavailable'
+
+export async function pushPermission(): Promise<PushPermission> {
+  if (!pushEnabled) return 'unavailable'
+  try {
+    const { receive } = await PushNotifications.checkPermissions()
+    return receive === 'granted' ? 'granted' : receive === 'denied' ? 'denied' : 'prompt'
+  } catch {
+    return 'unavailable'
+  }
+}
+
+// Kullanici aciklama ekraninda 'Bildirimleri ac' dediginde sistem iznini ister.
+export async function enablePush(): Promise<PushPermission> {
+  if (!pushEnabled) return 'unavailable'
+  try {
+    const { receive } = await PushNotifications.requestPermissions()
+    if (receive === 'granted') {
+      await PushNotifications.register()
+      return 'granted'
+    }
+    return receive === 'denied' ? 'denied' : 'prompt'
+  } catch (e) {
+    logger.warn('Bildirim izni istenemedi', e)
+    return 'unavailable'
+  }
 }

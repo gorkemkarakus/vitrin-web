@@ -10,6 +10,7 @@ import { exportBusinessData } from '../lib/dataExport'
 import styles from './SettingsPage.module.css'
 import { DAY_MS } from '../lib/date'
 import { FIELD_LIMITS } from '../lib/fieldLimits'
+import { enablePush, pushAvailable, pushPermission, type PushPermission } from '../lib/push'
 
 const REMINDER_OPTIONS = [
   { value: '1', label: '1 saat önce' },
@@ -74,6 +75,11 @@ export default function SettingsPage() {
   const [whatsappPhone, setWhatsappPhone] = useState('')
   const [savedPhone, setSavedPhone] = useState('')
   const [phoneLoading, setPhoneLoading] = useState(true)
+  const [pushState, setPushState] = useState<PushPermission | null>(null)
+
+  useEffect(() => {
+    if (pushAvailable) pushPermission().then(setPushState)
+  }, [])
 
   useEffect(() => {
     if (!profile?.business_id) return
@@ -667,6 +673,14 @@ export default function SettingsPage() {
         {row('E-posta', session?.user.email ?? '—')}
         {row('Şifre değiştir', '', () => open('sifre'), 'muted')}
         {row('Bildirimler', '', () => navigate('/bildirimler?tercihler=1'), 'muted')}
+        {pushAvailable &&
+          pushState &&
+          row(
+            'Telefon bildirimleri',
+            pushState === 'granted' ? 'Açık' : pushState === 'denied' ? 'Telefon ayarlarından aç' : 'Kapalı',
+            pushState === 'prompt' ? () => enablePush().then(setPushState) : undefined,
+            pushState === 'granted' ? 'ok' : 'muted',
+          )}
         {row('Hesabımı sil', '', openDelete, 'muted')}
       </div>
 

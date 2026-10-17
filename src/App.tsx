@@ -36,6 +36,7 @@ import ForcePasswordPage from './pages/ForcePasswordPage'
 import CashClosurePage from './pages/CashClosurePage'
 import SetupPage from './pages/SetupPage'
 import { startPush } from './lib/push'
+import PushPermissionSheet from './components/PushPermissionSheet'
 import type { PermKey } from './lib/permissions'
 
 // adminOnly: sadece yonetici. perm: yoneticiye ya da o yetkisi acik calisana.
@@ -70,12 +71,17 @@ function AppRoutes() {
   const [splashFadingOut, setSplashFadingOut] = useState(false)
   const mountedAt = useRef(Date.now())
   const navigate = useNavigate()
+  const [pushPromptOpen, setPushPromptOpen] = useState(false)
 
   // Telefon bildirimleri: giris yapilinca cihaz kaydedilir; bildirime
   // dokununca ilgili ekran acilir (bkz. lib/push.ts).
   const profileId = profile?.id
   useEffect(() => {
-    if (session && profileId) startPush((route) => navigate(route))
+    if (session && profileId)
+      startPush(
+        (route) => navigate(route),
+        () => setPushPromptOpen(true),
+      )
   }, [session, profileId, navigate])
 
   // Auth kontrolu genelde cok hizli bitiyor (~100ms) — splash animasyonun
@@ -275,6 +281,7 @@ function AppRoutes() {
           <Route path="*" element={<Navigate to="/" replace />} />
         </Routes>
       )}
+      {pushPromptOpen && !splashVisible && session && <PushPermissionSheet onClose={() => setPushPromptOpen(false)} />}
       {splashVisible && <AppSplash fadingOut={splashFadingOut} />}
     </>
   )
