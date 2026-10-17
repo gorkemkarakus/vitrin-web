@@ -3,6 +3,7 @@ import Avatar from '../../components/Avatar'
 import TurnstileWidget from './TurnstileWidget'
 import styles from '../PublicBookingPage.module.css'
 import { FIELD_LIMITS } from '../../lib/fieldLimits'
+import ConsentToggle from '../../components/ConsentToggle'
 
 function isValidTurkishPhone(raw: string): boolean {
   const digits = raw.replace(/\D/g, '')
@@ -22,12 +23,13 @@ export default function CustomerForm({
   dateLabel: string
   timeLabel: string
   submitting: boolean
-  onSubmit: (name: string, phone: string, turnstileToken: string) => void
+  onSubmit: (name: string, phone: string, turnstileToken: string, marketingConsent: boolean) => void
 }) {
   const [name, setName] = useState('')
   const [phone, setPhone] = useState('')
   const [touched, setTouched] = useState(false)
   const [turnstileToken, setTurnstileToken] = useState('')
+  const [marketingConsent, setMarketingConsent] = useState(false)
 
   const phoneValid = isValidTurkishPhone(phone)
   const canSubmit = name.trim().length > 1 && phoneValid
@@ -36,7 +38,7 @@ export default function CustomerForm({
     e.preventDefault()
     setTouched(true)
     if (!canSubmit) return
-    onSubmit(name.trim(), phone.trim(), turnstileToken)
+    onSubmit(name.trim(), phone.trim(), turnstileToken, marketingConsent)
   }
 
   return (
@@ -89,6 +91,13 @@ export default function CustomerForm({
             Aydınlatma Metni
           </a>
         </p>
+
+        <ConsentToggle
+          checked={marketingConsent}
+          onChange={setMarketingConsent}
+          label="Kampanyalardan haberdar olmak istiyorum"
+          hint="İsteğe bağlı. Salon size WhatsApp’tan kampanya ve fırsat mesajı gönderebilir; RET yazarak istediğiniz zaman çıkabilirsiniz."
+        />
 
         <TurnstileWidget onToken={setTurnstileToken} />
 

@@ -57,3 +57,13 @@ export const DAY_SHORT = ['Paz', 'Pzt', 'Sal', 'Çar', 'Per', 'Cum', 'Cmt']
 export const DAY_LONG = ['Pazar', 'Pazartesi', 'Salı', 'Çarşamba', 'Perşembe', 'Cuma', 'Cumartesi']
 // Pazartesiden baslayan hafta (getDay degerleri)
 export const WEEK_ORDER = [1, 2, 3, 4, 5, 6, 0]
+
+// "17 Ekim 2026" — Istanbul takvimine gore (cihaz saat diliminden bagimsiz).
+export function formatTrDate(iso: string): string {
+  return new Date(iso).toLocaleDateString('tr-TR', {
+    day: 'numeric',
+    month: 'long',
+    year: 'numeric',
+    timeZone: 'Europe/Istanbul',
+  })
+}

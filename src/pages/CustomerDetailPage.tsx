@@ -17,7 +17,9 @@ import {
   MessagesIcon,
 } from '../components/icons'
 import { segmentForStats } from '../lib/customerSegments'
-import { toLocalDateString, DAY_MS } from '../lib/date'
+import { toLocalDateString, DAY_MS, formatTrDate } from '../lib/date'
+import ConsentToggle from '../components/ConsentToggle'
+import { CONSENT_SOURCE_LABEL } from '../lib/marketing'
 import styles from './CustomerDetailPage.module.css'
 import { PAYMENT_METHOD_OPTIONS } from '../lib/paymentMethods'
 import { allocatePayment, type OpenDebt } from '../lib/paymentAllocation'
@@ -31,6 +33,9 @@ interface Customer {
   email: string | null
   notes: string | null
   created_at: string
+  marketing_consent: boolean
+  marketing_consent_at: string | null
+  marketing_consent_source: string | null
 }
 
 interface Service {
@@ -148,6 +153,7 @@ export default function CustomerDetailPage() {
   const [editPhone, setEditPhone] = useState('')
   const [editEmail, setEditEmail] = useState('')
   const [editNotes, setEditNotes] = useState('')
+  const [editConsent, setEditConsent] = useState(false)
   const [editCustomerSubmitting, setEditCustomerSubmitting] = useState(false)
   const [error, setError] = useState<string | null>(null)
   const [tab, setTab] = useState<DetailTab>('ozet')
@@ -159,7 +165,9 @@ export default function CustomerDetailPage() {
       await Promise.all([
         supabase
           .from('customers')
-          .select('id, full_name, phone, contact_phone, email, notes, created_at')
+          .select(
+            'id, full_name, phone, contact_phone, email, notes, created_at, marketing_consent, marketing_consent_at, marketing_consent_source',
+          )
           .eq('id', id)
           .maybeSingle(),
         supabase
@@ -481,6 +489,7 @@ export default function CustomerDetailPage() {
     setEditPhone(customerPhone(customer) ?? '')
     setEditEmail(customer.email ?? '')
     setEditNotes(customer.notes ?? '')
+    setEditConsent(customer.marketing_consent)
     setEditCustomerOpen(true)
   }
 
@@ -498,6 +507,9 @@ export default function CustomerDetailPage() {
           contact_phone: editPhone.trim() || null,
           email: editEmail.trim() || null,
           notes: editNotes.trim() || null,
+          marketing_consent: editConsent,
+          // Kaynak yalnizca izin yeni verildiginde anlamli (tetikleyici damgalar).
+          ...(editConsent && !customer?.marketing_consent ? { marketing_consent_source: 'manual' } : {}),
         })
         .eq('id', id)
       if (updateErr) {
@@ -1010,6 +1022,15 @@ export default function CustomerDetailPage() {
                   placeholder="ör. Amonyak alerjisi var · boya 7.1 + %6 · kısa sohbet sever"
                 />
               </div>
+              <ConsentToggle
+                checked={editConsent}
+                onChange={setEditConsent}
+                hint={
+                  customer?.marketing_consent && customer.marketing_consent_at && editConsent
+                    ? `${formatTrDate(customer.marketing_consent_at)} tarihinde ${CONSENT_SOURCE_LABEL[customer.marketing_consent_source ?? 'manual'] ?? 'salonda'} verildi. Kapatırsanız toplu mesaj gitmez.`
+                    : 'Yalnızca müşteri kampanya mesajı almayı açıkça kabul ettiyse açın. Toplu mesaj sadece izinli müşterilere gider.'
+                }
+              />
               {error && <p className={styles.error}>{error}</p>}
               <button
                 type="submit"

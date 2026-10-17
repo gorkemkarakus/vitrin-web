@@ -6,6 +6,7 @@ import Select from './Select'
 import type { Template } from '../pages/BulkMessagePage'
 import styles from './SendCampaignModal.module.css'
 import { FIELD_LIMITS } from '../lib/fieldLimits'
+import { OPT_OUT_FOOTER } from '../lib/marketing'
 
 export default function SendCampaignModal({
   targetName,
@@ -105,6 +106,7 @@ export default function SendCampaignModal({
                 placeholder="Müşterilerinize göndermek istediğiniz mesajı yazın veya yukarıdan AI ile oluşturun…"
               />
             </div>
+            <p className={styles.hint}>Mesajın sonuna otomatik eklenir: “{OPT_OUT_FOOTER}”</p>
             <p className={styles.hint}>
               Not: WhatsApp bağlantısı henüz aktif değil, bu mesaj gerçekten gönderilmeyecek — kayıt altına alınacak.
             </p>

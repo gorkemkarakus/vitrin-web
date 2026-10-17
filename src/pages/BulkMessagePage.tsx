@@ -9,12 +9,14 @@ import TemplateModal from '../components/TemplateModal'
 import PageHeader from '../components/PageHeader'
 import styles from './BulkMessagePage.module.css'
 import { DAY_MS } from '../lib/date'
+import { withOptOutFooter } from '../lib/marketing'
 
 export interface Customer {
   id: string
   full_name: string
   phone: string | null
   contact_phone: string | null
+  marketing_consent: boolean
 }
 interface Appointment {
   customer_id: string | null
@@ -101,7 +103,9 @@ export default function BulkMessagePage() {
     setLoading(true)
     const [{ data: custs }, { data: appts }, { data: svcs }, { data: groups }, { data: members }, { data: tmpls }] =
       await Promise.all([
-        fetchAll(() => supabase.from('customers').select('id, full_name, phone, contact_phone').order('id')),
+        fetchAll(() =>
+          supabase.from('customers').select('id, full_name, phone, contact_phone, marketing_consent').order('id'),
+        ),
         fetchAll(() =>
           supabase.from('appointments').select('customer_id, service_id, status, scheduled_at').order('id'),
         ),
@@ -274,14 +278,17 @@ export default function BulkMessagePage() {
   }
   const allGroups = [everyoneGroup, ...customGroups, ...fixedGroups]
   const selectedGroup = allGroups.find((g) => g.key === selectedKey) ?? null
-  const reachableCount = selectedGroup
-    ? selectedGroup.memberIds.filter((cid) => {
-        const c = customerById.get(cid)
-        return !!(c?.contact_phone || c?.phone)
-      }).length
-    : 0
+  // Kampanya yalnizca ticari ileti izni olanlara gider (sunucu da ayrica suzer).
+  const consentedIds = selectedGroup
+    ? selectedGroup.memberIds.filter((cid) => customerById.get(cid)?.marketing_consent)
+    : []
+  const noConsentCount = selectedGroup ? selectedGroup.memberIds.length - consentedIds.length : 0
+  const reachableCount = consentedIds.filter((cid) => {
+    const c = customerById.get(cid)
+    return !!(c?.contact_phone || c?.phone)
+  }).length
   const previewName = selectedGroup
-    ? (customerById.get(selectedGroup.memberIds[0] ?? '')?.full_name ?? 'Müşteri').split(' ')[0]
+    ? (customerById.get(consentedIds[0] ?? '')?.full_name ?? 'Müşteri').split(' ')[0]
     : 'Müşteri'
 
   if (loading) return <p className={styles.hint}>Yükleniyor…</p>
@@ -427,6 +434,12 @@ export default function BulkMessagePage() {
           <span className={styles.infoLabel}>Telefonu kayıtlı</span>
           <span className={styles.infoValue}>{selectedGroup ? `${reachableCount} kişi` : '—'}</span>
         </div>
+        {noConsentCount > 0 && (
+          <div className={styles.infoRow}>
+            <span className={styles.infoLabel}>Kampanya izni yok</span>
+            <span className={styles.infoValue}>{noConsentCount} kişiye gitmez</span>
+          </div>
+        )}
       </div>
 
       <div className={styles.footer}>
@@ -441,12 +454,12 @@ export default function BulkMessagePage() {
         <button
           type="button"
           className={styles.sendBtn}
-          disabled={!selectedGroup || selectedGroup.memberIds.length === 0}
+          disabled={!selectedGroup || consentedIds.length === 0}
           onClick={() => {
             if (!selectedGroup) return
             setSendTarget({
               name: selectedGroup.name,
-              memberIds: selectedGroup.memberIds,
+              memberIds: consentedIds,
               prefill: message || undefined,
             })
           }}
@@ -455,7 +468,9 @@ export default function BulkMessagePage() {
             ? 'Önce kime gideceğini seç'
             : selectedGroup.memberIds.length === 0
               ? 'Bu grupta kimse yok'
-              : `${selectedGroup.memberIds.length} kişiye gönder`}
+              : consentedIds.length === 0
+                ? 'Bu grupta kampanya izni olan yok'
+                : `${consentedIds.length} kişiye gönder`}
         </button>
       </div>
 
@@ -464,11 +479,11 @@ export default function BulkMessagePage() {
           <div className={styles.previewSheet} onClick={(e) => e.stopPropagation()}>
             <span className={styles.blockLabel}>Müşterinin göreceği</span>
             <div className={styles.previewPhone}>
-              <span className={styles.previewBubble}>{message.trim() || '…'}</span>
+              <span className={styles.previewBubble}>{message.trim() ? withOptOutFooter(message.trim()) : '…'}</span>
             </div>
             <span className={styles.hint}>
               {selectedGroup
-                ? `${previewName} ve diğer ${Math.max(0, selectedGroup.memberIds.length - 1)} kişiye gider.`
+                ? `${previewName} ve diğer ${Math.max(0, consentedIds.length - 1)} kişiye gider.`
                 : 'Henüz kişi seçilmedi.'}
             </span>
             <button type="button" className={styles.previewBtn} onClick={() => setPreviewOpen(false)}>

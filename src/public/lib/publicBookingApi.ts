@@ -46,6 +46,7 @@ export async function submitBooking(params: {
   customer_name: string
   customer_phone: string
   turnstile_token: string
+  marketing_consent?: boolean
 }) {
   const { data, error } = await supabase.functions.invoke<BookResponse>('public-book-appointment', {
     body: params,

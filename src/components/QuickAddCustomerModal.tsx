@@ -6,6 +6,7 @@ import { formatPersonName } from '../lib/formatName'
 import { CloseIcon } from './icons'
 import styles from './QuickAddCustomerModal.module.css'
 import { FIELD_LIMITS } from '../lib/fieldLimits'
+import ConsentToggle from './ConsentToggle'
 
 interface QuickAddCustomerModalProps {
   onClose: () => void
@@ -16,6 +17,7 @@ export default function QuickAddCustomerModal({ onClose, onCreated }: QuickAddCu
   const { profile } = useAuth()
   const [name, setName] = useState('')
   const [phone, setPhone] = useState('')
+  const [consent, setConsent] = useState(false)
   const [submitting, setSubmitting] = useState(false)
   const [error, setError] = useState<string | null>(null)
 
@@ -31,6 +33,7 @@ export default function QuickAddCustomerModal({ onClose, onCreated }: QuickAddCu
         business_id: profile.business_id,
         full_name: formatPersonName(name),
         phone: phone.trim() || null,
+        ...(consent ? { marketing_consent: true, marketing_consent_source: 'manual' } : {}),
       })
       .select('id, full_name')
       .single()
@@ -92,6 +95,7 @@ export default function QuickAddCustomerModal({ onClose, onCreated }: QuickAddCu
               </span>
             )}
           </div>
+          <ConsentToggle checked={consent} onChange={setConsent} />
           <button type="submit" className="btn-primary" disabled={submitting || !!phoneLengthError(phone)}>
             {submitting ? 'Ekleniyor…' : 'Müşteri Ekle'}
           </button>

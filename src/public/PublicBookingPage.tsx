@@ -118,7 +118,7 @@ export default function PublicBookingPage() {
     weekday: 'long',
   })
 
-  async function handleSubmit(name: string, phone: string, turnstileToken: string) {
+  async function handleSubmit(name: string, phone: string, turnstileToken: string, marketingConsent: boolean) {
     if (!slug || !selectedService || !selectedSlot) return
     setSubmitting(true)
     setSubmitError(null)
@@ -132,6 +132,7 @@ export default function PublicBookingPage() {
         customer_name: name,
         customer_phone: phone,
         turnstile_token: turnstileToken,
+        marketing_consent: marketingConsent,
       })
       if (result.status === 'booked' && result.appointment) {
         setConfirmedAt(result.appointment.scheduled_at)
