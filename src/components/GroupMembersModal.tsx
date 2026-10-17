@@ -1,4 +1,5 @@
 import { useState } from 'react'
+import { matchesSearch } from '../lib/search'
 import { supabase } from '../lib/supabase'
 import { SearchIcon, PlusIcon, XCircleIcon, TrashIcon, PencilIcon } from './icons'
 import Avatar from './Avatar'
@@ -33,9 +34,7 @@ export default function GroupMembersModal({
 
   const members = memberIds.map((id) => customerById.get(id)).filter((c): c is Customer => !!c)
   const memberIdSet = new Set(memberIds)
-  const addCandidates = allCustomers.filter(
-    (c) => !memberIdSet.has(c.id) && c.full_name.toLowerCase().includes(addSearch.trim().toLowerCase()),
-  )
+  const addCandidates = allCustomers.filter((c) => !memberIdSet.has(c.id) && matchesSearch(addSearch, c.full_name))
 
   async function handleAdd(customerId: string) {
     if (!group.customGroupId) return

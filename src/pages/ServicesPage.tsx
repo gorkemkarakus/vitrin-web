@@ -1,4 +1,5 @@
 import { useCallback, useEffect, useMemo, useRef, useState, type FormEvent } from 'react'
+import { matchesSearch } from '../lib/search'
 import { Link, useSearchParams } from 'react-router-dom'
 import { supabase } from '../lib/supabase'
 import { useDismiss } from '../hooks/useDismiss'
@@ -255,9 +256,9 @@ export default function ServicesPage() {
     return map
   }, [employees, links])
 
-  const q = search.trim().toLocaleLowerCase('tr')
+  const q = search.trim()
   const filteredSorted = useMemo(() => {
-    const list = services.filter((s) => !q || s.name.toLocaleLowerCase('tr').includes(q))
+    const list = services.filter((s) => matchesSearch(q, s.name))
     return [...list].sort((a, b) => {
       if (a.is_active !== b.is_active) return a.is_active ? -1 : 1
       if (sortBy === 'ad') return a.name.localeCompare(b.name, 'tr')

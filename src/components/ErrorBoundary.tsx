@@ -11,19 +11,20 @@ interface Props {
 
 interface State {
   failed: boolean
+  resetKey?: string
 }
 
 // Bir ekran cizilirken hata olursa beyaz ekran yerine bu gorunur. Rota
 // degisince (resetKey) kendiliginden sifirlanir.
 export default class ErrorBoundary extends Component<Props, State> {
-  state: State = { failed: false }
+  state: State = { failed: false, resetKey: this.props.resetKey }
 
   static getDerivedStateFromError(): State {
     return { failed: true }
   }
 
-  componentDidUpdate(prev: Props) {
-    if (this.state.failed && prev.resetKey !== this.props.resetKey) this.setState({ failed: false })
+  static getDerivedStateFromProps(props: Props, state: State): Partial<State> | null {
+    return props.resetKey !== state.resetKey ? { failed: false, resetKey: props.resetKey } : null
   }
 
   componentDidCatch(error: Error, info: ErrorInfo) {

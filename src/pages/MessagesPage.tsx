@@ -1,4 +1,5 @@
 import { Fragment, useEffect, useMemo, useRef, useState } from 'react'
+import { matchesSearch } from '../lib/search'
 import { useNavigate, useOutletContext, useSearchParams } from 'react-router-dom'
 import { supabase } from '../lib/supabase'
 import { fetchAll } from '../lib/fetchAll'
@@ -314,10 +315,8 @@ export default function MessagesPage() {
 
   const pausedCount = useMemo(() => conversations.filter((c) => isPaused(c.customer)).length, [conversations])
 
-  const q = searchQuery.trim().toLowerCase()
   const visibleConversations = conversations.filter((c) => {
-    if (q && !(c.customer?.full_name ?? '').toLowerCase().includes(q) && !c.phone.toLowerCase().includes(q))
-      return false
+    if (!matchesSearch(searchQuery, c.customer?.full_name, c.phone)) return false
     if (listFilter === 'sende') return isPaused(c.customer)
     if (listFilter === 'bot') return !isPaused(c.customer)
     return true

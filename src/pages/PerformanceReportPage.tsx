@@ -1,4 +1,5 @@
 import { useEffect, useMemo, useState } from 'react'
+import { matchesSearch } from '../lib/search'
 import { useAuth } from '../contexts/AuthContext'
 import { supabase } from '../lib/supabase'
 import { fetchAll } from '../lib/fetchAll'
@@ -391,18 +392,15 @@ export default function PerformanceReportPage() {
   // Calisanlar birbiriyle kiyaslanmiyor/siralanmiyor — liste her zaman
   // isme gore (alfabetik) gosterilir.
   const visibleRows = useMemo(() => {
-    const q = search.trim().toLocaleLowerCase('tr-TR')
-    const filtered = q
-      ? employeeStats.filter((e) => (e.profile.full_name ?? '').toLocaleLowerCase('tr-TR').includes(q))
+    const filtered = search.trim()
+      ? employeeStats.filter((e) => matchesSearch(search, e.profile.full_name))
       : employeeStats
     return filtered
       .slice()
       .sort((a, b) => (a.profile.full_name ?? '').localeCompare(b.profile.full_name ?? '', 'tr-TR'))
   }, [employeeStats, search])
 
-  const showBotRow =
-    botStats.completedCount > 0 &&
-    (!search.trim() || 'randevu al chatbot online'.includes(search.trim().toLocaleLowerCase('tr-TR')))
+  const showBotRow = botStats.completedCount > 0 && matchesSearch(search, 'randevu al chatbot online')
 
   async function handleExportPdf() {
     if (!profile?.business_id) return

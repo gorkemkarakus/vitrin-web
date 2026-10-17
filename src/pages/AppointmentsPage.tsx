@@ -1,4 +1,5 @@
 import { useEffect, useMemo, useRef, useState, type FormEvent } from 'react'
+import { matchesSearch } from '../lib/search'
 import { useNavigate, useOutletContext, useSearchParams } from 'react-router-dom'
 import { supabase } from '../lib/supabase'
 import { NETWORK_ERROR } from '../lib/messages'
@@ -1283,13 +1284,9 @@ export default function AppointmentsPage() {
   else dayLabel = viewWeekday
 
   // Arama sorgusuna göre süzülmüş randevu listesi (müşteri/hizmet/çalışan adına göre).
-  const q = searchQuery.trim().toLowerCase()
-  const searchFiltered = q
-    ? appointments.filter(
-        (a) =>
-          customerName(a.customer_id).toLowerCase().includes(q) ||
-          serviceName(a.service_id).toLowerCase().includes(q) ||
-          employeeName(a.employee_id).toLowerCase().includes(q),
+  const searchFiltered = searchQuery.trim()
+    ? appointments.filter((a) =>
+        matchesSearch(searchQuery, customerName(a.customer_id), serviceName(a.service_id), employeeName(a.employee_id)),
       )
     : appointments
 

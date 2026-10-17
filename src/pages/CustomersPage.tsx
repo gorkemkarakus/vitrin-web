@@ -1,4 +1,5 @@
 import { useEffect, useMemo, useState } from 'react'
+import { matchesSearch } from '../lib/search'
 import { useNavigate, useSearchParams } from 'react-router-dom'
 import { supabase } from '../lib/supabase'
 import { fetchAll } from '../lib/fetchAll'
@@ -290,11 +291,9 @@ export default function CustomersPage() {
     return sum
   }, [debtByCustomer])
 
-  const q = search.trim().toLowerCase()
+  const q = search.trim()
   const filteredSorted = useMemo(() => {
-    let list = customers.filter(
-      (c) => !q || c.full_name.toLowerCase().includes(q) || (customerPhone(c) ?? '').toLowerCase().includes(q),
-    )
+    let list = customers.filter((c) => matchesSearch(q, c.full_name, customerPhone(c)))
     if (segmentFilter === 'borclu') list = list.filter((c) => (debtByCustomer.get(c.id) ?? 0) > 0)
     else if (segmentFilter !== 'tumu') list = list.filter((c) => segmentFor(c.id) === segmentFilter)
     list = [...list].sort((a, b) => {

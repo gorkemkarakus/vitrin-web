@@ -5,7 +5,7 @@ export default function Avatar({ name, size = 32 }: { name: string; size?: numbe
     .trim()
     .split(/\s+/)
     .slice(0, 2)
-    .map((w) => w[0]?.toUpperCase() ?? '')
+    .map((w) => w[0]?.toLocaleUpperCase('tr') ?? '')
     .join('')
 
   return (

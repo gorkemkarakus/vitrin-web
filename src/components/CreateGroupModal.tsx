@@ -1,4 +1,5 @@
 import { useState } from 'react'
+import { matchesSearch } from '../lib/search'
 import { useAuth } from '../contexts/AuthContext'
 import { supabase } from '../lib/supabase'
 import { SearchIcon, CheckCircleIcon } from './icons'
@@ -26,7 +27,7 @@ export default function CreateGroupModal({
   const [saving, setSaving] = useState(false)
   const [error, setError] = useState<string | null>(null)
 
-  const filtered = customers.filter((c) => c.full_name.toLowerCase().includes(search.trim().toLowerCase()))
+  const filtered = customers.filter((c) => matchesSearch(search, c.full_name))
 
   function toggle(id: string) {
     setSelected((prev) => {
