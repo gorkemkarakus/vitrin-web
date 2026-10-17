@@ -3,7 +3,7 @@
 // herhangi bir statik barindirmaya konabilir. Magaza konsollarina girilecek
 // adresler: /gizlilik.html, /kvkk.html, /kullanim-kosullari.html, /hesap-silme.html
 // Calistirma: npm run legal:html  (Node 22.6+ --experimental-strip-types)
-import { mkdirSync, readFileSync, writeFileSync } from 'node:fs'
+import { copyFileSync, existsSync, mkdirSync, readdirSync, readFileSync, writeFileSync } from 'node:fs'
 import path from 'node:path'
 import { LEGAL_DOCUMENTS } from '../src/legal/documents.ts'
 import { LEGAL_INFO } from '../src/legal/legalInfo.ts'
@@ -163,3 +163,12 @@ writeFileSync(
 )
 
 console.log(`legal/ altina ${LEGAL_DOCUMENTS.length + 1} sayfa yazildi.`)
+
+// Web paneli (yan klasordeki admin-panel) ayni sayfalari /legal/ altinda sunar.
+const webPublic = path.resolve(root, '../isletme_oto/admin-panel/public')
+if (existsSync(webPublic)) {
+  const target = path.join(webPublic, 'legal')
+  mkdirSync(target, { recursive: true })
+  for (const f of readdirSync(outDir)) copyFileSync(path.join(outDir, f), path.join(target, f))
+  console.log(`Web paneline kopyalandi: ${path.relative(root, target)}`)
+}
