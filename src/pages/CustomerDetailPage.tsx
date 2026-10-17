@@ -20,6 +20,7 @@ import { segmentForStats } from '../lib/customerSegments'
 import { toLocalDateString, DAY_MS } from '../lib/date'
 import styles from './CustomerDetailPage.module.css'
 import { PAYMENT_METHOD_OPTIONS } from '../lib/paymentMethods'
+import { allocatePayment, type OpenDebt } from '../lib/paymentAllocation'
 
 interface Customer {
   id: string
@@ -263,8 +264,23 @@ export default function CustomerDetailPage() {
     [packageStats, standaloneAppts],
   )
 
+  const openDebts = useMemo<OpenDebt[]>(
+    () => [
+      ...packageStats
+        .filter((p) => p.remaining > 0)
+        .map((p) => ({ target: `pkg:${p.pkg.id}`, date: p.pkg.created_at, remaining: p.remaining })),
+      ...standaloneAppts
+        .filter((a) => a.remaining > 0)
+        .map((a) => ({ target: `appt:${a.appt.id}`, date: a.appt.scheduled_at, remaining: a.remaining })),
+    ],
+    [packageStats, standaloneAppts],
+  )
+
   const paymentTargetOptions = useMemo(() => {
     const opts: { value: string; label: string }[] = []
+    if (openDebts.length > 0) {
+      opts.push({ value: 'auto', label: 'Otomatik — en eski borçtan başlayarak düş' })
+    }
     for (const p of packageStats) {
       if (p.remaining > 0) {
         opts.push({
@@ -281,8 +297,9 @@ export default function CustomerDetailPage() {
         })
       }
     }
+    opts.push({ value: 'none', label: 'Hiçbir borca bağlama (avans vb.)' })
     return opts
-  }, [packageStats, standaloneAppts])
+  }, [packageStats, standaloneAppts, openDebts])
 
   const insights = useMemo(() => {
     // appointments sorgusu scheduled_at'e gore azalan sirali geliyor, yani
@@ -354,21 +371,25 @@ export default function CustomerDetailPage() {
     setError(null)
     setPaySubmitting(true)
     try {
-      const package_id = payTarget.startsWith('pkg:') ? payTarget.slice(4) : null
-      const appointment_id = payTarget.startsWith('appt:') ? payTarget.slice(5) : null
-      const { error: insertErr } = await supabase.from('payments').insert({
-        // paid_at bir date kolonu; varsayilani sunucunun (UTC) CURRENT_DATE'i —
-        // Turkiye'de 00:00-03:00 arasi alinan odeme bir onceki gune yazilirdi.
-        paid_at: toLocalDateString(new Date()),
-        business_id: profile?.business_id,
-        customer_id: id,
-        appointment_id,
-        package_id,
-        amount,
-        method: payMethod,
-        note: payNote.trim() || null,
-        created_by_user_id: profile?.id,
-      })
+      const parts =
+        payTarget === 'auto'
+          ? allocatePayment(amount, openDebts)
+          : [{ target: payTarget === 'none' || payTarget === '' ? null : payTarget, amount }]
+      const { error: insertErr } = await supabase.from('payments').insert(
+        parts.map((part) => ({
+          // paid_at bir date kolonu; varsayilani sunucunun (UTC) CURRENT_DATE'i —
+          // Turkiye'de 00:00-03:00 arasi alinan odeme bir onceki gune yazilirdi.
+          paid_at: toLocalDateString(new Date()),
+          business_id: profile?.business_id,
+          customer_id: id,
+          appointment_id: part.target?.startsWith('appt:') ? part.target.slice(5) : null,
+          package_id: part.target?.startsWith('pkg:') ? part.target.slice(4) : null,
+          amount: part.amount,
+          method: payMethod,
+          note: payNote.trim() || null,
+          created_by_user_id: profile?.id,
+        })),
+      )
       if (insertErr) {
         setError('Ödeme kaydedilemedi, tekrar deneyin.')
         return
@@ -623,6 +644,7 @@ export default function CustomerDetailPage() {
           disabled={!can('odeme_al')}
           onClick={() => {
             setError(null)
+            setPayTarget(openDebts.length > 0 ? 'auto' : 'none')
             setPayModalOpen(true)
           }}
         >
