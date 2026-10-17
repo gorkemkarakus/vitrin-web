@@ -31,7 +31,7 @@ Ayrıntılı bulgular: `RELEASE_AUDIT.md` · Veri envanteri: `DATA_INVENTORY.md`
 | Hata / çevrimdışı | Ekran hata sınırı, kişisel verisiz hata raporu, çevrimdışı ve saat dilimi şeridi | tarayıcı |
 | Arama | Türkçe + aksansız ("sule" → Şule) | birim test + E2E |
 | E2E | 10 Playwright testi | `npm run test:e2e` |
-| Refaktör | AppointmentsPage 3113 → ~2590 satır (düzenleme, detay, tipler ayrı) | E2E |
+| Refaktör | AppointmentsPage 3113 → 1023 satır (form, tamamlama, detay, düzenleme ayrı bileşen) | E2E + görsel |
 | Performans | Açılış paketi 1,8 MB → 263 KB | build çıktısı |
 | PDF | Performans raporu tablo/satır taşmaları | görsel kontrol |
 | Web panel | Kampanya izni anahtarı, toplu mesajda yalnız izinliler, yazı tipleri pakette | tarayıcı |
@@ -149,7 +149,20 @@ Her birinde şu an uygulanan varsayılan yazılı; değiştirmek istersen söyle
    ```
    (Reddedilen için `status = 'rejected'`.) İşlenen talepler 1 yıl sonra otomatik silinir.
 
-### 8. Dalı birleştirmeden önce
+### 8. WhatsApp kurulumunda yapılacaklar (bot denetimi, 17 Ekim)
+
+Durum: bot zinciri **Meta → `whatsapp-webhook` (Supabase) → n8n "Vitrin - Akıllı Chatbot" → OpenAI `gpt-5-mini` (reasoning low) → randevu fonksiyonları**. Yerelde uçtan uca denendi: müşteri akışı doğru Türkçe cevap veriyor, OpenAI anahtarları (n8n'deki ve Supabase'deki) geçerli.
+
+Düzeltilen: n8n'de **personel kontrolü** (`Check Staff Number`) API anahtarı göndermiyordu → personelin WhatsApp'tan randevu yazması hiç çalışmıyordu (401 sessizce yutuluyordu). Düzeltildi, n8n'e yüklendi, denendi.
+
+Kurulumda ele alınacaklar:
+1. **n8n şu an bu bilgisayarda (Docker) çalışıyor** — bilgisayar kapalıyken bot da kapalı. Canlı için sürekli açık bir sunucu (VPS) veya n8n Cloud gerekir; `whatsapp-webhook`'un `N8N_WEBHOOK_URL` secret'ı oraya çevrilir. Son gerçek WhatsApp mesajı 4 Eylül'de işlenmiş.
+2. **Tek işletmeye bağlı**: n8n tek bir "Vitrin Business API Key" ile çağırıyor; bu anahtarın işletmesi (Güzel Salon) dışındaki bir salonun numarasına gelen mesajlar da o işletmeye gider. Çok salon için n8n kimliği `x-bot-secret` başlığına (`_app_secrets.bot_shared_secret`) çevrilmeli; fonksiyonlar o zaman işletmeyi WhatsApp numara kimliğinden bulur (sunucu tarafı hazır).
+3. n8n sürümü 2.28.6 (6 haftadan eski); canlıdan önce güncellenmeli. Docker `.env`'deki `change_me` değerleri değiştirilmeli.
+4. Küçük iyileştirme: bot, WhatsApp numarası zaten bilinirken müşteriden telefon numarası istiyor (istem/prompt ayarı).
+5. Meta tarafı: kalıcı erişim anahtarı, webhook doğrulama, şablon mesajlar (24 saat dışı hatırlatmalar için), işletme doğrulaması.
+
+### 9. Dalı birleştirmeden önce
 1. Telefonda aşağıdaki senaryoları dene.
 2. Bana "birleştir ve push et" de: iki repo için `release/store-prep` → `main` (main'deki gönderilmemiş `75438cd` de gider).
 
@@ -176,10 +189,9 @@ Her birinde şu an uygulanan varsayılan yazılı; değiştirmek istersen söyle
 - **Tek veritabanı (şimdilik)**: canlıya çıkmadan önce ayrı proje açılacak (K7). E2E testleri yalnızca test projesine karşı çalıştırılmalı.
 - **iOS hiç derlenmedi**: Windows'ta Xcode yok; AppDelegate/pbxproj değişiklikleri Mac'te ilk derlemede doğrulanmalı.
 - **Silme talepleri bildirim göndermiyor**: web formundan gelen talepler yalnızca `account_deletion_requests` tablosuna düşüyor; aşağıdaki "Silme taleplerini işleme" adımıyla haftada en az bir kez kontrol edilmeli (KVKK süresi 30 gün).
-- **Web panel (admin-panel)**: kampanya izni ve gömülü yazı tipleri eklendi; ancak yasal sayfa bağlantıları, alan uzunluk sınırları (`maxLength`) ve Türkçe hata çevirici yalnızca mobilde (veritabanı kısıtları her ikisini de korur).
 - **Müşteri notu serbest metin**: salonlar sağlık bilgisi (alerji) yazıyor; özel nitelikli veri — avukatla değerlendirilmeli.
-- **Saat dilimi**: cihaz Türkiye saatinde değilse randevu saatleri kayar (uyarı var, tam düzeltme yok — K9). Uyarı şeridi sayfa başlığının üstüne biniyor; kapatılabilir.
+- **Saat dilimi**: cihaz Türkiye saatinde değilse randevu saatleri kayar (uyarı var, tam düzeltme yok — K9).
 - **Kontrast**: soluk ipucu metinleri (`--text-faint`) açık zeminde WCAG AA altında; yalnızca ikincil metinlerde.
-- **Uzun sayfalar**: AppointmentsPage'te randevu oluşturma formu ve tamamlama ekranı hâlâ aynı dosyada (40+ ortak durum); diğer uzun sayfalar (çalışan detay 1.350 satır) bölünmedi.
+- **Uzun sayfalar**: AppointmentsPage 3.113 → 1.023 satır (form, tamamlama, detay, düzenleme ayrı bileşen). Çalışan detay (1.350), izinler (960) ve AI analiz (956) sayfaları bölünmedi; davranış sorunu yok, bakım kolaylığı için.
 - **Yedek**: ücretsiz planda otomatik indirilebilir yedek yok; `npm run backup:db` Docker gerektiriyor.
 - **Hukuk**: tüm yasal metinler taslak.

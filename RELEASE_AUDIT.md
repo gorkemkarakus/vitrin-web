@@ -133,7 +133,7 @@ Bu dosya iş başında yazıldı; her maddenin son durumu dosyanın sonundaki "S
 | S6 | kısmen | Uyarı şeridi; tam İstanbul sabitlemesi K9. |
 | S7 | tamam | `matchesSearch` (Türkçe + aksansız), baş harfler `toLocaleUpperCase('tr')`. |
 | T1 | tamam | 10 Playwright testi, ard arda çalıştırmalarda kararlı. |
-| T2 | kısmen | AppointmentsPage 3113 → ~2590 satır; oluşturma formu/tamamlama ekranı ve diğer uzun sayfalar kaldı. |
+| T2 | tamam (ana sayfa) | AppointmentsPage 3113 → 1023 satır: NewAppointmentForm, CompleteAppointmentScreen, AppointmentDetailView, EditAppointmentModal; E2E + görsel karşılaştırma ile doğrulandı. Diğer uzun sayfalar bakım için ileride. |
 | T3 | tamam | 65 → 82 birim test (arama, hata çevirici, yasal metin, kampanya, saat dilimi, adil dağıtım). |
 | Q1 | tamam | PDF görsel olarak kontrol edildi. |
 | Q2 | ertelendi | K8. |
