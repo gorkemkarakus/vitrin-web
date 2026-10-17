@@ -33,14 +33,14 @@ async function run() {
     .toFile(path.join(dir, 'icon-background.png'))
   console.log('icon-background.png yazildi')
 
-  // splash.png / splash-dark.png: uygulamanin acik-tema arka plan tonu (#f4f1ea)
+  // splash.png / splash-dark.png: uygulamanin arka plan tonu (#f5f6f8, theme.css --bg; AppSplash ile ayni)
   // uzerinde ortalanmis marka (splash ekraninda ayri bir koyu-tema tasarimi yok,
   // ayni goruntu kullaniliyor — capacitor.config.ts'teki SplashScreen ayarlariyla tutarli)
   const markSplash = await mark().resize({ width: 760, height: 760, fit: 'inside' }).toBuffer()
   for (const name of ['splash.png', 'splash-dark.png']) {
-    await sharp({ create: { width: 2732, height: 2732, channels: 4, background: '#f4f1ea' } })
+    await sharp({ create: { width: 2732, height: 2732, channels: 4, background: '#f5f6f8' } })
       .composite([{ input: markSplash, gravity: 'center' }])
-      .flatten({ background: '#f4f1ea' })
+      .flatten({ background: '#f5f6f8' })
       .png()
       .toFile(path.join(dir, name))
   }
