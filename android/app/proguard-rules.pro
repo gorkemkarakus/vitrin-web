@@ -14,8 +14,17 @@
 
 # Uncomment this to preserve the line number information for
 # debugging stack traces.
-#-keepattributes SourceFile,LineNumberTable
+-keepattributes SourceFile,LineNumberTable
 
 # If you keep the line number information, uncomment this to
 # hide the original source file name.
-#-renamesourcefileattribute SourceFile
+-renamesourcefileattribute SourceFile
+
+# Capacitor ve eklentileri: cekirdek kutuphane kendi consumer kurallarini
+# getiriyor (@CapacitorPlugin siniflari korunur); yine de kopru siniflari ve
+# WebView'e acilan JavascriptInterface metodlari adlarini korumali.
+-keepclassmembers class * {
+    @android.webkit.JavascriptInterface <methods>;
+}
+-keep class com.getcapacitor.** { *; }
+-keep class com.whitestein.securestorage.** { *; }

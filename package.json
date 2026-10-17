@@ -1,7 +1,7 @@
 {
   "name": "isletme-oto-mobil",
   "private": true,
-  "version": "0.0.0",
+  "version": "1.0.0",
   "type": "module",
   "scripts": {
     "dev": "vite",
@@ -16,7 +16,10 @@
     "icons": "node resources/gen-png.cjs && npx @capacitor/assets generate",
     "icons:notification": "node resources/gen-notification-icon.cjs",
     "test:rls": "node scripts/security/run-rls-tests.mjs",
-    "test:edge-auth": "node scripts/security/edge-function-auth-check.mjs"
+    "test:edge-auth": "node scripts/security/edge-function-auth-check.mjs",
+    "android:aab": "node scripts/android-build.mjs bundleRelease",
+    "android:apk": "node scripts/android-build.mjs assembleRelease",
+    "android:debug": "node scripts/android-build.mjs assembleDebug"
   },
   "dependencies": {
     "@capacitor/android": "^8.4.1",
