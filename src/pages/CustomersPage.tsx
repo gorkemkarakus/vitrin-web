@@ -19,6 +19,7 @@ import { initials } from '../lib/formatName'
 import { customerPhone } from '../lib/phone'
 import { FIELD_LIMITS } from '../lib/fieldLimits'
 import { useLayout } from '../lib/layout'
+import DataTable, { type Column } from '../components/DataTable'
 
 interface Customer {
   id: string
@@ -27,6 +28,7 @@ interface Customer {
   contact_phone: string | null
   email: string | null
   created_at: string
+  tags: string[] | null
 }
 
 interface Appointment {
@@ -91,6 +93,9 @@ const SORT_OPTIONS: { value: SortBy; label: string; short: string; sub: string }
   { value: 'borc', label: 'Borca göre', short: 'Borç', sub: 'En çok borcu olan en üstte' },
 ]
 
+// Tablo basligina tiklayinca ilk yon: ad A-Z, digerleri buyukten kucuge.
+const DEFAULT_DIR: Record<SortBy, 'asc' | 'desc'> = { ad: 'asc', son_randevu: 'desc', harcama: 'desc', borc: 'desc' }
+
 const SEGMENT_BADGE: Record<Segment, { label: string; className: string }> = {
   sadik: { label: 'Sadık', className: 'badgeSadik' },
   yeni: { label: 'Yeni', className: 'badgeYeni' },
@@ -119,6 +124,7 @@ export default function CustomersPage() {
     searchParams.get('sekme') === 'borclu' ? 'borclu' : 'tumu',
   )
   const [sortBy, setSortBy] = useState<SortBy>(() => (searchParams.get('sekme') === 'borclu' ? 'borc' : 'ad'))
+  const [sortDir, setSortDir] = useState<'asc' | 'desc'>(() => DEFAULT_DIR[sortBy])
   const [sortMenuOpen, setSortMenuOpen] = useState(false)
   const [visibleCount, setVisibleCount] = useState(PAGE_SIZE)
   const [addOpen, setAddOpen] = useState(false)
@@ -133,7 +139,7 @@ export default function CustomersPage() {
         fetchAll(() =>
           supabase
             .from('customers')
-            .select('id, full_name, phone, contact_phone, email, created_at')
+            .select('id, full_name, phone, contact_phone, email, created_at, tags')
             .order('full_name')
             .order('id'),
         ),
@@ -281,10 +287,22 @@ export default function CustomersPage() {
 
   const statsPeriodLabel = STATS_PERIODS.find((p) => p.value === statsPeriod)?.label ?? ''
 
+  function changeSort(next: SortBy) {
+    setSortBy(next)
+    setSortDir(DEFAULT_DIR[next])
+  }
+
   function showSegment(seg: SegmentFilter) {
     setSegmentFilter(seg)
-    if (seg === 'borclu') setSortBy('borc')
-    else if (sortBy === 'borc') setSortBy('ad')
+    if (seg === 'borclu') changeSort('borc')
+    else if (sortBy === 'borc') changeSort('ad')
+  }
+
+  // Tablo basligi: ayni sutuna tekrar tiklamak yonu cevirir.
+  function onHeaderSort(key: string) {
+    const k = key as SortBy
+    if (k === sortBy) setSortDir((d) => (d === 'asc' ? 'desc' : 'asc'))
+    else changeSort(k)
   }
 
   const totalDebt = useMemo(() => {
@@ -308,13 +326,13 @@ export default function CustomersPage() {
       const tb = sb?.lastApptAt?.getTime() ?? -Infinity
       return tb - ta
     })
-    return list
+    return sortDir === DEFAULT_DIR[sortBy] ? list : list.reverse()
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [customers, q, segmentFilter, sortBy, statsByCustomer, debtByCustomer])
+  }, [customers, q, segmentFilter, sortBy, sortDir, statsByCustomer, debtByCustomer])
 
   useEffect(() => {
     setVisibleCount(PAGE_SIZE)
-  }, [q, segmentFilter, sortBy])
+  }, [q, segmentFilter, sortBy, sortDir])
 
   const visibleCustomers = filteredSorted.slice(0, visibleCount)
 
@@ -342,6 +360,163 @@ export default function CustomersPage() {
     )
   }
 
+  const searchBox = (
+    <label className={styles.searchBox}>
+      <SearchIcon width={16} height={16} className={styles.searchIcon} />
+      <input
+        maxLength={FIELD_LIMITS.search}
+        className={styles.searchInput}
+        placeholder="İsim veya telefon ara"
+        value={search}
+        onChange={(e) => setSearch(e.target.value)}
+      />
+    </label>
+  )
+
+  const statsBlock = (
+    <div className={styles.statsGrid}>
+      <button type="button" className={styles.statCard} onClick={() => showSegment('tumu')}>
+        <span className={styles.statValue}>{customers.length}</span>
+        <span className={styles.statLabel}>Toplam müşteri</span>
+      </button>
+      <div className={styles.statCard}>
+        <span className={styles.statValue}>{currency.format(totalSpendForPeriod)}</span>
+        <span className={styles.statLabel}>Harcama · {statsPeriodLabel}</span>
+      </div>
+      <div className={styles.statCard}>
+        <span className={styles.statValue}>{newCustomerCountForPeriod}</span>
+        <span className={styles.statLabel}>Yeni · {statsPeriodLabel}</span>
+      </div>
+      <button
+        type="button"
+        className={`${styles.statCard} ${styles.statCardWarm}`}
+        onClick={() => showSegment('borclu')}
+      >
+        <span className={styles.statValue}>{currency.format(totalDebt)}</span>
+        <span className={styles.statLabel}>{counts.borclu} müşteride borç</span>
+      </button>
+    </div>
+  )
+
+  const periodBlock = (
+    <div className={styles.periodRow} role="group" aria-label="Harcama ve yeni müşteri dönemi">
+      {STATS_PERIODS.map((p) => (
+        <button
+          type="button"
+          key={p.value}
+          className={statsPeriod === p.value ? styles.periodBtnActive : styles.periodBtn}
+          aria-pressed={statsPeriod === p.value}
+          onClick={() => setStatsPeriod(p.value)}
+        >
+          {p.tab}
+        </button>
+      ))}
+    </div>
+  )
+
+  const segmentBlock = (
+    <div className={styles.segmentRow}>
+      {SEGMENT_TABS.map((tab) => (
+        <button
+          type="button"
+          key={tab.value}
+          className={segmentFilter === tab.value ? styles.segmentBtnActive : styles.segmentBtn}
+          onClick={() => showSegment(tab.value)}
+        >
+          {tab.label}
+          {isWide && <span className={styles.segmentCount}>{counts[tab.value as keyof typeof counts]}</span>}
+        </button>
+      ))}
+    </div>
+  )
+
+  const dupBanner = !loading && duplicateGroups.length > 0 && (
+    <button type="button" className={styles.dupBanner} onClick={() => setDupOpen(true)}>
+      <span>{duplicateGroups.length} olası mükerrer kayıt — aynı kişi iki kez kaydedilmiş olabilir</span>
+      <span className={styles.dupBannerAction}>İncele ›</span>
+    </button>
+  )
+
+  const columns: Column<Customer>[] = [
+    {
+      key: 'ad',
+      label: 'Müşteri',
+      sortKey: 'ad',
+      render: (c) => {
+        const seg = segmentFor(c.id)
+        return (
+          <span className={styles.cellName}>
+            <span className={`${styles.cellInitials} ${styles[`tone${c.full_name.length % 3}`]}`}>
+              {initials(c.full_name)}
+            </span>
+            <span className={styles.rowName}>{c.full_name}</span>
+            {seg && (
+              <span className={`${styles.rowPill} ${styles[SEGMENT_BADGE[seg].className]}`}>
+                {SEGMENT_BADGE[seg].label}
+              </span>
+            )}
+          </span>
+        )
+      },
+    },
+    { key: 'tel', label: 'Telefon', render: (c) => customerPhone(c) ?? <span className={styles.cellMuted}>—</span> },
+    {
+      key: 'etiket',
+      label: 'Etiketler',
+      render: (c) =>
+        c.tags && c.tags.length > 0 ? (
+          <span className={styles.cellTags}>
+            {c.tags.slice(0, 3).map((t) => (
+              <span key={t} className={styles.cellTag}>
+                {t}
+              </span>
+            ))}
+            {c.tags.length > 3 && <span className={styles.cellMuted}>+{c.tags.length - 3}</span>}
+          </span>
+        ) : null,
+    },
+    {
+      key: 'son',
+      label: 'Son geliş',
+      sortKey: 'son_randevu',
+      render: (c) => {
+        const d = statsByCustomer.get(c.id)?.lastApptAt
+        return d ? (
+          d.toLocaleDateString('tr-TR', { day: 'numeric', month: 'short', year: 'numeric' })
+        ) : (
+          <span className={styles.cellMuted}>—</span>
+        )
+      },
+    },
+    {
+      key: 'randevu',
+      label: 'Tamamlanan',
+      align: 'right',
+      render: (c) => statsByCustomer.get(c.id)?.completedCount ?? 0,
+    },
+    {
+      key: 'harcama',
+      label: 'Harcama',
+      align: 'right',
+      sortKey: 'harcama',
+      render: (c) => currency.format(statsByCustomer.get(c.id)?.totalSpend ?? 0),
+    },
+    {
+      key: 'borc',
+      label: 'Borç',
+      align: 'right',
+      sortKey: 'borc',
+      render: (c) => {
+        const debt = debtByCustomer.get(c.id) ?? 0
+        return debt > 0 ? (
+          <span className={styles.cellDebt}>{currency.format(debt)}</span>
+        ) : (
+          <span className={styles.cellMuted}>—</span>
+        )
+      },
+    },
+  ]
+
   return (
     <div className={styles.wrap}>
       <PageHeader
@@ -361,93 +536,45 @@ export default function CustomersPage() {
         }
       />
 
-      <div className={styles.searchRow}>
-        <label className={styles.searchBox}>
-          <SearchIcon width={16} height={16} className={styles.searchIcon} />
-          <input
-            maxLength={FIELD_LIMITS.search}
-            className={styles.searchInput}
-            placeholder="İsim veya telefon ara"
-            value={search}
-            onChange={(e) => setSearch(e.target.value)}
-          />
-        </label>
-        <button
-          type="button"
-          className={styles.filterBtn}
-          onClick={() => setSortMenuOpen(true)}
-          aria-haspopup="dialog"
-          aria-label="Sıralama"
-        >
-          <FilterIcon width={15} height={15} />
-          {SORT_OPTIONS.find((o) => o.value === sortBy)?.short}
-        </button>
-        <PickerSheet
-          open={sortMenuOpen}
-          title="Sırala"
-          options={SORT_OPTIONS}
-          value={sortBy}
-          onSelect={(v) => setSortBy(v as SortBy)}
-          onClose={() => setSortMenuOpen(false)}
-        />
-      </div>
-
-      <div className={styles.statsGrid}>
-        <button type="button" className={styles.statCard} onClick={() => showSegment('tumu')}>
-          <span className={styles.statValue}>{customers.length}</span>
-          <span className={styles.statLabel}>Toplam müşteri</span>
-        </button>
-        <div className={styles.statCard}>
-          <span className={styles.statValue}>{currency.format(totalSpendForPeriod)}</span>
-          <span className={styles.statLabel}>Harcama · {statsPeriodLabel}</span>
-        </div>
-        <div className={styles.statCard}>
-          <span className={styles.statValue}>{newCustomerCountForPeriod}</span>
-          <span className={styles.statLabel}>Yeni · {statsPeriodLabel}</span>
-        </div>
-        <button
-          type="button"
-          className={`${styles.statCard} ${styles.statCardWarm}`}
-          onClick={() => showSegment('borclu')}
-        >
-          <span className={styles.statValue}>{currency.format(totalDebt)}</span>
-          <span className={styles.statLabel}>{counts.borclu} müşteride borç</span>
-        </button>
-      </div>
-
-      <div className={styles.periodRow} role="group" aria-label="Harcama ve yeni müşteri dönemi">
-        {STATS_PERIODS.map((p) => (
-          <button
-            type="button"
-            key={p.value}
-            className={statsPeriod === p.value ? styles.periodBtnActive : styles.periodBtn}
-            aria-pressed={statsPeriod === p.value}
-            onClick={() => setStatsPeriod(p.value)}
-          >
-            {p.tab}
-          </button>
-        ))}
-      </div>
-
-      {!loading && duplicateGroups.length > 0 && (
-        <button type="button" className={styles.dupBanner} onClick={() => setDupOpen(true)}>
-          <span>{duplicateGroups.length} olası mükerrer kayıt — aynı kişi iki kez kaydedilmiş olabilir</span>
-          <span className={styles.dupBannerAction}>İncele ›</span>
-        </button>
+      {isWide ? (
+        <>
+          {statsBlock}
+          <div className={styles.wideToolbar}>
+            {searchBox}
+            {segmentBlock}
+            {periodBlock}
+          </div>
+          {dupBanner}
+        </>
+      ) : (
+        <>
+          <div className={styles.searchRow}>
+            {searchBox}
+            <button
+              type="button"
+              className={styles.filterBtn}
+              onClick={() => setSortMenuOpen(true)}
+              aria-haspopup="dialog"
+              aria-label="Sıralama"
+            >
+              <FilterIcon width={15} height={15} />
+              {SORT_OPTIONS.find((o) => o.value === sortBy)?.short}
+            </button>
+            <PickerSheet
+              open={sortMenuOpen}
+              title="Sırala"
+              options={SORT_OPTIONS}
+              value={sortBy}
+              onSelect={(v) => changeSort(v as SortBy)}
+              onClose={() => setSortMenuOpen(false)}
+            />
+          </div>
+          {statsBlock}
+          {periodBlock}
+          {dupBanner}
+          {segmentBlock}
+        </>
       )}
-
-      <div className={styles.segmentRow}>
-        {SEGMENT_TABS.map((tab) => (
-          <button
-            type="button"
-            key={tab.value}
-            className={segmentFilter === tab.value ? styles.segmentBtnActive : styles.segmentBtn}
-            onClick={() => showSegment(tab.value)}
-          >
-            {tab.label}
-          </button>
-        ))}
-      </div>
 
       {loading ? (
         <p className={styles.note}>Yükleniyor…</p>
@@ -460,42 +587,64 @@ export default function CustomersPage() {
         </div>
       ) : (
         <>
-          <span className={styles.sortInfo}>
-            {filteredSorted.length} müşteri · {SORT_OPTIONS.find((o) => o.value === sortBy)?.sub}
-          </span>
-          <div className={styles.list}>
-            {visibleCustomers.map((c, i) => {
-              const seg = segmentFor(c.id)
-              const s = statsByCustomer.get(c.id)
-              const debt = debtByCustomer.get(c.id) ?? 0
-              const phone = customerPhone(c)
-              return (
-                <button type="button" key={c.id} className={styles.row} onClick={() => navigate(`/musteriler/${c.id}`)}>
-                  <span className={`${styles.rowInitials} ${styles[`tone${i % 3}`]}`}>{initials(c.full_name)}</span>
-                  <span className={styles.rowMain}>
-                    <span className={styles.rowName}>{c.full_name}</span>
-                    {debt > 0 ? (
-                      <span className={`${styles.rowPill} ${styles.rowPillWarm}`}>{currency.format(debt)} borç</span>
-                    ) : seg ? (
-                      <span className={`${styles.rowPill} ${styles[SEGMENT_BADGE[seg].className]}`}>
-                        {SEGMENT_BADGE[seg].label}
+          {isWide ? (
+            <DataTable
+              ariaLabel="Müşteriler"
+              rows={visibleCustomers}
+              columns={columns}
+              rowKey={(c) => c.id}
+              rowLabel={(c) => c.full_name}
+              onRowClick={(c) => navigate(`/musteriler/${c.id}`)}
+              sort={{ key: sortBy, dir: sortDir }}
+              onSort={onHeaderSort}
+            />
+          ) : (
+            <>
+              <span className={styles.sortInfo}>
+                {filteredSorted.length} müşteri · {SORT_OPTIONS.find((o) => o.value === sortBy)?.sub}
+              </span>
+              <div className={styles.list}>
+                {visibleCustomers.map((c, i) => {
+                  const seg = segmentFor(c.id)
+                  const s = statsByCustomer.get(c.id)
+                  const debt = debtByCustomer.get(c.id) ?? 0
+                  const phone = customerPhone(c)
+                  return (
+                    <button
+                      type="button"
+                      key={c.id}
+                      className={styles.row}
+                      onClick={() => navigate(`/musteriler/${c.id}`)}
+                    >
+                      <span className={`${styles.rowInitials} ${styles[`tone${i % 3}`]}`}>{initials(c.full_name)}</span>
+                      <span className={styles.rowMain}>
+                        <span className={styles.rowName}>{c.full_name}</span>
+                        {debt > 0 ? (
+                          <span className={`${styles.rowPill} ${styles.rowPillWarm}`}>
+                            {currency.format(debt)} borç
+                          </span>
+                        ) : seg ? (
+                          <span className={`${styles.rowPill} ${styles[SEGMENT_BADGE[seg].className]}`}>
+                            {SEGMENT_BADGE[seg].label}
+                          </span>
+                        ) : (
+                          <span className={styles.rowSub}>{phone ?? 'Telefon yok'}</span>
+                        )}
                       </span>
-                    ) : (
-                      <span className={styles.rowSub}>{phone ?? 'Telefon yok'}</span>
-                    )}
-                  </span>
-                  <span className={styles.rowSide}>
-                    <span className={styles.rowAmount}>{currency.format(s?.totalSpend ?? 0)}</span>
-                    <span className={styles.rowDate}>
-                      {s?.lastApptAt
-                        ? s.lastApptAt.toLocaleDateString('tr-TR', { day: 'numeric', month: 'short' })
-                        : '—'}
-                    </span>
-                  </span>
-                </button>
-              )
-            })}
-          </div>
+                      <span className={styles.rowSide}>
+                        <span className={styles.rowAmount}>{currency.format(s?.totalSpend ?? 0)}</span>
+                        <span className={styles.rowDate}>
+                          {s?.lastApptAt
+                            ? s.lastApptAt.toLocaleDateString('tr-TR', { day: 'numeric', month: 'short' })
+                            : '—'}
+                        </span>
+                      </span>
+                    </button>
+                  )
+                })}
+              </div>
+            </>
+          )}
           {filteredSorted.length > visibleCustomers.length && (
             <button type="button" className={styles.loadMoreBtn} onClick={() => setVisibleCount((v) => v + PAGE_SIZE)}>
               Daha fazla göster ({filteredSorted.length - visibleCustomers.length} kaldı)

@@ -11,6 +11,7 @@ import PageHeader from '../components/PageHeader'
 import type { LayoutOutletContext } from '../layouts/DashboardLayout'
 import styles from './MessagesPage.module.css'
 import { DAY_MS } from '../lib/date'
+import { useLayout } from '../lib/layout'
 
 interface RawMessage {
   role: 'user' | 'assistant'
@@ -102,6 +103,7 @@ function dayLabel(iso: string) {
 export default function MessagesPage() {
   const { profile } = useAuth()
   const { searchQuery } = useOutletContext<LayoutOutletContext>()
+  const { isWide } = useLayout()
 
   const [conversations, setConversations] = useState<Conversation[]>([])
   const [botBookingsToday, setBotBookingsToday] = useState(0)
@@ -324,26 +326,26 @@ export default function MessagesPage() {
 
   if (loading) return <p className={styles.note}>Yükleniyor…</p>
 
+  function closeThread() {
+    setSelectedPhone(null)
+    setDirectCustomer(null)
+  }
+
+  let threadView: React.ReactElement | null = null
   if (selectedConversation) {
     const paused = isPaused(selectedConversation.customer)
     const name = displayName(selectedConversation)
     const isKnown = name !== selectedConversation.phone
     // Mesajlari gun gun gruplayip "Bugun / Dun / 12 Eki" ayiraclari ekle.
     let lastDay = ''
-    return (
+    threadView = (
       <div className={styles.thread}>
         <div className={styles.threadHead}>
-          <button
-            type="button"
-            className={styles.threadBack}
-            onClick={() => {
-              setSelectedPhone(null)
-              setDirectCustomer(null)
-            }}
-            aria-label="Konuşmalara dön"
-          >
-            <ChevronRightIcon width={16} height={16} className={styles.backIcon} />
-          </button>
+          {!isWide && (
+            <button type="button" className={styles.threadBack} onClick={closeThread} aria-label="Konuşmalara dön">
+              <ChevronRightIcon width={16} height={16} className={styles.backIcon} />
+            </button>
+          )}
           <span
             className={`${styles.avatar} ${styles.avatarSmall} ${paused ? styles.avatarWarm : isKnown ? '' : styles.avatarGray}`}
           >
@@ -360,6 +362,11 @@ export default function MessagesPage() {
               onClick={() => navigate(`/musteriler/${selectedConversation.customer!.id}`)}
             >
               Profil
+            </button>
+          )}
+          {isWide && (
+            <button type="button" className={styles.threadClose} onClick={closeThread} aria-label="Konuşmayı kapat">
+              ✕
             </button>
           )}
         </div>
@@ -442,21 +449,11 @@ export default function MessagesPage() {
     )
   }
 
-  return (
-    <div className={styles.page}>
-      <PageHeader
-        back="/daha-fazla"
-        title="Mesajlar"
-        action={
-          botLive !== null && (
-            <span className={botLive ? styles.botPill : `${styles.botPill} ${styles.botPillOff}`}>
-              <span className={styles.botDot} />
-              {botLive ? 'Bot açık' : 'Bot bağlı değil'}
-            </span>
-          )
-        }
-      />
+  // Telefonda konusma tam ekran acilir; genis ekranda listenin sagina oturur.
+  if (threadView && !isWide) return threadView
 
+  const listBody = (
+    <>
       <div className={styles.statsRow}>
         <div className={styles.statTile}>
           <span className={styles.statValue}>{todayConversationCount}</span>
@@ -510,8 +507,15 @@ export default function MessagesPage() {
             const paused = isPaused(c.customer)
             const name = displayName(c)
             const isKnown = name !== c.phone
+            const active = isWide && c.phone === selectedPhone
             return (
-              <button key={c.phone} type="button" className={styles.convRow} onClick={() => openConversation(c.phone)}>
+              <button
+                key={c.phone}
+                type="button"
+                className={active ? `${styles.convRow} ${styles.convRowActive}` : styles.convRow}
+                aria-current={active ? 'true' : undefined}
+                onClick={() => openConversation(c.phone)}
+              >
                 <span className={`${styles.avatar} ${paused ? styles.avatarWarm : isKnown ? '' : styles.avatarGray}`}>
                   {isKnown ? avatarText(name) : '+90'}
                 </span>
@@ -542,6 +546,43 @@ export default function MessagesPage() {
             )
           })}
         </div>
+      )}
+    </>
+  )
+
+  return (
+    <div className={styles.page}>
+      <PageHeader
+        back="/daha-fazla"
+        title="Mesajlar"
+        action={
+          botLive !== null && (
+            <span className={botLive ? styles.botPill : `${styles.botPill} ${styles.botPillOff}`}>
+              <span className={styles.botDot} />
+              {botLive ? 'Bot açık' : 'Bot bağlı değil'}
+            </span>
+          )
+        }
+      />
+
+      {isWide ? (
+        <div className={styles.split}>
+          <aside className={styles.splitList} aria-label="Konuşmalar">
+            {listBody}
+          </aside>
+          <section className={styles.splitThread} aria-label="Konuşma">
+            {threadView ?? (
+              <div className={styles.splitEmpty}>
+                <span className={styles.emptyIcon}>
+                  <MessagesIcon width={26} height={26} />
+                </span>
+                <p className={styles.note}>Okumak için soldan bir konuşma seç.</p>
+              </div>
+            )}
+          </section>
+        </div>
+      ) : (
+        listBody
       )}
     </div>
   )

@@ -1,0 +1,79 @@
+.scroll {
+  background: var(--panel);
+  border-radius: 20px;
+  overflow-x: auto;
+}
+
+.table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 14px;
+  font-variant-numeric: tabular-nums;
+}
+
+.table th {
+  position: sticky;
+  top: 0;
+  background: var(--panel);
+  text-align: left;
+  font-size: 12px;
+  font-weight: 700;
+  color: var(--text-muted);
+  padding: 14px 16px 10px;
+  border-bottom: 1px solid var(--line-2);
+  white-space: nowrap;
+}
+
+.table td {
+  padding: 11px 16px;
+  border-bottom: 1px solid var(--line);
+  color: var(--text-strong);
+  vertical-align: middle;
+}
+
+.table tbody tr:last-child td {
+  border-bottom: none;
+}
+
+.right {
+  text-align: right !important;
+}
+
+.clickable {
+  cursor: pointer;
+}
+
+.clickable:hover td {
+  background: var(--panel-2);
+}
+
+.clickable:focus-visible {
+  outline: 2px solid var(--signal);
+  outline-offset: -2px;
+}
+
+.sortBtn {
+  border: none;
+  background: none;
+  padding: 0;
+  font: inherit;
+  color: inherit;
+  cursor: pointer;
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+}
+
+.sortBtn:hover,
+.sortActive {
+  color: var(--text);
+}
+
+.arrow {
+  font-size: 11px;
+  opacity: 0.55;
+}
+
+.sortActive .arrow {
+  opacity: 1;
+}
