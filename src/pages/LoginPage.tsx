@@ -8,13 +8,27 @@ import { FIELD_LIMITS } from '../lib/fieldLimits'
 import { RegisterForm } from './RegisterForm'
 import CheckEmail from './CheckEmail'
 import ResetCodeForm from './ResetCodeForm'
+import AuthSplit from './AuthSplit'
+import { useLayout } from '../lib/layout'
 
 type Mode = 'intro' | 'login' | 'forgot' | 'register' | 'check_email'
 
 // Ayni adrese ust uste kod istenmesin diye.
 const RESEND_SECONDS = 60
 
+// Genis ekranda (>= 1024px) ayni ekranlar AuthSplit icinde (solda fotograf,
+// sagda form) acilir; tanitim ekrani atlanir, dogrudan giris formu gelir.
 export default function LoginPage() {
+  const { isWide } = useLayout()
+  if (!isWide) return <LoginScreens wide={false} />
+  return (
+    <AuthSplit>
+      <LoginScreens wide />
+    </AuthSplit>
+  )
+}
+
+function LoginScreens({ wide }: { wide: boolean }) {
   const navigate = useNavigate()
   const [searchParams] = useSearchParams()
   const { signIn, resetPassword } = useAuth()
@@ -96,7 +110,7 @@ export default function LoginPage() {
     return <CheckEmail email={pendingEmail} justSent={codeJustSent} onBack={() => setMode('login')} />
   }
 
-  if (mode === 'intro') {
+  if (mode === 'intro' && !wide) {
     return (
       <div className={styles.intro}>
         <span className={styles.ringLeft} aria-hidden="true" />
