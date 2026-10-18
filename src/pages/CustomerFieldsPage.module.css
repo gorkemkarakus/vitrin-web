@@ -1,0 +1,85 @@
+.wrap {
+  display: flex;
+  flex-direction: column;
+  gap: 18px;
+  max-width: 1080px;
+}
+
+.grid {
+  display: grid;
+  grid-template-columns: minmax(0, 1.6fr) minmax(320px, 1fr);
+  gap: 16px;
+  align-items: start;
+}
+
+.table {
+  display: flex;
+  flex-direction: column;
+}
+
+.thead,
+.tr {
+  display: grid;
+  grid-template-columns: minmax(0, 1.2fr) minmax(0, 1.4fr) 72px 40px;
+  gap: 12px;
+  align-items: center;
+  padding: 10px 0;
+}
+
+.thead {
+  font-size: 12px;
+  font-weight: 700;
+  color: var(--text-muted);
+  border-bottom: 1px solid var(--line-2);
+  padding-top: 0;
+}
+
+.tr {
+  border-bottom: 1px solid var(--line-soft);
+  font-size: 14px;
+}
+
+.tr:last-child {
+  border-bottom: none;
+}
+
+.name {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  font-weight: 700;
+  color: var(--text);
+  min-width: 0;
+}
+
+.name svg {
+  color: var(--purple-text);
+  flex-shrink: 0;
+}
+
+.muted {
+  color: var(--text-dim);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.order {
+  display: flex;
+  gap: 4px;
+}
+
+.order button {
+  width: 30px;
+  height: 30px;
+  border: none;
+  border-radius: 8px;
+  background: var(--panel-2);
+  color: var(--text);
+  cursor: pointer;
+}
+
+.order button:disabled {
+  opacity: 0.35;
+  cursor: default;
+}

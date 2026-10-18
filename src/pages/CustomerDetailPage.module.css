@@ -618,3 +618,42 @@
 .anonymizeBtn:disabled {
   opacity: 0.6;
 }
+
+/* ---------- Genis ekran: solda kisi + ozet, sagda sekmeler ---------- */
+
+/* Dar ekranda kaplar akisi degistirmez. */
+.contents {
+  display: contents;
+}
+
+.wideGrid {
+  display: grid;
+  grid-template-columns: minmax(300px, 380px) minmax(0, 1fr);
+  gap: 24px;
+  align-items: start;
+}
+
+.wideSide,
+.wideMain {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+  min-width: 0;
+}
+
+@media (min-width: 1024px) {
+  .tabs {
+    justify-content: flex-start;
+    gap: 28px;
+  }
+
+  /* Pencereler genis ekranda alttan kayan sayfa degil, ortada kutu. */
+  .modalBackdrop {
+    align-items: center;
+  }
+
+  .modalCard {
+    border-radius: 24px;
+    padding: 24px;
+  }
+}

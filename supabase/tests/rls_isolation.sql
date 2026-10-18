@@ -7,6 +7,7 @@
 --   B) Isletme A'nin yetkisiz calisani (kasa ve yetki yonetimi yok) kendi
 --      isletmesinde yoneticiye ait islemleri dener.
 --   C) anon rolu (giris yapmamis) tablolari okuyamaz.
+--   D) CRM: musteri alanlari / aktivite kaydi / zaman cizelgesi kurallari.
 -- Sonuc: test, gecti, ayrinti. Basarisiz satir varsa run-rls-tests.mjs 1 ile cikar.
 --
 -- Test hesaplari: salon_admin@test.com, salon_user@test.com (Guzel Salon),
@@ -136,6 +137,67 @@ begin
       insert into rls_result values ('C anon okuma: ' || t, true, 'reddedildi');
     end;
   end loop;
+  perform set_config('role', 'postgres', true);
+end $$;
+
+-- D) CRM: musteri alanlari, aktivite kaydi, zaman cizelgesi
+do $$
+declare
+  other uuid := (select business_id from profiles where id = (select id from auth.users where email = 'studio_admin@test.com'));
+  mine uuid := (select business_id from profiles where id = (select id from auth.users where email = 'salon_admin@test.com'));
+  other_customer uuid := (select id from customers where business_id = other limit 1);
+  my_customer uuid := (select id from customers where business_id = mine limit 1);
+  admin_note uuid;
+  n int;
+begin
+  -- Yoneticinin notu (calisan silmeyi deneyecek)
+  perform pg_temp.as_user('salon_admin@test.com');
+  insert into public.customer_activities (business_id, customer_id, kind, body)
+  values (mine, my_customer, 'not', 'RLS testi yonetici notu') returning id into admin_note;
+
+  begin
+    insert into public.customer_activities (business_id, customer_id, kind, body)
+    values (other, other_customer, 'not', 'RLS testi');
+    insert into rls_result values ('D baska isletmenin musterisine not', false, 'eklendi');
+  exception when others then
+    insert into rls_result values ('D baska isletmenin musterisine not', true, 'reddedildi');
+  end;
+  begin
+    -- Kendi isletme kimligiyle ama baska isletmenin musterisine
+    insert into public.customer_activities (business_id, customer_id, kind, body)
+    values (mine, other_customer, 'not', 'RLS testi');
+    insert into rls_result values ('D kendi kimligiyle yabanci musteriye not', false, 'eklendi');
+  exception when others then
+    insert into rls_result values ('D kendi kimligiyle yabanci musteriye not', true, 'reddedildi');
+  end;
+  begin
+    insert into public.customer_field_definitions (business_id, label, type) values (other, 'RLS testi', 'text');
+    insert into rls_result values ('D baska isletmeye musteri alani', false, 'eklendi');
+  exception when others then
+    insert into rls_result values ('D baska isletmeye musteri alani', true, 'reddedildi');
+  end;
+  select count(*) into n from public.customer_timeline(other_customer);
+  insert into rls_result values ('D baska isletmenin zaman cizelgesi', n = 0, n || ' satir');
+
+  -- Calisan
+  perform set_config('role', 'postgres', true);
+  perform pg_temp.as_user('salon_user@test.com');
+  begin
+    insert into public.customer_field_definitions (business_id, label, type) values (mine, 'RLS testi', 'text');
+    insert into rls_result values ('D calisan musteri alani tanimlayamaz', false, 'eklendi');
+  exception when others then
+    insert into rls_result values ('D calisan musteri alani tanimlayamaz', true, 'reddedildi');
+  end;
+  with d as (delete from public.customer_activities where id = admin_note returning 1) select count(*) into n from d;
+  insert into rls_result values ('D calisan yoneticinin notunu silemez', n = 0, n || ' satir');
+  begin
+    insert into public.customer_activities (business_id, customer_id, kind, body)
+    values (mine, my_customer, 'arama', 'RLS testi calisan notu');
+    insert into rls_result values ('D calisan kendi musterisine not ekler', true, 'eklendi');
+  exception when others then
+    insert into rls_result values ('D calisan kendi musterisine not ekler', false, sqlerrm);
+  end;
+
   perform set_config('role', 'postgres', true);
 end $$;
 

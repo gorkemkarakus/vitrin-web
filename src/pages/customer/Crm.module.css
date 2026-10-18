@@ -1,0 +1,449 @@
+/* 360° musteri karti parcalari: profil karti, zaman cizelgesi, alan ayarlari. */
+
+.card {
+  background: var(--panel);
+  border-radius: 22px;
+  padding: 16px;
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.cardHead {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+}
+
+.cardTitle {
+  font-family: var(--font-heading);
+  font-size: 16px;
+  font-weight: 600;
+  color: var(--text);
+}
+
+.linkBtn {
+  border: none;
+  background: none;
+  padding: 4px 0;
+  font-family: var(--font-body);
+  font-size: 13px;
+  font-weight: 700;
+  color: var(--signal);
+  cursor: pointer;
+}
+
+.linkBtn:hover {
+  text-decoration: underline;
+}
+
+/* ---------- Profil karti ---------- */
+
+.rows {
+  display: flex;
+  flex-direction: column;
+}
+
+.row {
+  display: flex;
+  justify-content: space-between;
+  align-items: baseline;
+  gap: 12px;
+  padding: 9px 0;
+  border-top: 1px solid var(--line-soft);
+  font-size: 14px;
+}
+
+.row:first-child {
+  border-top: none;
+  padding-top: 0;
+}
+
+.rowLabel {
+  color: var(--text-dim);
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  flex-shrink: 0;
+}
+
+.rowValue {
+  color: var(--text);
+  font-weight: 600;
+  text-align: right;
+  overflow-wrap: anywhere;
+  user-select: text;
+}
+
+.rowValueSoon {
+  color: var(--accent-text);
+}
+
+.tags {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+}
+
+.tag {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  background: var(--info-bg);
+  color: var(--info-text);
+  border-radius: 999px;
+  padding: 4px 10px;
+  font-size: 12px;
+  font-weight: 700;
+}
+
+.tagRemove {
+  border: none;
+  background: none;
+  padding: 0 0 0 2px;
+  color: inherit;
+  font-size: 13px;
+  line-height: 1;
+  cursor: pointer;
+  opacity: 0.7;
+}
+
+.tagSuggest {
+  border: 1px dashed var(--line-strong);
+  background: transparent;
+  color: var(--text-dim);
+  border-radius: 999px;
+  padding: 4px 10px;
+  font-family: var(--font-body);
+  font-size: 12px;
+  font-weight: 700;
+  cursor: pointer;
+}
+
+.tagSuggest:hover {
+  border-color: var(--signal);
+  color: var(--signal);
+}
+
+.emptyHint {
+  font-size: 13px;
+  color: var(--text-dim);
+  line-height: 1.45;
+}
+
+.sensitive {
+  color: var(--purple-text);
+}
+
+/* ---------- Zaman cizelgesi ---------- */
+
+.composer {
+  background: var(--panel);
+  border-radius: 22px;
+  padding: 14px;
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+.kinds {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+}
+
+.kind,
+.kindActive {
+  border: none;
+  border-radius: 999px;
+  padding: 6px 12px;
+  font-family: var(--font-body);
+  font-size: 13px;
+  font-weight: 700;
+  cursor: pointer;
+}
+
+.kind {
+  background: var(--panel-2);
+  color: var(--text-dim);
+}
+
+.kind:hover {
+  color: var(--text);
+}
+
+.kindActive {
+  background: var(--signal);
+  color: #fff;
+}
+
+.composerInput {
+  width: 100%;
+  min-height: 72px;
+  resize: vertical;
+  border: 1px solid var(--line-2);
+  border-radius: 14px;
+  padding: 10px 12px;
+  font-family: var(--font-body);
+  font-size: 14px;
+  line-height: 1.45;
+  color: var(--text);
+  background: var(--panel);
+}
+
+.composerInput:focus {
+  outline: none;
+  border-color: var(--signal);
+}
+
+.composerFoot {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+}
+
+.composerHint {
+  font-size: 12px;
+  color: var(--text-faint);
+}
+
+.saveBtn {
+  border: none;
+  border-radius: 12px;
+  padding: 9px 18px;
+  background: var(--signal);
+  color: #fff;
+  font-family: var(--font-body);
+  font-size: 14px;
+  font-weight: 700;
+  cursor: pointer;
+}
+
+.saveBtn:disabled {
+  opacity: 0.5;
+  cursor: default;
+}
+
+.filters {
+  display: flex;
+  gap: 6px;
+  flex-wrap: wrap;
+}
+
+.month {
+  font-size: 12px;
+  font-weight: 700;
+  color: var(--text-muted);
+  padding: 8px 4px 4px;
+}
+
+.items {
+  background: var(--panel);
+  border-radius: 22px;
+  padding: 6px 16px;
+  display: flex;
+  flex-direction: column;
+}
+
+.item {
+  display: grid;
+  grid-template-columns: 12px minmax(0, 1fr) auto;
+  gap: 12px;
+  padding: 12px 0;
+  border-top: 1px solid var(--line-soft);
+}
+
+.item:first-child {
+  border-top: none;
+}
+
+.dot {
+  width: 10px;
+  height: 10px;
+  margin-top: 5px;
+  border-radius: 50%;
+  background: var(--line-strong);
+}
+
+.dot_randevu {
+  background: var(--signal);
+}
+.dot_odeme {
+  background: var(--ok-text);
+}
+.dot_paket {
+  background: var(--purple-text);
+}
+.dot_not,
+.dot_arama,
+.dot_mesaj,
+.dot_ziyaret {
+  background: var(--accent);
+}
+.dot_sikayet {
+  background: var(--danger-text);
+}
+.dot_whatsapp {
+  background: #25a35a;
+}
+.dot_izin {
+  background: var(--info-text);
+}
+
+.itemMain {
+  display: flex;
+  flex-direction: column;
+  gap: 3px;
+  min-width: 0;
+}
+
+.itemTitle {
+  font-size: 14px;
+  font-weight: 700;
+  color: var(--text);
+}
+
+.itemDetail {
+  font-size: 14px;
+  line-height: 1.45;
+  color: var(--text-strong);
+  white-space: pre-wrap;
+  overflow-wrap: anywhere;
+  user-select: text;
+}
+
+.itemDetailClamp {
+  display: -webkit-box;
+  -webkit-line-clamp: 2;
+  -webkit-box-orient: vertical;
+  overflow: hidden;
+  white-space: normal;
+}
+
+.itemMeta {
+  font-size: 12px;
+  color: var(--text-muted);
+}
+
+.itemSide {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-end;
+  gap: 4px;
+}
+
+.amount {
+  font-size: 14px;
+  font-weight: 700;
+  color: var(--text);
+  font-variant-numeric: tabular-nums;
+  white-space: nowrap;
+}
+
+.amountIn {
+  color: var(--ok-text);
+}
+
+.voided {
+  text-decoration: line-through;
+  color: var(--text-faint);
+}
+
+.pill {
+  font-size: 11px;
+  font-weight: 700;
+  border-radius: 999px;
+  padding: 2px 8px;
+  background: var(--panel-2);
+  color: var(--text-dim);
+  white-space: nowrap;
+}
+
+.pillSoon {
+  background: var(--info-bg);
+  color: var(--info-text);
+}
+
+.pillWarn {
+  background: var(--danger-bg);
+  color: var(--danger-text);
+}
+
+.deleteBtn {
+  border: none;
+  background: none;
+  padding: 2px 0;
+  font-family: var(--font-body);
+  font-size: 12px;
+  font-weight: 700;
+  color: var(--text-faint);
+  cursor: pointer;
+}
+
+.deleteBtn:hover {
+  color: var(--danger-text);
+}
+
+.error {
+  font-size: 13px;
+  color: var(--danger-text);
+  background: var(--danger-bg);
+  border-radius: 12px;
+  padding: 10px 12px;
+}
+
+/* ---------- Duzenleme penceresi alanlari ---------- */
+
+.tagInputRow {
+  display: flex;
+  gap: 8px;
+}
+
+.tagInputRow input {
+  flex: 1;
+}
+
+.addBtn {
+  border: none;
+  border-radius: 12px;
+  padding: 0 14px;
+  background: var(--panel-2);
+  color: var(--text);
+  font-family: var(--font-body);
+  font-size: 14px;
+  font-weight: 700;
+  cursor: pointer;
+}
+
+.checkRow {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  font-size: 14px;
+  color: var(--text);
+  cursor: pointer;
+}
+
+.checkRow input {
+  width: 18px;
+  height: 18px;
+  accent-color: var(--signal);
+}
+
+.kvkkNote {
+  font-size: 12px;
+  line-height: 1.45;
+  color: var(--purple-text);
+  background: var(--purple-bg);
+  border-radius: 12px;
+  padding: 10px 12px;
+  margin-bottom: 14px;
+}
+
+.timeline {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}

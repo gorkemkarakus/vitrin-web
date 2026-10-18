@@ -25,6 +25,16 @@ import styles from './CustomerDetailPage.module.css'
 import { PAYMENT_METHOD_OPTIONS } from '../lib/paymentMethods'
 import { allocatePayment, type OpenDebt } from '../lib/paymentAllocation'
 import { FIELD_LIMITS } from '../lib/fieldLimits'
+import { useLayout } from '../lib/layout'
+import {
+  fetchFieldDefinitions,
+  type CustomFieldValues,
+  type CustomerSource,
+  type FieldDefinition,
+} from '../lib/customerCrm'
+import CustomerTimeline from './customer/CustomerTimeline'
+import CustomerProfileCard from './customer/CustomerProfileCard'
+import CustomerCrmModal from './customer/CustomerCrmModal'
 
 interface Customer {
   id: string
@@ -37,6 +47,10 @@ interface Customer {
   marketing_consent: boolean
   marketing_consent_at: string | null
   marketing_consent_source: string | null
+  birthday: string | null
+  source: CustomerSource | null
+  tags: string[] | null
+  custom_fields: CustomFieldValues | null
 }
 
 interface Service {
@@ -96,10 +110,11 @@ const SESSION_STATUS_LABEL: Record<Appointment['status'], string> = {
   gelmedi: 'Gelmedi',
 }
 
-type DetailTab = 'ozet' | 'randevular' | 'odemeler' | 'paket'
+type DetailTab = 'ozet' | 'gecmis' | 'randevular' | 'odemeler' | 'paket'
 
 const DETAIL_TABS: { value: DetailTab; label: string }[] = [
   { value: 'ozet', label: 'Özet' },
+  { value: 'gecmis', label: 'Geçmiş' },
   { value: 'randevular', label: 'Randevular' },
   { value: 'odemeler', label: 'Ödemeler' },
   { value: 'paket', label: 'Paket' },
@@ -158,6 +173,10 @@ export default function CustomerDetailPage() {
   const [editCustomerSubmitting, setEditCustomerSubmitting] = useState(false)
   const [error, setError] = useState<string | null>(null)
   const [tab, setTab] = useState<DetailTab>('ozet')
+  const [fieldDefs, setFieldDefs] = useState<FieldDefinition[]>([])
+  const [crmOpen, setCrmOpen] = useState(false)
+  // Genis ekran: solda kisi + ozet, sagda sekmeler (Ozet sekmesi yok, Gecmis ile acilir).
+  const { isWide } = useLayout()
 
   async function loadData() {
     if (!id) return
@@ -167,7 +186,7 @@ export default function CustomerDetailPage() {
         supabase
           .from('customers')
           .select(
-            'id, full_name, phone, contact_phone, email, notes, created_at, marketing_consent, marketing_consent_at, marketing_consent_source',
+            'id, full_name, phone, contact_phone, email, notes, created_at, marketing_consent, marketing_consent_at, marketing_consent_source, birthday, source, tags, custom_fields',
           )
           .eq('id', id)
           .maybeSingle(),
@@ -189,6 +208,9 @@ export default function CustomerDetailPage() {
         supabase.from('profiles').select('id, full_name'),
       ])
     setCustomer(cust ?? null)
+    fetchFieldDefinitions()
+      .then(setFieldDefs)
+      .catch(() => setFieldDefs([]))
     setAppointments(appts ?? [])
     setPackages(pkgs ?? [])
     setPayments(pays ?? [])
@@ -610,254 +632,301 @@ export default function CustomerDetailPage() {
   })
   const rawPhone = customer.phone
 
+  const crmCustomer = {
+    birthday: customer.birthday,
+    source: customer.source,
+    tags: customer.tags ?? [],
+    custom_fields: customer.custom_fields ?? {},
+  }
+  const profileCard = <CustomerProfileCard customer={crmCustomer} fields={fieldDefs} onEdit={() => setCrmOpen(true)} />
+  const summaryBlock = (
+    <>
+      <div className={styles.balanceCard}>
+        <div className={styles.balanceCol}>
+          <span className={styles.balanceLabel}>Toplam ödenen</span>
+          <span className={styles.balanceValue}>{currency.format(totalPaid)}</span>
+        </div>
+        <div className={`${styles.balanceCol} ${styles.balanceColDivided}`}>
+          <span className={styles.balanceLabel}>Kalan ödeme</span>
+          <span
+            className={
+              totalRemaining > 0
+                ? `${styles.balanceValue} ${styles.textWarm}`
+                : `${styles.balanceValue} ${styles.textOk}`
+            }
+          >
+            {totalRemaining > 0 ? currency.format(totalRemaining) : 'Borç yok'}
+          </span>
+        </div>
+      </div>
+
+      <div className={styles.listCard}>
+        <div className={styles.insightRow}>
+          <span className={styles.insightLabel}>Son ziyaret</span>
+          <span className={styles.insightValue}>{insights.lastVisitLabel}</span>
+        </div>
+        <div className={styles.insightRow}>
+          <span className={styles.insightLabel}>Favori hizmet</span>
+          <span className={styles.insightValue}>{insights.favoriteServiceName ?? '—'}</span>
+        </div>
+        <div className={styles.insightRow}>
+          <span className={styles.insightLabel}>Favori çalışan</span>
+          <span className={styles.insightValue}>
+            {insights.favoriteEmployeeName ? insights.favoriteEmployeeName.split(' ')[0] : '—'}
+          </span>
+        </div>
+        <div className={styles.insightRow}>
+          <span className={styles.insightLabel}>Ziyaret sıklığı</span>
+          <span className={styles.insightValue}>
+            {insights.avgIntervalLabel === '—' ? '—' : `${insights.avgIntervalLabel.replace(' gün', '')} günde bir`}
+          </span>
+        </div>
+        <div className={styles.insightRow}>
+          <span className={styles.insightLabel}>Toplam ziyaret</span>
+          <span className={styles.insightValue}>{insights.totalVisits}</span>
+        </div>
+      </div>
+
+      {activePackages.map((p) => (
+        <button type="button" key={p.pkg.id} className={styles.pkgMini} onClick={() => setTab('paket')}>
+          <span className={styles.pkgMiniTile}>
+            {p.completed}/{p.pkg.total_sessions}
+          </span>
+          <span className={styles.pkgMiniText}>
+            <span className={styles.pkgMiniName}>{p.svc?.name ?? 'Hizmet'} paketi</span>
+            <span className={styles.pkgMiniSub}>
+              {Math.max(0, p.pkg.total_sessions - p.completed)} seans kaldı ·{' '}
+              {new Date(p.pkg.created_at).toLocaleDateString('tr-TR', { day: 'numeric', month: 'short' })}’da alındı
+            </span>
+          </span>
+        </button>
+      ))}
+
+      <button
+        type="button"
+        className={customer.notes ? styles.noteCard : styles.noteCardEmpty}
+        onClick={openEditCustomer}
+      >
+        <span className={styles.noteLabel}>Müşteri notu</span>
+        <span className={styles.noteText}>
+          {customer.notes || 'Alerji, boya formülü, tercihler… Not eklemek için dokun.'}
+        </span>
+      </button>
+    </>
+  )
+  const activeTab: DetailTab = isWide && tab === 'ozet' ? 'gecmis' : tab
+  const visibleTabs = isWide ? DETAIL_TABS.filter((t) => t.value !== 'ozet') : DETAIL_TABS
+
   return (
     <div className={styles.wrap}>
-      <div className={styles.topRow}>
-        <button type="button" className={styles.backLink} onClick={() => navigate('/musteriler')}>
-          <ChevronRightIcon width={16} height={16} className={styles.backIcon} />
-          Müşteriler
-        </button>
-        <button type="button" className="hdr-pill" onClick={openEditCustomer}>
-          Düzenle
-        </button>
-      </div>
-
-      <div className={styles.hero}>
-        <span className={styles.heroAvatar}>{initials(customer.full_name)}</span>
-        <span className={styles.heroName}>{customer.full_name}</span>
-        <span className={styles.heroSub}>
-          {[phone, customer.email].filter(Boolean).join(' · ') || 'İletişim bilgisi yok'}
-        </span>
-        {segment && <span className={styles.heroBadge}>{segment === 'sadik' ? 'Sadık müşteri' : 'Yeni müşteri'}</span>}
-      </div>
-
-      <div className={styles.actions}>
-        {phone ? (
-          <a className={styles.actionBtn} href={`tel:${phone}`}>
-            <PhoneIcon width={18} height={18} />
-            Ara
-          </a>
-        ) : (
-          <button type="button" className={styles.actionBtn} onClick={openEditCustomer}>
-            <PhoneIcon width={18} height={18} />
-            Ara
-          </button>
-        )}
-        <button
-          type="button"
-          className={styles.actionBtn}
-          disabled={!(rawPhone || phone) || !can('mesajlar')}
-          onClick={() => navigate(`/mesajlar?musteri=${customer.id}`)}
-        >
-          <MessagesIcon width={18} height={18} />
-          Mesaj
-        </button>
-        <button type="button" className={styles.actionBtn} onClick={() => navigate('/randevular?yeni=1')}>
-          <CalendarIcon width={18} height={18} />
-          Randevu
-        </button>
-        <button
-          type="button"
-          className={`${styles.actionBtn} ${styles.actionBtnPrimary}`}
-          disabled={!can('odeme_al')}
-          onClick={() => {
-            setError(null)
-            setPayTarget(openDebts.length > 0 ? 'auto' : 'none')
-            setPayModalOpen(true)
-          }}
-        >
-          <WalletIcon width={18} height={18} />
-          Ödeme
-        </button>
-      </div>
-
-      <div className={styles.tabs}>
-        {DETAIL_TABS.map((t) => (
-          <button
-            type="button"
-            key={t.value}
-            className={tab === t.value ? styles.tabActive : styles.tab}
-            onClick={() => setTab(t.value)}
-          >
-            {t.label}
-            {t.value === 'randevular' && appointments.length > 0 && (
-              <span className={styles.tabCount}> {appointments.length}</span>
-            )}
-          </button>
-        ))}
-      </div>
-
-      {tab === 'ozet' && (
-        <>
-          <div className={styles.balanceCard}>
-            <div className={styles.balanceCol}>
-              <span className={styles.balanceLabel}>Toplam ödenen</span>
-              <span className={styles.balanceValue}>{currency.format(totalPaid)}</span>
-            </div>
-            <div className={`${styles.balanceCol} ${styles.balanceColDivided}`}>
-              <span className={styles.balanceLabel}>Kalan ödeme</span>
-              <span
-                className={
-                  totalRemaining > 0
-                    ? `${styles.balanceValue} ${styles.textWarm}`
-                    : `${styles.balanceValue} ${styles.textOk}`
-                }
-              >
-                {totalRemaining > 0 ? currency.format(totalRemaining) : 'Borç yok'}
-              </span>
-            </div>
-          </div>
-
-          <div className={styles.listCard}>
-            <div className={styles.insightRow}>
-              <span className={styles.insightLabel}>Son ziyaret</span>
-              <span className={styles.insightValue}>{insights.lastVisitLabel}</span>
-            </div>
-            <div className={styles.insightRow}>
-              <span className={styles.insightLabel}>Favori hizmet</span>
-              <span className={styles.insightValue}>{insights.favoriteServiceName ?? '—'}</span>
-            </div>
-            <div className={styles.insightRow}>
-              <span className={styles.insightLabel}>Favori çalışan</span>
-              <span className={styles.insightValue}>
-                {insights.favoriteEmployeeName ? insights.favoriteEmployeeName.split(' ')[0] : '—'}
-              </span>
-            </div>
-            <div className={styles.insightRow}>
-              <span className={styles.insightLabel}>Ziyaret sıklığı</span>
-              <span className={styles.insightValue}>
-                {insights.avgIntervalLabel === '—' ? '—' : `${insights.avgIntervalLabel.replace(' gün', '')} günde bir`}
-              </span>
-            </div>
-            <div className={styles.insightRow}>
-              <span className={styles.insightLabel}>Toplam ziyaret</span>
-              <span className={styles.insightValue}>{insights.totalVisits}</span>
-            </div>
-          </div>
-
-          {activePackages.map((p) => (
-            <button type="button" key={p.pkg.id} className={styles.pkgMini} onClick={() => setTab('paket')}>
-              <span className={styles.pkgMiniTile}>
-                {p.completed}/{p.pkg.total_sessions}
-              </span>
-              <span className={styles.pkgMiniText}>
-                <span className={styles.pkgMiniName}>{p.svc?.name ?? 'Hizmet'} paketi</span>
-                <span className={styles.pkgMiniSub}>
-                  {Math.max(0, p.pkg.total_sessions - p.completed)} seans kaldı ·{' '}
-                  {new Date(p.pkg.created_at).toLocaleDateString('tr-TR', { day: 'numeric', month: 'short' })}’da alındı
-                </span>
-              </span>
+      <div className={isWide ? styles.wideGrid : styles.contents}>
+        <div className={isWide ? styles.wideSide : styles.contents}>
+          <div className={styles.topRow}>
+            <button type="button" className={styles.backLink} onClick={() => navigate('/musteriler')}>
+              <ChevronRightIcon width={16} height={16} className={styles.backIcon} />
+              Müşteriler
             </button>
-          ))}
-
-          <button
-            type="button"
-            className={customer.notes ? styles.noteCard : styles.noteCardEmpty}
-            onClick={openEditCustomer}
-          >
-            <span className={styles.noteLabel}>Müşteri notu</span>
-            <span className={styles.noteText}>
-              {customer.notes || 'Alerji, boya formülü, tercihler… Not eklemek için dokun.'}
-            </span>
-          </button>
-        </>
-      )}
-
-      {tab === 'randevular' &&
-        (appointments.length === 0 ? (
-          <p className={styles.empty}>Henüz randevu yok.</p>
-        ) : (
-          <div className={styles.listCard}>
-            {appointments.map((a) => {
-              const standalone = standaloneAppts.find((s) => s.appt.id === a.id)
-              return (
-                <div key={a.id} className={styles.apptRow}>
-                  <div className={styles.rowMain}>
-                    <span className={styles.rowTitle}>
-                      {(a.service_id ? serviceById.get(a.service_id)?.name : null) ?? 'Hizmet'}
-                    </span>
-                    <span className={styles.rowMeta}>
-                      {new Date(a.scheduled_at).toLocaleDateString('tr-TR', {
-                        day: 'numeric',
-                        month: 'short',
-                        year: 'numeric',
-                      })}
-                      {' · '}
-                      {new Date(a.scheduled_at).toLocaleTimeString('tr-TR', { hour: '2-digit', minute: '2-digit' })}
-                      {a.employee_id && employeeById.get(a.employee_id)?.full_name
-                        ? ` · ${employeeById.get(a.employee_id)!.full_name}`
-                        : ''}
-                    </span>
-                  </div>
-                  <div className={styles.rowSide}>
-                    <span className={`${styles.statusPill} ${styles[`status_${a.status}`]}`}>
-                      {SESSION_STATUS_LABEL[a.status]}
-                    </span>
-                    {standalone && (
-                      <span className={remainingLabel(standalone.remaining).positive ? styles.textOk : styles.textWarm}>
-                        {remainingLabel(standalone.remaining).text}
-                      </span>
-                    )}
-                    {a.package_id && <span className={styles.rowMeta}>Paket seansı</span>}
-                  </div>
-                </div>
-              )
-            })}
+            <button type="button" className="hdr-pill" onClick={openEditCustomer}>
+              Düzenle
+            </button>
           </div>
-        ))}
 
-      {tab === 'odemeler' &&
-        (payments.length === 0 ? (
-          <p className={styles.empty}>Henüz ödeme kaydı yok.</p>
-        ) : (
-          <div className={styles.listCard}>
-            {payments.map((p) => (
-              <div
-                key={p.id}
-                className={p.voided_at ? `${styles.paymentRow} ${styles.paymentRowVoided}` : styles.paymentRow}
+          <div className={styles.hero}>
+            <span className={styles.heroAvatar}>{initials(customer.full_name)}</span>
+            <span className={styles.heroName}>{customer.full_name}</span>
+            <span className={styles.heroSub}>
+              {[phone, customer.email].filter(Boolean).join(' · ') || 'İletişim bilgisi yok'}
+            </span>
+            {segment && (
+              <span className={styles.heroBadge}>{segment === 'sadik' ? 'Sadık müşteri' : 'Yeni müşteri'}</span>
+            )}
+          </div>
+
+          <div className={styles.actions}>
+            {phone ? (
+              <a className={styles.actionBtn} href={`tel:${phone}`}>
+                <PhoneIcon width={18} height={18} />
+                Ara
+              </a>
+            ) : (
+              <button type="button" className={styles.actionBtn} onClick={openEditCustomer}>
+                <PhoneIcon width={18} height={18} />
+                Ara
+              </button>
+            )}
+            <button
+              type="button"
+              className={styles.actionBtn}
+              disabled={!(rawPhone || phone) || !can('mesajlar')}
+              onClick={() => navigate(`/mesajlar?musteri=${customer.id}`)}
+            >
+              <MessagesIcon width={18} height={18} />
+              Mesaj
+            </button>
+            <button type="button" className={styles.actionBtn} onClick={() => navigate('/randevular?yeni=1')}>
+              <CalendarIcon width={18} height={18} />
+              Randevu
+            </button>
+            <button
+              type="button"
+              className={`${styles.actionBtn} ${styles.actionBtnPrimary}`}
+              disabled={!can('odeme_al')}
+              onClick={() => {
+                setError(null)
+                setPayTarget(openDebts.length > 0 ? 'auto' : 'none')
+                setPayModalOpen(true)
+              }}
+            >
+              <WalletIcon width={18} height={18} />
+              Ödeme
+            </button>
+          </div>
+
+          {isWide && (
+            <>
+              {profileCard}
+              {summaryBlock}
+            </>
+          )}
+        </div>
+        <div className={isWide ? styles.wideMain : styles.contents}>
+          <div className={styles.tabs}>
+            {visibleTabs.map((t) => (
+              <button
+                type="button"
+                key={t.value}
+                className={activeTab === t.value ? styles.tabActive : styles.tab}
+                onClick={() => setTab(t.value)}
               >
-                <div className={styles.rowMain}>
-                  <span className={styles.paymentAmount}>{currency.format(p.amount)}</span>
-                  <span className={styles.rowMeta}>
-                    {METHOD_LABEL[p.method]} · {new Date(p.paid_at).toLocaleDateString('tr-TR')}
-                    {p.note ? ` · ${p.note}` : ''}
-                  </span>
-                </div>
-                {p.voided_at ? (
-                  <span className={styles.voidedBadge}>Silindi</span>
-                ) : (
-                  canEditPayment(p) && (
-                    <div className={styles.paymentRowActions}>
-                      <button
-                        type="button"
-                        className={styles.iconBtn}
-                        onClick={() => openEditPayment(p)}
-                        aria-label="Ödemeyi düzenle"
-                      >
-                        <PencilIcon width={14} height={14} />
-                      </button>
-                      <button
-                        type="button"
-                        className={`${styles.iconBtn} ${styles.iconBtnDanger}`}
-                        onClick={() => voidPayment(p)}
-                        aria-label="Ödemeyi iptal et"
-                      >
-                        <TrashIcon width={14} height={14} />
-                      </button>
-                    </div>
-                  )
+                {t.label}
+                {t.value === 'randevular' && appointments.length > 0 && (
+                  <span className={styles.tabCount}> {appointments.length}</span>
                 )}
-              </div>
+              </button>
             ))}
           </div>
-        ))}
 
-      {tab === 'paket' &&
-        (packageStats.length === 0 ? (
-          <p className={styles.empty}>Bu müşterinin paketi yok.</p>
-        ) : (
-          <div className={styles.block}>{packageStats.map((p) => renderPackage(p, true))}</div>
-        ))}
+          {activeTab === 'ozet' && !isWide && (
+            <>
+              {profileCard}
+              {summaryBlock}
+            </>
+          )}
+
+          {activeTab === 'gecmis' && <CustomerTimeline key={customer.id} customerId={customer.id} />}
+
+          {activeTab === 'randevular' &&
+            (appointments.length === 0 ? (
+              <p className={styles.empty}>Henüz randevu yok.</p>
+            ) : (
+              <div className={styles.listCard}>
+                {appointments.map((a) => {
+                  const standalone = standaloneAppts.find((s) => s.appt.id === a.id)
+                  return (
+                    <div key={a.id} className={styles.apptRow}>
+                      <div className={styles.rowMain}>
+                        <span className={styles.rowTitle}>
+                          {(a.service_id ? serviceById.get(a.service_id)?.name : null) ?? 'Hizmet'}
+                        </span>
+                        <span className={styles.rowMeta}>
+                          {new Date(a.scheduled_at).toLocaleDateString('tr-TR', {
+                            day: 'numeric',
+                            month: 'short',
+                            year: 'numeric',
+                          })}
+                          {' · '}
+                          {new Date(a.scheduled_at).toLocaleTimeString('tr-TR', { hour: '2-digit', minute: '2-digit' })}
+                          {a.employee_id && employeeById.get(a.employee_id)?.full_name
+                            ? ` · ${employeeById.get(a.employee_id)!.full_name}`
+                            : ''}
+                        </span>
+                      </div>
+                      <div className={styles.rowSide}>
+                        <span className={`${styles.statusPill} ${styles[`status_${a.status}`]}`}>
+                          {SESSION_STATUS_LABEL[a.status]}
+                        </span>
+                        {standalone && (
+                          <span
+                            className={remainingLabel(standalone.remaining).positive ? styles.textOk : styles.textWarm}
+                          >
+                            {remainingLabel(standalone.remaining).text}
+                          </span>
+                        )}
+                        {a.package_id && <span className={styles.rowMeta}>Paket seansı</span>}
+                      </div>
+                    </div>
+                  )
+                })}
+              </div>
+            ))}
+
+          {activeTab === 'odemeler' &&
+            (payments.length === 0 ? (
+              <p className={styles.empty}>Henüz ödeme kaydı yok.</p>
+            ) : (
+              <div className={styles.listCard}>
+                {payments.map((p) => (
+                  <div
+                    key={p.id}
+                    className={p.voided_at ? `${styles.paymentRow} ${styles.paymentRowVoided}` : styles.paymentRow}
+                  >
+                    <div className={styles.rowMain}>
+                      <span className={styles.paymentAmount}>{currency.format(p.amount)}</span>
+                      <span className={styles.rowMeta}>
+                        {METHOD_LABEL[p.method]} · {new Date(p.paid_at).toLocaleDateString('tr-TR')}
+                        {p.note ? ` · ${p.note}` : ''}
+                      </span>
+                    </div>
+                    {p.voided_at ? (
+                      <span className={styles.voidedBadge}>Silindi</span>
+                    ) : (
+                      canEditPayment(p) && (
+                        <div className={styles.paymentRowActions}>
+                          <button
+                            type="button"
+                            className={styles.iconBtn}
+                            onClick={() => openEditPayment(p)}
+                            aria-label="Ödemeyi düzenle"
+                          >
+                            <PencilIcon width={14} height={14} />
+                          </button>
+                          <button
+                            type="button"
+                            className={`${styles.iconBtn} ${styles.iconBtnDanger}`}
+                            onClick={() => voidPayment(p)}
+                            aria-label="Ödemeyi iptal et"
+                          >
+                            <TrashIcon width={14} height={14} />
+                          </button>
+                        </div>
+                      )
+                    )}
+                  </div>
+                ))}
+              </div>
+            ))}
+
+          {activeTab === 'paket' &&
+            (packageStats.length === 0 ? (
+              <p className={styles.empty}>Bu müşterinin paketi yok.</p>
+            ) : (
+              <div className={styles.block}>{packageStats.map((p) => renderPackage(p, true))}</div>
+            ))}
+        </div>
+      </div>
+
+      {crmOpen && (
+        <CustomerCrmModal
+          customerId={customer.id}
+          customer={crmCustomer}
+          fields={fieldDefs}
+          onClose={() => setCrmOpen(false)}
+          onSaved={() => {
+            setCrmOpen(false)
+            void loadData()
+          }}
+        />
+      )}
 
       {payModalOpen && (
         <div className={styles.modalBackdrop} onClick={() => setPayModalOpen(false)}>

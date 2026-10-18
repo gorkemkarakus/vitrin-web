@@ -1,4 +1,5 @@
 import { useEffect, useState, type FormEvent, type ReactNode } from 'react'
+import { useLayout } from '../lib/layout'
 import { useNavigate } from 'react-router-dom'
 import { supabase } from '../lib/supabase'
 import { callEdgeFunction } from '../lib/edgeFunctions'
@@ -37,6 +38,7 @@ function formatPhone(p: string) {
 }
 
 export default function SettingsPage() {
+  const { isWide } = useLayout()
   const navigate = useNavigate()
   const { profile, session, signOut } = useAuth()
   const isAdmin = profile?.role === 'admin'
@@ -644,6 +646,12 @@ export default function SettingsPage() {
           <div className={styles.group}>
             {row('Salon bilgileri', business?.name || '…', () => open('salon'))}
             {row('Ekip ve çalışma saatleri', 'Ekip', () => navigate('/ekip'))}
+            {row(
+              'Müşteri alanları',
+              isWide ? 'Alerji, cilt tipi…' : 'Bilgisayarda',
+              () => navigate('/ayarlar/musteri-alanlari'),
+              'muted',
+            )}
             {row('Verilerimi indir', 'Excel', () => open('veri'), 'muted')}
             {business?.slug
               ? row(

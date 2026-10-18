@@ -11,6 +11,7 @@ export const FIELD_LIMITS = {
   campaignMessageTemplatesMessage: 1000,
   campaignMessageTemplatesTitle: 120,
   cashClosuresNote: 1000,
+  customerActivitiesBody: 2000,
   customerGroupsDescription: 300,
   customerGroupsName: 80,
   customersContactPhone: 32,
