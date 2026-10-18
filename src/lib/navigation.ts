@@ -4,6 +4,7 @@ import {
   AppointmentsIcon,
   BoltIcon,
   ChartIcon,
+  FunnelIcon,
   HomeIcon,
   MegaphoneIcon,
   MessagesIcon,
@@ -44,6 +45,7 @@ export const NAV_ITEMS: NavItem[] = [
   { path: '/randevular', label: 'Randevular', icon: AppointmentsIcon, group: 'gunluk', more: false },
   { path: '/musteriler', label: 'Müşteriler', icon: UsersIcon, group: 'gunluk', more: false },
   { path: '/gorevler', label: 'Görevler', icon: TasksIcon, group: 'gunluk', more: true },
+  { path: '/potansiyel', label: 'Potansiyel müşteriler', icon: FunnelIcon, group: 'buyume', more: true },
   {
     path: '/mesajlar',
     label: 'Mesajlar',

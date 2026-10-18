@@ -53,6 +53,7 @@ const TasksPage = lazy(() => import('./pages/TasksPage'))
 const ImportCustomersPage = lazy(() => import('./pages/ImportCustomersPage'))
 const CustomerReportPage = lazy(() => import('./pages/CustomerReportPage'))
 const AutomationsPage = lazy(() => import('./pages/AutomationsPage'))
+const LeadsPage = lazy(() => import('./pages/LeadsPage'))
 
 // adminOnly: sadece yonetici. perm: yoneticiye ya da o yetkisi acik calisana.
 // feature: paket bu ozelligi kapsamiyorsa sayfanin yerine "paketleri gor" ekrani.
@@ -146,6 +147,7 @@ function AppRoutes() {
             <Route path="daha-fazla" element={<MorePage />} />
             <Route path="planlar" element={<PlansPage />} />
             <Route path="gorevler" element={<TasksPage />} />
+            <Route path="potansiyel" element={<LeadsPage />} />
             <Route
               path="otomasyonlar"
               element={

@@ -409,3 +409,11 @@ export function BoltIcon(props: IconProps) {
     </svg>
   )
 }
+
+export function FunnelIcon(props: IconProps) {
+  return (
+    <svg {...base} {...props}>
+      <path d="M3.5 5h17l-6.5 8v5.5l-4 2V13L3.5 5Z" />
+    </svg>
+  )
+}

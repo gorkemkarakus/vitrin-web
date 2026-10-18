@@ -1,0 +1,337 @@
+.wrap {
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+}
+
+.muted {
+  font-size: 13px;
+  color: var(--text-dim);
+}
+
+.error {
+  font-size: 13px;
+  color: var(--danger-text);
+  background: var(--danger-bg);
+  border-radius: 12px;
+  padding: 10px 12px;
+}
+
+.ok {
+  font-size: 14px;
+  font-weight: 700;
+  color: var(--ok-text);
+  background: var(--ok-bg);
+  border-radius: 12px;
+  padding: 10px 12px;
+}
+
+/* ---------- Bot onerileri ---------- */
+.suggest,
+.reasons {
+  background: var(--panel);
+  border-radius: 20px;
+  padding: 14px;
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+.suggestTitle {
+  font-size: 13px;
+  font-weight: 700;
+  color: var(--text-muted);
+}
+
+.suggestList {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(220px, 1fr));
+  gap: 8px;
+}
+
+.suggestItem {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  background: var(--panel-2);
+  border-radius: 14px;
+  padding: 10px 12px;
+}
+
+/* ---------- Kanban ---------- */
+.board {
+  display: grid;
+  grid-template-columns: repeat(5, minmax(200px, 1fr));
+  gap: 10px;
+  align-items: start;
+  overflow-x: auto;
+}
+
+.column {
+  background: var(--panel-2);
+  border-radius: 18px;
+  padding: 10px;
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  min-height: 320px;
+  border: 2px dashed transparent;
+  transition: border-color 0.12s;
+}
+
+.columnOver {
+  border-color: var(--signal);
+  background: var(--info-bg);
+}
+
+.colHead {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 2px 4px;
+}
+
+.colTitle {
+  font-size: 13px;
+  font-weight: 800;
+  color: var(--text);
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.colTitle::before {
+  content: '';
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  background: var(--line-strong);
+}
+
+.st_yeni::before {
+  background: var(--accent);
+}
+.st_iletisim::before {
+  background: var(--signal);
+}
+.st_teklif::before {
+  background: var(--purple-text);
+}
+.st_kazanildi::before {
+  background: var(--ok-text);
+}
+.st_kaybedildi::before {
+  background: var(--danger-text);
+}
+
+.colCount {
+  font-size: 12px;
+  font-weight: 700;
+  color: var(--text-muted);
+  font-variant-numeric: tabular-nums;
+}
+
+.colHint {
+  font-size: 11px;
+  color: var(--text-faint);
+  padding: 0 4px 4px;
+}
+
+.cards {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.card {
+  background: var(--panel);
+  border-radius: 14px;
+  padding: 10px 12px;
+  display: flex;
+  flex-direction: column;
+  gap: 5px;
+  box-shadow: 0 1px 2px rgba(17, 24, 39, 0.06);
+}
+
+.board .card {
+  cursor: grab;
+}
+
+.cardDragging {
+  opacity: 0.5;
+}
+
+.cardTop {
+  display: flex;
+  justify-content: space-between;
+  gap: 6px;
+  align-items: baseline;
+}
+
+.cardName {
+  font-size: 14px;
+  font-weight: 700;
+  color: var(--text);
+  overflow-wrap: anywhere;
+}
+
+.source {
+  font-size: 11px;
+  font-weight: 700;
+  color: var(--text-muted);
+  white-space: nowrap;
+}
+
+.interest {
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--signal);
+}
+
+.note {
+  font-size: 12px;
+  line-height: 1.4;
+  color: var(--text-strong);
+  white-space: pre-wrap;
+}
+
+.lost {
+  align-self: flex-start;
+  font-size: 11px;
+  font-weight: 700;
+  color: var(--danger-text);
+  background: var(--danger-bg);
+  border-radius: 999px;
+  padding: 2px 8px;
+}
+
+.cardMeta {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 4px 8px;
+  font-size: 11px;
+  color: var(--text-muted);
+}
+
+.phone {
+  color: var(--text-dim);
+  font-weight: 700;
+}
+
+.cardActions {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 8px;
+}
+
+.linkBtn,
+.deleteBtn {
+  border: none;
+  background: none;
+  padding: 2px 0;
+  font-family: var(--font-body);
+  font-size: 12px;
+  font-weight: 700;
+  cursor: pointer;
+}
+
+.linkBtn {
+  color: var(--signal);
+  align-self: flex-start;
+}
+
+.deleteBtn {
+  color: var(--text-faint);
+}
+
+.deleteBtn:hover {
+  color: var(--danger-text);
+}
+
+/* ---------- Telefon: asama sekmeleri ---------- */
+.stageTabs {
+  display: flex;
+  gap: 6px;
+  overflow-x: auto;
+  padding-bottom: 2px;
+}
+
+.stageTab,
+.stageTabActive {
+  flex-shrink: 0;
+  border: none;
+  border-radius: 999px;
+  padding: 7px 12px;
+  font-family: var(--font-body);
+  font-size: 13px;
+  font-weight: 700;
+  cursor: pointer;
+}
+
+.stageTab {
+  background: var(--panel);
+  color: var(--text-dim);
+}
+
+.stageTabActive {
+  background: var(--signal);
+  color: #fff;
+}
+
+.stageTabActive .colCount {
+  color: #fff;
+}
+
+/* ---------- Kayip nedenleri ---------- */
+.reasonList {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+}
+
+.reasonPill {
+  font-size: 12px;
+  font-weight: 700;
+  background: var(--danger-bg);
+  color: var(--danger-text);
+  border-radius: 999px;
+  padding: 4px 10px;
+}
+
+.reasonPicker {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.reasonBtn {
+  border: 1px solid var(--line-2);
+  border-radius: 12px;
+  padding: 12px;
+  background: var(--panel);
+  font-family: var(--font-body);
+  font-size: 14px;
+  font-weight: 600;
+  text-align: left;
+  cursor: pointer;
+}
+
+.reasonBtn:hover {
+  border-color: var(--signal);
+}
+
+.otherRow {
+  display: flex;
+  gap: 8px;
+  margin-top: 4px;
+}
+
+.otherRow input {
+  flex: 1;
+}
+
+.otherRow :global(.btn-primary) {
+  width: auto;
+  padding: 10px 16px;
+}

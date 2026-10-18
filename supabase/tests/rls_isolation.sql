@@ -8,6 +8,7 @@
 --      isletmesinde yoneticiye ait islemleri dener.
 --   C) anon rolu (giris yapmamis) tablolari okuyamaz.
 --   D) CRM: musteri alanlari / aktivite kaydi / zaman cizelgesi kurallari.
+--   E-H) Gorevler, musteri dosyalari, otomasyonlar, potansiyel musteriler.
 -- Sonuc: test, gecti, ayrinti. Basarisiz satir varsa run-rls-tests.mjs 1 ile cikar.
 --
 -- Test hesaplari: salon_admin@test.com, salon_user@test.com (Guzel Salon),
@@ -334,6 +335,61 @@ begin
   exception when others then
     insert into rls_result values ('G calisan kurallari calistiramaz', true, 'reddedildi');
   end;
+  perform set_config('role', 'postgres', true);
+end $$;
+
+-- H) Potansiyel musteriler
+do $$
+declare
+  other uuid := (select business_id from profiles where id = (select id from auth.users where email = 'studio_admin@test.com'));
+  mine uuid := (select business_id from profiles where id = (select id from auth.users where email = 'salon_admin@test.com'));
+  other_customer uuid := (select id from customers where business_id = other limit 1);
+  other_staff uuid := (select id from auth.users where email = 'studio_admin@test.com');
+  admin_id uuid := (select id from auth.users where email = 'salon_admin@test.com');
+  staff_id uuid := (select id from auth.users where email = 'salon_user@test.com');
+  admin_lead uuid;
+  n int;
+begin
+  perform pg_temp.as_user('salon_admin@test.com');
+  insert into public.leads (business_id, full_name, created_by) values (mine, 'RLS testi aday', admin_id)
+  returning id into admin_lead;
+  begin
+    insert into public.leads (business_id, full_name, created_by) values (other, 'RLS testi', admin_id);
+    insert into rls_result values ('H baska isletmeye aday', false, 'eklendi');
+  exception when others then
+    insert into rls_result values ('H baska isletmeye aday', true, 'reddedildi');
+  end;
+  begin
+    insert into public.leads (business_id, full_name, created_by) values (mine, 'RLS testi', staff_id);
+    insert into rls_result values ('H baskasi adina aday', false, 'eklendi');
+  exception when others then
+    insert into rls_result values ('H baskasi adina aday', true, 'reddedildi');
+  end;
+  begin
+    update public.leads set customer_id = other_customer where id = admin_lead;
+    insert into rls_result values ('H adaya yabanci musteri baglama', false, 'baglandi');
+  exception when others then
+    insert into rls_result values ('H adaya yabanci musteri baglama', true, 'reddedildi');
+  end;
+  begin
+    update public.leads set assignee_id = other_staff where id = admin_lead;
+    insert into rls_result values ('H adayi baska isletmenin calisanina atama', false, 'atandi');
+  exception when others then
+    insert into rls_result values ('H adayi baska isletmenin calisanina atama', true, 'reddedildi');
+  end;
+  begin
+    update public.leads set stage = 'kaybedildi' where id = admin_lead;
+    insert into rls_result values ('H nedensiz kaybedildi', false, 'kaydedildi');
+  exception when others then
+    insert into rls_result values ('H nedensiz kaybedildi', true, 'reddedildi');
+  end;
+
+  perform set_config('role', 'postgres', true);
+  perform pg_temp.as_user('salon_user@test.com');
+  with u as (update public.leads set stage = 'iletisim' where id = admin_lead returning 1) select count(*) into n from u;
+  insert into rls_result values ('H calisan adayin asamasini degistirir', n = 1, n || ' satir');
+  with d as (delete from public.leads where id = admin_lead returning 1) select count(*) into n from d;
+  insert into rls_result values ('H calisan baskasinin adayini silemez', n = 0, n || ' satir');
   perform set_config('role', 'postgres', true);
 end $$;
 
