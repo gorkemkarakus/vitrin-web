@@ -16,6 +16,9 @@ import EditAppointmentModal from './appointments/EditAppointmentModal'
 import AppointmentDetailView from './appointments/AppointmentDetailView'
 import CompleteAppointmentScreen from './appointments/CompleteAppointmentScreen'
 import NewAppointmentForm from './appointments/NewAppointmentForm'
+import WideDayCalendar from './appointments/WideDayCalendar'
+import { useLayout } from '../lib/layout'
+import { friendlyDbError } from '../lib/dbErrors'
 import { STATUS_DROPDOWN_OPTIONS, STATUS_OPTIONS } from './appointments/constants'
 import {
   SLOT_MINUTES,
@@ -62,6 +65,11 @@ export default function AppointmentsPage() {
   const [now] = useState(new Date())
   const [employeeFilter, setEmployeeFilter] = useState('')
   const [dailyDisplay, setDailyDisplay] = useState<'zaman' | 'liste'>('zaman')
+  // Genis ekranda gun gorunumu calisan sutunlu takvim (WideDayCalendar).
+  const { isWide } = useLayout()
+  const [prefill, setPrefill] = useState<{ date: string; time: string; employeeId: string | null; key: number } | null>(
+    null,
+  )
   const dateInputRef = useRef<HTMLInputElement>(null)
 
   const [showForm, setShowForm] = useState(false)
@@ -218,6 +226,46 @@ export default function AppointmentsPage() {
 
   function openDetail(a: Appointment) {
     setViewingAppt(a)
+  }
+
+  // Takvimde surukle-birak: EditAppointmentModal ile ayni kurallar (musaitlik,
+  // hatirlatma isaretinin sifirlanmasi, cakisma / yetki mesajlari).
+  async function moveAppointment(a: Appointment, employeeId: string | null, start: Date) {
+    setError(null)
+    setSuccess(null)
+    if (!canEdit(a)) {
+      setError('Bu randevuyu taşıma yetkin yok.')
+      return
+    }
+    const duration = a.duration_minutes ?? services.find((s) => s.id === a.service_id)?.duration_minutes ?? SLOT_MINUTES
+    if (employeeId && !isEmployeeAvailable(employeeId, start, duration, a.id)) {
+      setError(`${employeeName(employeeId)} bu saatte müsait değil (mesai dışı, izinli veya dolu).`)
+      return
+    }
+    const timeChanged = new Date(a.scheduled_at).getTime() !== start.getTime()
+    const { error: err } = await supabase
+      .from('appointments')
+      .update({
+        employee_id: employeeId,
+        scheduled_at: start.toISOString(),
+        ...(timeChanged ? { reminder_sent_at: null } : {}),
+      })
+      .eq('id', a.id)
+    if (err) {
+      setError(
+        /exclusion|conflicting key|deadlock/i.test(err.message)
+          ? 'Seçilen saat dolu. Farklı bir saat seçin.'
+          : /row-level security/i.test(err.message)
+            ? 'Bu randevuyu başka bir çalışana yalnızca yönetici aktarabilir.'
+            : friendlyDbError(err, 'Randevu taşınamadı, tekrar deneyin.'),
+      )
+    } else {
+      const at = start.toLocaleTimeString('tr-TR', { hour: '2-digit', minute: '2-digit' })
+      setSuccess(
+        `${customerName(a.customer_id)} randevusu ${at} · ${employeeId ? employeeName(employeeId) : 'atanmamış'} olarak taşındı.`,
+      )
+    }
+    await loadData(true)
   }
 
   function openEdit(a: Appointment) {
@@ -823,6 +871,7 @@ export default function AppointmentsPage() {
         setError={setError}
         setSuccess={setSuccess}
         loadData={loadData}
+        prefill={prefill}
       />
 
       {completingAppt && (
@@ -906,6 +955,39 @@ export default function AppointmentsPage() {
 
       {viewMode === 'gunluk' && (
         <>
+          {/* Dokunmatik ekranda serit kaydirilir; farede hafta okla degisir. */}
+          {isWide && (
+            <div className={styles.weekNavRow}>
+              <button
+                type="button"
+                className={styles.dateNavBtn}
+                onClick={() => shiftWeek(-1)}
+                aria-label="Önceki hafta"
+              >
+                ‹
+              </button>
+              <span className={styles.weekNavLabel}>
+                {dayStripDates[0]?.toLocaleDateString('tr-TR', { day: 'numeric', month: 'long' })} –{' '}
+                {dayStripDates[dayStripDates.length - 1]?.toLocaleDateString('tr-TR', {
+                  day: 'numeric',
+                  month: 'long',
+                })}
+              </span>
+              {viewDate !== todayLocalDateString() && (
+                <button type="button" className="hdr-pill" onClick={() => setViewDate(todayLocalDateString())}>
+                  Bugün
+                </button>
+              )}
+              <button
+                type="button"
+                className={styles.dateNavBtn}
+                onClick={() => shiftWeek(1)}
+                aria-label="Sonraki hafta"
+              >
+                ›
+              </button>
+            </div>
+          )}
           <div
             className={styles.weekStrip}
             onTouchStart={(e) => {
@@ -943,6 +1025,27 @@ export default function AppointmentsPage() {
 
           {loading ? (
             <p className={styles.emptyNote}>Yükleniyor…</p>
+          ) : isWide && dailyDisplay === 'zaman' ? (
+            <WideDayCalendar
+              date={viewDate}
+              appointments={appointments}
+              profiles={profiles}
+              schedules={schedules}
+              timeBlocks={timeBlocks}
+              employeeFilter={employeeFilter}
+              ownOnly={can('randevu_tumu_gor') ? null : (profile?.id ?? null)}
+              customerName={customerName}
+              serviceName={serviceName}
+              serviceDuration={(id) => services.find((s) => s.id === id)?.duration_minutes ?? SLOT_MINUTES}
+              canEdit={canEdit}
+              onOpen={openDetail}
+              onMove={moveAppointment}
+              onCreate={(employeeId, date, time) => {
+                setError(null)
+                setPrefill({ date, time, employeeId, key: Date.now() })
+                setShowForm(true)
+              }}
+            />
           ) : visible.length === 0 ? (
             <div className={styles.emptyCard}>
               <span className={styles.emptyTitle}>

@@ -1,0 +1,222 @@
+.calendar {
+  background: var(--panel);
+  border-radius: 22px;
+  overflow: hidden;
+  display: flex;
+  flex-direction: column;
+  /* Sayfa icinde kalan yukseklik; takvim kendi icinde kayar. */
+  height: calc(100dvh - 250px);
+  min-height: 460px;
+}
+
+.head {
+  display: grid;
+  border-bottom: 1px solid var(--line-2);
+  background: var(--panel);
+}
+
+.colHead {
+  display: flex;
+  flex-direction: column;
+  gap: 1px;
+  padding: 12px 12px 10px;
+  border-left: 1px solid var(--line-soft);
+  min-width: 0;
+}
+
+.colName {
+  font-size: 14px;
+  font-weight: 700;
+  color: var(--text);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.colCount {
+  font-size: 12px;
+  color: var(--text-muted);
+}
+
+.scroll {
+  flex: 1;
+  overflow: auto;
+  position: relative;
+}
+
+.body {
+  display: grid;
+  position: relative;
+  padding: 10px 0 16px;
+}
+
+.gutter {
+  position: relative;
+}
+
+.hour {
+  position: absolute;
+  right: 8px;
+  transform: translateY(-50%);
+  font-size: 11px;
+  font-weight: 700;
+  color: var(--text-faint);
+  font-variant-numeric: tabular-nums;
+}
+
+.columns {
+  display: grid;
+  gap: 8px;
+  padding-right: 8px;
+}
+
+.column {
+  position: relative;
+  border-left: 1px solid var(--line-soft);
+  cursor: cell;
+}
+
+.hourLine {
+  position: absolute;
+  left: 0;
+  right: 0;
+  border-top: 1px solid var(--line-soft);
+  pointer-events: none;
+}
+
+.off {
+  position: absolute;
+  left: 0;
+  right: 0;
+  background: repeating-linear-gradient(-45deg, var(--panel-2), var(--panel-2) 6px, #eceef2 6px, #eceef2 12px);
+  pointer-events: none;
+}
+
+.now {
+  position: absolute;
+  left: -1px;
+  right: 0;
+  height: 2px;
+  background: var(--accent);
+  pointer-events: none;
+  z-index: 3;
+}
+
+.now::before {
+  content: '';
+  position: absolute;
+  left: -4px;
+  top: -3px;
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  background: var(--accent);
+}
+
+.block {
+  position: absolute;
+  left: 4px;
+  right: 4px;
+  z-index: 2;
+  display: flex;
+  flex-direction: column;
+  gap: 1px;
+  overflow: hidden;
+  border: none;
+  border-left: 4px solid var(--signal);
+  border-radius: 10px;
+  padding: 5px 8px;
+  background: var(--info-bg);
+  color: var(--text);
+  text-align: left;
+  font-family: var(--font-body);
+  cursor: pointer;
+  touch-action: none;
+  user-select: none;
+  transition: box-shadow 0.12s;
+}
+
+.block:hover {
+  box-shadow: 0 4px 14px rgba(17, 24, 39, 0.14);
+}
+
+.block:focus-visible {
+  outline: 2px solid var(--signal);
+  outline-offset: 2px;
+}
+
+.movable {
+  cursor: grab;
+}
+
+.dragging {
+  z-index: 10;
+  cursor: grabbing;
+  opacity: 0.92;
+  box-shadow: 0 10px 26px rgba(17, 24, 39, 0.24);
+  outline: 2px dashed var(--signal);
+}
+
+.st_bekliyor {
+  border-left-color: var(--accent);
+  background: var(--warn-bg);
+}
+
+.st_onaylandi {
+  border-left-color: var(--signal);
+  background: var(--info-bg);
+}
+
+.st_tamamlandi {
+  border-left-color: var(--ok-text);
+  background: var(--ok-bg);
+}
+
+.st_gelmedi {
+  border-left-color: var(--danger-text);
+  background: var(--danger-bg);
+}
+
+.blockTime {
+  font-size: 11px;
+  font-weight: 700;
+  color: var(--text-dim);
+  font-variant-numeric: tabular-nums;
+}
+
+.blockName {
+  font-size: 13px;
+  font-weight: 700;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.blockService {
+  font-size: 12px;
+  color: var(--text-strong);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.empty {
+  background: var(--panel);
+  border-radius: 22px;
+  padding: 24px;
+  font-size: 14px;
+  color: var(--text-dim);
+}
+
+/* Kisa randevu: tek satir */
+.blockLine {
+  display: block;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  font-size: 12px;
+}
+
+.blockLine .blockName {
+  font-size: 12px;
+}

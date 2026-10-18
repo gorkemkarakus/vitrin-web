@@ -3328,3 +3328,24 @@
 .priceInput:focus {
   border-bottom: 1.5px solid var(--signal);
 }
+
+/* Genis ekranda yeni randevu: alttan kayan tam genislik panel yerine ortada pencere. */
+@media (min-width: 1024px) {
+  .sheetBackdrop {
+    justify-content: center;
+    align-items: center;
+    padding: 32px;
+  }
+
+  .sheet {
+    width: min(680px, 100%);
+    margin-top: 0;
+    max-height: calc(100dvh - 64px);
+    border-radius: 24px;
+    padding: 18px 24px 24px;
+  }
+
+  .sheetHandle {
+    display: none;
+  }
+}

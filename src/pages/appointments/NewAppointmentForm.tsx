@@ -67,6 +67,9 @@ interface Props {
   setError: (message: string | null) => void
   setSuccess: (message: string | null) => void
   loadData: (silent?: boolean) => Promise<void>
+  // Genis ekran takviminde bos saate tiklaninca: o gun, saat ve calisanla acilir.
+  // key her tiklamada degisir (ayni saate tekrar tiklama da uygulansin).
+  prefill?: { date: string; time: string; employeeId: string | null; key: number } | null
 }
 
 export default function NewAppointmentForm({
@@ -86,6 +89,7 @@ export default function NewAppointmentForm({
   setError,
   setSuccess,
   loadData,
+  prefill,
 }: Props) {
   const { profile, can } = useAuth()
   const canSeeAll = can('randevu_tumu_gor')
@@ -110,6 +114,20 @@ export default function NewAppointmentForm({
   const [employeeId, setEmployeeId] = useState('')
   const [apptDate, setApptDate] = useState(todayLocalDateString())
   const [apptTime, setApptTime] = useState('')
+  // Takvimden acildiysa hizmet secimi saati/calisani sifirlamaz.
+  const [fromSlot, setFromSlot] = useState(false)
+  useEffect(() => {
+    if (!prefill) return
+    setApptDate(prefill.date)
+    const days = Math.round(
+      (new Date(`${prefill.date}T00:00:00`).getTime() - new Date(`${todayLocalDateString()}T00:00:00`).getTime()) /
+        86_400_000,
+    )
+    setFormWeekOffset(Math.max(0, Math.floor(days / 6)))
+    setEmployeeId(prefill.employeeId ?? '')
+    setApptTime(prefill.time)
+    setFromSlot(true)
+  }, [prefill])
   const [source, setSource] = useState(SOURCE_OPTIONS[0].value)
   const [sourceNote, setSourceNote] = useState('')
   const [submitting, setSubmitting] = useState(false)
@@ -482,6 +500,15 @@ export default function NewAppointmentForm({
                 className={s.id === serviceId ? styles.serviceChipActive : styles.serviceChip}
                 onClick={() => {
                   setServiceId(s.id)
+                  if (fromSlot) {
+                    // Takvimden secilen saat korunur; calisan bu hizmeti vermiyorsa birakilir.
+                    if (
+                      employeeId &&
+                      !employeeServices.some((es) => es.profile_id === employeeId && es.service_id === s.id)
+                    )
+                      setEmployeeId('')
+                    return
+                  }
                   setEmployeeId('')
                   setApptTime('')
                 }}
