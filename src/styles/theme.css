@@ -86,8 +86,15 @@ body {
   font-family: var(--font-body);
   background: var(--bg);
   color: var(--text);
-  -webkit-user-select: none;
-  user-select: none;
+}
+
+/* Dokunmatik ekranda uzun basinca metin secilmesin (uygulama hissi); fare
+   ile kullanilan genis ekranda (web CRM) telefon, ad vb. kopyalanabilsin. */
+@media (pointer: coarse) {
+  body {
+    -webkit-user-select: none;
+    user-select: none;
+  }
 }
 
 input,

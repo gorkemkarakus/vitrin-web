@@ -23,6 +23,8 @@ import {
 } from '../components/icons'
 import { currencyWhole } from '../lib/currency'
 import { toLocalDateString } from '../lib/date'
+import { useLayout } from '../lib/layout'
+import Sidebar from './Sidebar'
 import styles from './DashboardLayout.module.css'
 
 const TAB_ITEMS = [
@@ -103,6 +105,8 @@ export default function DashboardLayout() {
   const { profile, signOut, can } = useAuth()
   const isAdmin = profile?.role === 'admin'
   const isHome = location.pathname === '/dashboard'
+  // Genis ekranda (>= 1024px) alt sekme cubugu ve + menusu yerine yan menu.
+  const { isWide } = useLayout()
   // Mesajlar yetkisi kapali calisanda o sekme yerine Daha Fazla kalir.
   const tabItems = isAdmin ? TAB_ITEMS : EMPLOYEE_TAB_ITEMS.filter((t) => t.path !== '/mesajlar' || can('mesajlar'))
   const firstName = (profile?.full_name ?? 'İşletmeniz').trim().split(/\s+/)[0]
@@ -338,131 +342,136 @@ export default function DashboardLayout() {
     (unpaid !== null && (unpaid.overdueCount > 0 || unpaid.soonCount > 0))
 
   return (
-    <div className={styles.shell}>
-      {/* Ortak ust bar sadece ana sayfada; diger sayfalar kendi basligini
+    <div className={isWide ? styles.wideFrame : styles.frame}>
+      {isWide && <Sidebar pendingCount={pending.length} onNewCustomer={() => setQuickAddCustomerOpen(true)} />}
+      <div className={styles.shell}>
+        {/* Ortak ust bar sadece ana sayfada; diger sayfalar kendi basligini
           (PageHeader) ciziyor — tasarimdaki gibi. */}
-      {isHome && (
-        <header className={`${styles.topbar} ${styles.topbarHome}`}>
-          <div className={styles.greeting}>
-            <p>{todayLabel()}</p>
-            <h1>
-              {timeGreeting()}, {firstName}
-            </h1>
-          </div>
-          <div className={styles.topbarRight}>
-            <div className={styles.bellWrap} ref={bellRef}>
-              <button
-                type="button"
-                className={styles.bellBtn}
-                onClick={() => navigate('/bildirimler')}
-                aria-label="Bildirimler"
-              >
-                <BellIcon />
-                {pending.length > 0 && <span className={styles.bellBadge}>{pending.length}</span>}
-              </button>
+        {isHome && (
+          <header className={`${styles.topbar} ${styles.topbarHome}`}>
+            <div className={styles.greeting}>
+              <p>{todayLabel()}</p>
+              <h1>
+                {timeGreeting()}, {firstName}
+              </h1>
             </div>
-            <div className={styles.profileWrap} ref={profileRef}>
-              <button
-                type="button"
-                className={styles.profile}
-                onClick={() => setProfileMenuOpen((v) => !v)}
-                aria-haspopup="menu"
-                aria-expanded={profileMenuOpen}
-              >
-                <span className={styles.avatar}>{profileInitials(profile?.full_name ?? 'İşletme')}</span>
-              </button>
-              {profileMenuOpen && (
-                <div className={styles.profileDropdown} role="menu">
-                  <div className={styles.profileDropdownHead}>
-                    <span className={styles.profileDropdownName}>{profile?.full_name ?? 'İşletmeniz'}</span>
-                    <span className={styles.profileDropdownRole}>{isAdmin ? 'Yönetici' : 'Çalışan'}</span>
+            <div className={styles.topbarRight}>
+              <div className={styles.bellWrap} ref={bellRef}>
+                <button
+                  type="button"
+                  className={styles.bellBtn}
+                  onClick={() => navigate('/bildirimler')}
+                  aria-label="Bildirimler"
+                >
+                  <BellIcon />
+                  {pending.length > 0 && <span className={styles.bellBadge}>{pending.length}</span>}
+                </button>
+              </div>
+              <div className={styles.profileWrap} ref={profileRef}>
+                <button
+                  type="button"
+                  className={styles.profile}
+                  onClick={() => setProfileMenuOpen((v) => !v)}
+                  aria-haspopup="menu"
+                  aria-expanded={profileMenuOpen}
+                >
+                  <span className={styles.avatar}>{profileInitials(profile?.full_name ?? 'İşletme')}</span>
+                </button>
+                {profileMenuOpen && (
+                  <div className={styles.profileDropdown} role="menu">
+                    <div className={styles.profileDropdownHead}>
+                      <span className={styles.profileDropdownName}>{profile?.full_name ?? 'İşletmeniz'}</span>
+                      <span className={styles.profileDropdownRole}>{isAdmin ? 'Yönetici' : 'Çalışan'}</span>
+                    </div>
+                    <button
+                      type="button"
+                      className={styles.profileDropdownItem}
+                      onClick={() => {
+                        setProfileMenuOpen(false)
+                        navigate('/ayarlar')
+                      }}
+                    >
+                      <SettingsIcon width={15} height={15} />
+                      Ayarlar
+                    </button>
+                    <button
+                      type="button"
+                      className={`${styles.profileDropdownItem} ${styles.profileDropdownItemDanger}`}
+                      onClick={() => {
+                        setProfileMenuOpen(false)
+                        signOut()
+                      }}
+                    >
+                      <LogOutIcon width={15} height={15} />
+                      Çıkış yap
+                    </button>
                   </div>
-                  <button
-                    type="button"
-                    className={styles.profileDropdownItem}
-                    onClick={() => {
-                      setProfileMenuOpen(false)
-                      navigate('/ayarlar')
-                    }}
-                  >
-                    <SettingsIcon width={15} height={15} />
-                    Ayarlar
-                  </button>
-                  <button
-                    type="button"
-                    className={`${styles.profileDropdownItem} ${styles.profileDropdownItemDanger}`}
-                    onClick={() => {
-                      setProfileMenuOpen(false)
-                      signOut()
-                    }}
-                  >
-                    <LogOutIcon width={15} height={15} />
-                    Çıkış yap
-                  </button>
-                </div>
-              )}
+                )}
+              </div>
             </div>
-          </div>
-        </header>
-      )}
+          </header>
+        )}
 
-      <main className={isHome ? styles.content : `${styles.content} ${styles.contentPage}`} ref={contentRef}>
-        <Suspense fallback={<RouteFallback />}>
-          <Outlet context={{ searchQuery: '', setSearchPlaceholder: () => {} } satisfies LayoutOutletContext} />
-        </Suspense>
-      </main>
+        <main className={isHome ? styles.content : `${styles.content} ${styles.contentPage}`} ref={contentRef}>
+          <Suspense fallback={<RouteFallback />}>
+            <Outlet context={{ searchQuery: '', setSearchPlaceholder: () => {} } satisfies LayoutOutletContext} />
+          </Suspense>
+        </main>
 
-      <nav className={actionSheetOpen ? `${styles.bottomNav} ${styles.bottomNavRaised}` : styles.bottomNav}>
-        {tabItems.slice(0, 2).map((item) => {
-          const Icon = item.icon
-          return (
-            <NavLink
-              key={item.path}
-              to={item.path}
-              className={({ isActive }) => (isActive ? `${styles.tab} ${styles.tabActive}` : styles.tab)}
+        {!isWide && (
+          <nav className={actionSheetOpen ? `${styles.bottomNav} ${styles.bottomNavRaised}` : styles.bottomNav}>
+            {tabItems.slice(0, 2).map((item) => {
+              const Icon = item.icon
+              return (
+                <NavLink
+                  key={item.path}
+                  to={item.path}
+                  className={({ isActive }) => (isActive ? `${styles.tab} ${styles.tabActive}` : styles.tab)}
+                >
+                  <span className={styles.tabIcon}>
+                    <Icon width={20} height={20} />
+                  </span>
+                  <span>{item.label}</span>
+                </NavLink>
+              )
+            })}
+
+            <button
+              type="button"
+              className={actionSheetOpen ? `${styles.fab} ${styles.fabOpen}` : styles.fab}
+              onClick={() => setActionSheetOpen((v) => !v)}
+              aria-label={actionSheetOpen ? 'Hızlı işlemleri kapat' : 'Hızlı işlemler'}
+              aria-haspopup="menu"
+              aria-expanded={actionSheetOpen}
             >
-              <span className={styles.tabIcon}>
-                <Icon width={20} height={20} />
-              </span>
-              <span>{item.label}</span>
-            </NavLink>
-          )
-        })}
+              <PlusIcon width={22} height={22} />
+            </button>
 
-        <button
-          type="button"
-          className={actionSheetOpen ? `${styles.fab} ${styles.fabOpen}` : styles.fab}
-          onClick={() => setActionSheetOpen((v) => !v)}
-          aria-label={actionSheetOpen ? 'Hızlı işlemleri kapat' : 'Hızlı işlemler'}
-          aria-haspopup="menu"
-          aria-expanded={actionSheetOpen}
-        >
-          <PlusIcon width={22} height={22} />
-        </button>
-
-        {tabItems.slice(2).map((item) => {
-          const Icon = item.icon
-          return (
-            <NavLink
-              key={item.path}
-              to={item.path}
-              className={({ isActive }) => (isActive ? `${styles.tab} ${styles.tabActive}` : styles.tab)}
-            >
-              <span className={styles.tabIcon}>
-                <Icon width={20} height={20} />
-              </span>
-              <span>{item.label}</span>
-            </NavLink>
-          )
-        })}
-        {/* Sekme sayisi tekse (ör. Mesajlar yetkisi olmayan calisan) + dugmesi
+            {tabItems.slice(2).map((item) => {
+              const Icon = item.icon
+              return (
+                <NavLink
+                  key={item.path}
+                  to={item.path}
+                  className={({ isActive }) => (isActive ? `${styles.tab} ${styles.tabActive}` : styles.tab)}
+                >
+                  <span className={styles.tabIcon}>
+                    <Icon width={20} height={20} />
+                  </span>
+                  <span>{item.label}</span>
+                </NavLink>
+              )
+            })}
+            {/* Sekme sayisi tekse (ör. Mesajlar yetkisi olmayan calisan) + dugmesi
             ortada kalsin diye sag taraf bos bir yuvayla tamamlanir. */}
-        {Array.from({ length: Math.max(0, 2 - tabItems.slice(2).length) }, (_, i) => (
-          <span key={`bos-${i}`} className={styles.tab} aria-hidden="true" />
-        ))}
-      </nav>
+            {Array.from({ length: Math.max(0, 2 - tabItems.slice(2).length) }, (_, i) => (
+              <span key={`bos-${i}`} className={styles.tab} aria-hidden="true" />
+            ))}
+          </nav>
+        )}
+      </div>
 
-      {actionSheetOpen && (
+      {!isWide && actionSheetOpen && (
         <div className={styles.quickOverlay} onClick={() => setActionSheetOpen(false)}>
           {hasQuickInfo && (
             <div className={styles.quickInfo} onClick={(e) => e.stopPropagation()}>

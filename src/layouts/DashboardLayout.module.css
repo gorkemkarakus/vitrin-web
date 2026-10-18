@@ -550,3 +550,35 @@
   background: var(--accent-bg);
   color: var(--accent-text);
 }
+
+/* ---------- Genis ekran (>= 1024px, lib/layout.ts WIDE_MIN) ---------- */
+
+/* Dar ekranda sarmalayici duzeni etkilemez; .shell eskisi gibi tum ekrani kaplar. */
+.frame {
+  display: contents;
+}
+
+.wideFrame {
+  display: flex;
+  height: 100vh;
+  height: 100dvh;
+}
+
+.wideFrame .shell {
+  flex: 1;
+  min-width: 0;
+}
+
+@media (min-width: 1024px) {
+  .content {
+    padding: 28px 40px 48px;
+  }
+
+  .contentPage {
+    padding-top: 28px;
+  }
+
+  .topbarHome {
+    padding: 24px 40px 18px;
+  }
+}

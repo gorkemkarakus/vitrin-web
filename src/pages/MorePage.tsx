@@ -2,55 +2,10 @@ import { useEffect, useState } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { supabase } from '../lib/supabase'
 import { useAuth } from '../contexts/AuthContext'
-import {
-  AccountingIcon,
-  TeamIcon,
-  ServicesIcon,
-  SettingsIcon,
-  ChevronRightIcon,
-  TrophyIcon,
-  MegaphoneIcon,
-  MessagesIcon,
-  SparkleIcon,
-  SendIcon,
-  LockIcon,
-} from '../components/icons'
-import type { PermKey } from '../lib/permissions'
-import type { PlanFeature } from '../lib/plan'
+import { ChevronRightIcon, LockIcon } from '../components/icons'
+import { visibleNavItems } from '../lib/navigation'
 import styles from './MorePage.module.css'
 import { initials } from '../lib/formatName'
-
-// `tint: true` olan kutu (AI İş Analizi) diger kutulardan ayri, mor zeminle
-// cizilir — yapay zeka ozelligi oldugunu renkle ayirt etmek icin.
-// access: 'admin' = sadece yonetici, PermKey = o yetkisi olan, undefined = herkes.
-// feature: paket kapsamiyorsa kutu kilitli gorunur (gizlenmez — ne kazanacagini
-// gorsun); dokununca paket ekrani acilir.
-const MENU_ITEMS: {
-  path: string
-  label: string
-  access?: 'admin' | PermKey
-  feature?: PlanFeature
-  icon: typeof MessagesIcon
-  tint: boolean
-}[] = [
-  { path: '/mesajlar', label: 'Mesajlar', access: 'mesajlar', feature: 'messages', icon: MessagesIcon, tint: false },
-  {
-    path: '/toplu-mesaj',
-    label: 'Toplu mesaj',
-    access: 'admin',
-    feature: 'bulk_campaign',
-    icon: SendIcon,
-    tint: false,
-  },
-  { path: '/muhasebe', label: 'Muhasebe', access: 'kasa', icon: AccountingIcon, tint: false },
-  { path: '/ekip', label: 'Ekip', access: 'ekip_yonet', icon: TeamIcon, tint: false },
-  { path: '/hizmetler', label: 'Hizmetler', access: 'hizmet_yonet', icon: ServicesIcon, tint: false },
-  { path: '/performans-raporu', label: 'Performans', access: 'raporlar', icon: TrophyIcon, tint: false },
-  { path: '/kazancim', label: 'Kazancım', access: 'kendi_kazanc', icon: AccountingIcon, tint: false },
-  { path: '/reklam', label: 'Reklam', access: 'admin', feature: 'ads', icon: MegaphoneIcon, tint: false },
-  { path: '/ai-analiz', label: 'AI analiz', access: 'admin', feature: 'ai_insights', icon: SparkleIcon, tint: true },
-  { path: '/ayarlar', label: 'Ayarlar', icon: SettingsIcon, tint: false },
-]
 
 export default function MorePage() {
   const navigate = useNavigate()
@@ -58,12 +13,8 @@ export default function MorePage() {
   const isAdmin = profile?.role === 'admin'
   const name = profile?.full_name ?? 'İşletmeniz'
 
-  const visibleItems = MENU_ITEMS.filter(
-    (item) =>
-      // Kazancim calisan icindir; yonetici zaten Ekip > calisan > Kazanc'tan bakar.
-      (item.path !== '/kazancim' || !isAdmin) &&
-      (!item.access || (item.access === 'admin' ? isAdmin : can(item.access))),
-  )
+  // Kutular ortak ekran listesinden (lib/navigation.ts); AI kalemi mor zeminli.
+  const visibleItems = visibleNavItems(isAdmin, can).filter((item) => item.more)
 
   // Ust kartta isletme adi + calisan sayisi, Mesajlar kutusunda seni
   // bekleyen (botun biraktigi) konusma sayisi.

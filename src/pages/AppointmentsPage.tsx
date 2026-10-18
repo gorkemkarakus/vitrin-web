@@ -948,7 +948,7 @@ export default function AppointmentsPage() {
               <span className={styles.emptyTitle}>
                 {diffDays === 0 ? 'Bugün randevu yok' : `${dayLabel} için randevu yok`}
               </span>
-              <span className={styles.emptySub}>Eklemek için alttaki + düğmesinden “Yeni randevu”yu seç.</span>
+              <span className={styles.emptySub}>Eklemek için “Yeni randevu”yu seç.</span>
             </div>
           ) : dailyDisplay === 'liste' ? (
             <div className={styles.apptList}>
@@ -1001,7 +1001,7 @@ export default function AppointmentsPage() {
             <div className={styles.emptyCard}>
               <span className={styles.emptyTitle}>Bu aralıkta randevu yok</span>
               <span className={styles.emptySub}>
-                Başka bir dönem seçebilir ya da + düğmesinden randevu ekleyebilirsin.
+                Başka bir dönem seçebilir ya da “Yeni randevu” ile randevu ekleyebilirsin.
               </span>
             </div>
           ) : (

@@ -575,3 +575,17 @@ button.paymentRow {
   cursor: pointer;
   flex-shrink: 0;
 }
+
+/* Genis ekranda icerik kenar boslugu 40px (layouts/DashboardLayout): ozet
+   blogu yine kenardan kenara uzansin. */
+@media (min-width: 1024px) {
+  .hero {
+    margin: -28px -40px 0;
+    padding: 4px 40px 56px;
+  }
+
+  .sheet {
+    margin: -30px -40px 0;
+    padding: 18px 40px 8px;
+  }
+}
