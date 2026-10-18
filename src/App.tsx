@@ -55,6 +55,8 @@ const CustomerReportPage = lazy(() => import('./pages/CustomerReportPage'))
 const AutomationsPage = lazy(() => import('./pages/AutomationsPage'))
 const LeadsPage = lazy(() => import('./pages/LeadsPage'))
 const LoyaltyPage = lazy(() => import('./pages/LoyaltyPage'))
+const SurveysPage = lazy(() => import('./pages/SurveysPage'))
+const SurveyPage = lazy(() => import('./public/SurveyPage'))
 
 // adminOnly: sadece yonetici. perm: yoneticiye ya da o yetkisi acik calisana.
 // feature: paket bu ozelligi kapsamiyorsa sayfanin yerine "paketleri gor" ekrani.
@@ -149,6 +151,14 @@ function AppRoutes() {
             <Route path="planlar" element={<PlansPage />} />
             <Route path="gorevler" element={<TasksPage />} />
             <Route path="potansiyel" element={<LeadsPage />} />
+            <Route
+              path="memnuniyet"
+              element={
+                <ProtectedRoute perm="raporlar">
+                  <SurveysPage />
+                </ProtectedRoute>
+              }
+            />
             <Route
               path="sadakat"
               element={
@@ -384,6 +394,7 @@ function App() {
         <Suspense fallback={<RouteFallback />}>
           <Routes>
             <Route path="/randevu-al/:slug" element={<PublicBookingPage />} />
+            <Route path="/anket/:token" element={<SurveyPage />} />
             <Route path="/sifre-sifirla" element={<ResetPasswordPage />} />
             <Route path="/gizlilik" element={<LegalPage slug="gizlilik" />} />
             <Route path="/kvkk" element={<LegalPage slug="kvkk" />} />

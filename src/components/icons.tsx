@@ -427,3 +427,13 @@ export function StampIcon(props: IconProps) {
     </svg>
   )
 }
+
+export function SmileIcon(props: IconProps) {
+  return (
+    <svg {...base} {...props}>
+      <circle cx="12" cy="12" r="8.5" />
+      <path d="M8.5 14a4.5 4.5 0 0 0 7 0" />
+      <path d="M9 9.5h.01M15 9.5h.01" />
+    </svg>
+  )
+}

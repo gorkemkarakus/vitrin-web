@@ -8,7 +8,7 @@
 --      isletmesinde yoneticiye ait islemleri dener.
 --   C) anon rolu (giris yapmamis) tablolari okuyamaz.
 --   D) CRM: musteri alanlari / aktivite kaydi / zaman cizelgesi kurallari.
---   E-I) Gorevler, musteri dosyalari, otomasyonlar, potansiyel musteriler, sadakat.
+--   E-J) Gorevler, musteri dosyalari, otomasyonlar, potansiyel musteriler, sadakat, anket.
 -- Sonuc: test, gecti, ayrinti. Basarisiz satir varsa run-rls-tests.mjs 1 ile cikar.
 --
 -- Test hesaplari: salon_admin@test.com, salon_user@test.com (Guzel Salon),
@@ -462,6 +462,85 @@ begin
     insert into rls_result values ('I hazir odul yokken reddedilir', sqlerrm = 'Hazır ödül yok', sqlerrm);
   end;
   perform set_config('role', 'postgres', true);
+end $$;
+
+-- J) Memnuniyet anketi
+do $$
+declare
+  other uuid := (select business_id from profiles where id = (select id from auth.users where email = 'studio_admin@test.com'));
+  mine uuid := (select business_id from profiles where id = (select id from auth.users where email = 'salon_admin@test.com'));
+  other_done uuid := (select id from appointments where business_id = other and status = 'tamamlandi' limit 1);
+  my_done uuid := (select id from appointments where business_id = mine and status = 'tamamlandi' and customer_id is not null
+    and id not in (select appointment_id from surveys) limit 1);
+  my_open uuid := (select id from appointments where business_id = mine and status in ('bekliyor', 'onaylandi') limit 1);
+  other_staff uuid := (select id from auth.users where email = 'studio_admin@test.com');
+  tok text;
+  tok2 text;
+  n int;
+  v_ok boolean;
+  v_url text;
+begin
+  insert into public.survey_settings (business_id, google_review_url, low_rating)
+  values (mine, 'https://g.page/r/rls-test/review', 3)
+  on conflict (business_id) do update set google_review_url = excluded.google_review_url, low_rating = 3;
+
+  perform pg_temp.as_user('salon_admin@test.com');
+  begin
+    perform public.create_survey(other_done);
+    insert into rls_result values ('J baska isletmenin randevusuna anket', false, 'olustu');
+  exception when others then
+    insert into rls_result values ('J baska isletmenin randevusuna anket', true, 'reddedildi');
+  end;
+  begin
+    perform public.create_survey(my_open);
+    insert into rls_result values ('J tamamlanmamis randevuya anket', my_open is null, 'olustu');
+  exception when others then
+    insert into rls_result values ('J tamamlanmamis randevuya anket', true, 'reddedildi');
+  end;
+  tok := public.create_survey(my_done);
+  tok2 := public.create_survey(my_done);
+  insert into rls_result values ('J ayni randevu ayni baglanti', tok = tok2 and tok ~ '^[0-9a-f]{64}$', left(tok, 8));
+  begin
+    update public.surveys set rating = 5, responded_at = now() where appointment_id = my_done;
+    insert into rls_result values ('J anket dogrudan puanlanamaz', false, 'guncellendi');
+  exception when others then
+    insert into rls_result values ('J anket dogrudan puanlanamaz', true, 'reddedildi');
+  end;
+  begin
+    update public.survey_settings set assignee_id = other_staff where business_id = mine;
+    insert into rls_result values ('J anket gorevi baska isletmenin calisanina', false, 'atandi');
+  exception when others then
+    insert into rls_result values ('J anket gorevi baska isletmenin calisanina', true, 'reddedildi');
+  end;
+  perform set_config('role', 'postgres', true);
+
+  perform pg_temp.as_user('salon_user@test.com');
+  with u as (update public.survey_settings set low_rating = 1 where business_id = mine returning 1) select count(*) into n from u;
+  insert into rls_result values ('J calisan anket ayarini degistiremez', n = 0, n || ' satir');
+  perform set_config('role', 'postgres', true);
+
+  -- Musteri (giris yapmamis)
+  perform set_config('request.jwt.claims', '{"role":"anon"}', true);
+  perform set_config('role', 'anon', true);
+  begin
+    select count(*) into n from public.surveys;
+    insert into rls_result values ('J anon anket tablosunu okuyamaz', n = 0, n || ' satir');
+  exception when others then
+    insert into rls_result values ('J anon anket tablosunu okuyamaz', true, 'reddedildi');
+  end;
+  select count(*) into n from public.survey_info(tok);
+  insert into rls_result values ('J anon gecerli baglantiyi acar', n = 1, n || ' satir');
+  select count(*) into n from public.survey_info(repeat('0', 64));
+  insert into rls_result values ('J anon uydurma baglanti bos', n = 0, n || ' satir');
+  select s.ok, s.google_review_url into v_ok, v_url from public.submit_survey(tok, 2, 'RLS testi yorum') s;
+  insert into rls_result values ('J anon dusuk puan gonderir, Google gosterilmez', v_ok and v_url is null, coalesce(v_url, 'yok'));
+  select s.ok into v_ok from public.submit_survey(tok, 5, null) s;
+  insert into rls_result values ('J ikinci yanit reddedilir', not v_ok, v_ok::text);
+  perform set_config('role', 'postgres', true);
+
+  select count(*) into n from public.tasks t join public.surveys s on s.task_id = t.id
+  where s.appointment_id = my_done and t.title like 'Memnun kalmadı (2/5)%';
+  insert into rls_result values ('J dusuk puan gorev acar', n = 1, n || ' gorev');
 end $$;
 
 select test, gecti, ayrinti from rls_result order by gecti, test;

@@ -3,6 +3,7 @@ import { currency } from '../../lib/currency'
 import { ChevronRightIcon, MessagesIcon, MoreHorizontalIcon, PencilIcon, UserIcon } from '../../components/icons'
 import styles from '../AppointmentsPage.module.css'
 import SwipeToConfirm from './SwipeToConfirm'
+import SurveyShare from './SurveyShare'
 import { SOURCE_STORY, STATUS_DROPDOWN_OPTIONS, STATUS_OPTIONS } from './constants'
 import { SLOT_MINUTES, type Appointment } from './types'
 
@@ -206,6 +207,9 @@ export default function AppointmentDetailView({
           <a className={styles.detailCall} href={`tel:${phone}`}>
             {phone} · Ara
           </a>
+        )}
+        {a.status === 'tamamlandi' && a.customer_id && (
+          <SurveyShare appointmentId={a.id} customerName={customerName} phone={rawPhone} />
         )}
       </div>
 

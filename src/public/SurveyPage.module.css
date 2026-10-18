@@ -1,0 +1,209 @@
+.page {
+  min-height: 100vh;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 14px;
+  padding: 32px 16px;
+  background: var(--bg);
+}
+
+.card {
+  width: 100%;
+  max-width: 460px;
+  background: var(--panel);
+  border-radius: 28px;
+  padding: 28px 22px;
+  box-shadow: 0 1px 3px rgba(17, 24, 39, 0.06);
+}
+
+.form {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.center {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  text-align: center;
+  gap: 10px;
+  padding: 12px 0;
+}
+
+.brand {
+  font-size: 13px;
+  font-weight: 800;
+  color: var(--accent);
+  letter-spacing: 0.02em;
+}
+
+.title {
+  font-family: var(--font-heading);
+  font-size: 22px;
+  font-weight: 600;
+  line-height: 1.3;
+  color: var(--text);
+  text-wrap: balance;
+}
+
+.lead {
+  font-size: 15px;
+  line-height: 1.5;
+  color: var(--text-strong);
+}
+
+.muted {
+  font-size: 14px;
+  color: var(--text-dim);
+}
+
+.small {
+  font-size: 12px;
+  color: var(--text-muted);
+  text-align: center;
+}
+
+/* 1-5 olcek: genis, parmakla kolay basilan kutular */
+.scale {
+  display: grid;
+  grid-template-columns: repeat(5, 1fr);
+  gap: 8px;
+  margin-top: 8px;
+}
+
+.point {
+  aspect-ratio: 1;
+  border: 2px solid var(--line-2);
+  border-radius: 18px;
+  background: var(--panel);
+  font-family: var(--font-heading);
+  font-size: 22px;
+  font-weight: 700;
+  color: var(--text-strong);
+  cursor: pointer;
+  transition:
+    transform 0.1s,
+    background 0.15s,
+    border-color 0.15s;
+}
+
+.point:active {
+  transform: scale(0.95);
+}
+
+.point:focus-visible {
+  outline: 2px solid var(--signal);
+  outline-offset: 2px;
+}
+
+.pointOn[data-tone='low'] {
+  background: var(--danger-bg);
+  border-color: var(--danger-text);
+  color: var(--danger-text);
+}
+
+.pointOn[data-tone='mid'] {
+  background: var(--warn-bg);
+  border-color: var(--accent);
+  color: var(--accent);
+}
+
+.pointOn[data-tone='high'] {
+  background: var(--ok-bg);
+  border-color: var(--ok-text);
+  color: var(--ok-text);
+}
+
+.scaleEnds {
+  display: flex;
+  justify-content: space-between;
+  font-size: 11px;
+  color: var(--text-muted);
+}
+
+.choice {
+  min-height: 20px;
+  text-align: center;
+  font-size: 15px;
+  font-weight: 700;
+  color: var(--text);
+}
+
+.label {
+  font-size: 13px;
+  font-weight: 700;
+  color: var(--text-dim);
+}
+
+.textarea {
+  width: 100%;
+  background: var(--panel-2);
+  border: 1px solid transparent;
+  border-radius: 14px;
+  padding: 12px 14px;
+  color: var(--text);
+  font-size: 15px;
+  font-family: var(--font-body);
+  outline: none;
+  resize: vertical;
+}
+
+.textarea:focus {
+  border-color: var(--signal);
+}
+
+.error {
+  font-size: 13px;
+  color: var(--danger-text);
+  background: var(--danger-bg);
+  border-radius: 12px;
+  padding: 10px 12px;
+}
+
+.submit {
+  border: none;
+  border-radius: 16px;
+  padding: 15px;
+  background: var(--signal);
+  color: #fff;
+  font-family: var(--font-body);
+  font-size: 16px;
+  font-weight: 800;
+  cursor: pointer;
+}
+
+.submit:disabled {
+  opacity: 0.45;
+  cursor: default;
+}
+
+.bigMark {
+  width: 64px;
+  height: 64px;
+  border-radius: 50%;
+  display: grid;
+  place-items: center;
+  background: var(--ok-bg);
+  color: var(--ok-text);
+  font-size: 30px;
+}
+
+.google {
+  margin-top: 6px;
+  display: inline-block;
+  border-radius: 16px;
+  padding: 14px 22px;
+  background: var(--signal);
+  color: #fff;
+  font-size: 15px;
+  font-weight: 800;
+  text-decoration: none;
+}
+
+.footer {
+  font-size: 12px;
+  font-weight: 700;
+  color: var(--text-faint);
+}
