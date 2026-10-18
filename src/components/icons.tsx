@@ -401,3 +401,11 @@ export function ChartIcon(props: IconProps) {
     </svg>
   )
 }
+
+export function BoltIcon(props: IconProps) {
+  return (
+    <svg {...base} {...props}>
+      <path d="M13 2.5 4.5 13.5H11l-1 8 8.5-11H12l1-8Z" />
+    </svg>
+  )
+}

@@ -2,6 +2,7 @@ import type { SVGProps } from 'react'
 import {
   AccountingIcon,
   AppointmentsIcon,
+  BoltIcon,
   ChartIcon,
   HomeIcon,
   MegaphoneIcon,
@@ -72,6 +73,14 @@ export const NAV_ITEMS: NavItem[] = [
     more: true,
   },
   { path: '/kazancim', label: 'Kazancım', icon: AccountingIcon, access: 'kendi_kazanc', group: 'isletme', more: true },
+  {
+    path: '/otomasyonlar',
+    label: 'Otomasyonlar',
+    icon: BoltIcon,
+    access: 'admin',
+    group: 'buyume',
+    more: true,
+  },
   {
     path: '/toplu-mesaj',
     label: 'Toplu mesaj',

@@ -293,5 +293,49 @@ begin
   perform set_config('role', 'postgres', true);
 end $$;
 
+-- G) Otomasyonlar
+do $$
+declare
+  other uuid := (select business_id from profiles where id = (select id from auth.users where email = 'studio_admin@test.com'));
+  mine uuid := (select business_id from profiles where id = (select id from auth.users where email = 'salon_admin@test.com'));
+  n int;
+begin
+  perform pg_temp.as_user('salon_admin@test.com');
+  begin
+    perform public.run_automations(other);
+    insert into rls_result values ('G yonetici baska isletmenin kurallarini calistiramaz', false, 'calisti');
+  exception when others then
+    insert into rls_result values ('G yonetici baska isletmenin kurallarini calistiramaz', true, 'reddedildi');
+  end;
+  begin
+    insert into public.automation_rules (business_id, kind) values (other, 'gelmedi');
+    insert into rls_result values ('G baska isletmeye kural', false, 'eklendi');
+  exception when others then
+    insert into rls_result values ('G baska isletmeye kural', true, 'reddedildi');
+  end;
+  begin
+    select public.run_my_automations() into n;
+    insert into rls_result values ('G yonetici kendi kurallarini calistirir', true, n || ' gorev');
+  exception when others then
+    insert into rls_result values ('G yonetici kendi kurallarini calistirir', false, sqlerrm);
+  end;
+
+  perform set_config('role', 'postgres', true);
+  perform pg_temp.as_user('salon_user@test.com');
+  begin
+    insert into public.automation_rules (business_id, kind) values (mine, 'gelmedi');
+    insert into rls_result values ('G calisan kural tanimlayamaz', false, 'eklendi');
+  exception when others then
+    insert into rls_result values ('G calisan kural tanimlayamaz', true, 'reddedildi');
+  end;
+  begin
+    perform public.run_my_automations();
+    insert into rls_result values ('G calisan kurallari calistiramaz', false, 'calisti');
+  exception when others then
+    insert into rls_result values ('G calisan kurallari calistiramaz', true, 'reddedildi');
+  end;
+  perform set_config('role', 'postgres', true);
+end $$;
+
 select test, gecti, ayrinti from rls_result order by gecti, test;
 rollback;
