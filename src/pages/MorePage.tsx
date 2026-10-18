@@ -6,6 +6,7 @@ import { ChevronRightIcon, LockIcon } from '../components/icons'
 import { visibleNavItems } from '../lib/navigation'
 import styles from './MorePage.module.css'
 import { initials } from '../lib/formatName'
+import { myDueTaskCount } from '../lib/tasks'
 
 export default function MorePage() {
   const navigate = useNavigate()
@@ -21,6 +22,11 @@ export default function MorePage() {
   const [businessName, setBusinessName] = useState<string | null>(null)
   const [staffCount, setStaffCount] = useState<number | null>(null)
   const [waitingCount, setWaitingCount] = useState(0)
+  const [dueTasks, setDueTasks] = useState(0)
+  const profileId = profile?.id
+  useEffect(() => {
+    if (profileId) myDueTaskCount(profileId).then(setDueTasks)
+  }, [profileId])
   useEffect(() => {
     if (!profile?.business_id) return
     Promise.all([
@@ -91,6 +97,7 @@ export default function MorePage() {
               {!locked && item.path === '/mesajlar' && waitingCount > 0 && (
                 <span className={styles.tileBadge}>{waitingCount}</span>
               )}
+              {item.path === '/gorevler' && dueTasks > 0 && <span className={styles.tileBadge}>{dueTasks}</span>}
               <span className={styles.tileLabel}>{item.label}</span>
             </button>
           )

@@ -13,6 +13,7 @@ delete from public.customers where full_name ilike 'e2e %';
 delete from public.customer_groups where name ilike 'e2e %';
 delete from public.campaign_message_templates where title ilike 'e2e %';
 delete from public.business_expenses where description ilike 'e2e %';
+delete from public.tasks where title ilike 'e2e %';
 delete from auth.users where email like 'e2e-%@test.com' or email like 'e2e-kayit-%@example.com';
 delete from public.businesses b where b.signup_source = 'self' and b.name ilike 'e2e %'
   and not exists (select 1 from public.profiles p where p.business_id = b.id);

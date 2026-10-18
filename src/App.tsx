@@ -49,6 +49,7 @@ const CashClosurePage = lazy(() => import('./pages/CashClosurePage'))
 const SetupPage = lazy(() => import('./pages/SetupPage'))
 const PlansPage = lazy(() => import('./pages/PlansPage'))
 const CustomerFieldsPage = lazy(() => import('./pages/CustomerFieldsPage'))
+const TasksPage = lazy(() => import('./pages/TasksPage'))
 
 // adminOnly: sadece yonetici. perm: yoneticiye ya da o yetkisi acik calisana.
 // feature: paket bu ozelligi kapsamiyorsa sayfanin yerine "paketleri gor" ekrani.
@@ -141,6 +142,7 @@ function AppRoutes() {
             <Route path="musteriler/:id" element={<CustomerDetailPage />} />
             <Route path="daha-fazla" element={<MorePage />} />
             <Route path="planlar" element={<PlansPage />} />
+            <Route path="gorevler" element={<TasksPage />} />
             <Route
               path="ayarlar/musteri-alanlari"
               element={

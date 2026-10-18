@@ -9,6 +9,7 @@ import {
   ServicesIcon,
   SettingsIcon,
   SparkleIcon,
+  TasksIcon,
   TeamIcon,
   TrophyIcon,
   UsersIcon,
@@ -40,6 +41,7 @@ export const NAV_ITEMS: NavItem[] = [
   { path: '/dashboard', label: 'Anasayfa', icon: HomeIcon, access: 'admin', group: 'gunluk', more: false },
   { path: '/randevular', label: 'Randevular', icon: AppointmentsIcon, group: 'gunluk', more: false },
   { path: '/musteriler', label: 'Müşteriler', icon: UsersIcon, group: 'gunluk', more: false },
+  { path: '/gorevler', label: 'Görevler', icon: TasksIcon, group: 'gunluk', more: true },
   {
     path: '/mesajlar',
     label: 'Mesajlar',

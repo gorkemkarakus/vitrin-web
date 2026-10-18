@@ -447,3 +447,7 @@
   flex-direction: column;
   gap: 12px;
 }
+
+.dot_gorev {
+  background: var(--ok-text);
+}

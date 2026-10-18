@@ -201,5 +201,58 @@ begin
   perform set_config('role', 'postgres', true);
 end $$;
 
+-- E) Gorevler
+do $$
+declare
+  other uuid := (select business_id from profiles where id = (select id from auth.users where email = 'studio_admin@test.com'));
+  mine uuid := (select business_id from profiles where id = (select id from auth.users where email = 'salon_admin@test.com'));
+  other_customer uuid := (select id from customers where business_id = other limit 1);
+  other_staff uuid := (select id from auth.users where email = 'studio_admin@test.com');
+  admin_id uuid := (select id from auth.users where email = 'salon_admin@test.com');
+  staff_id uuid := (select id from auth.users where email = 'salon_user@test.com');
+  admin_task uuid;
+  n int;
+begin
+  perform pg_temp.as_user('salon_admin@test.com');
+  insert into public.tasks (business_id, title, due_date, assignee_id, created_by)
+  values (mine, 'RLS testi yonetici gorevi', current_date, admin_id, admin_id) returning id into admin_task;
+  begin
+    insert into public.tasks (business_id, customer_id, title, due_date, created_by)
+    values (mine, other_customer, 'RLS testi', current_date, admin_id);
+    insert into rls_result values ('E yabanci musteriye gorev', false, 'eklendi');
+  exception when others then
+    insert into rls_result values ('E yabanci musteriye gorev', true, 'reddedildi');
+  end;
+  begin
+    insert into public.tasks (business_id, title, due_date, assignee_id, created_by)
+    values (mine, 'RLS testi', current_date, other_staff, admin_id);
+    insert into rls_result values ('E baska isletmenin calisanina atama', false, 'eklendi');
+  exception when others then
+    insert into rls_result values ('E baska isletmenin calisanina atama', true, 'reddedildi');
+  end;
+  begin
+    insert into public.tasks (business_id, title, due_date, created_by) values (other, 'RLS testi', current_date, admin_id);
+    insert into rls_result values ('E baska isletmeye gorev', false, 'eklendi');
+  exception when others then
+    insert into rls_result values ('E baska isletmeye gorev', true, 'reddedildi');
+  end;
+
+  perform set_config('role', 'postgres', true);
+  perform pg_temp.as_user('salon_user@test.com');
+  with u as (update public.tasks set status = 'tamamlandi' where id = admin_task returning 1) select count(*) into n from u;
+  insert into rls_result values ('E calisan yoneticiye atanmis gorevi kapatamaz', n = 0, n || ' satir');
+  with d as (delete from public.tasks where id = admin_task returning 1) select count(*) into n from d;
+  insert into rls_result values ('E calisan yoneticinin gorevini silemez', n = 0, n || ' satir');
+  begin
+    insert into public.tasks (business_id, title, due_date, created_by)
+    values (mine, 'RLS testi calisan gorevi', current_date, staff_id);
+    insert into rls_result values ('E calisan gorev ekler', true, 'eklendi');
+  exception when others then
+    insert into rls_result values ('E calisan gorev ekler', false, sqlerrm);
+  end;
+
+  perform set_config('role', 'postgres', true);
+end $$;
+
 select test, gecti, ayrinti from rls_result order by gecti, test;
 rollback;

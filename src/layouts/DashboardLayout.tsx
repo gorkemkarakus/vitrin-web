@@ -25,6 +25,7 @@ import { currencyWhole } from '../lib/currency'
 import { toLocalDateString } from '../lib/date'
 import { useLayout } from '../lib/layout'
 import Sidebar from './Sidebar'
+import { myDueTaskCount } from '../lib/tasks'
 import styles from './DashboardLayout.module.css'
 
 const TAB_ITEMS = [
@@ -112,6 +113,8 @@ export default function DashboardLayout() {
   const firstName = (profile?.full_name ?? 'İşletmeniz').trim().split(/\s+/)[0]
 
   const [pending, setPending] = useState<PendingAppointment[]>([])
+  // Bana dusen bugun + geciken gorevler (yan menu rozeti)
+  const [dueTasks, setDueTasks] = useState(0)
   const [unpaid, setUnpaid] = useState<UnpaidSummary | null>(null)
   const [unpaidToday, setUnpaidToday] = useState<
     { customerId: string | null; name: string; time: string; amount: number }[]
@@ -223,6 +226,12 @@ export default function DashboardLayout() {
     }
     loadPending()
   }, [location.pathname])
+
+  const profileId = profile?.id
+  useEffect(() => {
+    if (!profileId || !isWide) return
+    myDueTaskCount(profileId).then(setDueTasks)
+  }, [profileId, isWide, location.pathname])
 
   // Giderler sadece Kasa yetkisiyle acik — yoksa sorgu hic atilmaz.
   const canKasa = can('kasa')
@@ -343,7 +352,13 @@ export default function DashboardLayout() {
 
   return (
     <div className={isWide ? styles.wideFrame : styles.frame}>
-      {isWide && <Sidebar pendingCount={pending.length} onNewCustomer={() => setQuickAddCustomerOpen(true)} />}
+      {isWide && (
+        <Sidebar
+          pendingCount={pending.length}
+          onNewCustomer={() => setQuickAddCustomerOpen(true)}
+          badges={{ '/gorevler': dueTasks }}
+        />
+      )}
       <div className={styles.shell}>
         {/* Ortak ust bar sadece ana sayfada; diger sayfalar kendi basligini
           (PageHeader) ciziyor — tasarimdaki gibi. */}

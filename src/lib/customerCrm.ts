@@ -113,7 +113,7 @@ export function cleanTag(raw: string): string {
 // ---- Zaman cizelgesi ----
 
 export type TimelineKind =
-  'kayit' | 'randevu' | 'odeme' | 'odeme_iptal' | 'paket' | 'izin' | 'bildirim' | 'whatsapp' | ActivityKind
+  'kayit' | 'randevu' | 'odeme' | 'odeme_iptal' | 'paket' | 'izin' | 'bildirim' | 'whatsapp' | 'gorev' | ActivityKind
 
 export interface TimelineItem {
   at: string

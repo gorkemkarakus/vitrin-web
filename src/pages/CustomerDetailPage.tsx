@@ -35,6 +35,7 @@ import {
 import CustomerTimeline from './customer/CustomerTimeline'
 import CustomerProfileCard from './customer/CustomerProfileCard'
 import CustomerCrmModal from './customer/CustomerCrmModal'
+import CustomerTasks from './tasks/CustomerTasks'
 
 interface Customer {
   id: string
@@ -638,7 +639,12 @@ export default function CustomerDetailPage() {
     tags: customer.tags ?? [],
     custom_fields: customer.custom_fields ?? {},
   }
-  const profileCard = <CustomerProfileCard customer={crmCustomer} fields={fieldDefs} onEdit={() => setCrmOpen(true)} />
+  const profileCard = (
+    <>
+      <CustomerProfileCard customer={crmCustomer} fields={fieldDefs} onEdit={() => setCrmOpen(true)} />
+      <CustomerTasks customer={{ id: customer.id, full_name: customer.full_name }} />
+    </>
+  )
   const summaryBlock = (
     <>
       <div className={styles.balanceCard}>

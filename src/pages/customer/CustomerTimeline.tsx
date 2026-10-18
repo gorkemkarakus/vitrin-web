@@ -29,7 +29,7 @@ const FILTERS: { value: Filter; label: string }[] = [
 function matches(filter: Filter, item: TimelineItem) {
   switch (filter) {
     case 'notlar':
-      return isActivityKind(item.kind)
+      return isActivityKind(item.kind) || item.kind === 'gorev'
     case 'randevular':
       return item.kind === 'randevu' || item.kind === 'paket'
     case 'odemeler':
@@ -156,6 +156,13 @@ export default function CustomerTimeline({ customerId }: { customerId: string })
     if (item.kind === 'paket') title = `${item.title} paketi`
     if (item.kind === 'izin' && item.detail) detail = null
     if (item.kind === 'sikayet') pill = { text: 'Şikâyet', tone: styles.pillWarn }
+    if (item.kind === 'gorev') {
+      title = `Görev · ${item.title}`
+      pill =
+        item.status === 'tamamlandi'
+          ? { text: 'Yapıldı' }
+          : { text: new Date(item.at).getTime() > now ? 'Planlandı' : 'Açık', tone: styles.pillSoon }
+    }
 
     const meta = [timeLabel(item.at), item.kind === 'randevu' ? item.detail : item.actor].filter(Boolean).join(' · ')
     if (item.kind === 'randevu') detail = null

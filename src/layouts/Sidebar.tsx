@@ -8,7 +8,16 @@ import styles from './Sidebar.module.css'
 
 // Genis ekranda (>= 1024px) alt sekme cubugu ve + menusu yerine. Kalemler
 // telefondaki "Daha fazla" ile ayni listeden gelir (lib/navigation.ts).
-export default function Sidebar({ pendingCount, onNewCustomer }: { pendingCount: number; onNewCustomer: () => void }) {
+export default function Sidebar({
+  pendingCount,
+  onNewCustomer,
+  badges = {},
+}: {
+  pendingCount: number
+  onNewCustomer: () => void
+  // Menu kalemi yolu -> rozet sayisi (ör. bugun ve geciken gorevler)
+  badges?: Record<string, number>
+}) {
   const navigate = useNavigate()
   const { profile, can, plan, hasFeature, signOut } = useAuth()
   const isAdmin = profile?.role === 'admin'
@@ -53,6 +62,7 @@ export default function Sidebar({ pendingCount, onNewCustomer }: { pendingCount:
                 >
                   <Icon width={18} height={18} />
                   <span className={styles.itemLabel}>{item.label}</span>
+                  {!locked && (badges[item.path] ?? 0) > 0 && <span className={styles.badge}>{badges[item.path]}</span>}
                   {locked && (
                     <span className={styles.itemLock} aria-label="Paketinizde yok">
                       <LockIcon width={13} height={13} />

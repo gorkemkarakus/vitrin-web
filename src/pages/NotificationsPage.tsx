@@ -5,6 +5,7 @@ import { useAuth } from '../contexts/AuthContext'
 import PageHeader from '../components/PageHeader'
 import { currencyWhole } from '../lib/currency'
 import { toLocalDateString, DAY_MS } from '../lib/date'
+import { dueLabel } from '../lib/tasks'
 import styles from './NotificationsPage.module.css'
 
 // Uygulamada ayri bir bildirim tablosu yok — liste mevcut verilerden
@@ -12,7 +13,7 @@ import styles from './NotificationsPage.module.css'
 // devralinan konusmalar, odenmemis giderler, dunun ozeti) o an hesaplanir.
 // Tercihler ve "okundu" bilgisi sadece bu cihazda (localStorage) tutulur;
 // WhatsApp/sunucu bildirimlerini etkilemez.
-type Kind = 'mesaj' | 'bot' | 'onay' | 'degisiklik' | 'gelmedi' | 'tahsilat' | 'odeme' | 'ozet'
+type Kind = 'gorev' | 'mesaj' | 'bot' | 'onay' | 'degisiklik' | 'gelmedi' | 'tahsilat' | 'odeme' | 'ozet'
 
 const PREFS_KEY = 'adapptiv.notificationPrefs'
 
@@ -26,6 +27,7 @@ const METHOD_LABEL: Record<string, string> = {
 const SEEN_KEY = 'adapptiv.notificationsSeenAt'
 
 const KIND_INFO: Record<Kind, { title: string; sub?: string; adminOnly: boolean }> = {
+  gorev: { title: 'Görev', sub: 'Bana düşen bugünkü ve geciken görevler', adminOnly: false },
   mesaj: { title: 'Bot konuşmayı bana bıraktı', sub: 'Devraldığın, botun sustuğu konuşmalar', adminOnly: false },
   bot: { title: 'Yeni randevu', sub: 'Chatbot ya da online sayfadan gelenler', adminOnly: false },
   onay: { title: 'Onay bekleyen randevu', sub: 'Durumu “bekliyor” kalanlar', adminOnly: false },
@@ -56,6 +58,7 @@ interface Item {
 
 function readPrefs(): Prefs {
   const fallback: Prefs = {
+    gorev: true,
     mesaj: true,
     bot: true,
     onay: true,
@@ -207,6 +210,33 @@ export default function NotificationsPage() {
       const nameOf = (id: string | null) => custs?.find((c) => c.id === id)?.full_name ?? 'Müşteri'
 
       const out: Item[] = []
+      // Gorevler: bugun ve geciken acik gorevler (atanan kisiye; atanmamislar herkese).
+      const { data: dueTasks } = await supabase
+        .from('tasks')
+        .select('id, title, due_date, due_time, assignee_id, created_at, customer:customers(full_name)')
+        .eq('status', 'acik')
+        .lte('due_date', toLocalDateString(new Date()))
+        .order('due_date')
+        .limit(30)
+      for (const t of (dueTasks ?? []) as unknown as {
+        id: string
+        title: string
+        due_date: string
+        due_time: string | null
+        assignee_id: string | null
+        created_at: string
+        customer: { full_name: string } | null
+      }[]) {
+        out.push({
+          key: `gorev:${t.id}:${t.due_date}`,
+          kind: 'gorev',
+          title: t.title,
+          sub: [dueLabel(t), t.customer?.full_name].filter(Boolean).join(' · '),
+          at: `${t.due_date}T${t.due_time ?? '09:00:00'}`,
+          employeeId: t.assignee_id,
+          to: '/gorevler',
+        })
+      }
       for (const c of paused ?? []) {
         out.push({
           key: `mesaj:${c.id}`,

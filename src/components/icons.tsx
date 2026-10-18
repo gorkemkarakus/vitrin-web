@@ -382,3 +382,14 @@ export function LockIcon(props: IconProps) {
     </svg>
   )
 }
+
+export function TasksIcon(props: IconProps) {
+  return (
+    <svg {...base} {...props}>
+      <path d="M4 6.5l1.6 1.6L8.5 5" />
+      <path d="M4 12.5l1.6 1.6L8.5 11" />
+      <path d="M4 18.5l1.6 1.6L8.5 17" />
+      <path d="M11.5 6.5h8.5M11.5 12.5h8.5M11.5 18.5h8.5" />
+    </svg>
+  )
+}
