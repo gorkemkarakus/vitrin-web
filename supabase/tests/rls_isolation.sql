@@ -254,5 +254,44 @@ begin
   perform set_config('role', 'postgres', true);
 end $$;
 
+-- F) Musteri dosyalari (depolama + kayit)
+do $$
+declare
+  other uuid := (select business_id from profiles where id = (select id from auth.users where email = 'studio_admin@test.com'));
+  mine uuid := (select business_id from profiles where id = (select id from auth.users where email = 'salon_admin@test.com'));
+  other_customer uuid := (select id from customers where business_id = other limit 1);
+  my_customer uuid := (select id from customers where business_id = mine limit 1);
+  admin_id uuid := (select id from auth.users where email = 'salon_admin@test.com');
+  n int;
+begin
+  -- Diger isletmenin klasorunde bir dosya (islem sonunda geri alinir)
+  insert into storage.objects (bucket_id, name, owner) values ('customer-files', other || '/' || other_customer || '/rls-test.jpg', null);
+
+  perform pg_temp.as_user('salon_admin@test.com');
+  select count(*) into n from storage.objects where bucket_id = 'customer-files' and name like other || '/%';
+  insert into rls_result values ('F baska isletmenin dosyasi okunamaz', n = 0, n || ' satir');
+  begin
+    insert into storage.objects (bucket_id, name, owner) values ('customer-files', other || '/' || other_customer || '/sizma.jpg', admin_id);
+    insert into rls_result values ('F baska isletmenin klasorune dosya', false, 'eklendi');
+  exception when others then
+    insert into rls_result values ('F baska isletmenin klasorune dosya', true, 'reddedildi');
+  end;
+  begin
+    insert into public.customer_files (business_id, customer_id, path, file_name, mime, size_bytes, uploaded_by)
+    values (mine, other_customer, mine || '/' || other_customer || '/x.jpg', 'x.jpg', 'image/jpeg', 10, admin_id);
+    insert into rls_result values ('F yabanci musteriye dosya kaydi', false, 'eklendi');
+  exception when others then
+    insert into rls_result values ('F yabanci musteriye dosya kaydi', true, 'reddedildi');
+  end;
+  begin
+    insert into public.customer_files (business_id, customer_id, path, file_name, mime, size_bytes, uploaded_by)
+    values (mine, my_customer, other || '/' || my_customer || '/x.jpg', 'x.jpg', 'image/jpeg', 10, admin_id);
+    insert into rls_result values ('F kayit yolu baska isletme klasoru', false, 'eklendi');
+  exception when others then
+    insert into rls_result values ('F kayit yolu baska isletme klasoru', true, 'reddedildi');
+  end;
+  perform set_config('role', 'postgres', true);
+end $$;
+
 select test, gecti, ayrinti from rls_result order by gecti, test;
 rollback;

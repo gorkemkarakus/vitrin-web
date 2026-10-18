@@ -36,6 +36,8 @@ import CustomerTimeline from './customer/CustomerTimeline'
 import CustomerProfileCard from './customer/CustomerProfileCard'
 import CustomerCrmModal from './customer/CustomerCrmModal'
 import CustomerTasks from './tasks/CustomerTasks'
+import CustomerFiles from './customer/CustomerFiles'
+import { removeAllCustomerFiles } from '../lib/customerFiles'
 
 interface Customer {
   id: string
@@ -555,12 +557,18 @@ export default function CustomerDetailPage() {
   async function anonymizeCustomer() {
     if (!id || !customer) return
     const ok = window.confirm(
-      `${customer.full_name} adlı müşterinin kişisel verileri (ad, telefon, e-posta, not) silinsin mi?\n\n` +
+      `${customer.full_name} adlı müşterinin kişisel verileri (ad, telefon, e-posta, notlar, fotoğraf ve belgeler) silinsin mi?\n\n` +
         'Randevu ve ödeme kayıtları kasa geçmişi bozulmasın diye isimsiz olarak kalır. Bu işlem geri alınamaz.',
     )
     if (!ok) return
     setEditCustomerSubmitting(true)
     setError(null)
+    // Fotograflar / belgeler depolamadan once silinir (kayitlarini rpc siler).
+    if (!(await removeAllCustomerFiles(id))) {
+      setEditCustomerSubmitting(false)
+      setError('Müşterinin dosyaları silinemedi; işlem yapılmadı. Tekrar deneyin.')
+      return
+    }
     const { error: rpcErr } = await supabase.rpc('anonymize_customer', { p_customer_id: id })
     setEditCustomerSubmitting(false)
     if (rpcErr) {
@@ -643,6 +651,7 @@ export default function CustomerDetailPage() {
     <>
       <CustomerProfileCard customer={crmCustomer} fields={fieldDefs} onEdit={() => setCrmOpen(true)} />
       <CustomerTasks customer={{ id: customer.id, full_name: customer.full_name }} />
+      <CustomerFiles customerId={customer.id} />
     </>
   )
   const summaryBlock = (
