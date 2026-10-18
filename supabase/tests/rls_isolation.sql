@@ -8,7 +8,7 @@
 --      isletmesinde yoneticiye ait islemleri dener.
 --   C) anon rolu (giris yapmamis) tablolari okuyamaz.
 --   D) CRM: musteri alanlari / aktivite kaydi / zaman cizelgesi kurallari.
---   E-H) Gorevler, musteri dosyalari, otomasyonlar, potansiyel musteriler.
+--   E-I) Gorevler, musteri dosyalari, otomasyonlar, potansiyel musteriler, sadakat.
 -- Sonuc: test, gecti, ayrinti. Basarisiz satir varsa run-rls-tests.mjs 1 ile cikar.
 --
 -- Test hesaplari: salon_admin@test.com, salon_user@test.com (Guzel Salon),
@@ -390,6 +390,77 @@ begin
   insert into rls_result values ('H calisan adayin asamasini degistirir', n = 1, n || ' satir');
   with d as (delete from public.leads where id = admin_lead returning 1) select count(*) into n from d;
   insert into rls_result values ('H calisan baskasinin adayini silemez', n = 0, n || ' satir');
+  perform set_config('role', 'postgres', true);
+end $$;
+
+-- I) Sadakat karti
+do $$
+declare
+  other uuid := (select business_id from profiles where id = (select id from auth.users where email = 'studio_admin@test.com'));
+  mine uuid := (select business_id from profiles where id = (select id from auth.users where email = 'salon_admin@test.com'));
+  other_customer uuid := (select id from customers where business_id = other limit 1);
+  loyal uuid := (
+    select a.customer_id from appointments a
+    where a.business_id = (select business_id from profiles where id = (select id from auth.users where email = 'salon_admin@test.com'))
+      and a.status = 'tamamlandi' and a.customer_id is not null
+    group by a.customer_id order by count(distinct a.scheduled_at::date) desc limit 1);
+  admin_id uuid := (select id from auth.users where email = 'salon_admin@test.com');
+  n int;
+  v_before int;
+  v_after int;
+begin
+  insert into public.loyalty_programs (business_id, visits_required, reward, counts_from)
+  values (mine, 5, 'RLS testi odul', '2000-01-01')
+  on conflict (business_id) do update set enabled = true, visits_required = 5, counts_from = '2000-01-01';
+
+  perform pg_temp.as_user('salon_admin@test.com');
+  begin
+    insert into public.loyalty_programs (business_id, reward) values (other, 'RLS testi');
+    insert into rls_result values ('I baska isletmeye sadakat programi', false, 'eklendi');
+  exception when others then
+    insert into rls_result values ('I baska isletmeye sadakat programi', true, 'reddedildi');
+  end;
+  begin
+    insert into public.loyalty_redemptions (business_id, customer_id, visits_used, reward, redeemed_by)
+    values (mine, loyal, 5, 'bedava', admin_id);
+    insert into rls_result values ('I odul kaydi dogrudan eklenemez', false, 'eklendi');
+  exception when others then
+    insert into rls_result values ('I odul kaydi dogrudan eklenemez', true, 'reddedildi');
+  end;
+  begin
+    perform public.redeem_loyalty(other_customer);
+    insert into rls_result values ('I baska isletmenin musterisine odul', false, 'kullandirildi');
+  exception when others then
+    insert into rls_result values ('I baska isletmenin musterisine odul', true, 'reddedildi');
+  end;
+  select count(*) into n from public.loyalty_cards() c where c.customer_id not in (select id from customers where business_id = mine);
+  insert into rls_result values ('I kartlar yalnizca kendi musterileri', n = 0, n || ' yabanci');
+  select available into v_before from public.loyalty_cards(loyal);
+  begin
+    perform public.redeem_loyalty(loyal);
+    select available into v_after from public.loyalty_cards(loyal);
+    insert into rls_result values ('I hazir odul kullandirilir', v_after = v_before - 1, v_before || ' -> ' || v_after);
+  exception when others then
+    insert into rls_result values ('I hazir odul kullandirilir', false, sqlerrm);
+  end;
+
+  perform set_config('role', 'postgres', true);
+  perform pg_temp.as_user('salon_user@test.com');
+  with u as (update public.loyalty_programs set reward = 'sizma' where business_id = mine returning 1) select count(*) into n from u;
+  insert into rls_result values ('I calisan programi degistiremez', n = 0, n || ' satir');
+  with d as (delete from public.loyalty_redemptions where customer_id = loyal returning 1) select count(*) into n from d;
+  insert into rls_result values ('I calisan odul kaydini silemez', n = 0, n || ' satir');
+  perform set_config('role', 'postgres', true);
+
+  -- Odul kalmayinca reddedilir: kalan tum odulleri kullan, bir fazlasi hata vermeli.
+  update public.loyalty_programs set visits_required = 50 where business_id = mine;
+  perform pg_temp.as_user('salon_admin@test.com');
+  begin
+    perform public.redeem_loyalty(loyal);
+    insert into rls_result values ('I hazir odul yokken reddedilir', false, 'kullandirildi');
+  exception when others then
+    insert into rls_result values ('I hazir odul yokken reddedilir', sqlerrm = 'Hazır ödül yok', sqlerrm);
+  end;
   perform set_config('role', 'postgres', true);
 end $$;
 

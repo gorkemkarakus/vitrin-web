@@ -12,6 +12,7 @@ import {
   ServicesIcon,
   SettingsIcon,
   SparkleIcon,
+  StampIcon,
   TasksIcon,
   TeamIcon,
   TrophyIcon,
@@ -83,6 +84,7 @@ export const NAV_ITEMS: NavItem[] = [
     group: 'buyume',
     more: true,
   },
+  { path: '/sadakat', label: 'Sadakat kartı', icon: StampIcon, access: 'admin', group: 'buyume', more: true },
   {
     path: '/toplu-mesaj',
     label: 'Toplu mesaj',

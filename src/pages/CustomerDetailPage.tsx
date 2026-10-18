@@ -37,6 +37,7 @@ import CustomerProfileCard from './customer/CustomerProfileCard'
 import CustomerCrmModal from './customer/CustomerCrmModal'
 import CustomerTasks from './tasks/CustomerTasks'
 import CustomerFiles from './customer/CustomerFiles'
+import CustomerLoyalty from './customer/CustomerLoyalty'
 import { removeAllCustomerFiles } from '../lib/customerFiles'
 
 interface Customer {
@@ -650,6 +651,7 @@ export default function CustomerDetailPage() {
   const profileCard = (
     <>
       <CustomerProfileCard customer={crmCustomer} fields={fieldDefs} onEdit={() => setCrmOpen(true)} />
+      <CustomerLoyalty customerId={customer.id} />
       <CustomerTasks customer={{ id: customer.id, full_name: customer.full_name }} />
       <CustomerFiles customerId={customer.id} />
     </>

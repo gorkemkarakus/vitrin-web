@@ -451,3 +451,50 @@
 .dot_gorev {
   background: var(--ok-text);
 }
+
+/* ---------- Sadakat karti ---------- */
+.stamps {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+
+.stamp {
+  width: 26px;
+  height: 26px;
+  border-radius: 50%;
+  border: 2px dashed var(--line-3);
+}
+
+.stampOn {
+  border: none;
+  background: var(--accent);
+  box-shadow:
+    inset 0 0 0 4px var(--panel),
+    inset 0 0 0 6px var(--accent);
+}
+
+.loyaltyText {
+  font-size: 14px;
+  font-weight: 600;
+  color: var(--text-strong);
+}
+
+.loyaltyReady {
+  color: var(--ok-text);
+  font-weight: 800;
+}
+
+.loyaltyOk,
+.loyaltyErr {
+  font-size: 13px;
+  font-weight: 700;
+}
+
+.loyaltyOk {
+  color: var(--ok-text);
+}
+
+.loyaltyErr {
+  color: var(--danger-text);
+}

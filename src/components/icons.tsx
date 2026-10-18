@@ -417,3 +417,13 @@ export function FunnelIcon(props: IconProps) {
     </svg>
   )
 }
+
+export function StampIcon(props: IconProps) {
+  return (
+    <svg {...base} {...props}>
+      <rect x="3.5" y="5" width="17" height="14" rx="3" />
+      <circle cx="8.5" cy="12" r="1.8" />
+      <circle cx="15.5" cy="12" r="1.8" />
+    </svg>
+  )
+}

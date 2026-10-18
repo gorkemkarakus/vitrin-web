@@ -335,3 +335,19 @@
   width: auto;
   padding: 10px 16px;
 }
+
+.otherRow input {
+  background: var(--panel-2);
+  border: 1px solid transparent;
+  border-radius: 12px;
+  padding: 10px 12px;
+  color: var(--text);
+  font-size: 14px;
+  font-family: var(--font-body);
+  outline: none;
+  min-width: 0;
+}
+
+.otherRow input:focus {
+  border-color: var(--signal);
+}
