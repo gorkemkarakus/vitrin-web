@@ -11,6 +11,8 @@ import styles from './ServicesPage.module.css'
 import { firstName } from '../lib/formatName'
 import { AVATAR_TONES } from '../lib/avatarColor'
 import { FIELD_LIMITS } from '../lib/fieldLimits'
+import { useLayout } from '../lib/layout'
+import DataTable, { type Column } from '../components/DataTable'
 
 interface Service {
   id: string
@@ -44,6 +46,7 @@ const SORT_OPTIONS: { value: SortBy; label: string; short: string }[] = [
 
 export default function ServicesPage() {
   const { profile } = useAuth()
+  const { isWide } = useLayout()
   const [searchParams, setSearchParams] = useSearchParams()
   const [services, setServices] = useState<Service[]>([])
   const [employees, setEmployees] = useState<Employee[]>([])
@@ -508,6 +511,57 @@ export default function ServicesPage() {
 
   const activeCount = services.filter((s) => s.is_active).length
 
+  const columns: Column<Service>[] = [
+    {
+      key: 'ad',
+      label: 'Hizmet',
+      sortKey: 'ad',
+      render: (s) => (
+        <span className={styles.cellName}>
+          {s.name}
+          {!s.is_active && <span className={styles.cellPassive}>Pasif</span>}
+        </span>
+      ),
+    },
+    { key: 'sure', label: 'Süre', sortKey: 'sure', render: (s) => `${s.duration_minutes} dk` },
+    {
+      key: 'ekip',
+      label: 'Kim yapıyor',
+      render: (s) => {
+        const who = staffByService.get(s.id) ?? []
+        return who.length === 0 ? (
+          <span className={styles.rowMetaWarn}>Kimse atanmadı</span>
+        ) : who.length > 4 ? (
+          `${who.slice(0, 4).join(', ')} +${who.length - 4}`
+        ) : (
+          who.join(', ')
+        )
+      },
+    },
+    {
+      key: 'online',
+      label: 'Online randevu',
+      render: (s) => (s.online_bookable === false ? <span className={styles.cellMuted}>Gizli</span> : 'Görünür'),
+    },
+    {
+      key: 'paket',
+      label: 'Paket',
+      render: (s) =>
+        s.package_sessions ? (
+          `${s.package_sessions} seans${s.package_price != null ? ` · ${currency.format(s.package_price)}` : ''}`
+        ) : (
+          <span className={styles.cellMuted}>—</span>
+        ),
+    },
+    {
+      key: 'fiyat',
+      label: 'Fiyat',
+      align: 'right',
+      sortKey: 'fiyat',
+      render: (s) => (s.price != null ? currency.format(s.price) : '—'),
+    },
+  ]
+
   return (
     <div className={styles.wrap}>
       <PageHeader
@@ -568,6 +622,17 @@ export default function ServicesPage() {
         <p className={styles.empty}>
           {q ? 'Aramana uyan hizmet yok.' : 'Henüz hizmet eklenmedi. “+ Hizmet” ile başla.'}
         </p>
+      ) : isWide ? (
+        <DataTable
+          ariaLabel="Hizmetler"
+          rows={filteredSorted}
+          columns={columns}
+          rowKey={(s) => s.id}
+          rowLabel={(s) => s.name}
+          onRowClick={(s) => openEditor(s)}
+          sort={{ key: sortBy, dir: sortBy === 'ad' ? 'asc' : 'desc' }}
+          onSort={(k) => setSortBy(k as SortBy)}
+        />
       ) : (
         <div className={styles.listCard}>
           {filteredSorted.map((s) => {

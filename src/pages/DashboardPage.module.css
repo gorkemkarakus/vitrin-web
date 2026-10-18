@@ -589,3 +589,36 @@ button.paymentRow {
     padding: 18px 40px 8px;
   }
 }
+
+/* ---------- Genis ekran: iki sutun ---------- */
+.wideCols,
+.colA,
+.colB {
+  display: contents;
+}
+
+@media (min-width: 1024px) {
+  .sheet {
+    margin: -30px -40px 0;
+    padding: 22px 40px 8px;
+  }
+
+  .segmented {
+    max-width: 560px;
+  }
+
+  .wideCols {
+    display: grid;
+    grid-template-columns: minmax(0, 3fr) minmax(0, 2fr);
+    gap: 16px;
+    align-items: start;
+  }
+
+  .colA,
+  .colB {
+    display: flex;
+    flex-direction: column;
+    gap: 16px;
+    min-width: 0;
+  }
+}

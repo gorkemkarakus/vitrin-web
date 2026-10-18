@@ -179,44 +179,46 @@ export default function TeamPage() {
       ) : ordered.length === 0 ? (
         <p className={styles.empty}>Henüz ekip üyesi yok. “+ Çalışan” ile ekle.</p>
       ) : (
-        ordered.map((emp, i) => {
-          const live = liveFor(emp)
-          const svc = serviceNamesByEmployee.get(emp.id) ?? []
-          return (
-            <button
-              type="button"
-              key={emp.id}
-              className={emp.is_active ? styles.card : `${styles.card} ${styles.cardMuted}`}
-              onClick={() => navigate(`/ekip/${emp.id}`)}
-            >
-              <span className={styles.cardTop}>
-                <span className={`${styles.avatar} ${styles[AVATAR_TONES[i % AVATAR_TONES.length]]}`}>
-                  {(emp.full_name ?? '?').trim().charAt(0).toLocaleUpperCase('tr')}
-                </span>
-                <span className={styles.cardWho}>
-                  <span className={styles.cardName}>{emp.full_name ?? '—'}</span>
-                  <span className={styles.cardRole}>
-                    {svc.length > 0
-                      ? svc
-                          .slice(0, 3)
-                          .join(', ')
-                          .toLocaleLowerCase('tr')
-                          .replace(/^./, (c) => c.toLocaleUpperCase('tr')) +
-                        (svc.length > 3 ? ` +${svc.length - 3}` : '')
-                      : emp.role === 'admin'
-                        ? 'Yönetici'
-                        : 'Hizmet seçilmemiş'}
+        <div className={styles.cardGrid}>
+          {ordered.map((emp, i) => {
+            const live = liveFor(emp)
+            const svc = serviceNamesByEmployee.get(emp.id) ?? []
+            return (
+              <button
+                type="button"
+                key={emp.id}
+                className={emp.is_active ? styles.card : `${styles.card} ${styles.cardMuted}`}
+                onClick={() => navigate(`/ekip/${emp.id}`)}
+              >
+                <span className={styles.cardTop}>
+                  <span className={`${styles.avatar} ${styles[AVATAR_TONES[i % AVATAR_TONES.length]]}`}>
+                    {(emp.full_name ?? '?').trim().charAt(0).toLocaleUpperCase('tr')}
                   </span>
+                  <span className={styles.cardWho}>
+                    <span className={styles.cardName}>{emp.full_name ?? '—'}</span>
+                    <span className={styles.cardRole}>
+                      {svc.length > 0
+                        ? svc
+                            .slice(0, 3)
+                            .join(', ')
+                            .toLocaleLowerCase('tr')
+                            .replace(/^./, (c) => c.toLocaleUpperCase('tr')) +
+                          (svc.length > 3 ? ` +${svc.length - 3}` : '')
+                        : emp.role === 'admin'
+                          ? 'Yönetici'
+                          : 'Hizmet seçilmemiş'}
+                    </span>
+                  </span>
+                  <span className={`${styles.pill} ${styles[`pill_${live.tone}`]}`}>{live.pill}</span>
                 </span>
-                <span className={`${styles.pill} ${styles[`pill_${live.tone}`]}`}>{live.pill}</span>
-              </span>
-              <span className={styles.infoStrip}>
-                <span className={styles.infoText}>{live.info}</span>
-                <span className={styles.infoCount}>Bugün {live.count} randevu</span>
-              </span>
-            </button>
-          )
-        })
+                <span className={styles.infoStrip}>
+                  <span className={styles.infoText}>{live.info}</span>
+                  <span className={styles.infoCount}>Bugün {live.count} randevu</span>
+                </span>
+              </button>
+            )
+          })}
+        </div>
       )}
 
       <div className={styles.linkGrid}>

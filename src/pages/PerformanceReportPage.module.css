@@ -550,3 +550,17 @@ div.card {
   font-weight: 700;
   font-variant-numeric: tabular-nums;
 }
+
+/* ---------- Genis ekran: kart izgarasi ---------- */
+.cardGrid {
+  display: contents;
+}
+
+@media (min-width: 1024px) {
+  .cardGrid {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(440px, 1fr));
+    gap: 14px;
+    align-items: stretch;
+  }
+}

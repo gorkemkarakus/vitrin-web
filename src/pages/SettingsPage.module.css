@@ -441,3 +441,29 @@
   padding: 12px 14px;
   font-size: 13px;
 }
+
+/* ---------- Genis ekran: bolumler iki sutun ---------- */
+.blocks,
+.block {
+  display: contents;
+}
+
+@media (min-width: 1024px) {
+  .blocks {
+    display: grid;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 18px 16px;
+    align-items: start;
+  }
+
+  .block {
+    display: flex;
+    flex-direction: column;
+    gap: 12px;
+  }
+
+  .signOut {
+    align-self: flex-start;
+    min-width: 240px;
+  }
+}

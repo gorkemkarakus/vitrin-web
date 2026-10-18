@@ -473,3 +473,31 @@
   font-weight: 700;
   color: var(--text);
 }
+
+/* ---------- Genis ekran tablosu ---------- */
+.cellName {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  font-weight: 700;
+  color: var(--text);
+}
+
+.cellPassive {
+  font-size: 11px;
+  font-weight: 700;
+  color: var(--text-muted);
+  background: var(--panel-2);
+  border-radius: 999px;
+  padding: 2px 8px;
+}
+
+.cellMuted {
+  color: var(--text-faint);
+}
+
+@media (min-width: 1024px) {
+  .filterWrap {
+    display: none;
+  }
+}

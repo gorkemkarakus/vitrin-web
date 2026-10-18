@@ -740,65 +740,67 @@ export default function PerformanceReportPage() {
           )}
 
           {visibleRows.length === 0 && !showBotRow && <p className={styles.empty}>Sonuç bulunamadı.</p>}
-          {visibleRows.map((e, i) => (
-            <button
-              type="button"
-              key={e.profile.id}
-              className={styles.card}
-              onClick={() => setSelectedId(e.profile.id)}
-            >
-              <span className={styles.cardTop}>
-                <span className={`${styles.avatar} ${styles[AVATAR_TONES[i % AVATAR_TONES.length]]}`}>
-                  {firstName(e.profile.full_name).charAt(0).toLocaleUpperCase('tr')}
+          <div className={styles.cardGrid}>
+            {visibleRows.map((e, i) => (
+              <button
+                type="button"
+                key={e.profile.id}
+                className={styles.card}
+                onClick={() => setSelectedId(e.profile.id)}
+              >
+                <span className={styles.cardTop}>
+                  <span className={`${styles.avatar} ${styles[AVATAR_TONES[i % AVATAR_TONES.length]]}`}>
+                    {firstName(e.profile.full_name).charAt(0).toLocaleUpperCase('tr')}
+                  </span>
+                  <span className={styles.cardWho}>
+                    <span className={styles.cardName}>{e.profile.full_name ?? '—'}</span>
+                    <span className={styles.cardSub}>{e.serviceTag ?? 'Hizmet atanmamış'}</span>
+                  </span>
+                  <span className={styles.chevron}>›</span>
                 </span>
-                <span className={styles.cardWho}>
-                  <span className={styles.cardName}>{e.profile.full_name ?? '—'}</span>
-                  <span className={styles.cardSub}>{e.serviceTag ?? 'Hizmet atanmamış'}</span>
-                </span>
-                <span className={styles.chevron}>›</span>
-              </span>
-              <span className={styles.cardStats}>
-                <span className={styles.cardStat}>
-                  <span className={styles.cardStatValue}>{e.completedCount}</span>
-                  <span className={styles.cardStatLabel}>randevu</span>
-                </span>
-                <span className={styles.cardStat}>
-                  <span className={styles.cardStatValue}>{currency.format(e.revenue)}</span>
-                  <span className={styles.cardStatLabel}>
-                    {e.primOrani > 0 ? `kazanç · prim ${currency.format(e.primHakedis)}` : 'kazanç'}
+                <span className={styles.cardStats}>
+                  <span className={styles.cardStat}>
+                    <span className={styles.cardStatValue}>{e.completedCount}</span>
+                    <span className={styles.cardStatLabel}>randevu</span>
+                  </span>
+                  <span className={styles.cardStat}>
+                    <span className={styles.cardStatValue}>{currency.format(e.revenue)}</span>
+                    <span className={styles.cardStatLabel}>
+                      {e.primOrani > 0 ? `kazanç · prim ${currency.format(e.primHakedis)}` : 'kazanç'}
+                    </span>
+                  </span>
+                  <span className={styles.cardStat}>
+                    <span className={styles.cardStatValue}>{e.leaveDayCount} gün</span>
+                    <span className={styles.cardStatLabel}>izin</span>
                   </span>
                 </span>
-                <span className={styles.cardStat}>
-                  <span className={styles.cardStatValue}>{e.leaveDayCount} gün</span>
-                  <span className={styles.cardStatLabel}>izin</span>
-                </span>
-              </span>
-            </button>
-          ))}
+              </button>
+            ))}
 
-          {showBotRow && (
-            <div className={styles.card}>
-              <span className={styles.cardTop}>
-                <span className={`${styles.avatar} ${styles.toneBot}`}>
-                  <RobotIcon width={20} height={20} />
+            {showBotRow && (
+              <div className={styles.card}>
+                <span className={styles.cardTop}>
+                  <span className={`${styles.avatar} ${styles.toneBot}`}>
+                    <RobotIcon width={20} height={20} />
+                  </span>
+                  <span className={styles.cardWho}>
+                    <span className={styles.cardName}>Chatbot ve online randevu</span>
+                    <span className={styles.cardSub}>Henüz bir çalışana atanmamış · prim yok</span>
+                  </span>
                 </span>
-                <span className={styles.cardWho}>
-                  <span className={styles.cardName}>Chatbot ve online randevu</span>
-                  <span className={styles.cardSub}>Henüz bir çalışana atanmamış · prim yok</span>
+                <span className={styles.cardStats2}>
+                  <span className={styles.cardStat}>
+                    <span className={styles.cardStatValue}>{botStats.completedCount}</span>
+                    <span className={styles.cardStatLabel}>randevu</span>
+                  </span>
+                  <span className={styles.cardStat}>
+                    <span className={styles.cardStatValue}>{currency.format(botStats.tahsilat)}</span>
+                    <span className={styles.cardStatLabel}>kazanç</span>
+                  </span>
                 </span>
-              </span>
-              <span className={styles.cardStats2}>
-                <span className={styles.cardStat}>
-                  <span className={styles.cardStatValue}>{botStats.completedCount}</span>
-                  <span className={styles.cardStatLabel}>randevu</span>
-                </span>
-                <span className={styles.cardStat}>
-                  <span className={styles.cardStatValue}>{currency.format(botStats.tahsilat)}</span>
-                  <span className={styles.cardStatLabel}>kazanç</span>
-                </span>
-              </span>
-            </div>
-          )}
+              </div>
+            )}
+          </div>
 
           <div className={styles.totals}>
             <div className={styles.totalItem}>

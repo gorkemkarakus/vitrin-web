@@ -476,3 +476,31 @@ button.tile {
   color: var(--text-faint);
   font-size: 18px;
 }
+
+/* ---------- Genis ekran: iki sutun ---------- */
+.wideCols,
+.colA,
+.colB {
+  display: contents;
+}
+
+@media (min-width: 1024px) {
+  .wideCols {
+    display: grid;
+    grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
+    gap: 16px;
+    align-items: start;
+  }
+
+  .colA,
+  .colB {
+    display: flex;
+    flex-direction: column;
+    gap: 14px;
+    min-width: 0;
+  }
+
+  .exportBtn {
+    align-self: flex-start;
+  }
+}

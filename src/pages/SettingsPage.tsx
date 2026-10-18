@@ -640,63 +640,75 @@ export default function SettingsPage() {
     <div className={styles.wrap}>
       <PageHeader back="/daha-fazla" title="Ayarlar" />
 
-      {isAdmin && (
-        <>
-          <span className={styles.groupLabel}>İşletme</span>
-          <div className={styles.group}>
-            {row('Salon bilgileri', business?.name || '…', () => open('salon'))}
-            {row('Ekip ve çalışma saatleri', 'Ekip', () => navigate('/ekip'))}
-            {row(
-              'Müşteri alanları',
-              isWide ? 'Alerji, cilt tipi…' : 'Bilgisayarda',
-              () => navigate('/ayarlar/musteri-alanlari'),
-              'muted',
-            )}
-            {row('Verilerimi indir', 'Excel', () => open('veri'), 'muted')}
-            {business?.slug
-              ? row(
-                  'Online randevu sayfası',
-                  bookingEnabled === false ? 'Kapalı' : 'Açık',
-                  () => open('online'),
-                  bookingEnabled === false ? 'muted' : 'ok',
-                )
-              : row('Online randevu sayfası', 'Kapalı', undefined, 'muted')}
-          </div>
-        </>
-      )}
-
-      <span className={styles.groupLabel}>Mesajlaşma</span>
-      <div className={styles.group}>
-        {isAdmin && row('Randevu hatırlatması', reminderLabel, () => open('hatirlatma'))}
-        {row('WhatsApp numaram', phoneLoading ? '…' : savedPhone ? formatPhone(savedPhone) : 'Kayıtlı değil', () =>
-          open('whatsapp'),
+      {/* Genis ekranda bolumler iki sutun; telefonda sarmalayicilar gorunmez. */}
+      <div className={styles.blocks}>
+        {isAdmin && (
+          <section className={styles.block}>
+            <span className={styles.groupLabel}>İşletme</span>
+            <div className={styles.group}>
+              {row('Salon bilgileri', business?.name || '…', () => open('salon'))}
+              {row('Ekip ve çalışma saatleri', 'Ekip', () => navigate('/ekip'))}
+              {row(
+                'Müşteri alanları',
+                isWide ? 'Alerji, cilt tipi…' : 'Bilgisayarda',
+                () => navigate('/ayarlar/musteri-alanlari'),
+                'muted',
+              )}
+              {row('Verilerimi indir', 'Excel', () => open('veri'), 'muted')}
+              {business?.slug
+                ? row(
+                    'Online randevu sayfası',
+                    bookingEnabled === false ? 'Kapalı' : 'Açık',
+                    () => open('online'),
+                    bookingEnabled === false ? 'muted' : 'ok',
+                  )
+                : row('Online randevu sayfası', 'Kapalı', undefined, 'muted')}
+            </div>
+          </section>
         )}
-        {isAdmin &&
-          botLive !== null &&
-          row('Chatbot', botLive ? 'Çalışıyor' : 'Bağlı değil', () => navigate('/mesajlar'), botLive ? 'ok' : 'muted')}
-      </div>
 
-      <span className={styles.groupLabel}>Hesap</span>
-      <div className={styles.group}>
-        {row('E-posta', session?.user.email ?? '—')}
-        {row('Şifre değiştir', '', () => open('sifre'), 'muted')}
-        {row('Bildirimler', '', () => navigate('/bildirimler?tercihler=1'), 'muted')}
-        {pushAvailable &&
-          pushState &&
-          row(
-            'Telefon bildirimleri',
-            pushState === 'granted' ? 'Açık' : pushState === 'denied' ? 'Telefon ayarlarından aç' : 'Kapalı',
-            pushState === 'prompt' ? () => enablePush().then(setPushState) : undefined,
-            pushState === 'granted' ? 'ok' : 'muted',
-          )}
-        {row('Hesabımı sil', '', openDelete, 'muted')}
-      </div>
-
-      <span className={styles.groupLabel}>Hakkında</span>
-      <div className={styles.group}>
-        {row('Gizlilik Politikası', '', () => navigate('/gizlilik'), 'muted')}
-        {row('KVKK Aydınlatma Metni', '', () => navigate('/kvkk'), 'muted')}
-        {row('Kullanım Koşulları', '', () => navigate('/kullanim-kosullari'), 'muted')}
+        <section className={styles.block}>
+          <span className={styles.groupLabel}>Mesajlaşma</span>
+          <div className={styles.group}>
+            {isAdmin && row('Randevu hatırlatması', reminderLabel, () => open('hatirlatma'))}
+            {row('WhatsApp numaram', phoneLoading ? '…' : savedPhone ? formatPhone(savedPhone) : 'Kayıtlı değil', () =>
+              open('whatsapp'),
+            )}
+            {isAdmin &&
+              botLive !== null &&
+              row(
+                'Chatbot',
+                botLive ? 'Çalışıyor' : 'Bağlı değil',
+                () => navigate('/mesajlar'),
+                botLive ? 'ok' : 'muted',
+              )}
+          </div>
+        </section>
+        <section className={styles.block}>
+          <span className={styles.groupLabel}>Hesap</span>
+          <div className={styles.group}>
+            {row('E-posta', session?.user.email ?? '—')}
+            {row('Şifre değiştir', '', () => open('sifre'), 'muted')}
+            {row('Bildirimler', '', () => navigate('/bildirimler?tercihler=1'), 'muted')}
+            {pushAvailable &&
+              pushState &&
+              row(
+                'Telefon bildirimleri',
+                pushState === 'granted' ? 'Açık' : pushState === 'denied' ? 'Telefon ayarlarından aç' : 'Kapalı',
+                pushState === 'prompt' ? () => enablePush().then(setPushState) : undefined,
+                pushState === 'granted' ? 'ok' : 'muted',
+              )}
+            {row('Hesabımı sil', '', openDelete, 'muted')}
+          </div>
+        </section>
+        <section className={styles.block}>
+          <span className={styles.groupLabel}>Hakkında</span>
+          <div className={styles.group}>
+            {row('Gizlilik Politikası', '', () => navigate('/gizlilik'), 'muted')}
+            {row('KVKK Aydınlatma Metni', '', () => navigate('/kvkk'), 'muted')}
+            {row('Kullanım Koşulları', '', () => navigate('/kullanim-kosullari'), 'muted')}
+          </div>
+        </section>
       </div>
 
       <button type="button" className={styles.signOut} onClick={() => signOut()}>

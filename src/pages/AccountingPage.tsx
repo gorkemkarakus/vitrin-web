@@ -520,200 +520,207 @@ export default function AccountingPage() {
         </div>
       )}
 
-      <div className={styles.totalCard}>
-        <div className={styles.totalHead}>
-          <span className={styles.totalLabel}>Toplam tahsilat</span>
-          <span className={styles.totalValue}>{currency.format(totalRevenue)}</span>
-        </div>
-        {methodTotals.length > 0 ? (
-          <div className={styles.methodList}>
-            {methodTotals.map((m) => (
-              <div key={m.method} className={styles.methodRow}>
-                <div className={styles.methodTop}>
-                  <span className={styles.methodLabel}>{m.label}</span>
-                  <span className={styles.methodAmount}>{currency.format(m.total)}</span>
-                </div>
-                <span className={styles.methodTrack}>
-                  <span className={styles.methodFill} style={{ width: `${(m.total / methodMax) * 100}%` }} />
-                </span>
+      {/* Genis ekranda iki sutun: solda ozet ve eylemler, sagda hareketler ve
+          dokum. Telefonda sarmalayicilar gorunmez. */}
+      <div className={styles.wideCols}>
+        <div className={styles.colA}>
+          <div className={styles.totalCard}>
+            <div className={styles.totalHead}>
+              <span className={styles.totalLabel}>Toplam tahsilat</span>
+              <span className={styles.totalValue}>{currency.format(totalRevenue)}</span>
+            </div>
+            {methodTotals.length > 0 ? (
+              <div className={styles.methodList}>
+                {methodTotals.map((m) => (
+                  <div key={m.method} className={styles.methodRow}>
+                    <div className={styles.methodTop}>
+                      <span className={styles.methodLabel}>{m.label}</span>
+                      <span className={styles.methodAmount}>{currency.format(m.total)}</span>
+                    </div>
+                    <span className={styles.methodTrack}>
+                      <span className={styles.methodFill} style={{ width: `${(m.total / methodMax) * 100}%` }} />
+                    </span>
+                  </div>
+                ))}
               </div>
-            ))}
-          </div>
-        ) : (
-          <span className={styles.totalHint}>
-            Bu dönemde tahsilat yok · {rangedCompleted.length} randevu tamamlandı
-          </span>
-        )}
-      </div>
-
-      <div className={styles.tiles}>
-        <div className={`${styles.tile} ${styles.tileNavy}`}>
-          <span className={styles.tileLabel}>Kasadaki nakit</span>
-          <span className={styles.tileValue}>{currency.format(cashTotal)}</span>
-          <span className={styles.tileHint}>Nakit gelir − nakit gider</span>
-        </div>
-        <button
-          type="button"
-          className={styles.tile}
-          onClick={() => navigate(`/giderler?start=${rangeStart}&end=${rangeEnd}`)}
-        >
-          <span className={styles.tileLabel}>Giderler</span>
-          <span className={`${styles.tileValue} ${styles.textWarm}`}>{currency.format(totalExpenses)}</span>
-          <span className={styles.tileHint}>
-            {expenses.length} kayıt
-            {overdueExpenses.length > 0
-              ? ` · ${overdueExpenses.length} gecikti`
-              : unpaidTotal > 0
-                ? ` · ${currency.format(unpaidTotal)} ödenmedi`
-                : ''}{' '}
-            ›
-          </span>
-        </button>
-        <button type="button" className={styles.tile} onClick={() => navigate('/musteriler?sekme=borclu')}>
-          <span className={styles.tileLabel}>Alacaklar</span>
-          <span className={styles.tileValue}>{currency.format(debtTotal)}</span>
-          <span className={styles.tileHint}>{debtorCount} müşteri ›</span>
-        </button>
-        <div className={styles.tile}>
-          <span className={styles.tileLabel}>Net</span>
-          <span
-            className={
-              netProfit < 0 ? `${styles.tileValue} ${styles.textDanger}` : `${styles.tileValue} ${styles.textOk}`
-            }
-          >
-            {currency.format(netProfit)}
-          </span>
-          <span className={styles.tileHint}>Gelir − gider</span>
-        </div>
-      </div>
-
-      <div className={styles.actionRow}>
-        <button type="button" className={styles.actionPrimary} onClick={() => navigate('/musteriler?sekme=borclu')}>
-          Gelir ekle
-        </button>
-        <button type="button" className={styles.action} onClick={() => navigate('/giderler?yeni=1')}>
-          Gider ekle
-        </button>
-      </div>
-
-      <button type="button" className={styles.closureCard} onClick={() => navigate('/kasa/gun-sonu')}>
-        <span className={styles.closureText}>
-          <span className={styles.closureTitle}>Gün sonu kasa kapanışı</span>
-          <span className={styles.closureSub}>Kasayı say, farkı gör, PDF olarak indir</span>
-        </span>
-        <span className={styles.closureArrow}>›</span>
-      </button>
-
-      <div className={styles.movesCard}>
-        <div className={styles.movesHead}>
-          <span className={styles.movesTitle}>Son hareketler</span>
-          {allMovements.length > 4 && (
-            <button type="button" className={styles.link} onClick={() => setShowAllMoves((v) => !v)}>
-              {showAllMoves ? 'Daha az' : 'Tümü'}
-            </button>
-          )}
-        </div>
-        {movements.length === 0 ? (
-          <p className={styles.empty}>Bu dönemde tahsilat ya da gider yok.</p>
-        ) : (
-          movements.map((m) => (
-            <div key={m.key} className={styles.moveRow}>
-              <span className={styles.moveText}>
-                <span className={styles.moveTitle}>{m.title}</span>
-                <span className={styles.moveSub}>{m.sub}</span>
+            ) : (
+              <span className={styles.totalHint}>
+                Bu dönemde tahsilat yok · {rangedCompleted.length} randevu tamamlandı
               </span>
+            )}
+          </div>
+
+          <div className={styles.tiles}>
+            <div className={`${styles.tile} ${styles.tileNavy}`}>
+              <span className={styles.tileLabel}>Kasadaki nakit</span>
+              <span className={styles.tileValue}>{currency.format(cashTotal)}</span>
+              <span className={styles.tileHint}>Nakit gelir − nakit gider</span>
+            </div>
+            <button
+              type="button"
+              className={styles.tile}
+              onClick={() => navigate(`/giderler?start=${rangeStart}&end=${rangeEnd}`)}
+            >
+              <span className={styles.tileLabel}>Giderler</span>
+              <span className={`${styles.tileValue} ${styles.textWarm}`}>{currency.format(totalExpenses)}</span>
+              <span className={styles.tileHint}>
+                {expenses.length} kayıt
+                {overdueExpenses.length > 0
+                  ? ` · ${overdueExpenses.length} gecikti`
+                  : unpaidTotal > 0
+                    ? ` · ${currency.format(unpaidTotal)} ödenmedi`
+                    : ''}{' '}
+                ›
+              </span>
+            </button>
+            <button type="button" className={styles.tile} onClick={() => navigate('/musteriler?sekme=borclu')}>
+              <span className={styles.tileLabel}>Alacaklar</span>
+              <span className={styles.tileValue}>{currency.format(debtTotal)}</span>
+              <span className={styles.tileHint}>{debtorCount} müşteri ›</span>
+            </button>
+            <div className={styles.tile}>
+              <span className={styles.tileLabel}>Net</span>
               <span
                 className={
-                  m.amount < 0 ? `${styles.moveAmount} ${styles.textWarm}` : `${styles.moveAmount} ${styles.textOk}`
+                  netProfit < 0 ? `${styles.tileValue} ${styles.textDanger}` : `${styles.tileValue} ${styles.textOk}`
                 }
               >
-                {m.amount < 0 ? '−' : '+'}
-                {currency.format(Math.abs(m.amount))}
+                {currency.format(netProfit)}
               </span>
+              <span className={styles.tileHint}>Gelir − gider</span>
             </div>
-          ))
-        )}
-      </div>
+          </div>
 
-      <div className={styles.block}>
-        <h2 className={styles.blockTitle}>Net nasıl hesaplandı</h2>
-        <div className={styles.listCard}>
-          <div className={styles.waterfallRow}>
-            <span>Toplam tahsilat</span>
-            <span>{currency.format(totalRevenue)}</span>
-          </div>
-          <div className={styles.waterfallRow}>
-            <span>Vergi (%{taxPct})</span>
-            <span className={styles.waterfallMinus}>−{currency.format(taxAmount)}</span>
-          </div>
-          <div className={styles.waterfallRow}>
-            <span>Çalışan primi (%{commissionPct})</span>
-            <span className={styles.waterfallMinus}>−{currency.format(commissionAmount)}</span>
-          </div>
-          <div className={styles.waterfallRow}>
-            <span>Salon giderleri</span>
-            <span className={styles.waterfallMinus}>−{currency.format(totalExpenses)}</span>
-          </div>
-          <div className={`${styles.waterfallRow} ${styles.waterfallNet}`}>
-            <span>Net</span>
-            <span className={netProfit < 0 ? styles.textDanger : undefined}>{currency.format(netProfit)}</span>
-          </div>
-        </div>
-      </div>
-
-      {/* Oranlar yalnizca yoneticide (Kasa yetkili calisan sadece gorur). */}
-      {profile?.role === 'admin' && (
-        <div className={styles.block}>
-          <h2 className={styles.blockTitle}>Vergi ve prim oranı</h2>
-          <div className={styles.rateCard}>
-            <div className={styles.rateField}>
-              <label htmlFor="taxRate">Vergi (%)</label>
-              <input
-                id="taxRate"
-                type="number"
-                min={0}
-                max={100}
-                step={1}
-                value={taxInput}
-                onChange={(e) => setTaxInput(e.target.value)}
-              />
-            </div>
-            <div className={styles.rateField}>
-              <label htmlFor="commissionRate">Genel prim (%)</label>
-              <input
-                id="commissionRate"
-                type="number"
-                min={0}
-                max={100}
-                step={1}
-                value={rateInput}
-                onChange={(e) => setRateInput(e.target.value)}
-              />
-            </div>
-            <button type="button" className={styles.saveBtn} onClick={saveSettings}>
-              {savedHint ? 'Kaydedildi' : 'Kaydet'}
+          <div className={styles.actionRow}>
+            <button type="button" className={styles.actionPrimary} onClick={() => navigate('/musteriler?sekme=borclu')}>
+              Gelir ekle
+            </button>
+            <button type="button" className={styles.action} onClick={() => navigate('/giderler?yeni=1')}>
+              Gider ekle
             </button>
           </div>
-        </div>
-      )}
 
-      <div className={styles.block}>
-        <h2 className={styles.blockTitle}>Hizmete göre tahsilat</h2>
-        {serviceStats.length === 0 ? (
-          <p className={styles.empty}>Bu aralıkta randevu veya ödeme kaydı yok.</p>
-        ) : (
-          <div className={styles.listCard}>
-            {serviceStats.map((s) => (
-              <div className={styles.moveRow} key={s.id}>
-                <span className={styles.moveText}>
-                  <span className={styles.moveTitle}>{s.name}</span>
-                  <span className={styles.moveSub}>{s.count} randevu</span>
-                </span>
-                <span className={styles.moveAmount}>{currency.format(s.revenue)}</span>
-              </div>
-            ))}
+          <button type="button" className={styles.closureCard} onClick={() => navigate('/kasa/gun-sonu')}>
+            <span className={styles.closureText}>
+              <span className={styles.closureTitle}>Gün sonu kasa kapanışı</span>
+              <span className={styles.closureSub}>Kasayı say, farkı gör, PDF olarak indir</span>
+            </span>
+            <span className={styles.closureArrow}>›</span>
+          </button>
+        </div>
+        <div className={styles.colB}>
+          <div className={styles.movesCard}>
+            <div className={styles.movesHead}>
+              <span className={styles.movesTitle}>Son hareketler</span>
+              {allMovements.length > 4 && (
+                <button type="button" className={styles.link} onClick={() => setShowAllMoves((v) => !v)}>
+                  {showAllMoves ? 'Daha az' : 'Tümü'}
+                </button>
+              )}
+            </div>
+            {movements.length === 0 ? (
+              <p className={styles.empty}>Bu dönemde tahsilat ya da gider yok.</p>
+            ) : (
+              movements.map((m) => (
+                <div key={m.key} className={styles.moveRow}>
+                  <span className={styles.moveText}>
+                    <span className={styles.moveTitle}>{m.title}</span>
+                    <span className={styles.moveSub}>{m.sub}</span>
+                  </span>
+                  <span
+                    className={
+                      m.amount < 0 ? `${styles.moveAmount} ${styles.textWarm}` : `${styles.moveAmount} ${styles.textOk}`
+                    }
+                  >
+                    {m.amount < 0 ? '−' : '+'}
+                    {currency.format(Math.abs(m.amount))}
+                  </span>
+                </div>
+              ))
+            )}
           </div>
-        )}
+
+          <div className={styles.block}>
+            <h2 className={styles.blockTitle}>Net nasıl hesaplandı</h2>
+            <div className={styles.listCard}>
+              <div className={styles.waterfallRow}>
+                <span>Toplam tahsilat</span>
+                <span>{currency.format(totalRevenue)}</span>
+              </div>
+              <div className={styles.waterfallRow}>
+                <span>Vergi (%{taxPct})</span>
+                <span className={styles.waterfallMinus}>−{currency.format(taxAmount)}</span>
+              </div>
+              <div className={styles.waterfallRow}>
+                <span>Çalışan primi (%{commissionPct})</span>
+                <span className={styles.waterfallMinus}>−{currency.format(commissionAmount)}</span>
+              </div>
+              <div className={styles.waterfallRow}>
+                <span>Salon giderleri</span>
+                <span className={styles.waterfallMinus}>−{currency.format(totalExpenses)}</span>
+              </div>
+              <div className={`${styles.waterfallRow} ${styles.waterfallNet}`}>
+                <span>Net</span>
+                <span className={netProfit < 0 ? styles.textDanger : undefined}>{currency.format(netProfit)}</span>
+              </div>
+            </div>
+          </div>
+
+          {/* Oranlar yalnizca yoneticide (Kasa yetkili calisan sadece gorur). */}
+          {profile?.role === 'admin' && (
+            <div className={styles.block}>
+              <h2 className={styles.blockTitle}>Vergi ve prim oranı</h2>
+              <div className={styles.rateCard}>
+                <div className={styles.rateField}>
+                  <label htmlFor="taxRate">Vergi (%)</label>
+                  <input
+                    id="taxRate"
+                    type="number"
+                    min={0}
+                    max={100}
+                    step={1}
+                    value={taxInput}
+                    onChange={(e) => setTaxInput(e.target.value)}
+                  />
+                </div>
+                <div className={styles.rateField}>
+                  <label htmlFor="commissionRate">Genel prim (%)</label>
+                  <input
+                    id="commissionRate"
+                    type="number"
+                    min={0}
+                    max={100}
+                    step={1}
+                    value={rateInput}
+                    onChange={(e) => setRateInput(e.target.value)}
+                  />
+                </div>
+                <button type="button" className={styles.saveBtn} onClick={saveSettings}>
+                  {savedHint ? 'Kaydedildi' : 'Kaydet'}
+                </button>
+              </div>
+            </div>
+          )}
+
+          <div className={styles.block}>
+            <h2 className={styles.blockTitle}>Hizmete göre tahsilat</h2>
+            {serviceStats.length === 0 ? (
+              <p className={styles.empty}>Bu aralıkta randevu veya ödeme kaydı yok.</p>
+            ) : (
+              <div className={styles.listCard}>
+                {serviceStats.map((s) => (
+                  <div className={styles.moveRow} key={s.id}>
+                    <span className={styles.moveText}>
+                      <span className={styles.moveTitle}>{s.name}</span>
+                      <span className={styles.moveSub}>{s.count} randevu</span>
+                    </span>
+                    <span className={styles.moveAmount}>{currency.format(s.revenue)}</span>
+                  </div>
+                ))}
+              </div>
+            )}
+          </div>
+        </div>
       </div>
 
       <button type="button" className={styles.exportBtn} onClick={handleExportPdf}>
