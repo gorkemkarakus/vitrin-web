@@ -18,6 +18,7 @@ import styles from './CustomersPage.module.css'
 import { initials } from '../lib/formatName'
 import { customerPhone } from '../lib/phone'
 import { FIELD_LIMITS } from '../lib/fieldLimits'
+import { useLayout } from '../lib/layout'
 
 interface Customer {
   id: string
@@ -102,6 +103,7 @@ function monthStart(d: Date) {
 export default function CustomersPage() {
   const navigate = useNavigate()
   const { profile } = useAuth()
+  const { isWide } = useLayout()
   const isAdmin = profile?.role === 'admin'
   const [customers, setCustomers] = useState<Customer[]>([])
   const [appointments, setAppointments] = useState<Appointment[]>([])
@@ -345,10 +347,17 @@ export default function CustomersPage() {
       <PageHeader
         title="Müşteriler"
         action={
-          <button type="button" className="hdr-pill-navy" onClick={() => setAddOpen(true)}>
-            <PlusIcon width={14} height={14} />
-            Ekle
-          </button>
+          <span style={{ display: 'flex', gap: 8 }}>
+            {isWide && profile?.role === 'admin' && (
+              <button type="button" className="hdr-pill" onClick={() => navigate('/musteriler/ice-aktar')}>
+                Excel’den içe aktar
+              </button>
+            )}
+            <button type="button" className="hdr-pill-navy" onClick={() => setAddOpen(true)}>
+              <PlusIcon width={14} height={14} />
+              Ekle
+            </button>
+          </span>
         }
       />
 

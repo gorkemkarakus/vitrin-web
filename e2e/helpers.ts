@@ -13,13 +13,15 @@ export function uniqueName(label: string): string {
 
 export async function login(page: Page, email = ADMIN, password = PASSWORD) {
   await page.goto('/')
-  // Acilis animasyonu (AppSplash) bitene kadar.
+  // Acilis animasyonu (AppSplash) bitene kadar. Telefonda tanitim ekrani
+  // ("Giris yap"), genis ekranda dogrudan giris formu gelir.
   const intro = page.locator('button[class*=introBtn]')
-  await intro.waitFor({ timeout: 20_000 })
-  await intro.tap()
+  const emailInput = page.locator('input[type=email]')
+  await intro.or(emailInput).first().waitFor({ timeout: 20_000 })
+  if (await intro.isVisible()) await intro.click()
   await page.fill('input[type=email]', email)
   await page.fill('input[type=password]', password)
-  await page.locator('form button[type=submit]').tap()
+  await page.locator('form button[type=submit]').click()
   await page.waitForURL('**/dashboard', { timeout: 30_000 })
 }
 

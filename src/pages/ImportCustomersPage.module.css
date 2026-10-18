@@ -1,0 +1,268 @@
+.wrap {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+  max-width: 1180px;
+}
+
+.grid {
+  display: grid;
+  grid-template-columns: minmax(0, 1.5fr) minmax(300px, 1fr);
+  gap: 16px;
+  align-items: stretch;
+}
+
+.card {
+  background: var(--panel);
+  border-radius: 22px;
+  padding: 18px;
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  min-width: 0;
+}
+
+.cardHead {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 12px;
+  flex-wrap: wrap;
+}
+
+.cardTitle {
+  font-family: var(--font-heading);
+  font-size: 17px;
+  font-weight: 600;
+}
+
+.big {
+  font-family: var(--font-heading);
+  font-size: 26px;
+  font-weight: 600;
+}
+
+.muted {
+  font-size: 14px;
+  line-height: 1.5;
+  color: var(--text-dim);
+}
+
+.drop {
+  border: 2px dashed var(--line-strong);
+  border-radius: 22px;
+  background: var(--panel);
+  padding: 48px 24px;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 12px;
+  text-align: center;
+  transition:
+    border-color 0.15s,
+    background 0.15s;
+}
+
+.drop :global(.btn-primary) {
+  width: auto;
+  padding: 12px 28px;
+}
+
+.dropActive {
+  border-color: var(--signal);
+  background: var(--info-bg);
+}
+
+.dropTitle {
+  font-family: var(--font-heading);
+  font-size: 19px;
+  font-weight: 600;
+}
+
+.list {
+  padding-left: 18px;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  font-size: 14px;
+  line-height: 1.45;
+  color: var(--text-strong);
+}
+
+.link {
+  align-self: flex-start;
+  border: none;
+  background: none;
+  padding: 0;
+  font-family: var(--font-body);
+  font-size: 14px;
+  font-weight: 700;
+  color: var(--signal);
+  cursor: pointer;
+}
+
+.link:hover {
+  text-decoration: underline;
+}
+
+.check {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 14px;
+  cursor: pointer;
+}
+
+.check input {
+  width: 17px;
+  height: 17px;
+  accent-color: var(--signal);
+}
+
+.mapGrid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(190px, 1fr));
+  gap: 12px;
+}
+
+.mapCol {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  background: var(--panel-2);
+  border-radius: 14px;
+  padding: 12px;
+  min-width: 0;
+}
+
+.mapHeader {
+  font-size: 14px;
+  font-weight: 700;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.mapSample {
+  font-size: 12px;
+  color: var(--text-muted);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  min-height: 16px;
+}
+
+.summary {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+
+.pill {
+  border-radius: 999px;
+  padding: 5px 12px;
+  font-size: 13px;
+  font-weight: 700;
+  background: var(--panel-2);
+  color: var(--text-dim);
+}
+
+.pillOk {
+  background: var(--ok-bg);
+  color: var(--ok-text);
+}
+
+.pillBad {
+  background: var(--danger-bg);
+  color: var(--danger-text);
+}
+
+.warn {
+  font-size: 14px;
+  color: var(--warn-text);
+  background: var(--warn-bg);
+  border-radius: 12px;
+  padding: 10px 12px;
+}
+
+.tableWrap {
+  overflow-x: auto;
+  border: 1px solid var(--line-2);
+  border-radius: 14px;
+}
+
+.table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 13px;
+}
+
+.table th,
+.table td {
+  text-align: left;
+  padding: 9px 12px;
+  border-bottom: 1px solid var(--line-soft);
+  white-space: nowrap;
+}
+
+.table th {
+  font-size: 12px;
+  font-weight: 700;
+  color: var(--text-muted);
+  background: var(--panel-2);
+  position: sticky;
+  top: 0;
+}
+
+.table td {
+  font-variant-numeric: tabular-nums;
+}
+
+.rowMuted td {
+  color: var(--text-faint);
+}
+
+.bad {
+  color: var(--danger-text);
+  font-weight: 700;
+}
+
+.problem {
+  display: block;
+  font-size: 12px;
+  color: var(--text-muted);
+}
+
+.actionsRow {
+  display: flex;
+  gap: 10px;
+}
+
+.actionsRow :global(.btn-primary),
+.actionsRow :global(.btn-secondary) {
+  width: auto;
+  padding: 12px 22px;
+}
+
+.bar {
+  height: 10px;
+  border-radius: 999px;
+  background: var(--panel-2);
+  overflow: hidden;
+}
+
+.bar span {
+  display: block;
+  height: 100%;
+  background: var(--signal);
+  transition: width 0.25s;
+}
+
+.error {
+  font-size: 13px;
+  color: var(--danger-text);
+  background: var(--danger-bg);
+  border-radius: 12px;
+  padding: 10px 12px;
+}
