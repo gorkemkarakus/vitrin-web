@@ -1,3 +1,4 @@
+import { openLegal } from '../lib/legalLinks'
 import { useEffect, useState, type FormEvent, type ReactNode } from 'react'
 import { useLayout } from '../lib/layout'
 import { useNavigate } from 'react-router-dom'
@@ -705,9 +706,9 @@ export default function SettingsPage() {
         <section className={styles.block}>
           <span className={styles.groupLabel}>Hakkında</span>
           <div className={styles.group}>
-            {row('Gizlilik Politikası', '', () => navigate('/gizlilik'), 'muted')}
-            {row('KVKK Aydınlatma Metni', '', () => navigate('/kvkk'), 'muted')}
-            {row('Kullanım Koşulları', '', () => navigate('/kullanim-kosullari'), 'muted')}
+            {row('Gizlilik Politikası', '', () => openLegal('gizlilik', navigate), 'muted')}
+            {row('KVKK Aydınlatma Metni', '', () => openLegal('kvkk', navigate), 'muted')}
+            {row('Kullanım Koşulları', '', () => openLegal('kosullar', navigate), 'muted')}
           </div>
         </section>
       </div>

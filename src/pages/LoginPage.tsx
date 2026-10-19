@@ -1,5 +1,6 @@
+import LegalLink from '../components/LegalLink'
 import { useEffect, useState } from 'react'
-import { Link, useNavigate, useSearchParams } from 'react-router-dom'
+import { useNavigate, useSearchParams } from 'react-router-dom'
 import logoMark from '../assets/brand/logo-mark.png'
 import { useAuth } from '../contexts/AuthContext'
 import { ChevronRightIcon } from '../components/icons'
@@ -286,8 +287,9 @@ function LoginScreens({ wide }: { wide: boolean }) {
           Hesabın yok mu? <b>Ücretsiz oluştur</b>
         </button>
         <p className={styles.legal}>
-          Giriş yaparak <Link to="/kullanim-kosullari">Kullanım Koşulları</Link>&apos;nı kabul etmiş olursunuz.
-          Verileriniz <Link to="/gizlilik">Gizlilik Politikası</Link> ve <Link to="/kvkk">KVKK Aydınlatma Metni</Link>
+          Giriş yaparak <LegalLink doc="kosullar">Kullanım Koşulları</LegalLink>&apos;nı kabul etmiş olursunuz.
+          Verileriniz <LegalLink doc="gizlilik">Gizlilik Politikası</LegalLink> ve{' '}
+          <LegalLink doc="kvkk">KVKK Aydınlatma Metni</LegalLink>
           &apos;ne göre işlenir.
         </p>
       </form>

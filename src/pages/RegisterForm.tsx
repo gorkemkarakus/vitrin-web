@@ -1,5 +1,5 @@
+import LegalLink from '../components/LegalLink'
 import { useState } from 'react'
-import { Link } from 'react-router-dom'
 import { ChevronRightIcon } from '../components/icons'
 import NewPasswordFields from '../components/NewPasswordFields'
 import TurnstileWidget from '../public/components/TurnstileWidget'
@@ -118,9 +118,9 @@ export function RegisterForm({ onBack, onDone }: { onBack: () => void; onDone: (
         <label className={styles.consentRow}>
           <input type="checkbox" checked={acceptTerms} onChange={(e) => setAcceptTerms(e.target.checked)} />
           <span>
-            <Link to="/kullanim-kosullari">Kullanım Koşulları</Link>’nı okudum, kabul ediyorum. Verilerimin{' '}
-            <Link to="/kvkk">KVKK Aydınlatma Metni</Link> ve <Link to="/gizlilik">Gizlilik Politikası</Link>’na göre
-            işlendiğini biliyorum.
+            <LegalLink doc="kosullar">Kullanım Koşulları</LegalLink>’nı okudum, kabul ediyorum. Verilerimin{' '}
+            <LegalLink doc="kvkk">KVKK Aydınlatma Metni</LegalLink> ve{' '}
+            <LegalLink doc="gizlilik">Gizlilik Politikası</LegalLink>’na göre işlendiğini biliyorum.
           </span>
         </label>
 
