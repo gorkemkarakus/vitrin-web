@@ -266,3 +266,24 @@
   border-radius: 12px;
   padding: 10px 12px;
 }
+
+.attest {
+  display: flex;
+  align-items: flex-start;
+  gap: 10px;
+  font-size: 13px;
+  line-height: 1.5;
+  color: var(--text-strong);
+  background: var(--panel-2);
+  border-radius: 14px;
+  padding: 12px 14px;
+  cursor: pointer;
+}
+
+.attest input {
+  margin-top: 3px;
+  width: 16px;
+  height: 16px;
+  flex-shrink: 0;
+  accent-color: var(--signal);
+}

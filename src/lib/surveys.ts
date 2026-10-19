@@ -6,6 +6,7 @@ import { normalizeTrPhone } from './phone'
 
 export interface SurveyInfo {
   business_name: string
+  business_slug: string | null
   first_name: string | null
   service_name: string | null
   visit_date: string

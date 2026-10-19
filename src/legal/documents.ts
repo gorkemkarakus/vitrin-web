@@ -48,7 +48,17 @@ export const PROCESSORS: { name: string; purpose: string; location: string }[] =
     purpose: 'Online randevu ve silme talebi formlarında otomatik (bot) gönderimleri engelleme',
     location: 'ABD / küresel',
   },
+  {
+    name: 'Resend (Resend, Inc.)',
+    purpose: 'Hesap doğrulama ve şifre sıfırlama e-postalarının gönderimi (yalnızca hesap sahipleri)',
+    location: 'İrlanda (AB)',
+  },
 ]
+
+// Yurt disi aktarim aciklamasi: gizlilik politikasi, KVKK metni ve salon
+// aydinlatma sablonunda ayni ifade kullanilir.
+export const TRANSFER_STATEMENT =
+  "Ana veritabanı ve dosyalar Almanya'da (Frankfurt, AB), e-postalar İrlanda'da (AB) işlenir; yukarıda ABD olarak belirtilen sağlayıcılara da veri aktarılır. Bu sağlayıcılarla, verilerin yalnızca hizmetin sunulması amacıyla ve gizlilik ile güvenlik yükümlülükleri altında işlenmesini öngören veri işleme sözleşmeleri kapsamında çalışılır. Sağlayıcılara yalnızca ilgili işlem için gereken veri gönderilir; müşteri notları, sağlık bilgileri ve işletmenin tanımladığı özel alanlar yapay zekâ sağlayıcısına gönderilmez."
 
 export const LEGAL_DOCUMENTS: LegalDocument[] = [
   {
@@ -68,13 +78,16 @@ export const LEGAL_DOCUMENTS: LegalDocument[] = [
         items: [
           'Hesap verileri: ad soyad, e-posta, şifre (yalnızca şifrelenmiş özet olarak), rol ve yetkiler, WhatsApp numarası (çalışan girerse), cinsiyet (çalışan profili için isteğe bağlı).',
           'Çalışma verileri: çalışma saatleri, izinler, verdiği hizmetler, prim/komisyon kayıtları.',
-          'Salon müşteri verileri: ad soyad, telefon, e-posta (isteğe bağlı), notlar, randevu geçmişi, ödemeler, borç/alacak ve paket bilgileri, müşteri grupları.',
+          'Salon müşteri verileri: ad soyad, telefon, e-posta (isteğe bağlı), notlar, doğum günü, etiketler, işletmenin tanımladığı ek alanlar, randevu geçmişi, ödemeler, borç/alacak ve paket bilgileri, müşteri grupları, görevler ve aktivite kayıtları (arama/ziyaret notu).',
+          'Müşteri dosyaları: işletmenin yüklediği işlem öncesi/sonrası fotoğraflar, onam formları ve belgeler. Bu dosyalar herkese açık değildir; yalnızca ilgili işletmenin yetkili kullanıcıları görebilir.',
+          'Özel nitelikli veriler: işletme sağlık bilgisi (ör. alerji) içeren bir alan tanımlarsa bu bilgi özel nitelikli kişisel veridir; yalnızca gerektiğinde ve müşterinin açık rızasıyla girilmelidir.',
+          'Potansiyel müşteri, sadakat ve memnuniyet verileri: henüz müşteri olmamış kişilerin adı, telefonu ve ilgilendiği hizmet; sadakat kartı ödül kullanımları; memnuniyet anketi puanı ve yorumu.',
           'İletişim verileri: WhatsApp üzerinden asistanla yapılan yazışmalar, gönderilen hatırlatma ve kampanya mesajlarının kaydı.',
           'İşletme verileri: hizmetler, fiyatlar, giderler, kasa kapanışları, reklam hesabı bağlanırsa reklam harcama/performans özetleri.',
           'Teknik veriler: bildirim için cihaz anahtarı ve platform (Android/iOS), kötüye kullanımı önlemek için IP adresinin geri döndürülemez özeti (IP adresinin kendisi saklanmaz).',
         ],
         after: [
-          'Konum, rehber, kamera, mikrofon, reklam kimliği veya uygulama dışı gezinme verisi toplamıyoruz. Uygulamada reklam veya üçüncü taraf takip aracı yoktur.',
+          'Konum, rehber, mikrofon, reklam kimliği veya uygulama dışı gezinme verisi toplamıyoruz. Kamera ve galeri yalnızca siz müşteri kartına fotoğraf veya belge eklemek istediğinizde, telefonunuzun izniyle kullanılır. Uygulamada reklam veya üçüncü taraf takip aracı yoktur.',
         ],
       },
       {
@@ -90,7 +103,7 @@ export const LEGAL_DOCUMENTS: LegalDocument[] = [
       {
         heading: 'Yapay zekâ özellikleri',
         paragraphs: [
-          "WhatsApp asistanı, kampanya metni önerisi, işletme analizi ve doğal dille randevu komutu özellikleri metni OpenAI'a gönderir. Gönderilen içerik yalnızca o işlem için gereken bilgidir (ör. müşterinin mesajı ve salonun hizmet listesi; analiz için toplu istatistikler). OpenAI'ın API koşullarına göre bu veriler model eğitiminde kullanılmaz.",
+          "WhatsApp asistanı, kampanya metni önerisi, işletme analizi ve doğal dille randevu komutu özellikleri metni OpenAI'a gönderir. Gönderilen içerik yalnızca o işlem için gereken bilgidir (ör. müşterinin mesajı ve salonun hizmet listesi; analiz için toplu istatistikler). Müşteri notları, sağlık bilgileri, etiketler ve işletmenin tanımladığı özel alanlar gönderilmez. OpenAI'ın API koşullarına göre bu veriler model eğitiminde kullanılmaz.",
           'Yapay zekâ çıktıları öneri niteliğindedir; randevu, mesaj veya kampanya işletme onayıyla kesinleşir.',
         ],
       },
@@ -103,9 +116,7 @@ export const LEGAL_DOCUMENTS: LegalDocument[] = [
       },
       {
         heading: 'Yurt dışına aktarım',
-        paragraphs: [
-          "Ana veritabanı Avrupa Birliği'nde (Frankfurt) barındırılır. Yukarıda ABD olarak belirtilen sağlayıcılara aktarım, 6698 sayılı KVKK'nın 9. maddesi kapsamındaki uygun güvencelere (standart sözleşmeler) dayanılarak yapılır.",
-        ],
+        paragraphs: [TRANSFER_STATEMENT],
       },
       {
         heading: 'Ne kadar süre saklıyoruz?',
@@ -115,6 +126,8 @@ export const LEGAL_DOCUMENTS: LegalDocument[] = [
           'WhatsApp asistanı konuşma geçmişi: 180 gün.',
           'Gönderilen mesaj/bildirim kaydı: 365 gün.',
           'Kötüye kullanım önleme kayıtları (IP özeti, deneme sayaçları): 2–7 gün.',
+          'Kazanılan/kaybedilen potansiyel müşteri kayıtları ekranda 90 gün gösterilir; işletme silene kadar saklanır.',
+          'Müşteri dosyaları, anket yanıtları, sadakat ve aktivite kayıtları: işletme silene kadar. İşletme bir müşteriyi KVKK kapsamında sildiğinde bu kayıtların tamamı da silinir.',
           'Muhasebe ve ödeme kayıtları işletmenin kendi yasal saklama yükümlülüğüne tabidir; işletme bu kayıtları silmeden önce kendi yükümlülüğünü değerlendirmelidir.',
         ],
       },
@@ -196,7 +209,8 @@ export const LEGAL_DOCUMENTS: LegalDocument[] = [
       {
         heading: '5. Aktarım',
         paragraphs: [
-          'Kişisel veriler; hizmetin sunulması amacıyla barındırma, mesajlaşma, bildirim ve yapay zekâ altyapısı sağlayıcılarına (Supabase – AB; OpenAI, Meta, Google, Cloudflare – ABD) ve talep hâlinde yetkili kamu kurumlarına aktarılabilir. Yurt dışına aktarımlar KVKK md. 9 kapsamındaki uygun güvencelere dayanılarak yapılır.',
+          'Kişisel veriler; hizmetin sunulması amacıyla barındırma, e-posta, mesajlaşma, bildirim ve yapay zekâ altyapısı sağlayıcılarına (Supabase, Resend – AB; OpenAI, Meta, Google, Cloudflare – ABD) ve talep hâlinde yetkili kamu kurumlarına aktarılabilir.',
+          TRANSFER_STATEMENT,
         ],
       },
       {
@@ -243,10 +257,26 @@ export const LEGAL_DOCUMENTS: LegalDocument[] = [
       {
         heading: 'İşletmenin sorumlulukları',
         items: [
-          'Uygulamaya girdiğiniz müşteri verileri için veri sorumlusu sizsiniz. Müşterilerinizi KVKK kapsamında bilgilendirmek ve gerekli hukuki sebebe sahip olmak sizin yükümlülüğünüzdür.',
+          'Uygulamaya girdiğiniz müşteri verileri için veri sorumlusu sizsiniz. Müşterilerinizi KVKK kapsamında bilgilendirmek ve gerekli hukuki sebebe sahip olmak sizin yükümlülüğünüzdür. Bunun için Ayarlar → Müşteri aydınlatma metni bölümünden işletmenize özel bir aydınlatma metni oluşturabilirsiniz.',
+          'Uygulamaya elle girdiğiniz veya toplu olarak içe aktardığınız (Excel/CSV) kişisel verileri hukuka uygun şekilde elde ettiğinizi ve ilgili kişileri bilgilendirdiğinizi taahhüt edersiniz. Hukuka aykırı elde edilmiş veya izinsiz yüklenmiş verilerden doğan sorumluluk işletmeye aittir.',
+          'Sağlık bilgisi (ör. alerji) gibi özel nitelikli verileri ve işlem öncesi/sonrası fotoğrafları yalnızca hizmet için gerekli olduğunda ve müşterinin açık rızasını alarak kaydedersiniz.',
           "Kampanya/tanıtım mesajlarını yalnızca açık izin vermiş müşterilere gönderebilirsiniz. 6563 sayılı Kanun gereği İleti Yönetim Sistemi'ne (İYS) kayıt ve izinlerin İYS'ye işlenmesi işletmenin sorumluluğundadır. Her kampanya mesajında ret (abonelikten çıkma) imkânı sunulur.",
           "WhatsApp ile mesajlaşma Meta'nın WhatsApp Business kurallarına tabidir.",
           'Muhasebe ve vergi kayıtlarınızın yasal saklama sürelerine uymak sizin sorumluluğunuzdadır; uygulama resmi muhasebe kaydı yerine geçmez.',
+        ],
+      },
+      {
+        heading: 'Kişisel verilerin işlenmesi (veri işleme şartları)',
+        paragraphs: [
+          `İşletmenin müşterilerine ait veriler bakımından işletme veri sorumlusu, ${L.companyName} ise işletme adına ve işletmenin talimatıyla hareket eden veri işleyendir. Bu koşulları kabul ederek işletme, aşağıdaki şartlarla verilerin işlenmesine talimat vermiş olur:`,
+        ],
+        items: [
+          `${L.brand}, müşteri verilerini yalnızca hizmeti sunmak için işler; satmaz, reklam amacıyla kullanmaz ve başka işletmelerle paylaşmaz.`,
+          `İşletme, ${L.brand}'in Gizlilik Politikası'nda listelenen altyapı sağlayıcılarını (alt veri işleyenler) kullanmasına izin verir. Bu listeye yeni bir sağlayıcı eklendiğinde Gizlilik Politikası güncellenir ve önemli değişiklikler uygulama içinde duyurulur.`,
+          'Verilerin güvenliği için makul teknik ve idari tedbirler alınır: şifreli bağlantı, işletmeler arası veritabanı yalıtımı, yetkiye göre erişim, düzenli güvenlik testleri.',
+          `Bir veri ihlali fark edildiğinde ${L.brand} etkilenen işletmeyi gecikmeksizin bilgilendirir ve işletmenin Kurul'a bildirim yükümlülüğünü yerine getirmesine yardımcı olur.`,
+          'İşletme, müşterilerinden gelen KVKK başvurularını yanıtlamak için uygulamadaki silme/anonimleştirme ve veri indirme araçlarını kullanabilir; gerektiğinde destek verilir.',
+          'Hesap silindiğinde işletmenin tüm verileri kalıcı olarak silinir.',
         ],
       },
       {

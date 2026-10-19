@@ -57,6 +57,8 @@ const LeadsPage = lazy(() => import('./pages/LeadsPage'))
 const LoyaltyPage = lazy(() => import('./pages/LoyaltyPage'))
 const SurveysPage = lazy(() => import('./pages/SurveysPage'))
 const SurveyPage = lazy(() => import('./public/SurveyPage'))
+const SalonNoticePage = lazy(() => import('./public/SalonNoticePage'))
+const PrivacyNoticeSettingsPage = lazy(() => import('./pages/PrivacyNoticeSettingsPage'))
 
 // adminOnly: sadece yonetici. perm: yoneticiye ya da o yetkisi acik calisana.
 // feature: paket bu ozelligi kapsamiyorsa sayfanin yerine "paketleri gor" ekrani.
@@ -188,6 +190,14 @@ function AppRoutes() {
               element={
                 <ProtectedRoute adminOnly>
                   <ImportCustomersPage />
+                </ProtectedRoute>
+              }
+            />
+            <Route
+              path="ayarlar/aydinlatma"
+              element={
+                <ProtectedRoute adminOnly>
+                  <PrivacyNoticeSettingsPage />
                 </ProtectedRoute>
               }
             />
@@ -395,6 +405,7 @@ function App() {
           <Routes>
             <Route path="/randevu-al/:slug" element={<PublicBookingPage />} />
             <Route path="/anket/:token" element={<SurveyPage />} />
+            <Route path="/aydinlatma/:slug" element={<SalonNoticePage />} />
             <Route path="/sifre-sifirla" element={<ResetPasswordPage />} />
             <Route path="/gizlilik" element={<LegalPage slug="gizlilik" />} />
             <Route path="/kvkk" element={<LegalPage slug="kvkk" />} />

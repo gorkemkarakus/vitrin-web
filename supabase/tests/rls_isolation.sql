@@ -8,7 +8,7 @@
 --      isletmesinde yoneticiye ait islemleri dener.
 --   C) anon rolu (giris yapmamis) tablolari okuyamaz.
 --   D) CRM: musteri alanlari / aktivite kaydi / zaman cizelgesi kurallari.
---   E-J) Gorevler, musteri dosyalari, otomasyonlar, potansiyel musteriler, sadakat, anket.
+--   E-K) Gorevler, musteri dosyalari, otomasyonlar, potansiyel musteriler, sadakat, anket, aydinlatma.
 -- Sonuc: test, gecti, ayrinti. Basarisiz satir varsa run-rls-tests.mjs 1 ile cikar.
 --
 -- Test hesaplari: salon_admin@test.com, salon_user@test.com (Guzel Salon),
@@ -541,6 +541,48 @@ begin
   select count(*) into n from public.tasks t join public.surveys s on s.task_id = t.id
   where s.appointment_id = my_done and t.title like 'Memnun kalmadı (2/5)%';
   insert into rls_result values ('J dusuk puan gorev acar', n = 1, n || ' gorev');
+end $$;
+
+-- K) Salon aydinlatma metni bilgileri
+do $$
+declare
+  other uuid := (select business_id from profiles where id = (select id from auth.users where email = 'studio_admin@test.com'));
+  mine uuid := (select business_id from profiles where id = (select id from auth.users where email = 'salon_admin@test.com'));
+  my_slug text := (select slug from businesses where id = (select business_id from profiles where id = (select id from auth.users where email = 'salon_admin@test.com')));
+  n int;
+begin
+  perform pg_temp.as_user('salon_admin@test.com');
+  begin
+    insert into public.business_privacy_notices (business_id, legal_name, address, contact_email)
+    values (other, 'RLS testi', 'RLS testi adres', 'rls@example.com');
+    insert into rls_result values ('K baska isletmenin aydinlatma bilgisi', false, 'eklendi');
+  exception when others then
+    insert into rls_result values ('K baska isletmenin aydinlatma bilgisi', true, 'reddedildi');
+  end;
+  insert into public.business_privacy_notices (business_id, legal_name, address, contact_email)
+  values (mine, 'RLS Testi Güzellik', 'RLS testi adres 1', 'rls@example.com')
+  on conflict (business_id) do update set legal_name = excluded.legal_name;
+  perform set_config('role', 'postgres', true);
+
+  perform pg_temp.as_user('salon_user@test.com');
+  with u as (update public.business_privacy_notices set legal_name = 'sizma' where business_id = mine returning 1)
+  select count(*) into n from u;
+  insert into rls_result values ('K calisan aydinlatma bilgisini degistiremez', n = 0, n || ' satir');
+  perform set_config('role', 'postgres', true);
+
+  perform set_config('request.jwt.claims', '{"role":"anon"}', true);
+  perform set_config('role', 'anon', true);
+  begin
+    select count(*) into n from public.business_privacy_notices;
+    insert into rls_result values ('K anon aydinlatma tablosunu okuyamaz', n = 0, n || ' satir');
+  exception when others then
+    insert into rls_result values ('K anon aydinlatma tablosunu okuyamaz', true, 'reddedildi');
+  end;
+  select count(*) into n from public.privacy_notice(my_slug) p where p.legal_name = 'RLS Testi Güzellik';
+  insert into rls_result values ('K anon salon aydinlatma metnini okur', n = 1, n || ' satir');
+  select count(*) into n from public.privacy_notice('x; drop table businesses');
+  insert into rls_result values ('K hatali slug bos doner', n = 0, n || ' satir');
+  perform set_config('role', 'postgres', true);
 end $$;
 
 select test, gecti, ayrinti from rls_result order by gecti, test;

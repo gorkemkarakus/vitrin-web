@@ -62,5 +62,9 @@
 	</array>
 	<key>UIViewControllerBasedStatusBarAppearance</key>
 	<true/>
+	<key>NSCameraUsageDescription</key>
+	<string>Müşteri kartına işlem öncesi/sonrası fotoğrafı ya da onam formu eklemek için kamera kullanılır.</string>
+	<key>NSPhotoLibraryUsageDescription</key>
+	<string>Müşteri kartına fotoğraf ya da belge eklemek için galerinizden seçim yapılır.</string>
 </dict>
 </plist>

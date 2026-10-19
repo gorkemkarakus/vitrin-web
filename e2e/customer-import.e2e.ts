@@ -28,6 +28,8 @@ test.describe('Musteri ice aktarma', () => {
     await expect(page.getByText('1 tekrar')).toBeVisible()
     await expect(page.getByText('1 hatalı')).toBeVisible()
 
+    await expect(page.getByRole('button', { name: '2 müşteriyi içe aktar' })).toBeDisabled()
+    await page.getByRole('checkbox', { name: /hukuka uygun/ }).check()
     await page.getByRole('button', { name: '2 müşteriyi içe aktar' }).click()
     await expect(page.getByRole('heading', { name: '2 müşteri eklendi' })).toBeVisible({ timeout: 30_000 })
 

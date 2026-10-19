@@ -654,6 +654,7 @@ export default function SettingsPage() {
                 () => navigate('/ayarlar/musteri-alanlari'),
                 'muted',
               )}
+              {row('Müşteri aydınlatma metni', 'KVKK', () => navigate('/ayarlar/aydinlatma'), 'muted')}
               {row('Verilerimi indir', 'Excel', () => open('veri'), 'muted')}
               {business?.slug
                 ? row(

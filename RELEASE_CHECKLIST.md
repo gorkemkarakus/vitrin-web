@@ -56,6 +56,7 @@ Her birinde şu an uygulanan varsayılan yazılı; değiştirmek istersen söyle
 | K10 | Zeynep Kaya'nın randevuya bağlanmamış iki test ödemesi | **Karar (17 Ekim):** dokunulmayacak; canlıya geçişte tüm test verisi silinecek | — |
 | K11 | `main`'deki gönderilmemiş commit `75438cd` (ödeme dağıtımı düzeltmesi) | **Karar (17 Ekim):** dal `main`'e birleştirildi (commit içinde) | Push kullanıcı onayıyla |
 | K12 | Yasal yetkili mahkeme | "İstanbul (Merkez)" + tüketici hakem heyetleri | Avukat belirler |
+| K13 | Yurt dışı aktarım (KVKK md. 9) | **Karar (19 Ekim):** standart sözleşme + Kurul bildirimi yapılmayacak (sağlayıcıların imzalaması pratikte mümkün değil). Yerine: metinlerde açıkça yazmak, sağlayıcı DPA'larını kabul etmek, yapay zekâya veri azaltmak, salon taahhüdü | İleride kurumsal müşteri "veri Türkiye'de" şartı koyarsa yeniden değerlendirilir |
 
 ## Senin yapman gerekenler (adım adım)
 
@@ -69,8 +70,8 @@ Her birinde şu an uygulanan varsayılan yazılı; değiştirmek istersen söyle
 ### 1. Şirket bilgileri ve yasal metinler — **mağazadan önce zorunlu**
 1. `src/legal/legalInfo.ts` dosyasında köşeli parantezli değerleri doldur: şirket unvanı, adres, MERSİS, iletişim e-postası, KEP, alan adı.
 2. `npm run legal:html` → `legal/` klasöründeki 4 HTML'i alan adında yayınla (ör. `https://alanadi/gizlilik.html`). Herhangi bir statik barındırma yeter (Netlify, Cloudflare Pages, GitHub Pages).
-3. Metinleri **KVKK konusunda uzman bir avukata** okut: aydınlatma metni, yurt dışı aktarım dayanağı, saklama süreleri, müşteri notu alanında sağlık bilgisi (alerji vb.) konusu.
-4. Avukatla: OpenAI, Meta, Google, Cloudflare için **KVKK standart sözleşmeleri** imzala ve imzadan sonra **5 iş günü içinde Kurul'a bildir**. Supabase ile DPA imzala (panelde Organization → Legal).
+3. Metinleri **KVKK konusunda uzman bir avukata** okut: Adapptiv aydınlatma metni, kullanım koşullarındaki veri işleme şartları, **salon aydınlatma şablonu** (`src/legal/salonNotice.ts`), saklama süreleri, sağlık bilgisi (alerji vb.) konusu.
+4. Sağlayıcıların kendi veri işleme sözleşmelerini (DPA) kabul et (K13): Supabase (Organization → Legal), OpenAI (platform hesabı → Data controls / DPA formu), Meta (WhatsApp Business koşulları içinde), Resend, Cloudflare, Google Firebase. Hepsi çevrimiçi kabul; ücretsiz.
 5. VERBİS kaydı yükümlülüğünü avukata sor (çalışan/ciro eşiğine göre).
 6. İYS: kampanya mesajı gönderecek her salon kendisi İYS'ye kayıt olmalı — salonlara bunu söyleyen bir bilgi notu hazırla.
 7. `npm run check:release` → "EKSIK" satırı kalmamalı.
@@ -161,6 +162,7 @@ Kurulumda ele alınacaklar:
 3. n8n sürümü 2.28.6 (6 haftadan eski); canlıdan önce güncellenmeli. Docker `.env`'deki `change_me` değerleri değiştirilmeli.
 4. Botun müşteriden telefon numarası istemesi Instagram için (orada numara bilinmiyor) — kullanıcı kararıyla olduğu gibi kaldı.
 5. Meta tarafı: kalıcı erişim anahtarı, webhook doğrulama, şablon mesajlar (24 saat dışı hatırlatmalar için), işletme doğrulaması.
+6. **Aydınlatma:** botun bir müşteriye ilk cevabına salonun aydınlatma bağlantısı (`<site>/aydinlatma/<slug>`) kısa bir cümleyle eklenecek (ör. "Kişisel verileriniz hakkında: …"). Yalnızca ilk mesajda, her mesajda değil.
 
 **Eski Meta bilgileri silindi (17 Ekim, sıfırdan kurulum için):** Güzel Salon'un WhatsApp numara kimliği, Meta mesaj kimlikleri (45), n8n'deki "Instagram Access Token" ve "…v2" kimlikleri; Instagram akışı devre dışı (akış dosyası şablon olarak duruyor). Repolarda ve git geçmişinde Meta token'ı yok (tarandı).
 

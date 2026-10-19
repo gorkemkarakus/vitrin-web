@@ -1,6 +1,6 @@
 # Veri Envanteri
 
-Son güncelleme: 17 Ekim 2026 · Kaynak: canlı veritabanı şeması (`rllvmyriopaulcmmynbe`), edge function'lar, Android birleşik manifest.
+Son güncelleme: 19 Ekim 2026 · Kaynak: canlı veritabanı şeması (`rllvmyriopaulcmmynbe`), edge function'lar, Android birleşik manifest.
 
 Bu dosya üç işe yarar: (1) KVKK kişisel veri envanteri / VERBİS hazırlığı, (2) Google Play **Veri Güvenliği** formu, (3) Apple **App Privacy** etiketi. Uygulama içi metinler (`src/legal/documents.ts`) bununla tutarlı olmalı; biri değişince diğerini güncelle.
 
@@ -20,6 +20,13 @@ Bu dosya üç işe yarar: (1) KVKK kişisel veri envanteri / VERBİS hazırlığ
 | Prim | dönem, tutar | `commission_payouts` | Çalışan ödemeleri | Sözleşme / hukuki yükümlülük | İşletme silinene kadar |
 | Müşteri kimlik/iletişim | ad soyad, telefon, iletişim telefonu, e-posta (ops.), not | `customers` | Randevu ve iletişim | Sözleşme (salon–müşteri) | Salon silene/anonimleştirene kadar |
 | Müşteri işlem | randevular, olay geçmişi, paketler | `appointments`, `appointment_events`, `service_packages` | Hizmet sunumu | Sözleşme | Salon silene kadar |
+| Müşteri profili (CRM) | doğum günü, kaynak, etiketler, işletmenin tanımladığı ek alanlar (özel nitelikli olabilir: alerji vb.) | `customers.birthday/source/tags/custom_fields`, `customer_field_definitions` | Kişiye özel hizmet | Sözleşme; özel nitelikli alanlarda açık rıza (md. 6) | Salon silene/anonimleştirene kadar (KVKK silmede temizlenir) |
+| Aktivite ve görev | arama/ziyaret/şikâyet notu, takip görevleri | `customer_activities`, `tasks` | Müşteri takibi | Meşru menfaat | KVKK silmede silinir |
+| Müşteri dosyaları | işlem öncesi/sonrası fotoğraf, onam formu, belge (jpeg/png/webp/heic/pdf, 10 MB) | `customer_files` + özel depolama `customer-files` | Hizmet kaydı, onam kanıtı | Sözleşme; fotoğrafta açık rıza | KVKK silmede dosyalar ve kayıtlar silinir |
+| Potansiyel müşteri | ad, telefon, kaynak, ilgilendiği hizmet, not, kayıp nedeni | `leads` | Satış takibi | Meşru menfaat | Kapananlar ekranda 90 gün; KVKK silmede silinir |
+| Sadakat | ödül kullanımları | `loyalty_programs`, `loyalty_redemptions` | Sadakat programı | Meşru menfaat | KVKK silmede silinir |
+| Memnuniyet | anket puanı, yorum, tek kullanımlık bağlantı | `surveys`, `survey_settings` | Hizmet kalitesi | Meşru menfaat | KVKK silmede silinir |
+| Salon aydınlatma bilgisi | salonun unvanı, adresi, başvuru e-posta/telefonu | `business_privacy_notices` | Salonun aydınlatma metni | Hukuki yükümlülük (salon) | İşletme silinene kadar |
 | Finans | ödemeler, borç/alacak, kasa, gider | `payments`, `cash_closures`, `business_expenses` | Muhasebe | Hukuki yükümlülük (5/2-ç) | Salon silene kadar (salonun yasal saklama yükümlülüğü) |
 | Pazarlama izni | izin, tarih, kaynak, ret tarihi; izin olay kaydı | `customers.marketing_*`, `customer_consent_events` | Ticari ileti (6563) | Açık rıza (5/1) | Müşteri kaydı silinene kadar (kanıt) |
 | Yazışma | WhatsApp asistanı mesajları | `chatbot_messages` | Asistan bağlamı | Sözleşme / meşru menfaat | **180 gün** |
@@ -33,21 +40,22 @@ Bu dosya üç işe yarar: (1) KVKK kişisel veri envanteri / VERBİS hazırlığ
 
 Saklama süreleri `purge_expired_data()` ile her gece 05:30 (İstanbul) uygulanır — `supabase/migrations/20261017000003_deletion_requests_and_retention.sql`.
 
-**Toplanmayanlar:** konum, rehber, fotoğraf/kamera, mikrofon, sağlık verisi (müşteri notuna salonun kendisi yazmadıkça — bkz. Bilinen riskler), reklam kimliği (IDFA/AAID), uygulama dışı gezinme, çökme/analitik SDK'sı (henüz yok).
+**Toplanmayanlar:** konum, rehber, mikrofon, reklam kimliği (IDFA/AAID), uygulama dışı gezinme, çökme/analitik SDK'sı (henüz yok). **Kamera/galeri** yalnızca müşteri dosyası yüklerken (iOS: `NSCameraUsageDescription`, `NSPhotoLibraryUsageDescription`). **Sağlık verisi** yalnızca salon özel nitelikli alan tanımlar ya da nota yazarsa.
 
 ## 3. Üçüncü taraflar ve yurt dışı aktarım
 
-| Sağlayıcı | Ne gider | Konum | Dayanak (KVKK md. 9) |
+| Sağlayıcı | Ne gider | Konum | Dayanak |
 |---|---|---|---|
-| Supabase | Tüm veritabanı, kimlik doğrulama | AB (Frankfurt) | Veri işleme sözleşmesi (DPA) |
-| OpenAI | Asistan: müşteri mesajı + salon hizmet/saat listesi; kampanya metni isteği; analiz için toplu istatistik; doğal dil randevu komutu metni | ABD | Standart sözleşme gerekli |
-| Meta (WhatsApp Business) | Müşteri telefonu ve mesaj metni | ABD/AB | Standart sözleşme gerekli |
-| Meta (Ads) | Reklam hesabı kimliği, erişim anahtarı (yalnız işletme bağlarsa) | ABD | Standart sözleşme gerekli |
-| Google Firebase (FCM) | Cihaz bildirim anahtarı, bildirim başlığı/metni | ABD | Standart sözleşme gerekli |
-| Cloudflare Turnstile | Tarayıcı sinyalleri (yalnız web formları, anahtar ayarlanınca) | ABD/küresel | Standart sözleşme gerekli |
-| n8n (asistan otomasyonu) | Müşteri mesajı, telefon | Kendi sunucunuz — **konumu doğrulayın** | Barındırma yeri yurt dışıysa aynı kural |
+| Supabase | Tüm veritabanı, kimlik doğrulama, müşteri dosyaları | AB (Frankfurt, `eu-central-1`) | Sağlayıcının DPA'sı |
+| OpenAI | Asistan: müşteri adı + mesajı + salon hizmet/saat listesi; kampanya metni isteği; analiz için toplu istatistik (isimsiz); doğal dil randevu komutu metni. **Gitmeyenler:** notlar, etiketler, doğum günü, özel alanlar, dosyalar (2026-10-19 kod taraması) | ABD | Sağlayıcının DPA'sı |
+| Meta (WhatsApp Business) | Müşteri telefonu ve mesaj metni | ABD/AB | Sağlayıcının DPA'sı |
+| Meta (Ads) | Reklam hesabı kimliği, erişim anahtarı (yalnız işletme bağlarsa) | ABD | Sağlayıcının DPA'sı |
+| Google Firebase (FCM) | Cihaz bildirim anahtarı, bildirim başlığı/metni | ABD | Sağlayıcının DPA'sı |
+| Cloudflare Turnstile | Tarayıcı sinyalleri (yalnız web formları, anahtar ayarlanınca) | ABD/küresel | Sağlayıcının DPA'sı |
+| Resend | Hesap sahiplerinin e-postası, doğrulama/sıfırlama kodu | AB (İrlanda) | Sağlayıcının DPA'sı |
+| n8n (asistan otomasyonu) | Müşteri mesajı, telefon | Kendi sunucunuz — **konumu doğrulayın** | Yurt dışıysa listeye ekle |
 
-KVKK md. 9 (2024 değişikliği): standart sözleşme imzalandıktan sonra **5 iş günü içinde Kurul'a bildirilmeli**. Bu bir avukat işi — bkz. RELEASE_CHECKLIST.md.
+**Karar (19 Ekim 2026):** KVKK md. 9 standart sözleşmesi + Kurul bildirimi yapılmayacak (büyük sağlayıcıların Türk standart sözleşmesini imzalaması pratikte mümkün değil). Bunun yerine: aydınlatma metinlerinde yurt dışı servisler ve ülkeler açıkça yazılır; sağlayıcıların kendi DPA'ları kabul edilir; yapay zekâya veri azaltılarak gider; salonlar kullanım koşullarında veri sorumlusu olarak taahhüt verir. Risk: şikâyet veya veri ihlalinde md. 9 aykırılığı gündeme gelebilir. Yeni bir yurt dışı servis eklendiğinde `src/legal/documents.ts` PROCESSORS ve bu tablo birlikte güncellenmeli.
 
 ## 4. Mobil izinler (Android birleşik manifest)
 
@@ -70,19 +78,24 @@ iOS: yalnızca bildirim izni (Info.plist'te ayrıca kullanım metni gerekmez; ka
   - Mesajlar → Diğer uygulama içi mesajlar (WhatsApp asistanı yazışmaları)
   - Uygulama etkinliği → Diğer kullanıcı tarafından oluşturulan içerik (randevu, müşteri notları)
   - Cihaz veya diğer kimlikler → Cihaz kimliği (FCM bildirim anahtarı), amaç: *Uygulama işlevi*
-- **Toplanmayan:** Konum, Sağlık ve fitness, Fotoğraflar/videolar, Ses, Dosyalar, Takvim, Kişiler, Web'de gezinme, Uygulama performansı (çökme SDK'sı eklenirse güncelle!).
+  - Fotoğraflar ve videolar → Fotoğraflar (müşteri kartına yüklenen işlem öncesi/sonrası fotoğraf), amaç *Uygulama işlevi*
+  - Dosyalar ve dokümanlar → Dosyalar ve dokümanlar (onam formu, belge)
+  - Sağlık ve fitness → Sağlık bilgileri (yalnızca salon alerji gibi bir alan tanımlarsa; isteğe bağlı)
+- **Toplanmayan:** Konum, Ses, Takvim, Kişiler, Web'de gezinme, Uygulama performansı (çökme SDK'sı eklenirse güncelle!).
 
 ¹ Google'ın tanımına göre hizmet sağlayıcıya (veri işleyen) aktarım "paylaşım" sayılmaz; OpenAI/Meta/Firebase hizmet sağlayıcı olarak işler.
 
 ## 6. Apple — App Privacy etiketi
 
 - **Data Used to Track You:** Yok.
-- **Data Linked to You** (amaç: App Functionality): Contact Info (Name, Email, Phone), Financial Info (Other), User Content (Other User Content, Customer Support yok), Identifiers (User ID; Device ID — push token).
+- **Data Linked to You** (amaç: App Functionality): Contact Info (Name, Email, Phone), Financial Info (Other), Health & Fitness (Health — yalnızca salon tanımlarsa), User Content (Photos or Videos; Other User Content; Customer Support yok), Identifiers (User ID; Device ID — push token).
 - **Data Not Linked to You:** Yok.
 - Tracking (ATT) izni gerekmez; IDFA kullanılmıyor.
 
 ## 7. Bilinen riskler
 
-- Müşteri notu serbest metin: salonlar sağlık bilgisi (alerji vb.) yazabiliyor → özel nitelikli kişisel veri (KVKK md. 6). Not alanının yanında "sağlık bilgisi yazmadan önce müşterinin açık rızasını alın" uyarısı ve aydınlatma metninde ayrıca belirtme avukatla değerlendirilmeli.
+- Müşteri notu serbest metin: salonlar sağlık bilgisi (alerji vb.) yazabiliyor → özel nitelikli kişisel veri (KVKK md. 6). Özel nitelikli alan tanımlarken ve CRM bilgisi düzenlerken açık rıza uyarısı var; salon aydınlatma şablonunda da yazıyor. Açık rızanın kanıtı (imzalı onam) salonda; uygulamada onam formu müşteri dosyası olarak yüklenebilir.
+- Yurt dışı aktarım: standart sözleşme yapılmadı (yukarıdaki karar).
+- Asistanın ilk mesajında salonun aydınlatma bağlantısı yok — WhatsApp yeniden kurulurken eklenecek (RELEASE_CHECKLIST 8).
 - Web panelde (admin-panel) kampanya izni anahtarı henüz yok; sunucu izinsiz müşteriye kampanya göndermez ama web'den izin verilemez.
 - İYS kaydı ve izinlerin İYS'ye aktarımı yapılmıyor (salonun yükümlülüğü; ileride entegrasyon).

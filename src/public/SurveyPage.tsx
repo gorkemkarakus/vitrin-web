@@ -143,7 +143,17 @@ export default function SurveyPage() {
             <button type="submit" className={styles.submit} disabled={!rating || sending}>
               {sending ? 'Gönderiliyor…' : 'Gönder'}
             </button>
-            <p className={styles.small}>Yanıtınız yalnızca {info.business_name} ile paylaşılır.</p>
+            <p className={styles.small}>
+              Yanıtınız yalnızca {info.business_name} ile paylaşılır.
+              {info.business_slug && (
+                <>
+                  {' '}
+                  <a href={'/aydinlatma/' + info.business_slug} target="_blank" rel="noopener noreferrer">
+                    Aydınlatma metni
+                  </a>
+                </>
+              )}
+            </p>
           </form>
         )}
       </main>

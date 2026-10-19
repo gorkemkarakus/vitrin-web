@@ -17,6 +17,7 @@ export default function CustomerForm({
   timeLabel,
   submitting,
   onSubmit,
+  noticeUrl,
 }: {
   serviceName: string
   employeeName: string
@@ -24,6 +25,8 @@ export default function CustomerForm({
   timeLabel: string
   submitting: boolean
   onSubmit: (name: string, phone: string, turnstileToken: string, marketingConsent: boolean) => void
+  // Salonun aydinlatma metni (/aydinlatma/<slug>)
+  noticeUrl: string
 }) {
   const [name, setName] = useState('')
   const [phone, setPhone] = useState('')
@@ -87,7 +90,7 @@ export default function CustomerForm({
         <p className={styles.kvkkNotice}>
           Adınız ve telefonunuz randevunun oluşturulması ve hatırlatılması için salonla paylaşılır.{' '}
           {/* Yeni sekmede: secilen hizmet/saat kaybolmasin. */}
-          <a href="/kvkk" target="_blank" rel="noopener noreferrer">
+          <a href={noticeUrl} target="_blank" rel="noopener noreferrer">
             Aydınlatma Metni
           </a>
         </p>

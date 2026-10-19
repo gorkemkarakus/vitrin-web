@@ -58,6 +58,8 @@ function ImportCustomers() {
   const [dragging, setDragging] = useState(false)
   const [error, setError] = useState<string | null>(null)
   const [progress, setProgress] = useState({ done: 0, total: 0 })
+  // KVKK: veri sorumlusu isletme; toplu yuklemeden once beyan alinir.
+  const [attested, setAttested] = useState(false)
   const [result, setResult] = useState<{
     added: number
     skipped: number
@@ -378,8 +380,20 @@ function ImportCustomers() {
               {candidates.length > 100 && (
                 <p className={styles.muted}>İlk 100 satır gösteriliyor ({candidates.length} satır).</p>
               )}
+              <label className={styles.attest}>
+                <input type="checkbox" checked={attested} onChange={(e) => setAttested(e.target.checked)} />
+                <span>
+                  Bu kişilerin bilgilerini hukuka uygun şekilde edindiğimi ve kendilerini KVKK kapsamında
+                  bilgilendirdiğimi onaylıyorum. Müşteri verilerinin veri sorumlusu işletmemizdir.
+                </span>
+              </label>
               <div className={styles.actionsRow}>
-                <button type="button" className="btn-primary" disabled={willImport === 0} onClick={runImport}>
+                <button
+                  type="button"
+                  className="btn-primary"
+                  disabled={willImport === 0 || !attested}
+                  onClick={runImport}
+                >
                   {willImport.toLocaleString('tr-TR')} müşteriyi içe aktar
                 </button>
                 <button type="button" className="btn-secondary" onClick={() => setStep('dosya')}>

@@ -257,6 +257,7 @@ export default function PublicBookingPage() {
               timeLabel={selectedSlot}
               submitting={submitting}
               onSubmit={handleSubmit}
+              noticeUrl={`/aydinlatma/${slug}`}
             />
           </>
         )}

@@ -10,7 +10,7 @@ export const LEGAL_INFO = {
   kepAddress: '[KEP adresi]',
   // Yasal metinlerin herkese acik adresi (magaza konsollarina bu girilir).
   webBaseUrl: '[https://alan-adi]',
-  lastUpdated: '17 Ekim 2026',
+  lastUpdated: '19 Ekim 2026',
 } as const
 
 export const PLACEHOLDER_RE = /\[[^\]]+\]/
