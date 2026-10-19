@@ -97,7 +97,7 @@ export function salonNoticeSections(n: SalonNoticeInput): LegalSection[] {
       heading: '8. Haklarınız',
       paragraphs: [
         "KVKK'nın 11. maddesi uyarınca; verilerinizin işlenip işlenmediğini öğrenme, bilgi talep etme, amacına uygun kullanılıp kullanılmadığını öğrenme, yurt içinde veya yurt dışında aktarıldığı kişileri bilme, eksik veya yanlışsa düzeltilmesini, silinmesini veya yok edilmesini isteme, otomatik analiz sonucu aleyhinize bir sonuca itiraz etme ve zarara uğradıysanız giderilmesini talep etme haklarına sahipsiniz.",
-        `Başvurularınızı ${contact ? `${contact} üzerinden` : 'salonumuza'} iletebilirsiniz${L.webBaseUrl.startsWith('[') ? '' : `; ayrıca ${L.webBaseUrl}/hesap-silme adresinden de talep oluşturabilirsiniz`}. Başvurunuz en geç 30 gün içinde ücretsiz yanıtlanır.`,
+        `Başvurularınızı ${contact ? `${contact} üzerinden` : 'salonumuza'} iletebilirsiniz${L.webBaseUrl.startsWith('[') ? '' : `; ayrıca ${L.webBaseUrl}${L.deletionPath} adresinden de talep oluşturabilirsiniz`}. Başvurunuz en geç 30 gün içinde ücretsiz yanıtlanır.`,
       ],
     },
   ]

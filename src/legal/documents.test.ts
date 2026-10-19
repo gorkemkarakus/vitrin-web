@@ -25,6 +25,6 @@ describe('yasal metinler', () => {
     const kvkk = getLegalDocument('kvkk')!
     const text = JSON.stringify(kvkk)
     expect(text).toContain('md. 11')
-    expect(text).toContain('/hesap-silme')
+    expect(text).toContain('/veri-silme')
   })
 })

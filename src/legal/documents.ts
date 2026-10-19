@@ -144,7 +144,7 @@ export const LEGAL_DOCUMENTS: LegalDocument[] = [
         heading: 'Haklarınız',
         paragraphs: [
           "KVKK'nın 11. maddesi uyarınca verilerinizin işlenip işlenmediğini öğrenme, bilgi talep etme, düzeltilmesini veya silinmesini isteme, aktarıldığı üçüncü kişileri bilme, itiraz etme ve zararın giderilmesini talep etme haklarına sahipsiniz.",
-          `Hesap sahibiyseniz hesabınızı uygulamada Ayarlar → Hesabımı sil adımıyla kendiniz silebilirsiniz. Uygulamaya erişemiyorsanız veya bir salonun müşterisiyseniz ${L.webBaseUrl}/hesap-silme adresinden talep oluşturabilirsiniz. Salon müşterisi olarak yaptığınız başvuruları ilgili salona da iletebilirsiniz; talebiniz en geç 30 gün içinde yanıtlanır.`,
+          `Hesap sahibiyseniz hesabınızı uygulamada Ayarlar → Hesabımı sil adımıyla kendiniz silebilirsiniz. Uygulamaya erişemiyorsanız veya bir salonun müşterisiyseniz ${L.webBaseUrl}${L.deletionPath} adresinden talep oluşturabilirsiniz. Salon müşterisi olarak yaptığınız başvuruları ilgili salona da iletebilirsiniz; talebiniz en geç 30 gün içinde yanıtlanır.`,
         ],
       },
       {
@@ -230,7 +230,7 @@ export const LEGAL_DOCUMENTS: LegalDocument[] = [
           'Kanuna aykırı işleme nedeniyle zarara uğramanız hâlinde zararın giderilmesini talep etme.',
         ],
         after: [
-          `Başvurularınızı ${L.contactEmail} adresine, KEP ile ${L.kepAddress} adresine veya ${L.webBaseUrl}/hesap-silme formu üzerinden iletebilirsiniz. Başvurular en geç 30 gün içinde ücretsiz sonuçlandırılır.`,
+          `Başvurularınızı ${L.contactEmail} adresine, KEP ile ${L.kepAddress} adresine veya ${L.webBaseUrl}${L.deletionPath} formu üzerinden iletebilirsiniz. Başvurular en geç 30 gün içinde ücretsiz sonuçlandırılır.`,
         ],
       },
     ],

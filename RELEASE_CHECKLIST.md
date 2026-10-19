@@ -69,7 +69,7 @@ Her birinde şu an uygulanan varsayılan yazılı; değiştirmek istersen söyle
 
 ### 1. Şirket bilgileri ve yasal metinler — **mağazadan önce zorunlu**
 1. `src/legal/legalInfo.ts` dosyasında köşeli parantezli değerleri doldur: şirket unvanı, adres, MERSİS, iletişim e-postası, KEP, alan adı.
-2. `npm run legal:html` → `legal/` klasöründeki 4 HTML'i alan adında yayınla (ör. `https://alanadi/gizlilik.html`). Herhangi bir statik barındırma yeter (Netlify, Cloudflare Pages, GitHub Pages).
+2. **Meta ve mağazalar için yasal sayfalar tanıtım sitesinde** (GitHub `dilaratatlisu/Randevu`, yerelde `Desktop/adapptiv-site`): `/gizlilik`, `/privacy`, `/kullanim-sozlesmesi`, `/veri-silme` (= `/data-deletion`, içinde çalışan silme talep formu). 19 Ekim'de uygulamanın gerçek davranışına göre düzeltildi. Site alan adı değişebilir: sitede linkler göreli; uygulamada `legalInfo.ts` → `webBaseUrl` + `deletionPath`. **Turnstile açılırsa** sitedeki silme formuna da widget eklenmeli (şu an token boş gidiyor). Uygulamanın kendi `legal/*.html` çıktıları yedek.
 3. Metinleri **KVKK konusunda uzman bir avukata** okut: Adapptiv aydınlatma metni, kullanım koşullarındaki veri işleme şartları, **salon aydınlatma şablonu** (`src/legal/salonNotice.ts`), saklama süreleri, sağlık bilgisi (alerji vb.) konusu.
 4. Sağlayıcıların kendi veri işleme sözleşmelerini (DPA) kabul et (K13): Supabase (Organization → Legal), OpenAI (platform hesabı → Data controls / DPA formu), Meta (WhatsApp Business koşulları içinde), Resend, Cloudflare, Google Firebase. Hepsi çevrimiçi kabul; ücretsiz.
 5. VERBİS kaydı yükümlülüğünü avukata sor (çalışan/ciro eşiğine göre).

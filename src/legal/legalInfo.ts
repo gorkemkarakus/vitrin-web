@@ -10,6 +10,8 @@ export const LEGAL_INFO = {
   kepAddress: '[KEP adresi]',
   // Yasal metinlerin herkese acik adresi (magaza konsollarina bu girilir).
   webBaseUrl: '[https://alan-adi]',
+  // Tanitim sitesindeki veri silme sayfasi (Randevu reposu: /veri-silme, EN: /data-deletion).
+  deletionPath: '/veri-silme',
   lastUpdated: '19 Ekim 2026',
 } as const
 
