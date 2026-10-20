@@ -308,7 +308,6 @@ export default function DashboardPage() {
     .filter((e) => !e.is_paid)
     .sort((a, b) => reminderDate(a).localeCompare(reminderDate(b)))
   const upcomingExpenses = allUnpaidExpenses.slice(0, 4)
-  const unpaidExpensesTotal = allUnpaidExpenses.reduce((sum, e) => sum + e.amount, 0)
 
   function daysUntil(dateStr: string) {
     const d = atMidnight(new Date(`${dateStr}T00:00:00`))
@@ -353,6 +352,21 @@ export default function DashboardPage() {
     <div className={styles.wrap}>
       {/* ---- Lacivert ozet blogu (ust bar ile ayni renk, onun devami) ---- */}
       <section className={styles.hero}>
+        {/* Donem secimi yalnizca bu ozeti ve kazanc kutularini degistirir;
+            "Siradaki randevu" her zaman bugune bakar. */}
+        <div className={`${styles.segmented} ${styles.segmentedHero}`} role="group" aria-label="Dönem">
+          {DATE_FILTERS.map((f) => (
+            <button
+              key={f.value}
+              type="button"
+              className={dateFilter === f.value ? styles.segmentActive : styles.segment}
+              aria-pressed={dateFilter === f.value}
+              onClick={() => setDateFilter(f.value)}
+            >
+              {f.label}
+            </button>
+          ))}
+        </div>
         <div className={styles.heroRow}>
           <div className={styles.heroMain}>
             <span className={styles.heroLabel}>{REVENUE_LABEL[dateFilter]}</span>
@@ -392,21 +406,6 @@ export default function DashboardPage() {
 
       <div className={styles.sheet}>
         <SetupCard />
-
-        {/* ---- Donem secimi ---- */}
-        <div className={styles.segmented} role="group" aria-label="Dönem">
-          {DATE_FILTERS.map((f) => (
-            <button
-              key={f.value}
-              type="button"
-              className={dateFilter === f.value ? styles.segmentActive : styles.segment}
-              aria-pressed={dateFilter === f.value}
-              onClick={() => setDateFilter(f.value)}
-            >
-              {f.label}
-            </button>
-          ))}
-        </div>
 
         {dateFilter === 'ozel' && (
           <div className={`card ${styles.customRangeRow}`}>
@@ -544,91 +543,90 @@ export default function DashboardPage() {
                 <span className={styles.tileHint}>Gelir − gider</span>
               </div>
               <button type="button" className={styles.tile} onClick={() => navigate('/giderler')}>
-                <span className={styles.tileLabel}>Yaklaşan ödemeler</span>
-                <span className={`${styles.tileValue} ${allUnpaidExpenses.length > 0 ? styles.tileValueWarm : ''}`}>
-                  {money(unpaidExpensesTotal)}
-                </span>
-                <span className={styles.tileHint}>{allUnpaidExpenses.length} ödeme</span>
+                <span className={styles.tileLabel}>Gider</span>
+                <span className={styles.tileValue}>{money(rangeExpenses)}</span>
+                <span className={styles.tileHint}>Bu dönemde</span>
               </button>
             </div>
 
-            {/* ---- Yaklasan odemeler ---- */}
-            <div className={styles.listCard}>
-              <div className={styles.blockHead}>
-                <h2>Yaklaşan ödemeler</h2>
-                <button type="button" className={styles.blockLink} onClick={() => navigate('/giderler')}>
-                  Tümü
+            {/* ---- Odenecek giderler (salonun kendi faturalari; musteri
+                tahsilatiyla karismasin diye "odeme" denmez) ---- */}
+            {upcomingExpenses.length > 0 && (
+              <div className={styles.listCard}>
+                <div className={styles.blockHead}>
+                  <h2>Ödenecek giderler</h2>
+                  <button type="button" className={styles.blockLink} onClick={() => navigate('/giderler')}>
+                    Tümü
+                  </button>
+                </div>
+                {
+                  <div className={styles.paymentList}>
+                    {upcomingExpenses.map((e) => {
+                      const left = daysUntil(reminderDate(e))
+                      return (
+                        <div className={styles.paymentRow} key={e.id}>
+                          <span className={styles.paymentIcon}>
+                            <ReceiptIcon width={16} height={16} />
+                          </span>
+                          <span className={styles.paymentText}>
+                            <span className={styles.paymentDesc}>{e.description}</span>
+                            <span className={left <= 3 ? styles.paymentDaysUrgent : styles.paymentDays}>
+                              {e.due_date ? 'Son ödeme ' : ''}
+                              {new Date(`${reminderDate(e)}T00:00:00`).toLocaleDateString('tr-TR', {
+                                day: 'numeric',
+                                month: 'long',
+                              })}
+                              {' · '}
+                              {left < 0 ? `${Math.abs(left)} gün geçti` : left === 0 ? 'bugün' : `${left} gün kaldı`}
+                            </span>
+                          </span>
+                          <span className={styles.paymentAmount}>{money(e.amount)}</span>
+                        </div>
+                      )
+                    })}
+                  </div>
+                }
+                <button
+                  type="button"
+                  className={`btn-secondary ${styles.addPaymentBtn}`}
+                  onClick={() => navigate('/giderler?yeni=1')}
+                >
+                  Gider ekle
                 </button>
               </div>
-              {upcomingExpenses.length === 0 ? (
-                <p className={styles.empty}>Ödenmemiş gider yok.</p>
-              ) : (
-                <div className={styles.paymentList}>
-                  {upcomingExpenses.map((e) => {
-                    const left = daysUntil(reminderDate(e))
-                    return (
-                      <div className={styles.paymentRow} key={e.id}>
-                        <span className={styles.paymentIcon}>
-                          <ReceiptIcon width={16} height={16} />
-                        </span>
-                        <span className={styles.paymentText}>
-                          <span className={styles.paymentDesc}>{e.description}</span>
-                          <span className={left <= 3 ? styles.paymentDaysUrgent : styles.paymentDays}>
-                            {e.due_date ? 'Son ödeme ' : ''}
-                            {new Date(`${reminderDate(e)}T00:00:00`).toLocaleDateString('tr-TR', {
-                              day: 'numeric',
-                              month: 'long',
-                            })}
-                            {' · '}
-                            {left < 0 ? `${Math.abs(left)} gün geçti` : left === 0 ? 'bugün' : `${left} gün kaldı`}
-                          </span>
-                        </span>
-                        <span className={styles.paymentAmount}>{money(e.amount)}</span>
-                      </div>
-                    )
-                  })}
-                </div>
-              )}
-              <button
-                type="button"
-                className={`btn-secondary ${styles.addPaymentBtn}`}
-                onClick={() => navigate('/giderler?yeni=1')}
-              >
-                Ödeme ekle
-              </button>
-            </div>
+            )}
 
             {/* ---- Bekleyen tahsilatlar (musteri borclari) ---- */}
-            <div className={styles.listCard}>
-              <div className={styles.blockHead}>
-                <h2>Bekleyen tahsilatlar</h2>
-                <button type="button" className={styles.blockLink} onClick={() => navigate('/musteriler')}>
-                  Tümü
-                </button>
-              </div>
-              {topDebtors.length === 0 ? (
-                <p className={styles.empty}>Bu aralıkta bekleyen tahsilat yok.</p>
-              ) : (
-                <div className={styles.paymentList}>
-                  {topDebtors.map(([customerId, amount]) => (
-                    <button
-                      type="button"
-                      className={styles.paymentRow}
-                      key={customerId}
-                      onClick={() => navigate(`/musteriler/${customerId}`)}
-                    >
-                      <span className={`${styles.paymentIcon} ${styles.paymentIconWarm}`}>
-                        <WalletIcon width={16} height={16} />
-                      </span>
-                      <span className={styles.paymentText}>
-                        <span className={styles.paymentDesc}>{customerNameById.get(customerId) ?? 'Müşteri'}</span>
-                      </span>
-                      <span className={styles.paymentAmountWarm}>{money(amount)}</span>
-                    </button>
-                  ))}
+            {topDebtors.length > 0 && (
+              <div className={styles.listCard}>
+                <div className={styles.blockHead}>
+                  <h2>Bekleyen tahsilatlar</h2>
+                  <button type="button" className={styles.blockLink} onClick={() => navigate('/musteriler')}>
+                    Tümü
+                  </button>
                 </div>
-              )}
-            </div>
+                {
+                  <div className={styles.paymentList}>
+                    {topDebtors.map(([customerId, amount]) => (
+                      <button
+                        type="button"
+                        className={styles.paymentRow}
+                        key={customerId}
+                        onClick={() => navigate(`/musteriler/${customerId}`)}
+                      >
+                        <span className={`${styles.paymentIcon} ${styles.paymentIconWarm}`}>
+                          <WalletIcon width={16} height={16} />
+                        </span>
+                        <span className={styles.paymentText}>
+                          <span className={styles.paymentDesc}>{customerNameById.get(customerId) ?? 'Müşteri'}</span>
+                        </span>
+                        <span className={styles.paymentAmountWarm}>{money(amount)}</span>
+                      </button>
+                    ))}
+                  </div>
+                }
+              </div>
+            )}
           </div>
         </div>
 

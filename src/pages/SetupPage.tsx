@@ -78,8 +78,13 @@ export default function SetupPage() {
             : 'Birkaç dakika sürer. İstediğin adımda çıkabilirsin; kaldığın yer Anasayfa’da durur.'}
         </span>
         <div className={styles.progress} aria-label={`${status.doneCount} / ${status.total} adım tamam`}>
-          {status.steps.map((s) => (
-            <span key={s.id} className={s.done || s.skipped ? styles.progDone : styles.prog} />
+          {/* Cubuk soldan dolar: hangi adim bittiyse bitsin "kac adim tamam" okunur
+              (eskiden biten adimin kendi yeri boyaniyordu, "3. adimdayim" gibi gorunuyordu). */}
+          {status.steps.map((s, i) => (
+            <span
+              key={s.id}
+              className={i < status.steps.filter((x) => x.done || x.skipped).length ? styles.progDone : styles.prog}
+            />
           ))}
         </div>
         <span className={styles.heroCount}>

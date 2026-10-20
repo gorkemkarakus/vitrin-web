@@ -1051,7 +1051,18 @@ export default function AppointmentsPage() {
               <span className={styles.emptyTitle}>
                 {diffDays === 0 ? 'Bugün randevu yok' : `${dayLabel} için randevu yok`}
               </span>
-              <span className={styles.emptySub}>Eklemek için “Yeni randevu”yu seç.</span>
+              <span className={styles.emptySub}>Bu gün için ilk randevuyu hemen ekleyebilirsin.</span>
+              <button
+                type="button"
+                className={styles.emptyBtn}
+                onClick={() => {
+                  setError(null)
+                  setPrefill({ date: viewDate, time: '', employeeId: null, key: Date.now() })
+                  setShowForm(true)
+                }}
+              >
+                Yeni randevu
+              </button>
             </div>
           ) : dailyDisplay === 'liste' ? (
             <div className={styles.apptList}>

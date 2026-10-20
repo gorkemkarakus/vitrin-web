@@ -1,4 +1,5 @@
 import { useEffect, useMemo, useRef, useState, type FormEvent } from 'react'
+import { useNavigate } from 'react-router-dom'
 import { supabase } from '../../lib/supabase'
 import { NETWORK_ERROR } from '../../lib/messages'
 import { useAuth } from '../../contexts/AuthContext'
@@ -92,6 +93,7 @@ export default function NewAppointmentForm({
   prefill,
 }: Props) {
   const { profile, can } = useAuth()
+  const navigate = useNavigate()
   const canSeeAll = can('randevu_tumu_gor')
   const showForm = open
   const [customerQuery, setCustomerQuery] = useState('')
@@ -487,11 +489,18 @@ export default function NewAppointmentForm({
         {/* ---- Hizmet ---- */}
         <div className={styles.fGroup}>
           <span className={styles.fLabel}>Hizmet</span>
-          {formServices.length === 0 && (
-            <p className={styles.formNote}>
-              {canSeeAll ? 'Henüz hizmet yok.' : 'Sana atanmış hizmet yok. Yöneticin Ekip sayfasından ekleyebilir.'}
-            </p>
-          )}
+          {formServices.length === 0 &&
+            (canSeeAll ? (
+              // Hizmet yokken saat de secilemiyor: kullanici formda takili kalmasin.
+              <div className={styles.formNoteRow}>
+                <p className={styles.formNote}>Randevu için önce hizmetlerini eklemen gerekiyor.</p>
+                <button type="button" className={styles.formNoteBtn} onClick={() => navigate('/hizmetler?hazir=1')}>
+                  Hizmet ekle
+                </button>
+              </div>
+            ) : (
+              <p className={styles.formNote}>Sana atanmış hizmet yok. Yöneticin Ekip sayfasından ekleyebilir.</p>
+            ))}
           <div className={styles.serviceChips}>
             {visibleFormServices.map((s) => (
               <button
@@ -695,7 +704,7 @@ export default function NewAppointmentForm({
 
         {/* ---- Kaynak + not ---- */}
         <button type="button" className={styles.infoRow} onClick={() => setSourcePickerOpen(true)}>
-          <span className={styles.infoRowLabel}>Kaynak</span>
+          <span className={styles.infoRowLabel}>Nereden geldi?</span>
           <span className={styles.infoRowValue}>
             {SOURCE_OPTIONS.find((o) => o.value === source)?.label ?? 'Seç'} ›
           </span>

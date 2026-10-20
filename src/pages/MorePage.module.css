@@ -71,37 +71,81 @@
 
 /* ---------- Menu kutulari ---------- */
 
+.group {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.groupTitle {
+  margin: 0 4px;
+  font-size: 12px;
+  font-weight: 700;
+  letter-spacing: 0.05em;
+  text-transform: uppercase;
+  color: var(--text-dim);
+}
+
 .grid {
   display: grid;
   grid-template-columns: repeat(3, minmax(0, 1fr));
-  gap: 10px;
+  /* her satir ayni boyda: iki satirlik baslik kutuyu uzatip komsusunu kisa birakmasin */
+  grid-auto-rows: 1fr;
+  gap: 8px;
 }
 
+/* ikon ve yazi kutunun ortasinda (eskiden sol ust/sol alt koselere dayaliydi) */
 .tile {
   border: none;
   background: var(--panel);
   color: var(--signal);
-  border-radius: 20px;
-  padding: 14px 12px;
+  border-radius: 18px;
+  padding: 14px 8px 12px;
+  min-height: 96px;
   display: flex;
   flex-direction: column;
-  align-items: flex-start;
-  gap: 14px;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
   font-family: var(--font-body);
-  text-align: left;
+  text-align: center;
   cursor: pointer;
   min-width: 0;
+}
+
+.tileIcon {
+  width: 40px;
+  height: 40px;
+  border-radius: 12px;
+  background: var(--tint);
+  display: grid;
+  place-items: center;
+  flex-shrink: 0;
 }
 
 .tileLabel {
   font-size: 13px;
   font-weight: 700;
+  line-height: 1.25;
   color: var(--text);
+}
+
+.tileTag {
+  font-size: 10.5px;
+  font-weight: 700;
+  color: var(--text-dim);
+  background: var(--seg-bg);
+  border-radius: 999px;
+  padding: 2px 7px;
 }
 
 .tileTint {
   background: var(--purple-bg);
   color: var(--purple-text);
+}
+
+.tileTint .tileIcon {
+  background: rgba(76, 29, 149, 0.08);
 }
 
 .tileTint .tileLabel {

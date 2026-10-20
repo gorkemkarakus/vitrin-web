@@ -96,7 +96,7 @@ export async function loadSetupStatus(
       title: 'Hizmetlerini ekle',
       desc: 'Saç kesimi, manikür… süresi ve fiyatıyla. Randevu ve kasa bunlarla çalışır.',
       cta: 'Hizmet ekle',
-      to: '/hizmetler?yeni=1',
+      to: '/hizmetler?hazir=1',
       optional: false,
       done: (svc.count ?? 0) > 0,
       skipped: false,

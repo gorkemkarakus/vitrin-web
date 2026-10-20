@@ -11,6 +11,50 @@
   padding: 24px 12px;
 }
 
+/* Bos liste: yeni salon buradan hazir listeye ya da elle eklemeye gider */
+.emptyCard {
+  background: var(--panel);
+  border-radius: 22px;
+  padding: 20px 18px;
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+.emptyTitle {
+  font-family: var(--font-heading);
+  font-size: 18px;
+  font-weight: 600;
+}
+
+.emptySub {
+  font-size: 14px;
+  color: var(--text-dim);
+  line-height: 1.45;
+  margin-bottom: 4px;
+}
+
+.addedNote {
+  margin: 0;
+  padding: 10px 14px;
+  border-radius: 14px;
+  background: var(--ok-bg);
+  color: var(--ok-text);
+  font-size: 13.5px;
+}
+
+.templateLink {
+  align-self: center;
+  border: none;
+  background: none;
+  font: inherit;
+  font-size: 14px;
+  font-weight: 700;
+  color: var(--signal);
+  padding: 8px 12px;
+  cursor: pointer;
+}
+
 /* ---------- Liste ---------- */
 
 .listCard {

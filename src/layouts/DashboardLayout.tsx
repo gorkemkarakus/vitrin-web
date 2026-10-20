@@ -495,10 +495,10 @@ export default function DashboardLayout() {
                 <div className={styles.quickInfoRow}>
                   <span className={styles.quickInfoText}>
                     <span className={styles.quickInfoMain}>
-                      Geciken ödemeler · {currencyWhole.format(unpaid.overdueTotal)}
+                      Geciken giderler · {currencyWhole.format(unpaid.overdueTotal)}
                     </span>
                     <span className={styles.quickInfoSub}>
-                      {unpaid.overdueCount} ödeme · en eskisi {unpaid.overdueOldest}
+                      {unpaid.overdueCount} gider · en eskisi {unpaid.overdueOldest}
                     </span>
                   </span>
                   <button
@@ -517,10 +517,10 @@ export default function DashboardLayout() {
                 <div className={styles.quickInfoRow}>
                   <span className={styles.quickInfoText}>
                     <span className={styles.quickInfoMain}>
-                      Yaklaşan ödemeler · {currencyWhole.format(unpaid.soonTotal)}
+                      Yakında ödenecek giderler · {currencyWhole.format(unpaid.soonTotal)}
                     </span>
                     <span className={styles.quickInfoSub}>
-                      3 gün içinde {unpaid.soonCount} ödeme · {unpaid.soonFirst}
+                      3 gün içinde {unpaid.soonCount} gider · {unpaid.soonFirst}
                     </span>
                   </span>
                   <button

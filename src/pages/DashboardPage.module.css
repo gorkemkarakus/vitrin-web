@@ -11,12 +11,12 @@
    yuvarlak kosesi icin. */
 .hero {
   margin: -16px -16px 0;
-  padding: 4px 20px 56px;
+  padding: 4px 20px 48px;
   background: var(--signal);
   color: #fff;
   display: flex;
   flex-direction: column;
-  gap: 18px;
+  gap: 14px;
 }
 
 .heroRow {
@@ -47,7 +47,7 @@
 
 .heroValue {
   font-family: var(--font-heading);
-  font-size: 42px;
+  font-size: 34px;
   font-weight: 600;
   letter-spacing: -0.03em;
   line-height: 1.05;
@@ -143,6 +143,21 @@
   color: var(--text);
   font-weight: 700;
   box-shadow: 0 1px 2px rgba(17, 24, 39, 0.08);
+}
+
+/* ozetin icindeki donem secimi (lacivert zemin) */
+.segmentedHero {
+  background: rgba(255, 255, 255, 0.08);
+}
+
+.segmentedHero .segment {
+  color: var(--navy-dim);
+}
+
+.segmentedHero .segmentActive {
+  background: #fff;
+  color: var(--signal);
+  box-shadow: none;
 }
 
 .customRangeRow {
@@ -581,7 +596,7 @@ button.paymentRow {
 @media (min-width: 1024px) {
   .hero {
     margin: -28px -40px 0;
-    padding: 4px 40px 56px;
+    padding: 4px 40px 48px;
   }
 
   .sheet {

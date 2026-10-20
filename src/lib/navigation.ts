@@ -18,6 +18,7 @@ import {
   TeamIcon,
   TrophyIcon,
   UsersIcon,
+  WalletIcon,
 } from '../components/icons'
 import type { PermKey } from './permissions'
 import type { PlanFeature } from './plan'
@@ -40,6 +41,8 @@ export interface NavItem {
   more: boolean
   // AI ozelligi: mor zeminle ayirt edilir.
   tint?: boolean
+  // Yalniz genis ekranda kullanilabilir (telefonda "bilgisayarda" etiketi).
+  wideOnly?: boolean
 }
 
 export const NAV_ITEMS: NavItem[] = [
@@ -57,7 +60,7 @@ export const NAV_ITEMS: NavItem[] = [
     group: 'gunluk',
     more: true,
   },
-  { path: '/muhasebe', label: 'Muhasebe', icon: AccountingIcon, access: 'kasa', group: 'isletme', more: true },
+  { path: '/muhasebe', label: 'Muhasebe', icon: WalletIcon, access: 'kasa', group: 'isletme', more: true },
   { path: '/ekip', label: 'Ekip', icon: TeamIcon, access: 'ekip_yonet', group: 'isletme', more: true },
   { path: '/hizmetler', label: 'Hizmetler', icon: ServicesIcon, access: 'hizmet_yonet', group: 'isletme', more: true },
   {
@@ -84,6 +87,7 @@ export const NAV_ITEMS: NavItem[] = [
     access: 'admin',
     group: 'buyume',
     more: true,
+    wideOnly: true,
   },
   {
     path: '/memnuniyet',

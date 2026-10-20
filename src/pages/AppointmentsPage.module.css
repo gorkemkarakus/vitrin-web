@@ -1314,6 +1314,19 @@
   color: var(--text-dim);
 }
 
+.emptyBtn {
+  margin-top: 12px;
+  border: none;
+  border-radius: 14px;
+  background: var(--signal);
+  color: #fff;
+  font: inherit;
+  font-size: 15px;
+  font-weight: 700;
+  padding: 13px;
+  cursor: pointer;
+}
+
 /* ---------- Zaman cizelgesi ---------- */
 
 .timelineList {
@@ -1899,6 +1912,35 @@
 .formNote {
   font-size: 13px;
   color: var(--text-dim);
+}
+
+/* hizmeti olmayan salon: formdan dogrudan hizmet eklemeye gider */
+.formNoteRow {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  background: var(--accent-bg);
+  border-radius: 14px;
+  padding: 12px 14px;
+}
+
+.formNoteRow .formNote {
+  margin: 0;
+  color: var(--accent-text);
+}
+
+.formNoteBtn {
+  flex-shrink: 0;
+  border: none;
+  border-radius: 999px;
+  background: var(--signal);
+  color: #fff;
+  font: inherit;
+  font-size: 13px;
+  font-weight: 700;
+  padding: 8px 14px;
+  cursor: pointer;
 }
 
 .customerNote {

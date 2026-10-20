@@ -13,6 +13,7 @@ import { AVATAR_TONES } from '../lib/avatarColor'
 import { FIELD_LIMITS } from '../lib/fieldLimits'
 import { useLayout } from '../lib/layout'
 import DataTable, { type Column } from '../components/DataTable'
+import ServiceTemplatePicker from '../components/ServiceTemplatePicker'
 
 interface Service {
   id: string
@@ -64,6 +65,9 @@ export default function ServicesPage() {
   const isNew = searchParams.get('yeni') === '1'
   const editing = editId ? (services.find((s) => s.id === editId) ?? null) : null
   const editorOpen = isNew || !!editing
+  // Hazir hizmet listesi (?hazir=1): kurulum sihirbazi ve bos liste buraya getirir.
+  const templatesOpen = searchParams.get('hazir') === '1'
+  const [addedNote, setAddedNote] = useState<string | null>(null)
 
   const [name, setName] = useState('')
   const [duration, setDuration] = useState(60)
@@ -618,10 +622,25 @@ export default function ServicesPage() {
         </div>
       </div>
 
+      {addedNote && <p className={styles.addedNote}>{addedNote}</p>}
+
       {filteredSorted.length === 0 ? (
-        <p className={styles.empty}>
-          {q ? 'Aramana uyan hizmet yok.' : 'Henüz hizmet eklenmedi. “+ Hizmet” ile başla.'}
-        </p>
+        q ? (
+          <p className={styles.empty}>Aramana uyan hizmet yok.</p>
+        ) : loading ? null : (
+          <div className={styles.emptyCard}>
+            <span className={styles.emptyTitle}>Henüz hizmet yok</span>
+            <span className={styles.emptySub}>
+              Saç kesimi, manikür gibi yaptığın hizmetleri hazır listeden işaretle; süre ve fiyatını yazman yeterli.
+            </span>
+            <button type="button" className="btn-primary" onClick={() => setSearchParams({ hazir: '1' })}>
+              Hazır listeden seç
+            </button>
+            <button type="button" className="btn-secondary" onClick={() => openEditor('new')}>
+              Kendim yazayım
+            </button>
+          </div>
+        )
       ) : isWide ? (
         <DataTable
           ariaLabel="Hizmetler"
@@ -663,6 +682,25 @@ export default function ServicesPage() {
             )
           })}
         </div>
+      )}
+
+      {services.length > 0 && !q && (
+        <button type="button" className={styles.templateLink} onClick={() => setSearchParams({ hazir: '1' })}>
+          + Hazır listeden hizmet ekle
+        </button>
+      )}
+
+      {templatesOpen && (
+        <ServiceTemplatePicker
+          existingNames={services.map((s) => s.name)}
+          staffIds={employees.map((e) => e.id)}
+          onClose={() => setSearchParams({})}
+          onAdded={async (count) => {
+            setSearchParams({})
+            await loadData(true)
+            setAddedNote(`${count} hizmet eklendi. Fiyatını ya da süresini değiştirmek için hizmete dokun.`)
+          }}
+        />
       )}
     </div>
   )
