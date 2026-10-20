@@ -149,7 +149,8 @@
   height: 20px;
   padding: 0 6px;
   border-radius: 999px;
-  background: var(--accent);
+  /* lacivert menude sakin sayi (turuncu yalniz acil uyarilarda) */
+  background: rgba(255, 255, 255, 0.16);
   color: #fff;
   font-size: 11px;
   font-weight: 700;

@@ -743,8 +743,14 @@ export default function CustomerDetailPage() {
               <ChevronRightIcon width={16} height={16} className={styles.backIcon} />
               Müşteriler
             </button>
-            <button type="button" className="hdr-pill" onClick={openEditCustomer}>
-              Düzenle
+            <button
+              type="button"
+              className="hdr-pill"
+              onClick={openEditCustomer}
+              aria-label="Ad ve telefonu düzenle"
+              title="Ad ve telefonu düzenle"
+            >
+              <PencilIcon width={16} height={16} />
             </button>
           </div>
 

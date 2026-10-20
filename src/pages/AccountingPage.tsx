@@ -8,7 +8,7 @@ import { LockIcon, ReceiptIcon } from '../components/icons'
 import { notifyPlanBlock } from '../lib/planBlock'
 import PageHeader from '../components/PageHeader'
 import { computeCustomerDebts } from '../lib/customerDebts'
-import { currency } from '../lib/currency'
+import { currencySmart as currency } from '../lib/currency'
 import { toLocalDateString, presetDateRange, type DateRangePreset } from '../lib/date'
 import styles from './AccountingPage.module.css'
 
@@ -551,10 +551,9 @@ export default function AccountingPage() {
           </div>
 
           <div className={styles.tiles}>
-            <div className={`${styles.tile} ${styles.tileNavy}`}>
+            <div className={styles.tile}>
               <span className={styles.tileLabel}>Kasadaki nakit</span>
               <span className={styles.tileValue}>{currency.format(cashTotal)}</span>
-              <span className={styles.tileHint}>Nakit gelir − nakit gider</span>
             </div>
             <button
               type="button"
@@ -562,7 +561,7 @@ export default function AccountingPage() {
               onClick={() => navigate(`/giderler?start=${rangeStart}&end=${rangeEnd}`)}
             >
               <span className={styles.tileLabel}>Giderler</span>
-              <span className={`${styles.tileValue} ${styles.textWarm}`}>{currency.format(totalExpenses)}</span>
+              <span className={styles.tileValue}>{currency.format(totalExpenses)}</span>
               <span className={styles.tileHint}>
                 {expenses.length} kayıt
                 {overdueExpenses.length > 0
@@ -580,14 +579,9 @@ export default function AccountingPage() {
             </button>
             <div className={styles.tile}>
               <span className={styles.tileLabel}>Net</span>
-              <span
-                className={
-                  netProfit < 0 ? `${styles.tileValue} ${styles.textDanger}` : `${styles.tileValue} ${styles.textOk}`
-                }
-              >
+              <span className={netProfit < 0 ? `${styles.tileValue} ${styles.textDanger}` : styles.tileValue}>
                 {currency.format(netProfit)}
               </span>
-              <span className={styles.tileHint}>Gelir − gider</span>
             </div>
           </div>
 

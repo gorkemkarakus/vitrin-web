@@ -50,14 +50,15 @@ export default function TaskRow({
               {task.customer.full_name}
             </button>
           )}
-          <span>{assigneeName ?? 'Atanmamış'}</span>
+          {/* atanmamis gorevde "Atanmamış" yazisi her satirda tekrar etmesin */}
+          {assigneeName && <span>{assigneeName}</span>}
         </span>
       </div>
       {!done && (
         <div className={styles.rowActions}>
           {onPostpone && (
             <button type="button" className={styles.rowAction} onClick={() => onPostpone(task)}>
-              Yarına ertele
+              Ertele
             </button>
           )}
           {canDelete && onDelete && (

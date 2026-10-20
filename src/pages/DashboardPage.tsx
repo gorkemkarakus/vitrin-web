@@ -85,10 +85,6 @@ const REVENUE_LABEL: Record<DateFilter, string> = {
   ozel: 'Seçili aralıkta tahsilat',
 }
 
-// Ozet blogundaki ilerleme seridi randevu basina bir parca cizer; bu sayinin
-// ustunde parcalar okunmayacak kadar inceldigi icin tek bir cubuga doner.
-const MAX_PROGRESS_SEGMENTS = 14
-
 function startOfWeekMonday(d: Date) {
   const day = d.getDay()
   const diff = day === 0 ? -6 : 1 - day
@@ -113,7 +109,7 @@ function relativeLabel(iso: string) {
   if (mins < 60) return `${mins} dk sonra`
   const h = Math.floor(mins / 60)
   const m = mins % 60
-  return m === 0 ? `${h} sa sonra` : `${h} sa ${m} dk sonra`
+  return m === 0 || h >= 2 ? `${h} sa sonra` : `${h} sa ${m} dk sonra`
 }
 
 export default function DashboardPage() {
@@ -380,23 +376,9 @@ export default function DashboardPage() {
             <span className={styles.heroLabel}>randevu bitti</span>
           </div>
         </div>
-        {segTotal === 0 && (
-          <div className={styles.heroBar} aria-hidden="true">
-            <span style={{ width: 0 }} />
-          </div>
-        )}
-        {segTotal > 0 && segTotal <= MAX_PROGRESS_SEGMENTS && (
-          <div className={styles.heroSegs} aria-hidden="true">
-            {Array.from({ length: segTotal }, (_, i) => (
-              <span key={i} className={i < segDone ? styles.heroSegDone : styles.heroSeg} />
-            ))}
-          </div>
-        )}
-        {segTotal > MAX_PROGRESS_SEGMENTS && (
-          <div className={styles.heroBar} aria-hidden="true">
-            <span style={{ width: `${Math.round((segDone / segTotal) * 100)}%` }} />
-          </div>
-        )}
+        <div className={styles.heroBar} aria-hidden="true">
+          <span style={{ width: segTotal ? `${Math.round((segDone / segTotal) * 100)}%` : 0 }} />
+        </div>
         {revenueChangePct !== null && (
           <span className={styles.heroHint}>
             Önceki döneme göre %{Math.abs(revenueChangePct)} {revenueChangePct >= 0 ? 'fazla' : 'az'}
@@ -515,19 +497,19 @@ export default function DashboardPage() {
                     Takvim
                   </button>
                 </div>
-                <div className={styles.laterGrid}>
+                <div className={styles.laterList}>
                   {laterAppts.map((a) => (
                     <button
                       type="button"
                       key={a.id}
-                      className={styles.laterCard}
+                      className={styles.laterRow}
                       onClick={() => navigate(`/randevular?tarih=${todayStr}`)}
                     >
                       <span className={styles.laterTime}>{timeOf(a.scheduled_at)}</span>
                       <span className={styles.laterName}>{customerNameById.get(a.customer_id ?? '') ?? 'Müşteri'}</span>
-                      <span className={styles.laterService}>
-                        {a.service_id ? (serviceNameById.get(a.service_id) ?? '—') : '—'}
-                      </span>
+                      {a.service_id && serviceNameById.get(a.service_id) && (
+                        <span className={styles.laterService}>{serviceNameById.get(a.service_id)}</span>
+                      )}
                     </button>
                   ))}
                 </div>
@@ -536,16 +518,14 @@ export default function DashboardPage() {
           </div>
           <div className={styles.colB}>
             {/* ---- Kazanc + odenmemis giderler ---- */}
-            <div className={styles.tiles}>
-              <div className={styles.tile}>
+            <div className={styles.moneyCard}>
+              <div className={styles.moneyCell}>
                 <span className={styles.tileLabel}>Kazanç</span>
                 <span className={styles.tileValue}>{money(rangeBalance)}</span>
-                <span className={styles.tileHint}>Gelir − gider</span>
               </div>
-              <button type="button" className={styles.tile} onClick={() => navigate('/giderler')}>
+              <button type="button" className={styles.moneyCell} onClick={() => navigate('/giderler')}>
                 <span className={styles.tileLabel}>Gider</span>
                 <span className={styles.tileValue}>{money(rangeExpenses)}</span>
-                <span className={styles.tileHint}>Bu dönemde</span>
               </button>
             </div>
 

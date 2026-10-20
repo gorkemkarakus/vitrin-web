@@ -398,6 +398,27 @@ export default function CustomersPage() {
     </div>
   )
 
+  // Telefonda: dort kutu ve donem secici yerine tek kartta uc sayi; liste ekranin
+  // ustune yaklassin (toplam harcama Kasa'da, burada kalabalik ediyordu).
+  const mobileSummary = (
+    <div className={styles.summaryCard}>
+      <button type="button" className={styles.summaryCell} onClick={() => showSegment('tumu')}>
+        <span className={styles.summaryValue}>{customers.length}</span>
+        <span className={styles.summaryLabel}>müşteri</span>
+      </button>
+      <div className={styles.summaryCell}>
+        <span className={styles.summaryValue}>{newCustomerCountForPeriod}</span>
+        <span className={styles.summaryLabel}>yeni · {statsPeriodLabel}</span>
+      </div>
+      <button type="button" className={styles.summaryCell} onClick={() => showSegment('borclu')}>
+        <span className={`${styles.summaryValue} ${totalDebt > 0 ? styles.summaryWarm : ''}`}>
+          {currency.format(totalDebt)}
+        </span>
+        <span className={styles.summaryLabel}>borç</span>
+      </button>
+    </div>
+  )
+
   const periodBlock = (
     <div className={styles.periodRow} role="group" aria-label="Harcama ve yeni müşteri dönemi">
       {STATS_PERIODS.map((p) => (
@@ -569,8 +590,7 @@ export default function CustomersPage() {
               onClose={() => setSortMenuOpen(false)}
             />
           </div>
-          {statsBlock}
-          {periodBlock}
+          {mobileSummary}
           {dupBanner}
           {segmentBlock}
         </>
@@ -620,9 +640,7 @@ export default function CustomersPage() {
                       <span className={styles.rowMain}>
                         <span className={styles.rowName}>{c.full_name}</span>
                         {debt > 0 ? (
-                          <span className={`${styles.rowPill} ${styles.rowPillWarm}`}>
-                            {currency.format(debt)} borç
-                          </span>
+                          <span className={styles.rowDebt}>{currency.format(debt)} borç</span>
                         ) : seg ? (
                           <span className={`${styles.rowPill} ${styles[SEGMENT_BADGE[seg].className]}`}>
                             {SEGMENT_BADGE[seg].label}

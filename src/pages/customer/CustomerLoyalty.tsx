@@ -66,7 +66,7 @@ export default function CustomerLoyalty({ customerId }: { customerId: string }) 
         {cardSummary(card, program)}
       </p>
       {ready && (
-        <button type="button" className="btn-primary" disabled={busy} onClick={use}>
+        <button type="button" className="btn-secondary" disabled={busy} onClick={use}>
           {busy ? 'Kaydediliyor…' : 'Ödülü kullandır'}
         </button>
       )}

@@ -141,7 +141,9 @@ export default function TeamPage() {
     const next = open.find((a) => new Date(a.scheduled_at).getTime() > nowMs)
     const nextInfo = next
       ? `Sıradaki ${timeOf(next.scheduled_at)} · ${customerNames.get(next.customer_id ?? '') ?? 'Müşteri'}`
-      : 'Bugün başka randevu yok'
+      : count === 0
+        ? 'Bugün randevu yok'
+        : 'Bugün başka randevu yok'
     const [sh, sm] = sched.starts_at.split(':').map(Number)
     const [eh, em] = sched.ends_at.split(':').map(Number)
     const nowMin = new Date().getHours() * 60 + new Date().getMinutes()
@@ -211,9 +213,9 @@ export default function TeamPage() {
                   </span>
                   <span className={`${styles.pill} ${styles[`pill_${live.tone}`]}`}>{live.pill}</span>
                 </span>
-                <span className={styles.infoStrip}>
-                  <span className={styles.infoText}>{live.info}</span>
-                  <span className={styles.infoCount}>Bugün {live.count} randevu</span>
+                <span className={styles.infoLine}>
+                  {live.info}
+                  {live.count > 0 && <span className={styles.infoCount}> · bugün {live.count} randevu</span>}
                 </span>
               </button>
             )

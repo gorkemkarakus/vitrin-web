@@ -593,7 +593,11 @@ export default function AppointmentsPage() {
     const isClosed = a.status === 'tamamlandi' || a.status === 'iptal' || a.status === 'gelmedi'
     const phone = customerPhone(a.customer_id)
     const pkg = packageProgress(a)
-    const subParts = [serviceName(a.service_id), employeeName(a.employee_id)]
+    // calisan/hizmet secilmemisse satirda "· —" gibi bos isaret kalmasin
+    const subParts = [
+      a.service_id ? serviceName(a.service_id) : null,
+      a.employee_id ? employeeName(a.employee_id) : null,
+    ].filter((p): p is string => !!p)
     if (isNext) subParts.push(`${durMin} dk`)
     if (pkg) subParts.push(`${pkg.current}/${pkg.total} seans`)
 
@@ -607,7 +611,7 @@ export default function AppointmentsPage() {
             : isOverdue
               ? { text: 'Saati geçti', cls: styles.cardStateWarm }
               : a.status === 'bekliyor' && !isNext
-                ? { text: 'Onay bekliyor', cls: styles.cardStateWarm }
+                ? { text: 'Onay bekliyor', cls: styles.cardStatePending }
                 : null
 
     const open = () => openDetail(a)

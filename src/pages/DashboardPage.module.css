@@ -83,8 +83,8 @@
 }
 
 .heroBar {
-  height: 6px;
-  border-radius: 3px;
+  height: 4px;
+  border-radius: 2px;
   background: #33476e;
   overflow: hidden;
 }
@@ -186,12 +186,11 @@
   gap: 12px;
 }
 
+/* "Siradaki · 9 sa sonra": sakin etiket (eskiden turuncu, buyuk harf) */
 .nextEyebrow {
-  font-size: 12px;
-  font-weight: 700;
-  color: var(--accent-text);
-  letter-spacing: 0.06em;
-  text-transform: uppercase;
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--text-dim);
 }
 
 .nextTime {
@@ -393,6 +392,81 @@
 }
 
 /* ---------- Kazanc / odenmemis gider kutulari ---------- */
+
+/* kazanc + gider tek kartta */
+.moneyCard {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  background: var(--panel);
+  border-radius: 20px;
+}
+
+.moneyCell {
+  border: none;
+  background: none;
+  padding: 14px 16px;
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  font-family: var(--font-body);
+  color: var(--text);
+  text-align: left;
+  min-width: 0;
+  cursor: pointer;
+}
+
+.moneyCell + .moneyCell {
+  border-left: 1px solid var(--line);
+}
+
+div.moneyCell {
+  cursor: default;
+}
+
+/* "Sonrasi": tek kartta satirlar */
+.laterList {
+  background: var(--panel);
+  border-radius: 20px;
+  padding: 4px 16px;
+  display: flex;
+  flex-direction: column;
+}
+
+.laterRow {
+  border: none;
+  background: none;
+  display: grid;
+  grid-template-columns: 52px minmax(0, 1fr) auto;
+  align-items: baseline;
+  gap: 10px;
+  padding: 12px 0;
+  font-family: var(--font-body);
+  color: var(--text);
+  text-align: left;
+  cursor: pointer;
+}
+
+.laterRow + .laterRow {
+  border-top: 1px solid var(--line);
+}
+
+.laterRow .laterTime {
+  font-weight: 700;
+  font-variant-numeric: tabular-nums;
+}
+
+.laterRow .laterName {
+  font-weight: 600;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.laterRow .laterService {
+  font-size: 13px;
+  color: var(--text-dim);
+  white-space: nowrap;
+}
 
 .tiles {
   display: grid;
