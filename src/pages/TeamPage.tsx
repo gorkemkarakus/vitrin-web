@@ -215,7 +215,7 @@ export default function TeamPage() {
                 </span>
                 <span className={styles.infoLine}>
                   {live.info}
-                  {live.count > 0 && <span className={styles.infoCount}> · bugün {live.count} randevu</span>}
+                  {live.count > 0 && <span className={styles.infoCount}> · {live.count} randevu</span>}
                 </span>
               </button>
             )
