@@ -4,6 +4,7 @@ import { supabase } from '../lib/supabase'
 import { ALL_PERMISSIONS, DEFAULT_PERMISSIONS, type PermKey } from '../lib/permissions'
 import { publicSiteBase } from '../lib/bookingUrl'
 import { fetchMyPlan, type MyPlan, type PlanFeature } from '../lib/plan'
+import { logger } from '../lib/logger'
 
 interface Profile {
   id: string
@@ -45,11 +46,21 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   const [loading, setLoading] = useState(true)
 
   useEffect(() => {
-    supabase.auth.getSession().then(({ data }) => {
-      setSession(data.session)
-      if (data.session) fetchProfile(data.session.user.id)
-      else setLoading(false)
-    })
+    // Oturum okunamazsa ya da ag cok yavassa acilis logosunda takili
+    // kalinmasin: en gec 12 sn sonra ekran acilir (oturum sonradan gelirse
+    // rota kendiliginden panele gecer).
+    const safety = setTimeout(() => setLoading(false), 12000)
+    supabase.auth
+      .getSession()
+      .then(({ data }) => {
+        setSession(data.session)
+        if (data.session) fetchProfile(data.session.user.id)
+        else setLoading(false)
+      })
+      .catch((e) => {
+        logger.warn('Oturum okunamadi', e)
+        setLoading(false)
+      })
 
     const { data: listener } = supabase.auth.onAuthStateChange((_event, newSession) => {
       setSession(newSession)
@@ -62,21 +73,30 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       }
     })
 
-    return () => listener.subscription.unsubscribe()
+    return () => {
+      clearTimeout(safety)
+      listener.subscription.unsubscribe()
+    }
   }, [])
 
   async function fetchProfile(userId: string) {
-    const [{ data }, { data: perms, error: permErr }, myPlan] = await Promise.all([
-      supabase.from('profiles').select('*').eq('id', userId).maybeSingle(),
-      supabase.rpc('my_permissions'),
-      fetchMyPlan(),
-    ])
-    setProfile(data ?? null)
-    setPlan(myPlan)
-    // my_permissions yanit vermezse role gore varsayilan yetkiler.
-    if (!permErr && Array.isArray(perms)) setPermissions(new Set(perms as PermKey[]))
-    else setPermissions(new Set(data?.role === 'admin' ? ALL_PERMISSIONS : DEFAULT_PERMISSIONS))
-    setLoading(false)
+    try {
+      const [{ data }, { data: perms, error: permErr }, myPlan] = await Promise.all([
+        supabase.from('profiles').select('*').eq('id', userId).maybeSingle(),
+        supabase.rpc('my_permissions'),
+        fetchMyPlan(),
+      ])
+      setProfile(data ?? null)
+      setPlan(myPlan)
+      // my_permissions yanit vermezse role gore varsayilan yetkiler.
+      if (!permErr && Array.isArray(perms)) setPermissions(new Set(perms as PermKey[]))
+      else setPermissions(new Set(data?.role === 'admin' ? ALL_PERMISSIONS : DEFAULT_PERMISSIONS))
+    } catch (e) {
+      // ag koptuysa vs. giris ekranina dusulur; acilis logosunda kalinmaz
+      logger.warn('Profil okunamadi', e)
+    } finally {
+      setLoading(false)
+    }
   }
 
   async function refreshProfile() {

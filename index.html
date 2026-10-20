@@ -9,6 +9,30 @@
   <body>
     <div id="top-banners"></div>
     <div id="root"></div>
+    <!-- Uygulama kodu bu cihazda hic calisamazsa (cok eski WebView) acilis
+         logosunda takili kalmasin: 12 sn icinde baslamadiysa logoyu kapatip
+         ne yapilacagini soyler. Bilerek eski JavaScript ile yazildi. -->
+    <script>
+      ;(function () {
+        setTimeout(function () {
+          if (window.__adapptivStarted) return
+          try {
+            var sp = window.Capacitor && window.Capacitor.Plugins && window.Capacitor.Plugins.SplashScreen
+            if (sp && sp.hide) sp.hide()
+          } catch (e) {}
+          var root = document.getElementById('root')
+          if (!root) return
+          root.innerHTML =
+            '<div style="font-family:sans-serif;padding:48px 24px;max-width:420px;margin:0 auto;color:#0f1a2e;line-height:1.5">' +
+            '<h2 style="margin:0 0 12px">Uygulama açılamadı</h2>' +
+            '<p style="margin:0 0 12px">Telefonunuzdaki web görüntüleyici eski olabilir. Play Store\'dan ' +
+            '<b>Android System WebView</b> ve <b>Google Chrome</b> uygulamalarını güncelleyip tekrar deneyin.</p>' +
+            '<p style="margin:0 0 20px">İnternet bağlantınızı da kontrol edin.</p>' +
+            '<button onclick="location.reload()" style="font:inherit;padding:12px 20px;border:0;border-radius:12px;background:#13284f;color:#fff">Tekrar dene</button>' +
+            '</div>'
+        }, 12000)
+      })()
+    </script>
     <script type="module" src="/src/main.tsx"></script>
   </body>
 </html>

@@ -394,6 +394,8 @@ function App() {
   // launchAutoHide:false oldugu icin bu cagri gelmezse native splash hic
   // kapanmaz.
   useEffect(() => {
+    // index.html'deki "uygulama acilamadi" yedegi bunu gorunce devreye girmez.
+    ;(window as Window & { __adapptivStarted?: boolean }).__adapptivStarted = true
     SplashScreen.hide().catch(() => {})
   }, [])
 

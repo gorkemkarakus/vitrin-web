@@ -33,11 +33,31 @@ function legacyRemove(key: string) {
   }
 }
 
-async function secureGet(key: string): Promise<string | null> {
+// Bazi cihazlarda Keystore cagrisi hic donmeyebiliyor; acilis bunu beklerken
+// logoda kalmasin diye okuma sure sinirli (asilirsa localStorage'a donulur).
+const SECURE_READ_TIMEOUT_MS = 4000
+
+async function secureGetRaw(key: string): Promise<string | null> {
   const { value: keys } = await SecureStoragePlugin.keys()
   if (!keys.includes(key)) return null
   const { value } = await SecureStoragePlugin.get({ key })
   return value
+}
+
+function secureGet(key: string): Promise<string | null> {
+  return new Promise((resolve, reject) => {
+    const timer = setTimeout(() => reject(new Error('guvenli depo zaman asimi')), SECURE_READ_TIMEOUT_MS)
+    secureGetRaw(key).then(
+      (v) => {
+        clearTimeout(timer)
+        resolve(v)
+      },
+      (e) => {
+        clearTimeout(timer)
+        reject(e)
+      },
+    )
+  })
 }
 
 async function readFromDevice(key: string): Promise<string | null> {
