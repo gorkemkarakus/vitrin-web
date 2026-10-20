@@ -368,11 +368,12 @@
   border-bottom: 1px solid var(--line-soft);
 }
 
+/* acik/kapali yazisi turuncu degil: anahtar zaten durumu gosteriyor */
 .stateClosed,
 .stateOpen {
   font-size: 12px;
-  font-weight: 700;
-  color: var(--accent-text);
+  font-weight: 600;
+  color: var(--text-dim);
   flex-shrink: 0;
 }
 

@@ -131,8 +131,7 @@ export default function LoyaltyPage() {
             )}
           </div>
           <p className={autoStyles.desc}>
-            Randevu “tamamlandı” olunca müşterinin kartına bir damga düşer (aynı gün iki hizmet tek ziyaret sayılır).
-            Kart dolunca müşteri kartında “Ödülü kullandır” çıkar.
+            Her tamamlanan ziyarette karta bir damga düşer; kart dolunca ödül kullandırılır.
           </p>
           <form className={styles.form} onSubmit={save}>
             <label className={styles.field}>

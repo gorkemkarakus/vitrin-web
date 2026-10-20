@@ -70,6 +70,23 @@
 
 /* ---------- Ozet kutulari ---------- */
 
+/* tek kartta uc hucre (eskiden uc ayri kutu) */
+.statsRow > .statTile {
+  border-radius: 0;
+  background: none;
+}
+
+.statsRow > .statTile + .statTile {
+  border-left: 1px solid var(--line);
+}
+
+.statsRow {
+  background: var(--panel);
+  border-radius: 18px;
+  overflow: hidden;
+  gap: 0 !important;
+}
+
 .statsRow {
   display: grid;
   grid-template-columns: repeat(3, minmax(0, 1fr));

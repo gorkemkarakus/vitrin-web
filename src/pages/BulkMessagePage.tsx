@@ -71,6 +71,8 @@ export default function BulkMessagePage() {
 
   const [createGroupOpen, setCreateGroupOpen] = useState(false)
   const [viewingGroup, setViewingGroup] = useState<UiGroup | null>(null)
+  // hizmete gore gruplar (Boya Yaptiranlar...) cok sayida: istenince acilir
+  const [showServiceGroups, setShowServiceGroups] = useState(false)
   const [sendTarget, setSendTarget] = useState<{ name: string; memberIds: string[]; prefill?: string } | null>(null)
   const [editingTemplate, setEditingTemplate] = useState<Template | 'new' | null>(null)
   const [templatesOpen, setTemplatesOpen] = useState(false)
@@ -339,16 +341,23 @@ export default function BulkMessagePage() {
       <section className={styles.block}>
         <span className={styles.blockLabel}>Kime gidecek?</span>
         <div className={styles.chips}>
-          {allGroups.map((g) => (
-            <button
-              type="button"
-              key={g.key}
-              className={selectedKey === g.key ? styles.chipActive : styles.chip}
-              onClick={() => setSelectedKey(g.key)}
-            >
-              {g.name} · {g.memberIds.length}
+          {allGroups
+            .filter((g) => !g.key.startsWith('service:') || showServiceGroups || selectedKey === g.key)
+            .map((g) => (
+              <button
+                type="button"
+                key={g.key}
+                className={selectedKey === g.key ? styles.chipActive : styles.chip}
+                onClick={() => setSelectedKey(g.key)}
+              >
+                {g.name} · {g.memberIds.length}
+              </button>
+            ))}
+          {!showServiceGroups && allGroups.some((g) => g.key.startsWith('service:')) && (
+            <button type="button" className={styles.chipDashed} onClick={() => setShowServiceGroups(true)}>
+              Hizmete göre ▾
             </button>
-          ))}
+          )}
           <button type="button" className={styles.chipDashed} onClick={() => setCreateGroupOpen(true)}>
             Kendin seç
           </button>

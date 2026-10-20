@@ -80,9 +80,10 @@ export default function MorePage() {
       )}
 
       {/* Yan menudeki gibi gruplu: 15 kutu tek yiginda kaybolmasin. */}
-      {groups.map((g) => (
+      {(visibleItems.length > 6 ? groups : [{ key: 'tumu', label: '', items: visibleItems }]).map((g) => (
         <section key={g.key} className={styles.group}>
-          <h2 className={styles.groupTitle}>{g.label}</h2>
+          {/* az kutulu hesapta (calisan) baslik bir kutuluk gruplari dagitmasin */}
+          {visibleItems.length > 6 && <h2 className={styles.groupTitle}>{g.label}</h2>}
           <div className={styles.grid}>
             {g.items.map((item) => {
               const Icon = item.icon

@@ -98,9 +98,7 @@ export default function SurveysPage() {
       {notice && <p className={styles.ok}>{notice}</p>}
 
       <p className={styles.info}>
-        Tamamlanan bir randevunun detayında <b>Memnuniyet sorusu → Gönder</b> ile müşteriye WhatsApp’tan bağlantı gider.{' '}
-        {lowLimit} ve altı puan verilirse <b>Görevler</b>’e “arayıp gönlünü al” düşer; 4-5 puan verene Google yorum
-        bağlantısı gösterilir.
+        Randevu detayından anket gönderilir. {lowLimit} ve altı puanda <b>Görevler</b>’e arama düşer.
       </p>
 
       {rows && (

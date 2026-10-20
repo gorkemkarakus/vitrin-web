@@ -142,7 +142,7 @@ export default function CustomerReportPage() {
             <div className={styles.kpi}>
               <span className={styles.kpiLabel}>Aktif müşteri</span>
               <span className={styles.kpiValue}>{report.activeCustomers.toLocaleString('tr-TR')}</span>
-              <span className={styles.kpiSub}>dönemde en az bir kez geldi</span>
+              <span className={styles.kpiSub}>dönemde geldi</span>
             </div>
             <div className={styles.kpi}>
               <span className={styles.kpiLabel}>Yeni müşteri</span>
@@ -153,9 +153,7 @@ export default function CustomerReportPage() {
               <span className={styles.kpiLabel}>Tekrar gelme</span>
               <span className={styles.kpiValue}>{pct(report.returnRate)}</span>
               <span className={styles.kpiSub}>
-                {report.returnBase > 0
-                  ? `ilk ziyaretten sonra 60 gün içinde (${report.returnBase} yeni müşteriden)`
-                  : 'hesap için 60 günden eski yeni müşteri yok'}
+                {report.returnBase > 0 ? '60 gün içinde tekrar geldi' : 'henüz hesaplanamıyor'}
               </span>
             </div>
             <div className={styles.kpi}>
@@ -192,10 +190,7 @@ export default function CustomerReportPage() {
                   Kaybolma riski <span className={styles.count}>{report.atRisk.length}</span>
                 </h2>
               </div>
-              <p className={styles.muted}>
-                Normalde düzenli gelen ama son ziyaretinden bu yana alışılmadık kadar zaman geçen müşteriler. En çok
-                harcayan üstte.
-              </p>
+              <p className={styles.muted}>Düzenli gelip son zamanlarda gelmeyenler.</p>
               {report.atRisk.length === 0 ? (
                 <p className={styles.muted}>Şu an risk görünmüyor.</p>
               ) : (

@@ -765,9 +765,7 @@ export default function PerformanceReportPage() {
                   </span>
                   <span className={styles.cardStat}>
                     <span className={styles.cardStatValue}>{currency.format(e.revenue)}</span>
-                    <span className={styles.cardStatLabel}>
-                      {e.primOrani > 0 ? `kazanç · prim ${currency.format(e.primHakedis)}` : 'kazanç'}
-                    </span>
+                    <span className={styles.cardStatLabel}>kazanç</span>
                   </span>
                   <span className={styles.cardStat}>
                     <span className={styles.cardStatValue}>{e.leaveDayCount} gün</span>

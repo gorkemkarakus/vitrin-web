@@ -227,8 +227,8 @@ div.card {
 .cardStats2 {
   display: grid;
   grid-template-columns: repeat(3, minmax(0, 1fr));
-  background: var(--bg);
-  border-radius: 14px;
+  /* gri ic kutu yerine ince ayrac: kart icinde kart olmasin */
+  border-top: 1px solid var(--line);
 }
 
 .cardStats2 {

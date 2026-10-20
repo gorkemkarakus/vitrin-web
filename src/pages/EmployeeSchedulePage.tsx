@@ -313,9 +313,7 @@ export default function EmployeeSchedulePage() {
                   <button type="button" className={styles.dayRowMain} onClick={() => setOpenDay(day)}>
                     <span className={styles.dayRowText}>
                       <span className={styles.dayRowName}>{DAY_LONG[day]}</span>
-                      <span className={styles.dayRowSub}>
-                        {draft.breaks.length > 0 ? `${draft.breaks.length} mola` : 'molasız'}
-                      </span>
+                      {draft.breaks.length > 0 && <span className={styles.dayRowSub}>{draft.breaks.length} mola</span>}
                     </span>
                     <span className={short ? `${styles.timeTag} ${styles.timeTagWarm}` : styles.timeTag}>
                       {draft.start}

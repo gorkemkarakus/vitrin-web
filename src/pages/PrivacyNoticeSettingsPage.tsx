@@ -91,9 +91,7 @@ export default function PrivacyNoticeSettingsPage() {
       <PageHeader back="/ayarlar" title="Müşteri aydınlatma metni" sub="KVKK gereği müşterilerinizi bilgilendirin" />
 
       <p className={styles.info}>
-        Müşterilerinizin verileri için veri sorumlusu sizsiniz. Aşağıdaki bilgileri girince işletmenize özel bir
-        aydınlatma metni hazırlanır. Online randevu sayfanız ve memnuniyet anketi bu metne bağlantı verir. Salonda asmak
-        ya da WhatsApp’tan göndermek için bağlantıyı kopyalayabilirsiniz.
+        Bilgileri girin, salonunuza özel aydınlatma metni hazırlansın. Online randevu sayfanız bu metne bağlanır.
       </p>
 
       {error && <p className={styles.error}>{error}</p>}
