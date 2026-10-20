@@ -159,3 +159,19 @@
 .remove:hover {
   color: var(--danger-text);
 }
+
+/* kucuk dugme: parmak icin gorunmez genis basma alani */
+.addBtn {
+  position: relative;
+}
+
+.addBtn::after {
+  content: '';
+  position: absolute;
+  inset: -8px;
+}
+
+.kind,
+.kindActive {
+  min-height: 32px;
+}

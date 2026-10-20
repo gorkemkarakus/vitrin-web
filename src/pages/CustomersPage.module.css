@@ -251,7 +251,7 @@ button.statCard {
   display: flex;
   flex-direction: column;
   background: var(--panel);
-  border-radius: 18px;
+  border-radius: 22px;
   overflow: hidden;
 }
 
@@ -274,13 +274,13 @@ button.statCard {
   display: grid;
   grid-template-columns: repeat(3, minmax(0, 1fr));
   background: var(--panel);
-  border-radius: 18px;
+  border-radius: 22px;
 }
 
 .summaryCell {
   border: none;
   background: none;
-  padding: 12px 14px;
+  padding: 12px 16px;
   display: flex;
   flex-direction: column;
   gap: 1px;

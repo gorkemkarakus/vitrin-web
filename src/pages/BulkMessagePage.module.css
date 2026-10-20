@@ -117,8 +117,8 @@
 
 .messageCard {
   background: var(--panel);
-  border-radius: 20px;
-  padding: 14px;
+  border-radius: 22px;
+  padding: 14px 16px;
   display: flex;
   flex-direction: column;
   gap: 10px;
@@ -168,8 +168,8 @@
 
 .rowsCard {
   background: var(--panel);
-  border-radius: 18px;
-  padding: 2px 14px;
+  border-radius: 22px;
+  padding: 2px 16px;
   display: flex;
   flex-direction: column;
 }
@@ -298,4 +298,15 @@
   line-height: 1.45;
   white-space: pre-wrap;
   color: var(--text);
+}
+
+/* kucuk dugme: parmak icin gorunmez genis basma alani */
+.link {
+  position: relative;
+}
+
+.link::after {
+  content: '';
+  position: absolute;
+  inset: -8px;
 }

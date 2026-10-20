@@ -23,7 +23,7 @@
   background: var(--panel);
   color: var(--text);
   border-radius: 22px;
-  padding: 14px;
+  padding: 14px 16px;
   display: flex;
   flex-direction: column;
   gap: 6px;

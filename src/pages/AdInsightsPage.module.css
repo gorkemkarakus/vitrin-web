@@ -202,7 +202,8 @@
   background: transparent;
   color: var(--text-dim);
   border-radius: 9px;
-  padding: 7px 10px;
+  padding: 0 10px;
+  min-height: 34px;
   font-family: var(--font-body);
   font-size: 12px;
   font-weight: 700;
@@ -304,7 +305,7 @@
 .listCard {
   background: var(--panel);
   border-radius: 22px;
-  padding: 2px 14px;
+  padding: 2px 16px;
   display: flex;
   flex-direction: column;
 }
@@ -337,8 +338,8 @@
   grid-template-columns: repeat(3, minmax(0, 1fr));
   background: var(--signal);
   color: #fff;
-  border-radius: 20px;
-  padding: 14px;
+  border-radius: 22px;
+  padding: 14px 16px;
 }
 
 .totalItem {

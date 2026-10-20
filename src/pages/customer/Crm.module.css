@@ -498,3 +498,16 @@
 .loyaltyErr {
   color: var(--danger-text);
 }
+
+/* kucuk dugme: parmak icin gorunmez genis basma alani */
+.linkBtn,
+.addBtn {
+  position: relative;
+}
+
+.linkBtn::after,
+.addBtn::after {
+  content: '';
+  position: absolute;
+  inset: -8px;
+}

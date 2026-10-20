@@ -271,7 +271,7 @@ div.card {
   grid-template-columns: repeat(3, minmax(0, 1fr));
   background: var(--signal);
   color: #fff;
-  border-radius: 20px;
+  border-radius: 22px;
 }
 
 .totalItem {

@@ -171,8 +171,8 @@
 .nextCard,
 .nextEmpty {
   background: var(--panel);
-  border-radius: 24px;
-  padding: 18px;
+  border-radius: 22px;
+  padding: 18px 16px;
   display: flex;
   flex-direction: column;
   gap: 14px;
@@ -398,7 +398,7 @@
   display: grid;
   grid-template-columns: repeat(2, minmax(0, 1fr));
   background: var(--panel);
-  border-radius: 20px;
+  border-radius: 22px;
 }
 
 .moneyCell {
@@ -426,7 +426,7 @@ div.moneyCell {
 /* "Sonrasi": tek kartta satirlar */
 .laterList {
   background: var(--panel);
-  border-radius: 20px;
+  border-radius: 22px;
   padding: 4px 16px;
   display: flex;
   flex-direction: column;
@@ -622,7 +622,7 @@ button.paymentRow {
 
 .linkCard {
   background: var(--panel);
-  border-radius: 20px;
+  border-radius: 22px;
   padding: 14px 16px;
   display: flex;
   align-items: center;
@@ -710,4 +710,15 @@ button.paymentRow {
     gap: 16px;
     min-width: 0;
   }
+}
+
+/* kucuk dugme: parmak icin gorunmez genis basma alani */
+.blockLink {
+  position: relative;
+}
+
+.blockLink::after {
+  content: '';
+  position: absolute;
+  inset: -8px;
 }

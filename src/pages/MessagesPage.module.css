@@ -82,7 +82,7 @@
 
 .statsRow {
   background: var(--panel);
-  border-radius: 18px;
+  border-radius: 22px;
   overflow: hidden;
   gap: 0 !important;
 }
@@ -98,7 +98,7 @@
   background: var(--panel);
   color: var(--text);
   border-radius: 18px;
-  padding: 12px;
+  padding: 12px 16px;
   display: flex;
   flex-direction: column;
   gap: 2px;
@@ -173,7 +173,7 @@ button.statTile {
 .convList {
   background: var(--panel);
   border-radius: 22px;
-  padding: 4px 14px;
+  padding: 4px 16px;
   display: flex;
   flex-direction: column;
 }

@@ -48,16 +48,20 @@
 .tiles {
   display: grid;
   grid-template-columns: repeat(3, minmax(0, 1fr));
-  gap: 8px;
+  background: var(--panel);
+  border-radius: 22px;
 }
 
 .tile {
-  background: var(--panel);
-  border-radius: 20px;
-  padding: 14px;
+  padding: 14px 16px;
+  min-width: 0;
   display: flex;
   flex-direction: column;
   gap: 4px;
+}
+
+.tile + .tile {
+  border-left: 1px solid var(--line);
 }
 
 .tileValue {
@@ -82,8 +86,8 @@
 
 .dist {
   background: var(--panel);
-  border-radius: 20px;
-  padding: 14px;
+  border-radius: 22px;
+  padding: 14px 16px;
   display: flex;
   flex-direction: column;
   gap: 6px;
@@ -214,4 +218,15 @@
   margin-top: 6px;
   font-size: 12px;
   color: var(--text-muted);
+}
+
+/* kucuk dugme: parmak icin gorunmez genis basma alani */
+button.name {
+  position: relative;
+}
+
+button.name::after {
+  content: '';
+  position: absolute;
+  inset: -8px;
 }

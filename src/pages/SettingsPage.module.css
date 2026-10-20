@@ -45,8 +45,8 @@
 
 .group {
   background: var(--panel);
-  border-radius: 20px;
-  padding: 2px 14px;
+  border-radius: 22px;
+  padding: 2px 16px;
   display: flex;
   flex-direction: column;
 }

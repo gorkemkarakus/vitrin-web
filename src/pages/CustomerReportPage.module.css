@@ -322,3 +322,19 @@
     flex: 1;
   }
 }
+
+/* kucuk dugme: parmak icin gorunmez genis basma alani */
+.linkName {
+  position: relative;
+}
+
+.linkName::after {
+  content: '';
+  position: absolute;
+  inset: -8px;
+}
+
+.segBtn,
+.segActive {
+  min-height: 34px;
+}

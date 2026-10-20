@@ -57,7 +57,7 @@
 .listCard {
   background: var(--panel);
   border-radius: 22px;
-  padding: 2px 14px;
+  padding: 2px 16px;
   display: flex;
   flex-direction: column;
 }
@@ -271,4 +271,15 @@
 
 .switch input:checked + .switchTrack::after {
   transform: translateX(18px);
+}
+
+/* kucuk dugme: parmak icin gorunmez genis basma alani */
+.link {
+  position: relative;
+}
+
+.link::after {
+  content: '';
+  position: absolute;
+  inset: -8px;
 }

@@ -77,7 +77,7 @@
 .listCard {
   background: var(--panel);
   border-radius: 22px;
-  padding: 4px 14px;
+  padding: 4px 16px;
   display: flex;
   flex-direction: column;
 }
@@ -360,7 +360,7 @@
 }
 
 .listCard {
-  padding: 2px 14px;
+  padding: 2px 16px;
 }
 
 .row {

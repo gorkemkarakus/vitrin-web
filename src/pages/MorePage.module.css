@@ -15,7 +15,7 @@
   border: none;
   background: var(--panel);
   border-radius: 22px;
-  padding: 14px;
+  padding: 14px 16px;
   font-family: var(--font-body);
   color: var(--text);
   text-align: left;
@@ -210,8 +210,8 @@
   width: 100%;
   border: none;
   background: var(--panel);
-  border-radius: 18px;
-  padding: 12px 14px;
+  border-radius: 22px;
+  padding: 12px 16px;
   font-family: var(--font-body);
   text-align: left;
   cursor: pointer;
@@ -248,4 +248,17 @@
   color: var(--text-muted);
   display: grid;
   place-items: center;
+}
+
+/* kucuk dugme: parmak icin gorunmez genis basma alani */
+.footerLink,
+.footerSignOut {
+  position: relative;
+}
+
+.footerLink::after,
+.footerSignOut::after {
+  content: '';
+  position: absolute;
+  inset: -8px;
 }

@@ -13,7 +13,7 @@
 .editorCard {
   background: var(--panel);
   border-radius: 22px;
-  padding: 14px;
+  padding: 14px 16px;
   display: flex;
   flex-direction: column;
   gap: 10px;
@@ -105,7 +105,7 @@
 .chat {
   background: #e9e4dc;
   border-radius: 22px;
-  padding: 14px;
+  padding: 14px 16px;
   display: flex;
   flex-direction: column;
   gap: 8px;

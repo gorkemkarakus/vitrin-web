@@ -76,8 +76,8 @@
 
 .list {
   background: var(--panel);
-  border-radius: 20px;
-  padding: 4px 14px;
+  border-radius: 22px;
+  padding: 4px 16px;
   display: flex;
   flex-direction: column;
 }
@@ -422,4 +422,35 @@
 
 .cardList .row {
   padding: 9px 0;
+}
+
+/* kucuk dugme: parmak icin gorunmez genis basma alani */
+.check,
+.rowAction,
+.metaLink,
+.linkBtn {
+  position: relative;
+}
+
+.check::after,
+.rowAction::after,
+.metaLink::after,
+.linkBtn::after {
+  content: '';
+  position: absolute;
+  inset: -8px;
+}
+
+/* telefonda "Bana dusenler / Tum ekip" diger sekmeler gibi tam genislik */
+@media (max-width: 1023px) {
+  .scope {
+    display: flex;
+    align-self: stretch;
+  }
+
+  .scopeBtn,
+  .scopeBtnActive {
+    flex: 1;
+    min-height: 34px;
+  }
 }

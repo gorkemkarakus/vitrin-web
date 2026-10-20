@@ -22,8 +22,8 @@
   align-items: center;
   gap: 10px;
   background: var(--panel);
-  border-radius: 18px;
-  padding: 11px 14px;
+  border-radius: 22px;
+  padding: 11px 16px;
 }
 
 .dayRowMain {
@@ -97,7 +97,7 @@
 .dayCardOpen {
   background: var(--panel);
   border-radius: 22px;
-  padding: 14px;
+  padding: 14px 16px;
   display: flex;
   flex-direction: column;
   gap: 10px;
