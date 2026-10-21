@@ -11,6 +11,7 @@ import PageHeader from '../components/PageHeader'
 import type { LayoutOutletContext } from '../layouts/DashboardLayout'
 import styles from './MessagesPage.module.css'
 import { DAY_MS } from '../lib/date'
+import { withTimeSuffix } from '../lib/timeSuffix'
 import { useLayout } from '../lib/layout'
 
 interface RawMessage {
@@ -376,7 +377,7 @@ export default function MessagesPage() {
             <span className={styles.bandMain}>{paused ? 'Bu konuşma sende' : 'Bot bu konuşmayı yanıtlıyor'}</span>
             <span className={styles.bandSub}>
               {paused
-                ? `Bot ${pausedUntilLabel(selectedConversation.customer)}’e kadar yanıt vermeyecek`
+                ? `Bot ${withTimeSuffix(pausedUntilLabel(selectedConversation.customer) ?? '', 'e')} kadar yanıt vermeyecek`
                 : 'Kendin yazacaksan önce devral'}
             </span>
           </div>

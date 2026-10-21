@@ -7,6 +7,7 @@ import { toLocalDateString, timeOf } from '../lib/date'
 import styles from './TeamPage.module.css'
 import { HOLIDAY_LABEL } from '../lib/scheduleLabels'
 import { AVATAR_TONES } from '../lib/avatarColor'
+import { withTimeSuffix } from '../lib/timeSuffix'
 
 interface Employee {
   id: string
@@ -134,7 +135,7 @@ export default function TeamPage() {
       return {
         pill: 'Müşteride',
         tone: 'warm',
-        info: `${customerNames.get(current.customer_id ?? '') ?? 'Müşteri'} · ${endAt.toLocaleTimeString('tr-TR', { hour: '2-digit', minute: '2-digit' })}'a kadar`,
+        info: `${customerNames.get(current.customer_id ?? '') ?? 'Müşteri'} · ${withTimeSuffix(endAt.toLocaleTimeString('tr-TR', { hour: '2-digit', minute: '2-digit' }), 'e')} kadar`,
         count,
       }
     }
@@ -148,7 +149,12 @@ export default function TeamPage() {
     const [eh, em] = sched.ends_at.split(':').map(Number)
     const nowMin = new Date().getHours() * 60 + new Date().getMinutes()
     if (nowMin < sh * 60 + sm)
-      return { pill: `${sched.starts_at.slice(0, 5)}'te başlıyor`, tone: 'muted', info: nextInfo, count }
+      return {
+        pill: `${withTimeSuffix(sched.starts_at.slice(0, 5), 'de')} başlıyor`,
+        tone: 'muted',
+        info: nextInfo,
+        count,
+      }
     if (nowMin >= eh * 60 + em) return { pill: 'Mesai bitti', tone: 'muted', info: nextInfo, count }
     return { pill: 'Boş', tone: 'ok', info: nextInfo, count }
   }

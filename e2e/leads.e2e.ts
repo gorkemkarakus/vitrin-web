@@ -9,7 +9,7 @@ async function addLead(page: Page, name: string, phone: string) {
   await page.fill('#leadName', name)
   await page.fill('#leadPhone', phone)
   await page.fill('#leadInterest', 'Lazer epilasyon')
-  await page.getByRole('dialog').getByRole('button', { name: 'Huniye ekle' }).click()
+  await page.getByRole('dialog').getByRole('button', { name: 'Takibe al' }).click()
   await expect(page.getByRole('dialog')).toBeHidden()
 }
 

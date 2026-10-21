@@ -240,7 +240,7 @@ export default function LeadsPage() {
                     setFormOpen(true)
                   }}
                 >
-                  Huniye ekle
+                  Takibe al
                 </button>
               </div>
             ))}
@@ -436,7 +436,7 @@ function LeadForm({
         aria-modal="true"
       >
         <div className={pageStyles.modalHead}>
-          <h2>Potansiyel müşteri</h2>
+          <h2>Takibe al</h2>
           <button type="button" className={pageStyles.modalClose} onClick={onClose} aria-label="Kapat">
             ✕
           </button>
@@ -493,7 +493,7 @@ function LeadForm({
           </div>
           {error && <p className={pageStyles.error}>{error}</p>}
           <button type="submit" className="btn-primary" disabled={saving || (!name.trim() && !phone.trim())}>
-            {saving ? 'Kaydediliyor…' : 'Huniye ekle'}
+            {saving ? 'Kaydediliyor…' : 'Takibe al'}
           </button>
         </form>
       </div>

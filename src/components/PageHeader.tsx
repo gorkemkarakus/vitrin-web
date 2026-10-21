@@ -1,6 +1,6 @@
 import type { ReactNode } from 'react'
-import { useNavigate } from 'react-router-dom'
 import { ChevronRightIcon } from './icons'
+import { useGoBack } from '../lib/useGoBack'
 import styles from './PageHeader.module.css'
 
 // Tasarimdaki iki baslik duzeni:
@@ -11,6 +11,7 @@ import styles from './PageHeader.module.css'
 interface PageHeaderProps {
   title: ReactNode
   sub?: ReactNode
+  // yol verilirse geri once gelinen ekrana doner, gecmis yoksa bu yola gider
   back?: string | (() => void)
   action?: ReactNode
   // Geri dugmesinin zemini (beyaz kart ustunde gri olmasi gerekiyor).
@@ -18,7 +19,7 @@ interface PageHeaderProps {
 }
 
 export default function PageHeader({ title, sub, back, action, backTone = 'white' }: PageHeaderProps) {
-  const navigate = useNavigate()
+  const goBack = useGoBack()
 
   if (back === undefined) {
     return (
@@ -34,7 +35,7 @@ export default function PageHeader({ title, sub, back, action, backTone = 'white
       <button
         type="button"
         className={backTone === 'gray' ? `${styles.back} ${styles.backGray}` : styles.back}
-        onClick={() => (typeof back === 'string' ? navigate(back) : back())}
+        onClick={() => (typeof back === 'string' ? goBack(back) : back())}
         aria-label="Geri"
       >
         <ChevronRightIcon width={18} height={18} className={styles.backIcon} />

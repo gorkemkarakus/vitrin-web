@@ -680,7 +680,7 @@ export default function EmployeeLeavesPage() {
             type="button"
             key={p.id}
             className={who === p.id ? styles.whoChipActive : styles.whoChip}
-            onClick={() => (p.id === id ? setWho(p.id) : navigate(`/ekip/${p.id}/izinler`))}
+            onClick={() => (p.id === id ? setWho(p.id) : navigate(`/ekip/${p.id}/izinler`, { replace: true }))}
           >
             {(p.full_name ?? '—').trim().split(/\s+/)[0]}
           </button>
@@ -796,7 +796,7 @@ export default function EmployeeLeavesPage() {
                     onClick={() => {
                       if (p.id === id) return
                       setFormOpen(false)
-                      navigate(`/ekip/${p.id}/izinler?ekle=1`)
+                      navigate(`/ekip/${p.id}/izinler?ekle=1`, { replace: true })
                     }}
                   >
                     <span className={`${styles.personAvatar} ${styles[`tone${i % 3}`]}`}>

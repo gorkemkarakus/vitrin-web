@@ -6,6 +6,7 @@ import PageHeader from '../components/PageHeader'
 import { currencyWhole } from '../lib/currency'
 import { toLocalDateString, DAY_MS } from '../lib/date'
 import { dueLabel } from '../lib/tasks'
+import { withTimeSuffix } from '../lib/timeSuffix'
 import styles from './NotificationsPage.module.css'
 
 // Uygulamada ayri bir bildirim tablosu yok — liste mevcut verilerden
@@ -242,7 +243,7 @@ export default function NotificationsPage() {
           key: `mesaj:${c.id}`,
           kind: 'mesaj',
           title: 'Bot bir konuşmayı sana bıraktı',
-          sub: `${c.full_name && c.full_name !== 'Müşteri' ? c.full_name : (c.phone ?? 'Bir müşteri')} seni bekliyor · bot ${new Date(c.bot_paused_until as string).toLocaleTimeString('tr-TR', { hour: '2-digit', minute: '2-digit' })}’e kadar susuyor`,
+          sub: `${c.full_name && c.full_name !== 'Müşteri' ? c.full_name : (c.phone ?? 'Bir müşteri')} seni bekliyor · bot ${withTimeSuffix(new Date(c.bot_paused_until as string).toLocaleTimeString('tr-TR', { hour: '2-digit', minute: '2-digit' }), 'e')} kadar susuyor`,
           at: nowIso,
           employeeId: null,
           to: c.phone ? `/mesajlar?telefon=${encodeURIComponent(c.phone)}` : '/mesajlar',
@@ -297,7 +298,7 @@ export default function NotificationsPage() {
               : `Son ödeme ${new Date(`${due}T00:00:00`).toLocaleDateString('tr-TR', { day: 'numeric', month: 'long' })}.`,
           at: `${due < today ? due : today}T09:00:00`,
           employeeId: null,
-          to: '/giderler',
+          to: due < today ? '/giderler?durum=gecikti' : '/giderler?durum=odenmedi',
         })
       }
       const yCount = (yAppts ?? []).length

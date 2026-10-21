@@ -506,7 +506,7 @@ export default function DashboardLayout() {
                     className={styles.quickInfoBtn}
                     onClick={() => {
                       setActionSheetOpen(false)
-                      navigate('/giderler')
+                      navigate('/giderler?durum=gecikti')
                     }}
                   >
                     Gör
@@ -528,7 +528,7 @@ export default function DashboardLayout() {
                     className={styles.quickInfoBtnQuiet}
                     onClick={() => {
                       setActionSheetOpen(false)
-                      navigate('/giderler')
+                      navigate('/giderler?durum=odenmedi')
                     }}
                   >
                     Gör

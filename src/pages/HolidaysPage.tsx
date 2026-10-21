@@ -7,6 +7,7 @@ import { toLocalDateString, todayLocalDateString, DAY_MS } from '../lib/date'
 import styles from './HolidaysPage.module.css'
 import { HOLIDAY_LABEL } from '../lib/scheduleLabels'
 import { FIELD_LIMITS } from '../lib/fieldLimits'
+import { withTimeSuffix } from '../lib/timeSuffix'
 
 // Tarihi her yil ayni olan resmi tatiller. Bayramlar (ay takvimine gore
 // her yil kaydigi icin) burada yok — "Başka gün ekle" ile tarih araligi
@@ -355,7 +356,9 @@ export default function HolidaysPage() {
                       <span className={styles.rowMeta}>
                         {new Date(`${h.date}T00:00:00`).toLocaleDateString('tr-TR', { month: 'long', year: 'numeric' })}{' '}
                         · {days} gün
-                        {biz?.eve_closes_at ? ` · arife ${biz.eve_closes_at.slice(0, 5)}’te kapanır` : ''}
+                        {biz?.eve_closes_at
+                          ? ` · arife ${withTimeSuffix(biz.eve_closes_at.slice(0, 5), 'de')} kapanır`
+                          : ''}
                       </span>
                     </span>
                     <span className={styles.stateClosed}>Kapalı</span>
@@ -449,7 +452,7 @@ export default function HolidaysPage() {
                 <span className={styles.rowTitle}>Arife günü yarım gün</span>
                 <span className={styles.rowMeta}>
                   {date ? `${longDate(dayBefore(date))} ` : 'Bir önceki gün '}
-                  {eveOn ? `${eveTime}’te kapanır` : 'normal çalışır'}
+                  {eveOn ? `${withTimeSuffix(eveTime, 'de')} kapanır` : 'normal çalışır'}
                 </span>
               </span>
               {eveOn && (

@@ -1,6 +1,7 @@
 import { useEffect, useMemo, useState, type FormEvent } from 'react'
 import { friendlyDbError } from '../lib/dbErrors'
 import { useNavigate, useParams } from 'react-router-dom'
+import { useGoBack } from '../lib/useGoBack'
 import { supabase } from '../lib/supabase'
 import { NETWORK_ERROR } from '../lib/messages'
 import { useAuth } from '../contexts/AuthContext'
@@ -144,6 +145,7 @@ function humanizeDuration(days: number): string {
 export default function CustomerDetailPage() {
   const { id } = useParams<{ id: string }>()
   const navigate = useNavigate()
+  const goBack = useGoBack()
   const { profile, can } = useAuth()
 
   const [customer, setCustomer] = useState<Customer | null>(null)
@@ -739,7 +741,7 @@ export default function CustomerDetailPage() {
       <div className={isWide ? styles.wideGrid : styles.contents}>
         <div className={isWide ? styles.wideSide : styles.contents}>
           <div className={styles.topRow}>
-            <button type="button" className={styles.backLink} onClick={() => navigate('/musteriler')}>
+            <button type="button" className={styles.backLink} onClick={() => goBack('/musteriler')}>
               <ChevronRightIcon width={16} height={16} className={styles.backIcon} />
               Müşteriler
             </button>

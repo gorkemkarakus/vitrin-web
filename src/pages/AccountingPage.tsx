@@ -426,6 +426,7 @@ export default function AccountingPage() {
   return (
     <div className={styles.wrap}>
       <PageHeader
+        back="/daha-fazla"
         title="Kasa"
         action={
           <div className={styles.headSegWrap} ref={periodMenuRef}>

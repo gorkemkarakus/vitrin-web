@@ -132,6 +132,55 @@
   font-weight: 700;
 }
 
+/* durum filtresi: Mesajlar'daki gibi gri zeminde uc sekme */
+.statusSeg {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  background: var(--seg-bg);
+  border-radius: 14px;
+  padding: 4px;
+}
+
+.statusSegBtn,
+.statusSegActive {
+  border: none;
+  background: transparent;
+  color: var(--text-dim);
+  font-family: var(--font-body);
+  font-size: 13px;
+  font-weight: 700;
+  min-height: 34px;
+  border-radius: 11px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+  cursor: pointer;
+}
+
+.statusSegActive {
+  background: var(--panel);
+  color: var(--text);
+}
+
+.statusCount,
+.statusCountLate {
+  min-width: 18px;
+  height: 18px;
+  padding: 0 5px;
+  border-radius: 999px;
+  background: var(--line);
+  color: var(--text);
+  font-size: 11px;
+  line-height: 18px;
+  font-variant-numeric: tabular-nums;
+}
+
+.statusCountLate {
+  background: var(--danger-bg);
+  color: var(--danger-text);
+}
+
 .catChip,
 .catChipActive,
 .catChipWarm {

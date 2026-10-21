@@ -81,7 +81,11 @@ export default function ExpensesPage() {
   const [prevTotal, setPrevTotal] = useState<number | null>(null)
   const [loading, setLoading] = useState(true)
   const [categoryFilter, setCategoryFilter] = useState<string>('Tümü')
-  const [statusFilter, setStatusFilter] = useState<StatusFilter>('tumu')
+  // ?durum=gecikti / ?durum=odenmedi ile (bildirim, hizli menu) filtreli acilir
+  const [statusFilter, setStatusFilter] = useState<StatusFilter>(() => {
+    const d = searchParams.get('durum')
+    return d === 'gecikti' ? 'geciken' : d === 'odenmedi' ? 'odenmemis' : 'tumu'
+  })
   const [rowMenu, setRowMenu] = useState<Expense | null>(null)
   const [paidConfirm, setPaidConfirm] = useState<{ id: string; description: string; next: boolean } | null>(null)
   const [deleteConfirm, setDeleteConfirm] = useState<{ id: string; description: string } | null>(null)
@@ -201,6 +205,7 @@ export default function ExpensesPage() {
   const isOverdue = (e: Expense) => !e.is_paid && !!e.due_date && e.due_date < todayStr
   const totalAll = expenses.reduce((sum, e) => sum + e.amount, 0)
   const unpaidCount = expenses.filter((e) => !e.is_paid).length
+  const overdueCount = expenses.filter(isOverdue).length
 
   const usedCategories = CATEGORIES.filter((c) => expenses.some((e) => (e.category ?? 'Diğer') === c))
   const visibleExpenses = expenses.filter((e) => {
@@ -210,6 +215,7 @@ export default function ExpensesPage() {
     if (statusFilter === 'aylik') return e.is_recurring
     return true
   })
+  const visibleUnpaid = visibleExpenses.filter((e) => !e.is_paid).length
 
   const anchor = new Date(`${rangeStart}T00:00:00`)
   const periodLabel =
@@ -285,13 +291,11 @@ export default function ExpensesPage() {
               />
             </div>
           </div>
-          <span className={styles.panelLabel}>Durum</span>
+          <span className={styles.panelLabel}>Tekrar</span>
           <div className={styles.chips}>
             {(
               [
                 { value: 'tumu', label: 'Hepsi' },
-                { value: 'odenmemis', label: 'Ödenmemiş' },
-                { value: 'geciken', label: 'Geciken' },
                 { value: 'aylik', label: 'Her ay tekrarlanan' },
               ] as { value: StatusFilter; label: string }[]
             ).map((o) => (
@@ -321,6 +325,29 @@ export default function ExpensesPage() {
         )}
       </div>
 
+      <div className={styles.statusSeg}>
+        {(
+          [
+            { value: 'tumu', label: 'Hepsi', count: 0 },
+            { value: 'odenmemis', label: 'Ödenmedi', count: unpaidCount },
+            { value: 'geciken', label: 'Gecikti', count: overdueCount },
+          ] as { value: StatusFilter; label: string; count: number }[]
+        ).map((o) => (
+          <button
+            key={o.value}
+            type="button"
+            className={statusFilter === o.value ? styles.statusSegActive : styles.statusSegBtn}
+            onClick={() => setStatusFilter(o.value)}
+            aria-pressed={statusFilter === o.value}
+          >
+            {o.label}
+            {o.count > 0 && (
+              <span className={o.value === 'geciken' ? styles.statusCountLate : styles.statusCount}>{o.count}</span>
+            )}
+          </button>
+        ))}
+      </div>
+
       <div className={styles.chipScroll}>
         {['Tümü', ...usedCategories].map((c) => (
           <button
@@ -332,9 +359,9 @@ export default function ExpensesPage() {
             {c}
           </button>
         ))}
-        {statusFilter !== 'tumu' && (
+        {statusFilter === 'aylik' && (
           <button type="button" className={styles.catChipWarm} onClick={() => setStatusFilter('tumu')}>
-            {statusFilter === 'odenmemis' ? 'Ödenmemiş' : statusFilter === 'geciken' ? 'Geciken' : 'Her ay'} ✕
+            Her ay ✕
           </button>
         )}
       </div>
@@ -383,7 +410,8 @@ export default function ExpensesPage() {
       )}
       {!loading && (
         <span className={styles.countNote}>
-          {visibleExpenses.length} kayıt{unpaidCount > 0 ? ` · ${unpaidCount} tanesi ödenmedi` : ''}
+          {visibleExpenses.length} kayıt
+          {statusFilter === 'tumu' && visibleUnpaid > 0 ? ` · ${visibleUnpaid} tanesi ödenmedi` : ''}
         </span>
       )}
 

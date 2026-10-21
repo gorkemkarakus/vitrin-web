@@ -1,5 +1,6 @@
 import { useEffect, useMemo, useState } from 'react'
 import { useNavigate, useParams } from 'react-router-dom'
+import { useGoBack } from '../lib/useGoBack'
 import { supabase } from '../lib/supabase'
 import { callEdgeFunction } from '../lib/edgeFunctions'
 import { NETWORK_ERROR } from '../lib/messages'
@@ -118,6 +119,7 @@ type Section = 'ana' | 'saatler' | 'hizmetler' | 'kazanc' | 'erisim'
 export default function EmployeeDetailPage({ selfEarnings = false }: { selfEarnings?: boolean }) {
   const params = useParams<{ id: string }>()
   const navigate = useNavigate()
+  const goBack = useGoBack()
   const { profile, can } = useAuth()
   const id = selfEarnings ? profile?.id : params.id
   // Hesap/yetki/pasife alma yalnizca yoneticide; para bilgisi Kasa ya da
@@ -845,7 +847,7 @@ export default function EmployeeDetailPage({ selfEarnings = false }: { selfEarni
           <button
             type="button"
             className={styles.backBtn}
-            onClick={() => (selfEarnings ? navigate('/daha-fazla') : setSection('ana'))}
+            onClick={() => (selfEarnings ? goBack('/daha-fazla') : setSection('ana'))}
             aria-label="Geri"
           >
             <ChevronRightIcon width={16} height={16} className={styles.backIcon} />
@@ -1208,7 +1210,7 @@ export default function EmployeeDetailPage({ selfEarnings = false }: { selfEarni
     <div className={styles.wrap}>
       <div className={styles.topBlock}>
         <div className={styles.topBar}>
-          <button type="button" className={styles.backBtnGray} onClick={() => navigate('/ekip')} aria-label="Ekibe dön">
+          <button type="button" className={styles.backBtnGray} onClick={() => goBack('/ekip')} aria-label="Ekibe dön">
             <ChevronRightIcon width={16} height={16} className={styles.backIcon} />
           </button>
           {isAdmin && (
