@@ -7,6 +7,7 @@ import { friendlyDbError } from '../lib/dbErrors'
 import { fetchCards, fetchProgram, redeem, type LoyaltyCard, type LoyaltyProgram } from '../lib/loyalty'
 import autoStyles from './AutomationsPage.module.css'
 import styles from './LoyaltyPage.module.css'
+import { askConfirm } from '../lib/dialog'
 
 const YEAR_MS = 365 * 86_400_000
 
@@ -80,7 +81,15 @@ export default function LoyaltyPage() {
   }
 
   async function use(card: LoyaltyCard) {
-    if (!program || !window.confirm(`${card.full_name}: “${program.reward}” şimdi kullandırılsın mı?`)) return
+    if (
+      !program ||
+      !(await askConfirm({
+        title: 'Ödül kullandırılsın mı?',
+        message: `${card.full_name}: “${program.reward}”`,
+        confirmLabel: 'Kullandır',
+      }))
+    )
+      return
     setBusyId(card.customer_id)
     const err = await redeem(card.customer_id)
     setBusyId(null)

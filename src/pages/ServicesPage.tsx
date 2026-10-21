@@ -14,6 +14,7 @@ import { FIELD_LIMITS } from '../lib/fieldLimits'
 import { useLayout } from '../lib/layout'
 import DataTable, { type Column } from '../components/DataTable'
 import ServiceTemplatePicker from '../components/ServiceTemplatePicker'
+import { askConfirm, showAlert } from '../lib/dialog'
 
 interface Service {
   id: string
@@ -196,7 +197,7 @@ export default function ServicesPage() {
     const pkgPrice = Number(packagePrice)
     if (packageOn && (!(pkgSessions >= 2 && pkgSessions <= 100) || !(pkgPrice >= 0) || packagePrice === '')) {
       setSubmitting(false)
-      window.alert('Paket için 2–100 arası seans sayısı ve toplam fiyat girin.')
+      void showAlert('2–100 arası seans sayısı ve toplam fiyat girin.', 'Paket bilgisi eksik')
       return
     }
     const fields = {
@@ -243,9 +244,12 @@ export default function ServicesPage() {
   }
 
   async function deleteService(service: Service) {
-    const ok = window.confirm(
-      `"${service.name}" hizmetini kalıcı olarak silmek istediğinize emin misiniz?\n\nBu hizmetin geçmişte kullanıldığı randevular silinmez, sadece o randevulardaki hizmet bağlantısı boşa düşer.`,
-    )
+    const ok = await askConfirm({
+      title: 'Hizmet silinsin mi?',
+      message: `“${service.name}” kalıcı olarak silinir. Geçmiş randevular silinmez, yalnızca o randevulardaki hizmet bağlantısı boşa düşer.`,
+      confirmLabel: 'Sil',
+      danger: true,
+    })
     if (!ok) return
     await supabase.from('services').delete().eq('id', service.id)
     closeEditor()

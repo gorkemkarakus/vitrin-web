@@ -6,6 +6,7 @@ import AiMessageGenerator from './AiMessageGenerator'
 import type { Template } from '../pages/BulkMessagePage'
 import styles from './TemplateModal.module.css'
 import { FIELD_LIMITS } from '../lib/fieldLimits'
+import { askConfirm } from '../lib/dialog'
 
 export default function TemplateModal({
   template,
@@ -59,7 +60,12 @@ export default function TemplateModal({
 
   async function handleDelete() {
     if (!template) return
-    const ok = window.confirm(`"${template.title}" şablonunu silmek istediğinize emin misiniz?`)
+    const ok = await askConfirm({
+      title: 'Şablon silinsin mi?',
+      message: `“${template.title}” şablonu silinecek.`,
+      confirmLabel: 'Sil',
+      danger: true,
+    })
     if (!ok || deleting) return
     setDeleting(true)
     const { error: err } = await supabase.from('campaign_message_templates').delete().eq('id', template.id)

@@ -11,7 +11,6 @@ const PNG = Buffer.from(
 // (depodaki dosya da gider; musteri teardown'da silinir).
 test.describe('Musteri dosyalari', () => {
   test('fotograf yuklenir, gorunur ve silinir', async ({ page }) => {
-    page.on('dialog', (d) => d.accept())
     await login(page)
     await createCustomer(page, uniqueName('Dosya Testi'))
 
@@ -22,6 +21,7 @@ test.describe('Musteri dosyalari', () => {
     await expect(section.locator('figure').getByText('Sonrası')).toBeVisible()
 
     await section.getByRole('button', { name: 'sonrasi.png sil' }).click()
+    await page.getByRole('alertdialog').getByRole('button', { name: 'Sil' }).click()
     await expect(section.locator('img')).toHaveCount(0)
   })
 })

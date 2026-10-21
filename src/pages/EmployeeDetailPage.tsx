@@ -24,6 +24,7 @@ import { currency } from '../lib/currency'
 import styles from './EmployeeDetailPage.module.css'
 import { BREAK_LABEL } from '../lib/scheduleLabels'
 import { FIELD_LIMITS } from '../lib/fieldLimits'
+import { askConfirm, showAlert } from '../lib/dialog'
 
 const GENDER_OPTIONS = [
   { value: '', label: 'Belirtilmesin' },
@@ -197,10 +198,11 @@ export default function EmployeeDetailPage({ selfEarnings = false }: { selfEarni
       .single()
     setPayoutBusy(false)
     if (err) {
-      window.alert(
+      void showAlert(
         /does not exist|could not find/i.test(err.message)
           ? 'Bu özellik için veritabanı güncellemesi bekleniyor.'
-          : 'Kaydedilemedi: ' + err.message,
+          : err.message,
+        'Kaydedilemedi',
       )
       return
     }
@@ -208,7 +210,15 @@ export default function EmployeeDetailPage({ selfEarnings = false }: { selfEarni
   }
 
   async function undoPayout() {
-    if (!payout || !window.confirm('Bu ayın prim ödemesi kaydı geri alınsın mı?')) return
+    if (
+      !payout ||
+      !(await askConfirm({
+        title: 'Prim ödemesi geri alınsın mı?',
+        message: 'Bu ayın prim ödemesi kaydı silinir.',
+        confirmLabel: 'Geri al',
+      }))
+    )
+      return
     setPayoutBusy(true)
     const { error: err } = await supabase.from('commission_payouts').delete().eq('id', payout.id)
     setPayoutBusy(false)
@@ -1174,7 +1184,7 @@ export default function EmployeeDetailPage({ selfEarnings = false }: { selfEarni
     const { error: err } = await supabase.from('profiles').update({ is_active: next }).eq('id', id)
     if (err) {
       // Paket kullanici siniri doluysa paket penceresi de acilir.
-      window.alert(friendlyDbError(err, 'Değiştirilemedi, lütfen tekrar deneyin.'))
+      void showAlert(friendlyDbError(err, 'Lütfen tekrar deneyin.'), 'Değiştirilemedi')
       return
     }
     await loadData(true)
@@ -1197,10 +1207,19 @@ export default function EmployeeDetailPage({ selfEarnings = false }: { selfEarni
         return
       }
     }
-    const ok = window.confirm(
+    const ok = await askConfirm(
       next
-        ? `${name} tekrar aktif olsun mu? Uygulamaya girebilir ve randevu alabilir.`
-        : `${name} pasife alınsın mı? Uygulamaya giremez ve kendisine yeni randevu verilmez. Geçmiş kayıtları silinmez.`,
+        ? {
+            title: `${name} tekrar aktif olsun mu?`,
+            message: 'Uygulamaya girebilir ve randevu alabilir.',
+            confirmLabel: 'Aktif et',
+          }
+        : {
+            title: `${name} pasife alınsın mı?`,
+            message: 'Uygulamaya giremez ve kendisine yeni randevu verilmez. Geçmiş kayıtları silinmez.',
+            confirmLabel: 'Pasife al',
+            danger: true,
+          },
     )
     if (!ok) return
     await setActive(next)

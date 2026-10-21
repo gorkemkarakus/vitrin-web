@@ -15,6 +15,7 @@ import {
   type TimelineItem,
 } from '../../lib/customerCrm'
 import styles from './Crm.module.css'
+import { askConfirm } from '../../lib/dialog'
 
 type Filter = 'hepsi' | 'notlar' | 'randevular' | 'odemeler' | 'mesajlar'
 
@@ -110,7 +111,7 @@ export default function CustomerTimeline({ customerId }: { customerId: string })
   }
 
   async function removeActivity(id: string) {
-    if (!window.confirm('Bu kayıt silinsin mi?')) return
+    if (!(await askConfirm({ title: 'Kayıt silinsin mi?', confirmLabel: 'Sil', danger: true }))) return
     const { error: err } = await supabase.from('customer_activities').delete().eq('id', id)
     if (err) {
       setError(friendlyDbError(err, 'Silinemedi.'))

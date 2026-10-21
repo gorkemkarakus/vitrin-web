@@ -40,6 +40,7 @@ import CustomerTasks from './tasks/CustomerTasks'
 import CustomerFiles from './customer/CustomerFiles'
 import CustomerLoyalty from './customer/CustomerLoyalty'
 import { removeAllCustomerFiles } from '../lib/customerFiles'
+import { askConfirm, showAlert } from '../lib/dialog'
 
 interface Customer {
   id: string
@@ -449,9 +450,12 @@ export default function CustomerDetailPage() {
   // edilemez — voided_at set edildikten sonra bu satirin tek gorevi
   // gecmiste var oldugunu gostermek.
   async function voidPayment(p: Payment) {
-    const ok = window.confirm(
-      `${currency.format(p.amount)} tutarındaki ödemeyi iptal etmek istediğinize emin misiniz?\n\nBu işlem geri alınamaz; ödeme "Silindi" olarak listede kalır ama tüm bakiye hesaplarından düşer.`,
-    )
+    const ok = await askConfirm({
+      title: 'Ödeme iptal edilsin mi?',
+      message: `${currency.format(p.amount)} tutarındaki ödeme “Silindi” olarak listede kalır ama tüm bakiye hesaplarından düşer. Bu işlem geri alınamaz.`,
+      confirmLabel: 'Ödemeyi iptal et',
+      danger: true,
+    })
     if (!ok) return
     try {
       const { error: updateErr } = await supabase
@@ -459,12 +463,12 @@ export default function CustomerDetailPage() {
         .update({ voided_at: new Date().toISOString() })
         .eq('id', p.id)
       if (updateErr) {
-        window.alert('Ödeme iptal edilemedi, tekrar deneyin.')
+        void showAlert('Tekrar deneyin.', 'Ödeme iptal edilemedi')
         return
       }
       await loadData()
     } catch {
-      window.alert(NETWORK_ERROR)
+      void showAlert(NETWORK_ERROR, 'İşlem tamamlanamadı')
     }
   }
 
@@ -559,10 +563,14 @@ export default function CustomerDetailPage() {
   // kalir. Tek islemde anonymize_customer RPC'siyle.
   async function anonymizeCustomer() {
     if (!id || !customer) return
-    const ok = window.confirm(
-      `${customer.full_name} adlı müşterinin kişisel verileri (ad, telefon, e-posta, notlar, fotoğraf ve belgeler) silinsin mi?\n\n` +
-        'Randevu ve ödeme kayıtları kasa geçmişi bozulmasın diye isimsiz olarak kalır. Bu işlem geri alınamaz.',
-    )
+    const ok = await askConfirm({
+      title: 'Kişisel veriler silinsin mi?',
+      message:
+        `${customer.full_name} adlı müşterinin adı, telefonu, e-postası, notları, fotoğraf ve belgeleri silinir. ` +
+        'Randevu ve ödeme kayıtları kasa geçmişi bozulmasın diye isimsiz kalır. Bu işlem geri alınamaz.',
+      confirmLabel: 'Sil',
+      danger: true,
+    })
     if (!ok) return
     setEditCustomerSubmitting(true)
     setError(null)

@@ -18,6 +18,7 @@ import TaskRow from './tasks/TaskRow'
 import TaskForm from './tasks/TaskForm'
 import pageStyles from './CustomerDetailPage.module.css'
 import styles from './tasks/Tasks.module.css'
+import { askConfirm } from '../lib/dialog'
 
 const BUCKETS: Bucket[] = ['geciken', 'bugun', 'yaklasan', 'sonra']
 
@@ -82,7 +83,15 @@ export default function TasksPage() {
   }
 
   async function remove(task: Task) {
-    if (!window.confirm(`“${task.title}” silinsin mi?`)) return
+    if (
+      !(await askConfirm({
+        title: 'Görev silinsin mi?',
+        message: `“${task.title}”`,
+        confirmLabel: 'Sil',
+        danger: true,
+      }))
+    )
+      return
     const { error: err } = await supabase.from('tasks').delete().eq('id', task.id)
     if (err) setError(friendlyDbError(err, 'Silinemedi.'))
     void load()

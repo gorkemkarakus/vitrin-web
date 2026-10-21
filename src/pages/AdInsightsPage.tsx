@@ -10,6 +10,7 @@ import { currencyWhole as currency } from '../lib/currency'
 import { SOURCE_LABEL } from '../lib/sourceLabels'
 import styles from './AdInsightsPage.module.css'
 import { DAY_MS } from '../lib/date'
+import { askConfirm } from '../lib/dialog'
 
 type ConnectionStatus = 'pending' | 'connected' | 'error'
 
@@ -118,7 +119,12 @@ export default function AdInsightsPage() {
   }, [connection?.status, rangeDays, session?.access_token])
 
   async function handleDisconnect() {
-    const ok = window.confirm('Facebook reklam hesabı bağlantısını kaldırmak istediğinize emin misiniz?')
+    const ok = await askConfirm({
+      title: 'Bağlantı kaldırılsın mı?',
+      message: 'Facebook reklam hesabının bağlantısı kaldırılacak.',
+      confirmLabel: 'Bağlantıyı kaldır',
+      danger: true,
+    })
     if (!ok || !session) return
     setError(null)
     setDisconnecting(true)

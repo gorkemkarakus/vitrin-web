@@ -9,6 +9,7 @@ import {
   type LoyaltyProgram,
 } from '../../lib/loyalty'
 import styles from './Crm.module.css'
+import { askConfirm } from '../../lib/dialog'
 
 // Musteri kartindaki sadakat karti: damgalar + "Odulu kullandir".
 // Program kapaliysa hic gorunmez.
@@ -37,7 +38,14 @@ export default function CustomerLoyalty({ customerId }: { customerId: string }) 
   const ready = (card?.available ?? 0) > 0
 
   async function use() {
-    if (!window.confirm(`“${program!.reward}” şimdi kullandırılsın mı?`)) return
+    if (
+      !(await askConfirm({
+        title: 'Ödül kullandırılsın mı?',
+        message: `“${program!.reward}” şimdi kullandırılacak.`,
+        confirmLabel: 'Kullandır',
+      }))
+    )
+      return
     setBusy(true)
     setMessage(null)
     const err = await redeem(customerId)

@@ -4,6 +4,7 @@ import { supabase } from '../lib/supabase'
 import PageHeader from './PageHeader'
 import { dismissDuplicateGroup, type DupGroup } from '../lib/duplicateCustomers'
 import styles from './DuplicateCustomers.module.css'
+import { askConfirm } from '../lib/dialog'
 
 interface Props {
   groups: DupGroup[]
@@ -34,9 +35,12 @@ export default function DuplicateCustomers({ groups, apptCount, onClose, onChang
     if (!keepId) return
     const keep = g.members.find((m) => m.id === keepId)
     const drops = g.members.filter((m) => m.id !== keepId)
-    const ok = window.confirm(
-      `${drops.length} kayıt “${keep?.full_name}” kaydına taşınıp silinecek. Randevular, ödemeler ve paketler korunur.\n\nBu işlem geri alınamaz.`,
-    )
+    const ok = await askConfirm({
+      title: 'Kayıtlar birleştirilsin mi?',
+      message: `${drops.length} kayıt “${keep?.full_name}” kaydına taşınıp silinecek. Randevular, ödemeler ve paketler korunur. Bu işlem geri alınamaz.`,
+      confirmLabel: 'Birleştir',
+      danger: true,
+    })
     if (!ok) return
     setBusyKey(g.key)
     setError(null)

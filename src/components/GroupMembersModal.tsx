@@ -7,6 +7,7 @@ import Avatar from './Avatar'
 import type { Customer, UiGroup } from '../pages/BulkMessagePage'
 import styles from './GroupMembersModal.module.css'
 import { FIELD_LIMITS } from '../lib/fieldLimits'
+import { askConfirm } from '../lib/dialog'
 
 export default function GroupMembersModal({
   group,
@@ -87,7 +88,12 @@ export default function GroupMembersModal({
 
   async function handleDelete() {
     if (!group.customGroupId) return
-    const ok = window.confirm(`"${group.name}" grubunu silmek istediğinize emin misiniz?`)
+    const ok = await askConfirm({
+      title: 'Grup silinsin mi?',
+      message: `“${group.name}” grubu silinecek.`,
+      confirmLabel: 'Sil',
+      danger: true,
+    })
     if (!ok || busy) return
     setBusy(true)
     const { error: err } = await supabase.from('customer_groups').delete().eq('id', group.customGroupId)

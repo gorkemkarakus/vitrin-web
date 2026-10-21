@@ -20,6 +20,7 @@ import {
 } from '../lib/leads'
 import pageStyles from './CustomerDetailPage.module.css'
 import styles from './LeadsPage.module.css'
+import { askConfirm } from '../lib/dialog'
 
 const SOURCE_OPTIONS = (Object.keys(LEAD_SOURCE_LABEL) as LeadSource[]).map((value) => ({
   value,
@@ -120,7 +121,15 @@ export default function LeadsPage() {
   }
 
   async function remove(lead: Lead) {
-    if (!window.confirm(`“${lead.full_name}” silinsin mi?`)) return
+    if (
+      !(await askConfirm({
+        title: 'Silinsin mi?',
+        message: `“${lead.full_name}” potansiyel müşteri listesinden silinir.`,
+        confirmLabel: 'Sil',
+        danger: true,
+      }))
+    )
+      return
     const { error: err } = await supabase.from('leads').delete().eq('id', lead.id)
     if (err) setError(friendlyDbError(err, 'Silinemedi.'))
     void load()

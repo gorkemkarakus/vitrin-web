@@ -9,6 +9,7 @@ import { friendlyDbError } from '../lib/dbErrors'
 import { FIELD_TYPE_LABEL, fetchFieldDefinitions, type FieldDefinition, type FieldType } from '../lib/customerCrm'
 import styles from './customer/Crm.module.css'
 import pageStyles from './CustomerFieldsPage.module.css'
+import { askConfirm } from '../lib/dialog'
 
 const TYPE_OPTIONS = (Object.keys(FIELD_TYPE_LABEL) as FieldType[]).map((value) => ({
   value,
@@ -106,9 +107,12 @@ function CustomerFields() {
 
   async function remove(def: FieldDefinition) {
     if (
-      !window.confirm(
-        `“${def.label}” alanı silinsin mi? Müşteri kartlarında bu alana yazılmış değerler de görünmez olur.`,
-      )
+      !(await askConfirm({
+        title: 'Alan silinsin mi?',
+        message: `“${def.label}” silinir; müşteri kartlarında bu alana yazılmış değerler de görünmez olur.`,
+        confirmLabel: 'Sil',
+        danger: true,
+      }))
     )
       return
     const { error: err } = await supabase.from('customer_field_definitions').delete().eq('id', def.id)

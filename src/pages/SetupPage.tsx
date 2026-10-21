@@ -5,6 +5,7 @@ import { useAuth } from '../contexts/AuthContext'
 import PageHeader from '../components/PageHeader'
 import { loadSetupStatus, markSetupStep, setSetupFlag, type SetupStatus, type SetupStep } from '../lib/setupStatus'
 import styles from './SetupPage.module.css'
+import { showAlert } from '../lib/dialog'
 
 // Ilk kurulum sihirbazi: yeni salon icin sirali adimlar; her adim ilgili
 // ekrana goturur, donuste durum veritabanindan yeniden okunur.
@@ -41,7 +42,7 @@ export default function SetupPage() {
         await navigator.clipboard.writeText(status.link)
         setLinkMsg('Link kopyalandı')
       } catch {
-        window.alert(status.link)
+        void showAlert(status.link, 'Online randevu linkin')
       }
     }
     markSetupStep(businessId, 'yapildi', 'link')

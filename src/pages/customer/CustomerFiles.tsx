@@ -9,6 +9,7 @@ import {
   type FileKind,
 } from '../../lib/customerFiles'
 import styles from './CustomerFiles.module.css'
+import { askConfirm } from '../../lib/dialog'
 
 const KINDS = Object.keys(FILE_KIND_LABEL) as FileKind[]
 
@@ -51,7 +52,15 @@ export default function CustomerFiles({ customerId }: { customerId: string }) {
   }
 
   async function remove(f: CustomerFile) {
-    if (!window.confirm(`“${f.file_name}” silinsin mi?`)) return
+    if (
+      !(await askConfirm({
+        title: 'Dosya silinsin mi?',
+        message: `“${f.file_name}”`,
+        confirmLabel: 'Sil',
+        danger: true,
+      }))
+    )
+      return
     const err = await deleteCustomerFile(f)
     if (err) setError(err)
     void load()

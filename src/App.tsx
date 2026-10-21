@@ -10,6 +10,7 @@ import ForcePasswordPage from './pages/ForcePasswordPage'
 import { startPush } from './lib/push'
 import PushPermissionSheet from './components/PushPermissionSheet'
 import ErrorBoundary from './components/ErrorBoundary'
+import DialogHost from './components/DialogHost'
 import OfflineBanner from './components/OfflineBanner'
 import TimezoneBanner from './components/TimezoneBanner'
 import RouteFallback from './components/RouteFallback'
@@ -402,6 +403,7 @@ function App() {
   return (
     <BrowserRouter>
       <OfflineBanner />
+      <DialogHost />
       <RouteErrorBoundary>
         <Suspense fallback={<RouteFallback />}>
           <Routes>

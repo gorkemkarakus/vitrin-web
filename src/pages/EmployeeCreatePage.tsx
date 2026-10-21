@@ -14,6 +14,7 @@ import { toLocalDateString } from '../lib/date'
 import styles from './EmployeeCreatePage.module.css'
 import { HOLIDAY_LABEL } from '../lib/scheduleLabels'
 import { FIELD_LIMITS } from '../lib/fieldLimits'
+import { showAlert } from '../lib/dialog'
 
 const GENDER_OPTIONS: { value: '' | 'kadin' | 'erkek'; label: string }[] = [
   { value: '', label: 'Belirtilmesin' },
@@ -126,7 +127,7 @@ export default function EmployeeCreatePage() {
           .from('employee_permissions')
           .insert({ profile_id: newId, business_id: profile.business_id, permissions: Array.from(perms) })
         if (permErr && !/does not exist|could not find/i.test(permErr.message)) {
-          window.alert('Hesap açıldı ama yetkiler kaydedilemedi; çalışanın sayfasından tekrar seçebilirsin.')
+          void showAlert('Çalışanın sayfasından yetkileri tekrar seçebilirsin.', 'Hesap açıldı, yetkiler kaydedilemedi')
         }
       }
       if (selectedServices.size > 0) {
@@ -194,7 +195,7 @@ export default function EmployeeCreatePage() {
         await navigator.clipboard.writeText(inviteText)
         setShared('kopyalandi')
       } catch {
-        window.alert(inviteText)
+        void showAlert(inviteText, 'Bu bilgileri çalışana ilet')
       }
     }
   }

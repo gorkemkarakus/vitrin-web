@@ -6,6 +6,7 @@ import { toLocalDateString, todayLocalDateString, timeToMinutes, DAY_MS } from '
 import PageHeader from '../components/PageHeader'
 import PickerSheet from '../components/PickerSheet'
 import styles from './EmployeeLeavesPage.module.css'
+import { askConfirm } from '../lib/dialog'
 
 interface Employee {
   id: string
@@ -724,8 +725,8 @@ export default function EmployeeLeavesPage() {
                   <button
                     type="button"
                     className={styles.removeBtn}
-                    onClick={() => {
-                      if (!window.confirm('Bu izni silmek istiyor musun?')) return
+                    onClick={async () => {
+                      if (!(await askConfirm({ title: 'İzin silinsin mi?', confirmLabel: 'Sil', danger: true }))) return
                       removeLeaveDraft(r.draftId!)
                       setAutoSave(true)
                     }}
