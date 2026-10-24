@@ -3,16 +3,16 @@
 // bunlari yakalar, bkz. RELEASE_CHECKLIST.md).
 export const LEGAL_INFO = {
   brand: 'Adapptiv',
-  companyName: '[Şirket unvanı]',
-  address: '[Şirket adresi]',
+  companyName: 'Sis İnternet ve Yazılım Hizmetleri San. Tic. Ltd. Şti.',
+  address: 'Derecik Mah. 747. Sok. No: 2/3, İlkadım / Samsun',
   mersisNo: '[MERSİS numarası]',
-  contactEmail: '[iletişim e-posta adresi]',
+  contactEmail: 'info@adapptivdigital.com',
   kepAddress: '[KEP adresi]',
   // Yasal metinlerin herkese acik adresi (magaza konsollarina bu girilir).
-  webBaseUrl: '[https://alan-adi]',
+  webBaseUrl: 'https://www.adapptivdigital.com',
   // Tanitim sitesindeki veri silme sayfasi (Randevu reposu: /veri-silme, EN: /data-deletion).
   deletionPath: '/veri-silme',
-  lastUpdated: '19 Ekim 2026',
+  lastUpdated: '24 Ekim 2026',
 } as const
 
 export const PLACEHOLDER_RE = /\[[^\]]+\]/
