@@ -9,7 +9,7 @@ export const LEGAL_INFO = {
   contactEmail: 'info@adapptivdigital.com',
   kepAddress: '[KEP adresi]',
   // Yasal metinlerin herkese acik adresi (magaza konsollarina bu girilir).
-  webBaseUrl: 'https://www.adapptivdigital.com',
+  webBaseUrl: 'https://isletme.adapptivdigital.com',
   // Tanitim sitesindeki veri silme sayfasi (Randevu reposu: /veri-silme, EN: /data-deletion).
   deletionPath: '/veri-silme',
   lastUpdated: '24 Ekim 2026',
