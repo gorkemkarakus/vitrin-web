@@ -33,6 +33,17 @@
   background: var(--panel-2);
 }
 
+.botPillBtn {
+  border: none;
+  font-family: inherit;
+  cursor: pointer;
+}
+
+.botPillBtn:focus-visible {
+  outline: 2px solid var(--signal);
+  outline-offset: 2px;
+}
+
 .botDot {
   width: 7px;
   height: 7px;

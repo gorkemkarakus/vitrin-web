@@ -557,12 +557,23 @@ export default function MessagesPage() {
         back="/daha-fazla"
         title="Mesajlar"
         action={
-          botLive !== null && (
+          botLive !== null &&
+          (profile?.role === 'admin' ? (
+            // yonetici etikete dokunup WhatsApp numarasini baglar / yonetir
+            <button
+              type="button"
+              className={`${styles.botPill} ${styles.botPillBtn} ${botLive ? '' : styles.botPillOff}`}
+              onClick={() => navigate('/ayarlar/whatsapp-hesabi')}
+            >
+              <span className={styles.botDot} />
+              {botLive ? 'Bot açık' : "WhatsApp'ı bağla"}
+            </button>
+          ) : (
             <span className={botLive ? styles.botPill : `${styles.botPill} ${styles.botPillOff}`}>
               <span className={styles.botDot} />
               {botLive ? 'Bot açık' : 'Bot bağlı değil'}
             </span>
-          )
+          ))
         }
       />
 
