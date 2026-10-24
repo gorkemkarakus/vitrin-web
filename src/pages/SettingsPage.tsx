@@ -673,6 +673,13 @@ export default function SettingsPage() {
           <span className={styles.groupLabel}>Mesajlaşma</span>
           <div className={styles.group}>
             {isAdmin && row('Randevu hatırlatması', reminderLabel, () => open('hatirlatma'))}
+            {isAdmin &&
+              row(
+                'WhatsApp hesabı',
+                botLive === null ? '…' : botLive ? 'Bağlı' : 'Bağla',
+                () => navigate('/ayarlar/whatsapp-hesabi'),
+                botLive ? 'ok' : 'muted',
+              )}
             {row('WhatsApp numaram', phoneLoading ? '…' : savedPhone ? formatPhone(savedPhone) : 'Kayıtlı değil', () =>
               open('whatsapp'),
             )}

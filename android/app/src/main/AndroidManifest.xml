@@ -30,6 +30,8 @@
                 <category android:name="android.intent.category.DEFAULT" />
                 <category android:name="android.intent.category.BROWSABLE" />
                 <data android:scheme="com.adapptiv.panel" android:host="ai-ads-callback" />
+                <!-- WhatsApp baglama sayfasi (site /whatsapp-baglan) bitince buraya doner -->
+                <data android:scheme="com.adapptiv.panel" android:host="whatsapp-callback" />
             </intent-filter>
         </activity>
 

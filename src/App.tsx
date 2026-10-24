@@ -60,6 +60,7 @@ const SurveysPage = lazy(() => import('./pages/SurveysPage'))
 const SurveyPage = lazy(() => import('./public/SurveyPage'))
 const SalonNoticePage = lazy(() => import('./public/SalonNoticePage'))
 const PrivacyNoticeSettingsPage = lazy(() => import('./pages/PrivacyNoticeSettingsPage'))
+const WhatsAppConnectPage = lazy(() => import('./pages/WhatsAppConnectPage'))
 
 // adminOnly: sadece yonetici. perm: yoneticiye ya da o yetkisi acik calisana.
 // feature: paket bu ozelligi kapsamiyorsa sayfanin yerine "paketleri gor" ekrani.
@@ -199,6 +200,14 @@ function AppRoutes() {
               element={
                 <ProtectedRoute adminOnly>
                   <PrivacyNoticeSettingsPage />
+                </ProtectedRoute>
+              }
+            />
+            <Route
+              path="ayarlar/whatsapp-hesabi"
+              element={
+                <ProtectedRoute adminOnly>
+                  <WhatsAppConnectPage />
                 </ProtectedRoute>
               }
             />
