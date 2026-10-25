@@ -5,7 +5,7 @@ export const LEGAL_INFO = {
   brand: 'Adapptiv',
   companyName: 'Sis İnternet ve Yazılım Hizmetleri San. Tic. Ltd. Şti.',
   address: 'Derecik Mah. 747. Sok. No: 2/3, İlkadım / Samsun',
-  mersisNo: '[MERSİS numarası]',
+  mersisNo: '0771064202700001',
   contactEmail: 'info@adapptivdigital.com',
   kepAddress: '[KEP adresi]',
   // Yasal metinlerin herkese acik adresi (magaza konsollarina bu girilir).
